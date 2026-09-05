@@ -29,7 +29,7 @@ Players who enjoy systems-depth genres (Dota-style itemization/knowledge depth, 
 ### 1.6 Success Criteria
 - A player who clears a Sector wants to press "Descend" rather than stop.
 - A boss fight is rememberable/describable to a friend (a real "trial and error" story), not a stat check.
-- Launch is achievable with founder time + AI-assisted coding + minimal paid freelance hours (see `loot-chase-launch-roadmap.md`).
+- Launch is achievable with founder time + AI-assisted coding + minimal paid freelance hours (see `docs/launch-roadmap.md`).
 
 ---
 
@@ -79,7 +79,7 @@ Players who enjoy systems-depth genres (Dota-style itemization/knowledge depth, 
 - Wave/Sector/Gold readout, HP bar, Cosmic Cycle countdown bar (with near-end flash warning), Sector progress track with milestone icons (Gatekeeper wave, final wave).
 
 ### 2.10 Visual Style
-- "Cut Light" direction: faceted polygon silhouettes (not circles), shape complexity encodes threat tier, rim color always reflects the current Cosmic Cycle phase. Full specification in `loot-chase-visual-style-sheet.html`.
+- "Cut Light" direction: faceted polygon silhouettes (not circles), shape complexity encodes threat tier, rim color always reflects the current Cosmic Cycle phase. Full specification in `concept/visual-style-sheet.html`.
 
 ### 2.11 Non-Functional
 - Runs in-browser via Phaser 3 (CDN-loaded), no build step, portrait-oriented canvas (mobile-first).

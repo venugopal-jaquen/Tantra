@@ -1,6 +1,6 @@
 # Loot Chase — Design Document
 
-*Companion to `loot-chase-requirements.md`. This document defines milestones, engine strategy, and current project gaps.*
+*Companion to `docs/requirements.md`. This document defines milestones, engine strategy, and current project gaps.*
 
 ## 1. Milestones (testable)
 
@@ -16,7 +16,7 @@
 | M7 | Visual reskin (apply Cut Light to the real game) | 🔜 Next | Actual gameplay renders faceted shapes, not circles |
 | M8 | Narrative depth pass (optional expansion beyond banners) | 🔜 Planned | Only if desired — current light-banner narrative already meets M1-level requirements |
 | M9 | Capstone boss + perpetual post-capstone scaling | 🔜 Planned | A fixed deep milestone (e.g. Sector 6) ends the game with a real finale; Sectors continue infinitely after |
-| M10 | Platform packaging (web → Android → Steam) | 🔜 Planned | Matches `loot-chase-launch-roadmap.md` sequencing |
+| M10 | Platform packaging (web → Android → Steam) | 🔜 Planned | Matches `docs/launch-roadmap.md` sequencing |
 | M11 | Marketing & launch | 🔜 Planned | Store page live, wishlist campaign running pre-Steam |
 
 **Immediate priority: M6.** Every milestone after it benefits from being in real version control before more systems get layered on.
@@ -43,7 +43,7 @@ Correct choice for the design/mechanics-proving phase already completed — zero
 ---
 
 ## 3. Initial Builds
-**Done.** Delivered so far: `dragons-hoard-v0.1.html` (exploratory prototype), `loot-chase-v0.1.html` (full current build — sectors, bosses, Cosmic Cycle, item identity, HUD), `loot-chase-visual-style-sheet.html` (Cut Light direction), `loot-chase-launch-roadmap.md` (cost/sequencing plan).
+**Done.** Delivered so far: `dragons-hoard-v0.1.html` (exploratory prototype), `game/loot-chase-v0.1.html` (full current build — sectors, bosses, Cosmic Cycle, item identity, HUD), `concept/visual-style-sheet.html` (Cut Light direction), `docs/launch-roadmap.md` (cost/sequencing plan).
 
 ---
 
