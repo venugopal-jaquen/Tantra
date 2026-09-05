@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Loot Chase — Visual Style Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
+<style>
+  html, body {
+    margin: 0; padding: 0; background: #0d0a1a;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100%; width: 100%;
+  }
+  #game-container { box-shadow: 0 0 40px rgba(120,90,255,0.25); border-radius: 8px; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<script>
+
+const W = 420, H = 1020;
+const PHASE_COLORS = [0x4dd0ff, 0xffa63c, 0xc23cff, 0xffffff]; // Drift, Surge, Eclipse, Convergence
+const PHASE_NAMES = ['DRIFT', 'SURGE', 'ECLIPSE', 'CONVERGENCE'];
+const CRYSTAL = 0x2a2340;
+
+function regPoly(sides, r, rotDeg = 0) {
+  const rot = Phaser.Math.DegToRad(rotDeg);
+  const pts = [];
+  for (let i = 0; i < sides; i++) {
+    const ang = rot + (i / sides) * Math.PI * 2;
+    pts.push(Math.cos(ang) * r, Math.sin(ang) * r);
+  }
+  return pts;
+}
+
+class StyleSheetScene extends Phaser.Scene {
+  constructor() { super('StyleSheetScene'); }
+
+  create() {
+    this.add.rectangle(W/2, H/2, W, H, 0x0d0a1a);
+
+    this.add.text(W/2, 40, 'LOOT CHASE', { fontFamily: 'Syne', fontSize: '30px', color: '#c77dff', fontStyle: '800' }).setOrigin(0.5);
+    this.add.text(W/2, 72, 'VISUAL DIRECTION — CUT LIGHT', { fontFamily: 'Inter', fontSize: '11px', color: '#7a6fa0', fontStyle: '600' }).setOrigin(0.5).setLetterSpacing?.(2);
+
+    // ---------- PALETTE ----------
+    this.add.text(28, 108, 'PALETTE', { fontFamily: 'Inter', fontSize: '11px', color: '#9a8fc2', fontStyle: '600' });
+    const swatches = [
+      { c: 0x0d0a1a, n: 'Void' },
+      { c: 0x2a2340, n: 'Crystal' },
+      { c: 0xffd23c, n: 'Hoard' },
+      { c: 0xff5c5c, n: 'Threat' },
+      { c: 0x4dd0ff, n: 'Drift' },
+      { c: 0xc23cff, n: 'Eclipse' }
+    ];
+    swatches.forEach((s, i) => {
+      const x = 46 + i * 62;
+      this.add.rectangle(x, 145, 34, 34, s.c).setStrokeStyle(1, 0x4a4460);
+      this.add.text(x, 172, s.n, { fontFamily: 'Inter', fontSize: '9px', color: '#9a8fc2' }).setOrigin(0.5);
+    });
+
+    // ---------- PLAYER (signature: phase-reactive rim light) ----------
+    this.add.text(28, 210, 'PLAYER — THE SEEKER', { fontFamily: 'Inter', fontSize: '11px', color: '#9a8fc2', fontStyle: '600' });
+    this.playerShape = this.add.polygon(W/2, 285, regPoly(8, 34), CRYSTAL).setStrokeStyle(3, PHASE_COLORS[0]);
+    this.add.text(W/2, 340, 'a refined, evenly-cut octagon', { fontFamily: 'Inter', fontSize: '11px', color: '#e8e0ff' }).setOrigin(0.5);
+    this.add.text(W/2, 358, 'rim color always matches the current Cosmic Cycle phase', { fontFamily: 'Inter', fontSize: '10px', color: '#7a6fa0' }).setOrigin(0.5);
+    this.phaseIdx = 0;
+    this.phaseLabel = this.add.text(W/2, 285, PHASE_NAMES[0], { fontFamily: 'JetBrains Mono', fontSize: '9px', color: '#e8e0ff' }).setOrigin(0.5).setAlpha(0.7);
+    this.time.addEvent({
+      delay: 1400, loop: true,
+      callback: () => {
+        this.phaseIdx = (this.phaseIdx + 1) % 4;
+        this.playerShape.setStrokeStyle(3, PHASE_COLORS[this.phaseIdx]);
+        this.phaseLabel.setText(PHASE_NAMES[this.phaseIdx]);
+      }
+    });
+
+    // ---------- ENEMY TIERS ----------
+    this.add.text(28, 400, 'ENEMIES — THREAT BY FACET', { fontFamily: 'Inter', fontSize: '11px', color: '#9a8fc2', fontStyle: '600' });
+    const enemyY = 470;
+    const enemyX = [70, 175, 280, 385];
+
+    this.add.polygon(enemyX[0], enemyY, regPoly(3, 20, -90), 0xff5c5c);
+    this.add.text(enemyX[0], enemyY+40, 'Melee', { fontFamily: 'Inter', fontSize: '10px', color: '#e8e0ff' }).setOrigin(0.5);
+    this.add.text(enemyX[0], enemyY+54, 'raw fragment', { fontFamily: 'Inter', fontSize: '9px', color: '#7a6fa0' }).setOrigin(0.5);
+
+    this.add.polygon(enemyX[1], enemyY, regPoly(4, 22, 45), 0xffa63c).setScale(0.6, 1.5);
+    this.add.text(enemyX[1], enemyY+40, 'Ranged', { fontFamily: 'Inter', fontSize: '10px', color: '#e8e0ff' }).setOrigin(0.5);
+    this.add.text(enemyX[1], enemyY+54, 'a reaching shard', { fontFamily: 'Inter', fontSize: '9px', color: '#7a6fa0' }).setOrigin(0.5);
+
+    this.add.polygon(enemyX[2], enemyY, regPoly(6, 26), 0x8a8a9c).setStrokeStyle(2, 0xd8d8e0);
+    this.add.text(enemyX[2], enemyY+40, 'Tank', { fontFamily: 'Inter', fontSize: '10px', color: '#e8e0ff' }).setOrigin(0.5);
+    this.add.text(enemyX[2], enemyY+54, 'mass, not speed', { fontFamily: 'Inter', fontSize: '9px', color: '#7a6fa0' }).setOrigin(0.5);
+
+    const splitPts = regPoly(6, 22);
+    splitPts[0] *= 0.3; splitPts[1] *= 0.3; // caved-in facet = visible crack
+    this.add.polygon(enemyX[3], enemyY, splitPts, 0xc77dff);
+    this.add.text(enemyX[3], enemyY+40, 'Splitter', { fontFamily: 'Inter', fontSize: '10px', color: '#e8e0ff' }).setOrigin(0.5);
+    this.add.text(enemyX[3], enemyY+54, 'you can see the crack', { fontFamily: 'Inter', fontSize: '9px', color: '#7a6fa0' }).setOrigin(0.5);
+
+    // ---------- BOSSES ----------
+    this.add.text(28, 580, 'BOSSES — ESCALATING COMPLEXITY', { fontFamily: 'Inter', fontSize: '11px', color: '#9a8fc2', fontStyle: '600' });
+    const bossY = 680;
+
+    // Gatekeeper: ring + embedded phase-core gem
+    this.add.polygon(90, bossY, regPoly(8, 44), 0x000000, 0).setStrokeStyle(3, 0x9a8fc2);
+    this.add.circle(90, bossY, 12, PHASE_COLORS[2]);
+    this.add.text(90, bossY+58, 'Gatekeeper', { fontFamily: 'Inter', fontSize: '10px', color: '#e8e0ff' }).setOrigin(0.5);
+    this.add.text(90, bossY+72, 'the gem is the weakness', { fontFamily: 'Inter', fontSize: '9px', color: '#7a6fa0' }).setOrigin(0.5);
+
+    // Hoardbound: core + 3 orbiting anchor shards
+    this.add.polygon(210, bossY, regPoly(8, 32), CRYSTAL).setStrokeStyle(3, 0x9a8fc2);
+    for (let i = 0; i < 3; i++) {
+      const ang = (i/3) * Math.PI * 2;
+      this.add.polygon(210 + Math.cos(ang)*50, bossY + Math.sin(ang)*50, regPoly(3, 9), 0xffd23c);
+    }
+    this.add.text(210, bossY+58, 'Hoardbound', { fontFamily: 'Inter', fontSize: '10px', color: '#e8e0ff' }).setOrigin(0.5);
+    this.add.text(210, bossY+72, 'anchors made visible', { fontFamily: 'Inter', fontSize: '9px', color: '#7a6fa0' }).setOrigin(0.5);
+
+    // Rift Warden: irregular, unstable facets + 2 orbiters
+    const rwR = [34,24,40,20,36,26,42,22,32];
+    const rwPts = [];
+    for (let i=0;i<9;i++){ const ang=(i/9)*Math.PI*2; rwPts.push(Math.cos(ang)*rwR[i], Math.sin(ang)*rwR[i]); }
+    this.add.polygon(330, bossY, rwPts, CRYSTAL).setStrokeStyle(3, 0xffd23c);
+    this.add.circle(330, bossY, 4, 0xffd23c);
+    this.add.circle(330 + 46, bossY, 4, 0xffd23c);
+    this.add.text(330, bossY+58, 'Rift Warden', { fontFamily: 'Inter', fontSize: '10px', color: '#e8e0ff' }).setOrigin(0.5);
+    this.add.text(330, bossY+72, 'deliberately unstable', { fontFamily: 'Inter', fontSize: '9px', color: '#7a6fa0' }).setOrigin(0.5);
+
+    // ---------- LOOT + TYPE SAMPLE ----------
+    this.add.text(28, 800, 'LOOT — RARITY GEMS', { fontFamily: 'Inter', fontSize: '11px', color: '#9a8fc2', fontStyle: '600' });
+    const rarities = [{c:0xaeb4c2,n:'Common'},{c:0x4dd0ff,n:'Rare'},{c:0xc77dff,n:'Epic'}];
+    rarities.forEach((r,i) => {
+      const x = 100 + i*110;
+      this.add.rectangle(x, 850, 20, 20, r.c).setAngle(45).setStrokeStyle(2, 0xffffff, 0.6);
+      this.add.text(x, 878, r.n, { fontFamily: 'Inter', fontSize: '10px', color: '#e8e0ff' }).setOrigin(0.5);
+    });
+
+    this.add.rectangle(W/2, 940, W-40, 1, 0x3a2f66);
+    this.add.text(28, 960, 'Syne — titles & boss names', { fontFamily: 'Syne', fontSize: '16px', color: '#e8e0ff', fontStyle: '700' });
+    this.add.text(28, 988, 'Inter — HUD & body text', { fontFamily: 'Inter', fontSize: '13px', color: '#e8e0ff' });
+    this.add.text(230, 988, 'JetBrains Mono — 240g', { fontFamily: 'JetBrains Mono', fontSize: '13px', color: '#e8e0ff' });
+  }
+}
+
+const config = {
+  type: Phaser.AUTO,
+  width: W,
+  height: H,
+  parent: 'game-container',
+  backgroundColor: '#0d0a1a',
+  scene: StyleSheetScene
+};
+
+new Phaser.Game(config);
+</script>
+</body>
+</html>

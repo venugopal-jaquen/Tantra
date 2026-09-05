@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Loot Chase - v0.1 POC</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
+<style>
+  html, body {
+    margin: 0; padding: 0; background: #0d0a1a;
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; width: 100%; overflow: hidden;
+    font-family: 'Trebuchet MS', sans-serif;
+  }
+  #game-container { box-shadow: 0 0 40px rgba(120,90,255,0.25); border-radius: 8px; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<script>
+
+const W = 400, H = 700;
+const MARGIN = 30, HUD_H = 76;
+const GATEKEEPER_WAVE = 3;
+const MEGA_BOSS_SECTOR = 3;
+
+// Light narrative frame - secular, cosmic/sci-fi, delivered via short banners, never blocking gameplay
+const SECTOR_LORE = {
+  1: { name: 'THE FRACTURED APPROACH', sub: "Cracks in the Cycle spill gold and monsters alike." },
+  2: { name: 'THE CHURNING DEPTHS',    sub: "The Cycle turns faster the deeper you go." },
+  3: { name: 'THE CONVERGENCE CORE',   sub: "Something is destabilizing the Cycle itself." }
+};
+function sectorTitle(n) { return SECTOR_LORE[n] ? SECTOR_LORE[n].name : `THE ENDLESS DESCENT — SECTOR ${n}`; }
+function sectorSub(n) { return SECTOR_LORE[n] ? SECTOR_LORE[n].sub : 'Deeper than any map remembers.'; }
+
+// Persists across run restarts (in-memory only, resets on page reload)
+const session = {
+  metaGold: 0,
+  vitalityLevel: 0,   // +10% max HP per level
+  powerLevel: 0        // +8% weapon dmg per level
+};
+
+const RARITY = {
+  common: { mult: 1.0,  color: 0xaeb4c2, label: 'Common' },
+  rare:   { mult: 1.5,  color: 0x4dd0ff, label: 'Rare' },
+  epic:   { mult: 2.3,  color: 0xc77dff, label: 'Epic' }
+};
+
+function rollRarity(boost = 0) {
+  const r = Phaser.Math.Between(0,99) + boost;
+  if (r < 58) return 'common';
+  if (r < 90) return 'rare';
+  return 'epic';
+}
+
+// Item identities, Dota-recipe inspired: each effect is a distinct mechanical identity, not just a bigger number.
+// minSector gates when it starts appearing in drop pools - deeper sectors unlock stronger, more complex effects.
+const WEAPON_EFFECTS = {
+  none:        { label: '',            minSector: 1 },
+  venom:       { label: 'Venom',       minSector: 1, desc: 'Poisons on hit' },
+  vampiric:    { label: 'Vampiric',    minSector: 1, desc: 'Heals you on hit' },
+  chain:       { label: 'Chain',       minSector: 2, desc: 'Jumps to a 2nd enemy' },
+  executioner: { label: 'Executioner', minSector: 3, desc: 'Bonus vs low-HP enemies' }
+};
+const TRINKET_EFFECTS = {
+  vitality: { label: 'Vitality', minSector: 1, desc: 'Max HP boost' },
+  aegis:    { label: 'Aegis',    minSector: 1, desc: 'Periodic shield charge' },
+  thorns:   { label: 'Thorns',   minSector: 2, desc: 'Reflects contact damage' },
+  swift:    { label: 'Swift',    minSector: 2, desc: 'Movement speed boost' },
+  regen:    { label: 'Regen',    minSector: 3, desc: 'Heals over time' }
+};
+function pickWeaponEffect(sector) {
+  const pool = Object.keys(WEAPON_EFFECTS).filter(k => WEAPON_EFFECTS[k].minSector <= sector);
+  return Phaser.Utils.Array.GetRandom(pool);
+}
+function pickTrinketEffect(sector) {
+  const pool = Object.keys(TRINKET_EFFECTS).filter(k => TRINKET_EFFECTS[k].minSector <= sector);
+  return Phaser.Utils.Array.GetRandom(pool);
+}
+
+// The Cosmic Cycle: a continuous, learnable timer independent of waves.
+// Predictable on purpose - mastery comes from planning around it, not reacting blind.
+const PHASE_DEFS = {
+  drift:    { label: 'DRIFT',    color: 0x4dd0ff, duration: 20000, enemyDmgMult: 1.0,  playerDmgMult: 1.0,  spawnRateMult: 1.0, lootBoost: 0,  tint: 0x1a1533, tintAlpha: 0.6 },
+  surge:    { label: 'SURGE',    color: 0xffa63c, duration: 12000, enemyDmgMult: 1.0,  playerDmgMult: 1.0,  spawnRateMult: 0.65,lootBoost: 15, tint: 0x3a2a10, tintAlpha: 0.55 },
+  eclipse:  { label: 'ECLIPSE',  color: 0xc23cff, duration: 10000, enemyDmgMult: 1.3,  playerDmgMult: 1.3,  spawnRateMult: 1.0, lootBoost: 0,  tint: 0x28103a, tintAlpha: 0.65 },
+  convergence: { label: 'CONVERGENCE', color: 0xffffff, duration: 8000, enemyDmgMult: 1.0, playerDmgMult: 1.0, spawnRateMult: 1.0, lootBoost: 30, tint: 0x3a3a10, tintAlpha: 0.6 }
+};
+const PHASE_SEQUENCE = ['drift', 'surge', 'eclipse'];
+const CONVERGENCE_INTERVAL = 90000;
+
+const ENEMY_TYPES = {
+  melee:    { hpMult: 1.0, speedMult: 1.0, dmgMult: 1.0, radius: 12, color: 0xff5c5c },
+  ranged:   { hpMult: 0.6, speedMult: 0.85, dmgMult: 0.0, radius: 10, color: 0xffa63c,
+              isRanged: true, preferredRange: 175, fireInterval: 1500, projSpeed: 260, projDmgMult: 0.85 },
+  tank:     { hpMult: 2.6, speedMult: 0.5, dmgMult: 1.7, radius: 19, color: 0x8a8a9c },
+  splitter: { hpMult: 0.85, speedMult: 1.1, dmgMult: 0.85, radius: 11, color: 0xc77dff, splitsOnDeath: true }
+};
+
+// weighted pool of types unlocked per wave - depth ramps up as you go deeper
+function pickEnemyType(wave) {
+  const pool = [['melee', 100]];
+  if (wave >= 2) pool.push(['ranged', 40]);
+  if (wave >= 3) pool.push(['tank', 30]);
+  if (wave >= 4) pool.push(['splitter', 30]);
+  const total = pool.reduce((s,p) => s+p[1], 0);
+  let r = Phaser.Math.Between(0, total-1);
+  for (const [type, weight] of pool) {
+    if (r < weight) return type;
+    r -= weight;
+  }
+  return 'melee';
+}
+
+class LootScene extends Phaser.Scene {
+  constructor() { super('LootScene'); }
+
+  create() {
+    this.state = 'hub'; // hub -> playing -> loot -> playing... -> summary -> hub
+    this.uiObjects = [];
+
+    this.add.rectangle(W/2, H/2, W, H, 0x0d0a1a);
+    this.add.rectangle(W/2, HUD_H/2, W, HUD_H, 0x17122b);
+
+    this.hudText = this.add.text(14, 8, '', { fontSize: '13px', color: '#e8e0ff' });
+    this.weaponText = this.add.text(14, 60, '', { fontSize: '11px', color: '#9a8fc2' });
+
+    this.arenaBounds = new Phaser.Geom.Rectangle(MARGIN, HUD_H + MARGIN, W - MARGIN*2, H - HUD_H - MARGIN*2);
+    this.add.rectangle(W/2, HUD_H + (H-HUD_H)/2, W - MARGIN*2, H - HUD_H - MARGIN*2, 0x1a1533, 0.6)
+      .setStrokeStyle(1, 0x3a2f66);
+
+    // input for movement (only acts while playing)
+    this.pointerTarget = null;
+    this.input.on('pointerdown', p => { if (this.state === 'playing') this.pointerTarget = { x: p.x, y: p.y }; });
+    this.input.on('pointermove', p => { if (this.state === 'playing' && p.isDown) this.pointerTarget = { x: p.x, y: p.y }; });
+    this.input.on('pointerup', () => { this.pointerTarget = null; });
+
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.wasd = this.input.keyboard.addKeys('W,A,S,D');
+
+    this.showHub();
+  }
+
+  // ---------- UI HELPERS ----------
+  clearUI() {
+    this.uiObjects.forEach(o => o.destroy());
+    this.uiObjects = [];
+  }
+
+  makeButton(x, y, w, h, label, color, onClick) {
+    const bg = this.add.rectangle(x, y, w, h, color).setStrokeStyle(2, 0xffffff, 0.25).setInteractive({ useHandCursor: true });
+    const txt = this.add.text(x, y, label, { fontSize: '16px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    bg.on('pointerdown', onClick);
+    this.uiObjects.push(bg, txt);
+    return bg;
+  }
+
+  // ---------- HUB / SHOP ----------
+  showHub() {
+    this.clearUI();
+    this.state = 'hub';
+    this.hudText.setText('');
+
+    this.uiObjects.push(this.add.text(W/2, 130, 'LOOT CHASE', { fontSize: '30px', color: '#c77dff', fontStyle: 'bold' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, 165, 'auto-battle · collect loot · descend deeper', { fontSize: '12px', color: '#9a8fc2' }).setOrigin(0.5));
+    if (session.bestSector) {
+      this.uiObjects.push(this.add.text(W/2, 185, `Best depth reached: Sector ${session.bestSector}`, { fontSize: '11px', color: '#7a6fa0' }).setOrigin(0.5));
+    }
+
+    this.uiObjects.push(this.add.text(W/2, 230, `Hoard Gold: ${session.metaGold}`, { fontSize: '18px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
+
+    const vitCost = 50 * (session.vitalityLevel + 1);
+    const powCost = 60 * (session.powerLevel + 1);
+
+    this.uiObjects.push(this.add.text(W/2, 290, `Vitality Lv.${session.vitalityLevel}  (+${session.vitalityLevel*10}% Max HP)`, { fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
+    this.makeButton(W/2, 325, 220, 40, `Upgrade — ${vitCost}g`, session.metaGold >= vitCost ? 0x3a2f66 : 0x241d40, () => {
+      if (session.metaGold >= vitCost) { session.metaGold -= vitCost; session.vitalityLevel++; this.showHub(); }
+    });
+
+    this.uiObjects.push(this.add.text(W/2, 385, `Power Lv.${session.powerLevel}  (+${session.powerLevel*8}% Weapon Dmg)`, { fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
+    this.makeButton(W/2, 420, 220, 40, `Upgrade — ${powCost}g`, session.metaGold >= powCost ? 0x3a2f66 : 0x241d40, () => {
+      if (session.metaGold >= powCost) { session.metaGold -= powCost; session.powerLevel++; this.showHub(); }
+    });
+
+    this.makeButton(W/2, 520, 200, 54, 'START RUN', 0x7c3fff, () => this.startRun());
+    this.uiObjects.push(this.add.text(W/2, 570, 'Clear each sector, then extract or descend.', { fontSize: '12px', color: '#7a6fa0' }).setOrigin(0.5));
+  }
+
+  // ---------- RUN SETUP ----------
+  startRun() {
+    this.clearUI();
+    this.state = 'playing';
+
+    // Cosmic Cycle state - continuous, learnable timer independent of waves
+    this.phase = 'drift';
+    this.phaseTimeLeft = PHASE_DEFS.drift.duration;
+    this.convergenceCountdown = CONVERGENCE_INTERVAL;
+    this.inConvergence = false;
+    this.savedPhase = null;
+    this.savedPhaseTimeLeft = null;
+
+    // Sector/depth state - runs are no longer capped at one 5-wave block
+    this.sector = 1;
+    this.depth = 0;
+
+    // mood tint over the arena that shifts with the current phase (procedural, no art needed)
+    const arenaCy = HUD_H + (H-HUD_H)/2;
+    this.phaseTint = this.add.rectangle(W/2, arenaCy, W - MARGIN*2, H - HUD_H - MARGIN*2, PHASE_DEFS.drift.tint, PHASE_DEFS.drift.tintAlpha);
+
+    const baseMaxHP = 100 * (1 + session.vitalityLevel * 0.10);
+    this.player = {
+      x: W/2, y: HUD_H + (H-HUD_H)/2,
+      maxHp: baseMaxHP, hp: baseMaxHP,
+      speed: 200,
+      flashTimer: 0,
+      shieldCharge: 0,
+      shieldRechargeTimer: 0,
+      weapon: { name: 'Dagger', rarity: 'common', shots: 1, effect: 'none', dmg: 10 * (1 + session.powerLevel * 0.08), range: 130, atkSpeed: 500 },
+      trinket: null
+    };
+    this.playerSprite = this.add.circle(this.player.x, this.player.y, 15, 0x4dd0ff);
+    this.playerRing = this.add.circle(this.player.x, this.player.y, 15, 0xffffff, 0).setStrokeStyle(2, 0xffffff, 0.6);
+
+    // HP bar
+    const barX = 14, barY = 24, barW = W - 28, barH = 8;
+    this.hpBarBg = this.add.rectangle(barX, barY, barW, barH, 0x2a2340).setOrigin(0,0.5).setStrokeStyle(1, 0x4a4460);
+    this.hpBarFill = this.add.rectangle(barX, barY, barW, barH, 0x2fbf71).setOrigin(0,0.5);
+    this.hpBarW = barW;
+
+    // Phase bar - big, prominent, drains as the current phase runs out. This replaces the old tiny dial.
+    const pbarX = 14, pbarY = 42, pbarW = W - 28, pbarH = 14;
+    this.phaseBarBg = this.add.rectangle(pbarX, pbarY, pbarW, pbarH, 0x241d40).setOrigin(0,0.5).setStrokeStyle(1, 0x4a4460);
+    this.phaseBarFill = this.add.rectangle(pbarX, pbarY, pbarW, pbarH, PHASE_DEFS.drift.color).setOrigin(0,0.5);
+    this.phaseBarLabel = this.add.text(pbarX + pbarW/2, pbarY, 'DRIFT', { fontSize: '11px', color: '#0d0a1a', fontStyle: 'bold' }).setOrigin(0.5);
+    this.phaseBarW = pbarW;
+
+    // Progress track - Dota-lane style: waves 1-5, gate at wave 3, ancient/flag at wave 5, moving marker
+    const b = new Phaser.Geom.Rectangle(MARGIN, HUD_H + MARGIN, W - MARGIN*2, H - HUD_H - MARGIN*2);
+    const trackY = b.y + 16;
+    this.trackStartX = b.x + 34; this.trackEndX = b.right - 34;
+    this.progressLine = this.add.rectangle((this.trackStartX+this.trackEndX)/2, trackY, this.trackEndX-this.trackStartX, 3, 0x3a2f66);
+    this.progressNodes = [];
+    for (let i = 1; i <= 5; i++) {
+      const nx = this.trackStartX + (this.trackEndX-this.trackStartX) * (i-1)/4;
+      let node;
+      if (i === GATEKEEPER_WAVE) node = this.add.rectangle(nx, trackY, 13, 13, 0x241d40).setAngle(45).setStrokeStyle(2, 0xc77dff);
+      else if (i === 5) node = this.add.circle(nx, trackY, 10, 0x241d40).setStrokeStyle(2, 0xffd23c);
+      else node = this.add.circle(nx, trackY, 7, 0x241d40).setStrokeStyle(2, 0x4a4460);
+      this.progressNodes.push(node);
+    }
+    this.progressMarker = this.add.triangle(this.trackStartX, trackY+16, 0,0, -6,9, 6,9, 0xffd23c);
+    this.trackY = trackY;
+    this.sectorLabel = this.add.text(this.trackStartX - 14, trackY, 'S1', { fontSize: '10px', color: '#7a6fa0', fontStyle: 'bold' }).setOrigin(1, 0.5);
+
+    this.atkTimer = 0;
+    this.attackFx = this.add.graphics();
+
+    this.enemies = [];
+    this.enemySprites = new Map();
+    this.enemyCores = new Map();
+    this.enemyRings = new Map();
+    this.enemyShields = new Map();
+    this.goldPickups = [];
+    this.projectiles = [];
+    this.pickups = [];
+
+    this.runGold = 0;
+    this.wave = 0;
+    this.spawnQueue = [];
+    this.spawnTimer = 0;
+
+    this.showSectorBanner(this.sector);
+    this.nextWave();
+  }
+
+  showSectorBanner(n) {
+    const t1 = this.add.text(W/2, H/2-40, `SECTOR ${n}`, { fontSize: '14px', color: '#7a6fa0', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
+    const t2 = this.add.text(W/2, H/2-14, sectorTitle(n), { fontSize: '20px', color: '#c77dff', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
+    const t3 = this.add.text(W/2, H/2+16, sectorSub(n), { fontSize: '12px', color: '#9a8fc2' }).setOrigin(0.5).setAlpha(0);
+    [t1,t2,t3].forEach(t => {
+      this.tweens.add({ targets: t, alpha: 1, duration: 300, hold: 1500, yoyo: true, onComplete: () => t.destroy() });
+    });
+  }
+
+  updateProgressTrack() {
+    const idx = Math.min(this.wave, 5) - 1;
+    const nx = this.trackStartX + (this.trackEndX-this.trackStartX) * idx/4;
+    this.tweens.add({ targets: this.progressMarker, x: nx, duration: 300, ease: 'Cubic.easeOut' });
+    this.progressNodes.forEach((node, i) => {
+      if (i < this.wave-1) node.fillColor = 0x2fbf71;
+      else if (i === this.wave-1) node.fillColor = 0xffd23c;
+    });
+    if (this.sectorLabel) this.sectorLabel.setText('S' + this.sector);
+  }
+
+  nextWave() {
+    this.wave++;
+    this.depth = (this.sector-1)*5 + this.wave;
+    this.updateProgressTrack();
+
+    if (this.wave > 5) {
+      this.spawnSectorBoss();
+      const isMega = this.sector === MEGA_BOSS_SECTOR;
+      this.showToast(isMega ? 'THE RIFT WARDEN AWAKENS' : 'THE HOARDBOUND STIRS', '#ffffff');
+      return;
+    }
+
+    if (this.wave === GATEKEEPER_WAVE) {
+      this.spawnGatekeeper();
+      for (let i = 0; i < 2; i++) this.spawnQueue.push(i); // a little escort pressure alongside the boss
+      this.spawnTimer = 700;
+      this.showToast('THE GATEKEEPER AWAKENS', '#ffffff');
+      return;
+    }
+
+    const count = 3 + this.wave;
+    for (let i = 0; i < count; i++) this.spawnQueue.push(i);
+    this.spawnTimer = 0;
+  }
+
+  descend() {
+    this.clearUI();
+    this.sector++;
+    this.wave = 0;
+    this.progressNodes.forEach(node => { node.fillColor = 0x241d40; });
+    this.state = 'playing';
+    this.showSectorBanner(this.sector);
+    this.nextWave();
+  }
+
+  addHpBar(enemy) {
+    const w = Math.max(30, enemy.radius * 2.2);
+    const y = enemy.y - enemy.radius - 16;
+    enemy.hpBarW = w;
+    enemy.hpBarBg = this.add.rectangle(enemy.x, y, w, 5, 0x1a1533, 0.85).setStrokeStyle(1, 0x000000, 0.4);
+    enemy.hpBarFill = this.add.rectangle(enemy.x - w/2, y, w, 5, 0xff5c5c).setOrigin(0, 0.5);
+  }
+
+  spawnGatekeeper() {
+    const b = this.arenaBounds;
+    const x = (b.x + b.right) / 2, y = b.y + 60;
+    const weakPhase = Phaser.Utils.Array.GetRandom(PHASE_SEQUENCE);
+    const hp = 220 + this.depth * 16;
+    const enemy = {
+      id: Phaser.Math.RND.uuid(),
+      type: 'gatekeeper', isBoss: true, isSplit: false, isElite: false,
+      x, y, hp, maxHp: hp,
+      speed: 42, dmg: 0, radius: 26,
+      hitCooldown: 0, goldDrop: 60 + this.depth * 4,
+      isRanged: false,
+      weakPhase,
+      slamState: 'idle', slamTimer: 2200, slamRadius: 72
+    };
+    this.enemies.push(enemy);
+    const spr = this.add.circle(x, y, enemy.radius, 0x2a2340).setStrokeStyle(3, 0x9a8fc2);
+    const core = this.add.circle(x, y, 9, PHASE_DEFS[weakPhase].color);
+    this.tweens.add({ targets: core, alpha: 0.45, duration: 500, yoyo: true, repeat: -1 });
+    this.enemySprites.set(enemy.id, spr);
+    this.enemyCores.set(enemy.id, core);
+    this.addHpBar(enemy);
+    return enemy;
+  }
+
+  spawnSectorBoss() {
+    const isMega = this.sector === MEGA_BOSS_SECTOR;
+    const b = this.arenaBounds;
+    const x = (b.x + b.right) / 2, y = b.y + 70;
+    const hp = 420 + this.depth * 26;
+    const weakPhase = Phaser.Utils.Array.GetRandom(PHASE_SEQUENCE);
+    const enemy = {
+      id: Phaser.Math.RND.uuid(),
+      type: 'sectorboss', isBoss: true, isSectorBoss: true, isMega: !!isMega,
+      x, y, hp, maxHp: hp,
+      speed: 34, dmg: 0, radius: isMega ? 38 : 32,
+      hitCooldown: 0, goldDrop: isMega ? 260 : 130 + this.depth * 3,
+      isRanged: false,
+      weakPhase,
+      bossPhase: isMega ? 'timing' : 'shielded',
+      shieldOn: !isMega,
+      keyAddIds: [],
+      slamState: 'idle', slamTimer: 2000, slamRadius: 85
+    };
+    this.enemies.push(enemy);
+
+    const spr = this.add.circle(x, y, enemy.radius, 0x2a2340).setStrokeStyle(4, isMega ? 0xffd23c : 0x9a8fc2);
+    this.enemySprites.set(enemy.id, spr);
+    const outerRing = this.add.circle(x, y, enemy.radius + 10, 0x000000, 0).setStrokeStyle(2, isMega ? 0xc23cff : 0x4dd0ff, 0.5);
+    this.enemyRings.set(enemy.id, outerRing);
+    this.addHpBar(enemy);
+
+    if (isMega) {
+      enemy.orbiters = [ this.add.circle(x, y, 4, 0xffd23c), this.add.circle(x, y, 4, 0xffd23c) ];
+    }
+
+    if (enemy.bossPhase === 'timing') {
+      const core = this.add.circle(x, y, 11, PHASE_DEFS[weakPhase].color);
+      this.tweens.add({ targets: core, alpha: 0.45, duration: 500, yoyo: true, repeat: -1 });
+      this.enemyCores.set(enemy.id, core);
+    } else {
+      this.spawnShieldAdds(enemy);
+    }
+    return enemy;
+  }
+
+  spawnShieldAdds(boss) {
+    boss.keyAddIds = [];
+    for (let i = 0; i < 3; i++) {
+      const angle = (i / 3) * Math.PI * 2;
+      const cx = Phaser.Math.Clamp(boss.x + Math.cos(angle) * 60, this.arenaBounds.x+16, this.arenaBounds.right-16);
+      const cy = Phaser.Math.Clamp(boss.y + Math.sin(angle) * 60, this.arenaBounds.y+16, this.arenaBounds.bottom-16);
+      const add = this.spawnEnemyOfType('melee', cx, cy, this.depth, false);
+      add.isKeyAdd = true;
+      add.ownerBossId = boss.id;
+      boss.keyAddIds.push(add.id);
+      const spr = this.enemySprites.get(add.id);
+      if (spr) spr.setStrokeStyle(2, 0xffd23c);
+    }
+    const shieldGfx = this.add.circle(boss.x, boss.y, boss.radius + 6, 0xbfc4d6, 0.15).setStrokeStyle(2, 0xbfc4d6, 0.6);
+    this.enemyShields.set(boss.id, shieldGfx);
+    this.time.delayedCall(900, () => this.showToast('DESTROY THE ANCHORS', '#bfc4d6'));
+  }
+
+  transitionMegaBossToShield(boss) {
+    if (this.enemyCores.has(boss.id)) { this.enemyCores.get(boss.id).destroy(); this.enemyCores.delete(boss.id); }
+    boss.bossPhase = 'shielded';
+    boss.shieldOn = true;
+    this.showToast('THE WARDEN ANCHORS ITSELF', '#bfc4d6');
+    this.spawnShieldAdds(boss);
+  }
+
+  spawnEnemy() {
+    const type = pickEnemyType(this.depth);
+    const edge = Phaser.Math.Between(0,3);
+    const b = this.arenaBounds;
+    let x,y;
+    if (edge===0) { x = Phaser.Math.Between(b.x, b.right); y = b.y; }
+    else if (edge===1) { x = Phaser.Math.Between(b.x, b.right); y = b.bottom; }
+    else if (edge===2) { x = b.x; y = Phaser.Math.Between(b.y, b.bottom); }
+    else { x = b.right; y = Phaser.Math.Between(b.y, b.bottom); }
+
+    this.spawnEnemyOfType(type, x, y, this.depth, false);
+  }
+
+  spawnEnemyOfType(type, x, y, wave, isSplit, isElite) {
+    const def = ENEMY_TYPES[type];
+    const eliteMult = isElite ? 2.6 : 1;
+    const hp = (16 + wave * 7) * def.hpMult * (isSplit ? 0.4 : 1) * eliteMult;
+    const enemy = {
+      id: Phaser.Math.RND.uuid(),
+      type, isSplit: !!isSplit, isElite: !!isElite,
+      x, y, hp, maxHp: hp,
+      speed: (62 + wave * 5) * def.speedMult * (isSplit ? 1.15 : 1),
+      dmg: (8 + wave * 1.4) * def.dmgMult * (isElite ? 1.5 : 1),
+      radius: (isSplit ? Math.max(7, def.radius - 4) : def.radius) + (isElite ? 6 : 0),
+      hitCooldown: 0,
+      goldDrop: Math.ceil((4 + wave) * (isSplit ? 0.35 : 1) * (isElite ? 4 : 1)),
+      isRanged: !!def.isRanged,
+      preferredRange: def.preferredRange || 0,
+      fireTimer: def.fireInterval ? Phaser.Math.Between(300, def.fireInterval) : 0,
+      fireInterval: def.fireInterval || 0,
+      projSpeed: def.projSpeed || 0,
+      projDmg: def.projDmgMult ? (8 + wave * 1.4) * def.projDmgMult : 0,
+      splitsOnDeath: !!def.splitsOnDeath && !isSplit
+    };
+    this.enemies.push(enemy);
+    const spr = this.add.circle(x, y, enemy.radius, def.color);
+    if (type === 'tank' || isElite) spr.setStrokeStyle(isElite ? 3 : 2, isElite ? 0xffd23c : 0xd8d8e0);
+    this.enemySprites.set(enemy.id, spr);
+    if (type === 'tank' || isElite) this.addHpBar(enemy);
+    return enemy;
+  }
+
+  spawnElite() {
+    const b = this.arenaBounds;
+    const edge = Phaser.Math.Between(0,3);
+    let x,y;
+    if (edge===0) { x = Phaser.Math.Between(b.x, b.right); y = b.y; }
+    else if (edge===1) { x = Phaser.Math.Between(b.x, b.right); y = b.bottom; }
+    else if (edge===2) { x = b.x; y = Phaser.Math.Between(b.y, b.bottom); }
+    else { x = b.right; y = Phaser.Math.Between(b.y, b.bottom); }
+    this.spawnEnemyOfType('tank', x, y, this.depth, false, true);
+  }
+
+  // ---------- COMBAT ----------
+  // Centralizes all damage TO the player so Aegis (shield block) applies consistently everywhere,
+  // regardless of whether the source is contact, a boss slam, or a projectile.
+  damagePlayer(amount) {
+    if (this.player.shieldCharge > 0) {
+      this.player.shieldCharge--;
+      this.showToast('SHIELD BLOCKED', '#4dd0ff');
+      return false;
+    }
+    this.player.hp -= amount;
+    this.player.flashTimer = 150;
+    if (this.player.hp <= 0) {
+      this.player.hp = 0;
+      this.endRun(false);
+      return true;
+    }
+    return false;
+  }
+
+  killEnemy(enemy) {
+    const spr = this.enemySprites.get(enemy.id);
+    if (spr) spr.destroy();
+    this.enemySprites.delete(enemy.id);
+    if (this.enemyCores.has(enemy.id)) { this.enemyCores.get(enemy.id).destroy(); this.enemyCores.delete(enemy.id); }
+    if (this.enemyRings.has(enemy.id)) { this.enemyRings.get(enemy.id).destroy(); this.enemyRings.delete(enemy.id); }
+    if (this.enemyShields.has(enemy.id)) { this.enemyShields.get(enemy.id).destroy(); this.enemyShields.delete(enemy.id); }
+    if (enemy.hpBarBg) { enemy.hpBarBg.destroy(); enemy.hpBarFill.destroy(); }
+    if (enemy.orbiters) enemy.orbiters.forEach(o => o.destroy());
+    if (enemy.telegraphGfx) { enemy.telegraphGfx.destroy(); enemy.telegraphGfx = null; }
+    this.enemies.splice(this.enemies.indexOf(enemy), 1);
+
+    this.runGold += enemy.goldDrop;
+
+    // if this was a shield anchor, check whether its boss's shield should now break
+    if (enemy.isKeyAdd && enemy.ownerBossId) {
+      const boss = this.enemies.find(e => e.id === enemy.ownerBossId);
+      if (boss) {
+        boss.keyAddIds = boss.keyAddIds.filter(id => id !== enemy.id);
+        if (boss.keyAddIds.length === 0 && boss.shieldOn) {
+          boss.shieldOn = false;
+          boss.bossPhase = 'active';
+          if (this.enemyShields.has(boss.id)) { this.enemyShields.get(boss.id).destroy(); this.enemyShields.delete(boss.id); }
+          this.showToast('THE SHIELD BREAKS', '#2fbf71');
+        }
+      }
+    }
+
+    if (enemy.splitsOnDeath) {
+      for (let i = 0; i < 2; i++) {
+        const ox = enemy.x + Phaser.Math.Between(-18, 18);
+        const oy = enemy.y + Phaser.Math.Between(-18, 18);
+        this.spawnEnemyOfType('melee', ox, oy, this.depth, true);
+      }
+    }
+
+    // Sector/Mega Boss defeat: skip normal wave-clear flow entirely, trigger the Extract/Descend choice instead
+    if (enemy.isSectorBoss) {
+      this.spawnLootPickup(enemy.x, enemy.y, 'epic');
+      this.spawnLootPickup(enemy.x + 24, enemy.y, 'epic');
+      this.showToast(enemy.isMega ? 'THE RIFT WARDEN FALLS' : 'THE HOARDBOUND FALLS', '#2fbf71');
+      this.time.delayedCall(1000, () => { if (this.state === 'playing') this.showSectorClearChoice(enemy.isMega); });
+      return;
+    }
+
+    const waveJustCleared = this.enemies.length === 0 && this.spawnQueue.length === 0;
+
+    if (enemy.isBoss) {
+      this.spawnLootPickup(enemy.x, enemy.y, 'epic');
+      this.showToast('THE GATE OPENS', '#2fbf71');
+    } else if (enemy.isElite) {
+      this.spawnLootPickup(enemy.x, enemy.y, 'epic');
+    } else if (waveJustCleared || Phaser.Math.Between(0,100) < 18) {
+      this.spawnLootPickup(enemy.x, enemy.y);
+    }
+    if (waveJustCleared) this.afterWaveClear();
+  }
+
+  spawnLootPickup(x, y, forceRarity = null) {
+    const isWeapon = Phaser.Math.Between(0,1) === 0;
+    const phaseBoost = (PHASE_DEFS[this.phase] && PHASE_DEFS[this.phase].lootBoost) || 0;
+    // ~25% of non-forced drops are Unidentified - you don't know what you're getting until you grab it
+    const isMystery = !forceRarity && Phaser.Math.Between(0,100) < 25;
+    const rarity = forceRarity || rollRarity(phaseBoost + (isMystery ? 10 : 0));
+    const r = RARITY[rarity];
+
+    let item;
+    if (isWeapon) {
+      // higher rarity = chance at extra simultaneous shots (Contra-style spread), not just bigger numbers
+      let shots = 1;
+      if (rarity === 'rare') shots = Phaser.Math.Between(0,100) < 50 ? 2 : 1;
+      if (rarity === 'epic') shots = Phaser.Math.Between(2,3);
+
+      const effectKey = pickWeaponEffect(this.sector);
+      const effLabel = WEAPON_EFFECTS[effectKey].label;
+      const baseName = shots > 1 ? 'Spread Blade' : 'Blade';
+      item = {
+        type: 'weapon', rarity, shots, effect: effectKey,
+        name: (effLabel ? `${r.label} ${effLabel} ${baseName}` : `${r.label} ${baseName}`),
+        dmg: 10 * r.mult * (1 + session.powerLevel*0.08),
+        range: 130 + (r.mult-1)*20,
+        atkSpeed: Math.max(180, 500 - (r.mult-1)*90),
+        lifestealPct: effectKey === 'vampiric' ? 0.10 * r.mult : 0,
+        poisonDmg: effectKey === 'venom' ? 3 * r.mult : 0,
+        chainPct: effectKey === 'chain' ? Math.min(0.8, 0.4 * r.mult) : 0,
+        executeBonusMult: effectKey === 'executioner' ? (rarity === 'common' ? 1.5 : rarity === 'rare' ? 2 : 2.5) : 1
+      };
+    } else {
+      const effectKey = pickTrinketEffect(this.sector);
+      const effLabel = TRINKET_EFFECTS[effectKey].label;
+      item = {
+        type: 'trinket', rarity, effect: effectKey,
+        name: `${r.label} ${effLabel}`,
+        hpBonus: effectKey === 'vitality' ? 20 * r.mult : 0,
+        rechargeMs: effectKey === 'aegis' ? Math.round(10000 / r.mult) : 0,
+        reflectPct: effectKey === 'thorns' ? Math.min(0.6, 0.2 * r.mult) : 0,
+        speedBonus: effectKey === 'swift' ? Math.round(25 * r.mult) : 0,
+        regenPerSec: effectKey === 'regen' ? +(1.5 * r.mult).toFixed(2) : 0
+      };
+    }
+
+    const px = Phaser.Math.Clamp(x, this.arenaBounds.x+16, this.arenaBounds.right-16);
+    const py = Phaser.Math.Clamp(y, this.arenaBounds.y+16, this.arenaBounds.bottom-16);
+
+    const dispColor = isMystery ? 0xbfc4d6 : r.color;
+    const sprite = this.add.rectangle(px, py, 16, 16, dispColor).setAngle(45).setStrokeStyle(2, 0xffffff, isMystery ? 0.9 : 0.6);
+    this.tweens.add({ targets: sprite, y: py-6, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    if (isMystery) {
+      this.tweens.add({ targets: sprite, alpha: 0.45, duration: 350, yoyo: true, repeat: -1 });
+    }
+    const label = this.add.text(px, py-20, isMystery ? '???' : item.name, { fontSize: '9px', color: isMystery ? '#bfc4d6' : '#e8e0ff' }).setOrigin(0.5);
+
+    this.pickups.push({ x: px, y: py, item, sprite, label, isMystery });
+  }
+
+  showToast(msg, color) {
+    const t = this.add.text(W/2, HUD_H + 20, msg, { fontSize: '14px', color, fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
+    this.tweens.add({
+      targets: t, alpha: 1, y: HUD_H + 8, duration: 200, yoyo: true, hold: 700,
+      onComplete: () => t.destroy()
+    });
+  }
+
+  applyLoot(item, isMystery) {
+    const tag = isMystery ? 'Mystery Revealed: ' : '';
+    if (item.type === 'weapon') {
+      this.player.weapon = item;
+      this.showToast(`${tag}Equipped: ${item.name}`, isMystery ? '#ffd23c' : '#4dd0ff');
+    } else {
+      const oldHpBonus = (this.player.trinket && this.player.trinket.hpBonus) || 0;
+      this.player.trinket = item;
+      this.player.maxHp += (item.hpBonus - oldHpBonus);
+      this.player.hp = Math.min(this.player.maxHp, this.player.hp + (item.hpBonus - oldHpBonus));
+      this.player.shieldCharge = 0;
+      this.player.shieldRechargeTimer = item.effect === 'aegis' ? item.rechargeMs : 0;
+      this.showToast(`${tag}Equipped: ${item.name}`, isMystery ? '#ffd23c' : '#2fbf71');
+    }
+  }
+
+  afterWaveClear() {
+    this.runGold += 15 + this.depth * 4;
+    this.time.delayedCall(400, () => { if (this.state === 'playing') this.nextWave(); });
+  }
+
+  showSectorClearChoice(isMega) {
+    this.state = 'sectorChoice';
+    this.clearUI();
+    this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 300, 0x17122b, 0.97).setStrokeStyle(2, 0x2fbf71));
+    this.uiObjects.push(this.add.text(W/2, H/2-115, isMega ? 'THE RIFT WARDEN FALLS' : 'SECTOR CLEARED', { fontSize: '19px', color: '#2fbf71', fontStyle: 'bold' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-80, `Sector ${this.sector} complete`, { fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-55, `Gold banked so far: ${this.runGold}`, { fontSize: '13px', color: '#ffd23c' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-15,
+      'Extract now and keep it all safe,\nor descend for tougher fights\nand better loot.',
+      { fontSize: '12px', color: '#9a8fc2', align: 'center', lineSpacing: 4 }).setOrigin(0.5));
+
+    this.makeButton(W/2, H/2+65, 230, 46, 'Extract — Bank & End Run', 0x3a2f66, () => this.endRun(true));
+    this.makeButton(W/2, H/2+120, 230, 46, `Descend to Sector ${this.sector+1}`, 0x7c3fff, () => this.descend());
+  }
+
+  // ---------- END OF RUN ----------
+  endRun(victory) {
+    this.state = 'summary';
+    session.metaGold += this.runGold;
+    if (this.sector > (session.bestSector || 0)) session.bestSector = this.sector;
+
+    this.clearUI();
+    this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 280, 0x17122b, 0.97).setStrokeStyle(2, victory ? 0x2fbf71 : 0xff5c5c));
+    this.uiObjects.push(this.add.text(W/2, H/2-100, victory ? 'EXTRACTED SAFELY' : 'YOU FELL', { fontSize: '24px', color: victory ? '#2fbf71' : '#ff5c5c', fontStyle: 'bold' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-55, `Sector reached: ${this.sector}`, { fontSize: '15px', color: '#e8e0ff' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-25, `Gold earned: ${this.runGold}`, { fontSize: '15px', color: '#ffd23c' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2+5, `Hoard total: ${session.metaGold}`, { fontSize: '13px', color: '#9a8fc2' }).setOrigin(0.5));
+
+    this.makeButton(W/2, H/2+80, 200, 48, 'Continue to Hub', 0x7c3fff, () => {
+      // clean up run visuals
+      if (this.playerSprite) this.playerSprite.destroy();
+      if (this.playerRing) this.playerRing.destroy();
+      if (this.hpBarBg) this.hpBarBg.destroy();
+      if (this.hpBarFill) this.hpBarFill.destroy();
+      if (this.phaseTint) this.phaseTint.destroy();
+      if (this.phaseBarBg) this.phaseBarBg.destroy();
+      if (this.phaseBarFill) this.phaseBarFill.destroy();
+      if (this.phaseBarLabel) this.phaseBarLabel.destroy();
+      if (this.progressLine) this.progressLine.destroy();
+      if (this.progressNodes) this.progressNodes.forEach(n => n.destroy());
+      if (this.progressMarker) this.progressMarker.destroy();
+      if (this.sectorLabel) this.sectorLabel.destroy();
+      if (this.weaponText) this.weaponText.setText('');
+      this.enemySprites.forEach(s => s.destroy());
+      if (this.enemyCores) this.enemyCores.forEach(c => c.destroy());
+      if (this.enemyRings) this.enemyRings.forEach(r => r.destroy());
+      if (this.enemyShields) this.enemyShields.forEach(s => s.destroy());
+      if (this.enemies) this.enemies.forEach(e => {
+        if (e.telegraphGfx) e.telegraphGfx.destroy();
+        if (e.orbiters) e.orbiters.forEach(o => o.destroy());
+        if (e.hpBarBg) { e.hpBarBg.destroy(); e.hpBarFill.destroy(); }
+      });
+      this.goldPickups.forEach(g => g.sprite && g.sprite.destroy());
+      if (this.projectiles) this.projectiles.forEach(p => p.sprite && p.sprite.destroy());
+      if (this.pickups) this.pickups.forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); });
+      this.showHub();
+    });
+  }
+
+  // ---------- MAIN LOOP ----------
+  update(time, delta) {
+    if (this.state !== 'playing') return;
+    const dt = delta / 1000;
+
+    // --- Cosmic Cycle: advance phase timer, trigger Convergence on schedule ---
+    if (!this.inConvergence) {
+      this.convergenceCountdown -= delta;
+      this.phaseTimeLeft -= delta;
+      if (this.convergenceCountdown <= 0) {
+        this.savedPhase = this.phase;
+        this.savedPhaseTimeLeft = this.phaseTimeLeft;
+        this.inConvergence = true;
+        this.phase = 'convergence';
+        this.phaseTimeLeft = PHASE_DEFS.convergence.duration;
+        this.convergenceCountdown = CONVERGENCE_INTERVAL;
+        this.showToast('CONVERGENCE — an elite approaches', '#ffffff');
+        this.spawnElite();
+      } else if (this.phaseTimeLeft <= 0) {
+        const idx = (PHASE_SEQUENCE.indexOf(this.phase) + 1) % PHASE_SEQUENCE.length;
+        this.phase = PHASE_SEQUENCE[idx];
+        this.phaseTimeLeft = PHASE_DEFS[this.phase].duration;
+        this.showToast(`${PHASE_DEFS[this.phase].label} begins`, '#' + PHASE_DEFS[this.phase].color.toString(16).padStart(6,'0'));
+      }
+    } else {
+      this.phaseTimeLeft -= delta;
+      if (this.phaseTimeLeft <= 0) {
+        this.inConvergence = false;
+        this.phase = this.savedPhase;
+        this.phaseTimeLeft = this.savedPhaseTimeLeft > 0 ? this.savedPhaseTimeLeft : PHASE_DEFS[this.phase].duration;
+        this.showToast(`${PHASE_DEFS[this.phase].label} resumes`, '#' + PHASE_DEFS[this.phase].color.toString(16).padStart(6,'0'));
+      }
+    }
+
+    // phase visuals - big countdown bar that drains as the phase runs out, flashes as a warning near the end
+    const pdef = PHASE_DEFS[this.phase];
+    this.phaseTint.fillColor = pdef.tint;
+    this.phaseTint.fillAlpha = pdef.tintAlpha;
+    const barFrac = Phaser.Math.Clamp(this.phaseTimeLeft / pdef.duration, 0, 1);
+    this.phaseBarFill.width = this.phaseBarW * barFrac;
+    this.phaseBarFill.fillColor = pdef.color;
+    this.phaseBarLabel.setText(pdef.label);
+    if (!this.inConvergence && this.phaseTimeLeft < 2500) {
+      this.phaseBarFill.setAlpha(Math.sin(time/60) > 0 ? 1 : 0.3);
+      this.phaseBarLabel.setAlpha(Math.sin(time/60) > 0 ? 1 : 0.3);
+    } else {
+      this.phaseBarFill.setAlpha(1);
+      this.phaseBarLabel.setAlpha(1);
+    }
+
+    // --- movement ---
+    const swiftBonus = (this.player.trinket && this.player.trinket.effect === 'swift') ? this.player.trinket.speedBonus : 0;
+    const moveSpeed = this.player.speed + swiftBonus;
+    if (this.pointerTarget) {
+      // tight follow: snaps toward touch point fast, no drifty acceleration. Swift trinket makes this snappier too.
+      const lerpFactor = Math.min(0.9, 0.45 * (moveSpeed / this.player.speed));
+      this.player.x = Phaser.Math.Linear(this.player.x, this.pointerTarget.x, lerpFactor);
+      this.player.y = Phaser.Math.Linear(this.player.y, this.pointerTarget.y, lerpFactor);
+    } else {
+      let dx = 0, dy = 0;
+      if (this.cursors.left.isDown || this.wasd.A.isDown) dx -= 1;
+      if (this.cursors.right.isDown || this.wasd.D.isDown) dx += 1;
+      if (this.cursors.up.isDown || this.wasd.W.isDown) dy -= 1;
+      if (this.cursors.down.isDown || this.wasd.S.isDown) dy += 1;
+      const len = Math.hypot(dx,dy);
+      if (len > 0) { dx /= len; dy /= len; }
+      this.player.x += dx * moveSpeed * dt;
+      this.player.y += dy * moveSpeed * dt;
+    }
+    this.player.x = Phaser.Math.Clamp(this.player.x, this.arenaBounds.x+15, this.arenaBounds.right-15);
+    this.player.y = Phaser.Math.Clamp(this.player.y, this.arenaBounds.y+15, this.arenaBounds.bottom-15);
+
+    // block walking through enemies - push the player back out of any overlap
+    for (const enemy of this.enemies) {
+      const edx2 = this.player.x - enemy.x, edy2 = this.player.y - enemy.y;
+      const edist2 = Math.hypot(edx2, edy2);
+      const minDist = 15 + enemy.radius;
+      if (edist2 < minDist) {
+        if (edist2 > 0.01) {
+          this.player.x += (edx2/edist2) * (minDist - edist2);
+          this.player.y += (edy2/edist2) * (minDist - edist2);
+        } else {
+          this.player.x += minDist;
+        }
+      }
+    }
+    this.player.x = Phaser.Math.Clamp(this.player.x, this.arenaBounds.x+15, this.arenaBounds.right-15);
+    this.player.y = Phaser.Math.Clamp(this.player.y, this.arenaBounds.y+15, this.arenaBounds.bottom-15);
+
+    this.playerSprite.setPosition(this.player.x, this.player.y);
+    this.playerRing.setPosition(this.player.x, this.player.y);
+
+    if (this.player.flashTimer > 0) {
+      this.player.flashTimer -= delta;
+      this.playerSprite.setAlpha(Math.sin(time/40) > 0 ? 1 : 0.4);
+    } else {
+      this.playerSprite.setAlpha(1);
+    }
+
+    // --- spawn queue ---
+    if (this.spawnQueue.length > 0) {
+      this.spawnTimer -= delta;
+      if (this.spawnTimer <= 0) {
+        this.spawnQueue.pop();
+        this.spawnEnemy();
+        this.spawnTimer = 380 * PHASE_DEFS[this.phase].spawnRateMult;
+      }
+    }
+
+    // --- enemies move + attack (behavior varies by type) ---
+    for (const enemy of [...this.enemies]) {
+      const edx = this.player.x - enemy.x, edy = this.player.y - enemy.y;
+      const edist = Math.hypot(edx, edy) || 1;
+
+      if (enemy.isRanged) {
+        // kite: close in if too far, back off if too close, hold and fire at preferred range
+        const diff = edist - enemy.preferredRange;
+        if (Math.abs(diff) > 12) {
+          const dir = diff > 0 ? 1 : -1;
+          enemy.x += (edx/edist) * dir * enemy.speed * dt;
+          enemy.y += (edy/edist) * dir * enemy.speed * dt;
+        }
+        enemy.fireTimer -= delta;
+        if (enemy.fireTimer <= 0 && edist <= enemy.preferredRange + 60) {
+          enemy.fireTimer = enemy.fireInterval;
+          const pdx = edx/edist, pdy = edy/edist;
+          const proj = {
+            x: enemy.x, y: enemy.y,
+            vx: pdx * enemy.projSpeed, vy: pdy * enemy.projSpeed,
+            dmg: enemy.projDmg,
+            sprite: this.add.circle(enemy.x, enemy.y, 5, 0xffa63c)
+          };
+          this.projectiles.push(proj);
+        }
+      } else if (enemy.isBoss) {
+        // Boss AI: while shielded, stands still (puzzle beat); once active, chases and telegraphs an AoE slam
+        if (enemy.shieldOn) {
+          const shieldGfx = this.enemyShields.get(enemy.id);
+          if (shieldGfx) shieldGfx.setPosition(enemy.x, enemy.y);
+        } else {
+          enemy.x += (edx/edist) * enemy.speed * dt;
+          enemy.y += (edy/edist) * enemy.speed * dt;
+
+          enemy.slamTimer -= delta;
+          if (enemy.slamState === 'idle' && enemy.slamTimer <= 0) {
+            enemy.slamState = 'telegraph';
+            enemy.slamTimer = 700;
+            enemy.telegraphGfx = this.add.circle(enemy.x, enemy.y, enemy.slamRadius, 0xff5c5c, 0.18).setStrokeStyle(2, 0xff5c5c, 0.75);
+          } else if (enemy.slamState === 'telegraph') {
+            if (enemy.telegraphGfx) enemy.telegraphGfx.setPosition(enemy.x, enemy.y);
+            if (enemy.slamTimer <= 0) {
+              const slamDist = Math.hypot(this.player.x-enemy.x, this.player.y-enemy.y);
+              if (slamDist <= enemy.slamRadius) {
+                if (this.damagePlayer((enemy.isSectorBoss ? 28 : 22) * PHASE_DEFS[this.phase].enemyDmgMult)) return;
+              }
+              if (enemy.telegraphGfx) { enemy.telegraphGfx.destroy(); enemy.telegraphGfx = null; }
+              enemy.slamState = 'idle';
+              enemy.slamTimer = 2200;
+            }
+          }
+        }
+        const core = this.enemyCores.get(enemy.id);
+        if (core) core.setPosition(enemy.x, enemy.y);
+        const ring = this.enemyRings.get(enemy.id);
+        if (ring) ring.setPosition(enemy.x, enemy.y);
+        if (enemy.orbiters) {
+          enemy.orbiters.forEach((o, idx) => {
+            const ang = (time/500) + idx*Math.PI;
+            o.setPosition(enemy.x + Math.cos(ang)*(enemy.radius+16), enemy.y + Math.sin(ang)*(enemy.radius+16));
+          });
+        }
+      } else {
+        // melee / tank / splitter: chase and hit on contact
+        enemy.x += (edx/edist) * enemy.speed * dt;
+        enemy.y += (edy/edist) * enemy.speed * dt;
+        if (edist < (15 + enemy.radius) && enemy.hitCooldown <= 0) {
+          enemy.hitCooldown = 420;
+          if (this.damagePlayer(enemy.dmg * PHASE_DEFS[this.phase].enemyDmgMult)) return;
+          if (this.player.trinket && this.player.trinket.effect === 'thorns') {
+            enemy.hp -= enemy.dmg * this.player.trinket.reflectPct;
+            if (enemy.hp <= 0) { this.killEnemy(enemy); continue; }
+          }
+        }
+      }
+      enemy.hitCooldown -= delta;
+
+      // venom poison ticks - applies regardless of enemy type
+      if (enemy.poison && enemy.poison.ticksLeft > 0) {
+        enemy.poison.tickTimer -= delta;
+        if (enemy.poison.tickTimer <= 0) {
+          enemy.hp -= enemy.poison.dmgPerTick;
+          enemy.poison.ticksLeft--;
+          enemy.poison.tickTimer = 500;
+          if (enemy.hp <= 0) { this.killEnemy(enemy); continue; }
+        }
+      }
+
+      const spr = this.enemySprites.get(enemy.id);
+      if (spr) spr.setPosition(enemy.x, enemy.y);
+
+      if (enemy.hpBarBg) {
+        const by = enemy.y - enemy.radius - 16;
+        enemy.hpBarBg.setPosition(enemy.x, by);
+        enemy.hpBarFill.x = enemy.x - enemy.hpBarW/2;
+        enemy.hpBarFill.y = by;
+        enemy.hpBarFill.width = enemy.hpBarW * Math.max(0, enemy.hp / enemy.maxHp);
+      }
+    }
+
+    // --- projectiles ---
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const p = this.projectiles[i];
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.sprite.setPosition(p.x, p.y);
+
+      const pdist = Math.hypot(p.x - this.player.x, p.y - this.player.y);
+      const offscreen = p.x < 0 || p.x > W || p.y < 0 || p.y > H;
+
+      if (pdist < 18) {
+        const died = this.damagePlayer(p.dmg * PHASE_DEFS[this.phase].enemyDmgMult);
+        p.sprite.destroy();
+        this.projectiles.splice(i,1);
+        if (died) return;
+      } else if (offscreen) {
+        p.sprite.destroy();
+        this.projectiles.splice(i,1);
+      }
+    }
+
+    // --- auto attack (fires at up to `shots` nearest enemies in range - spread weapons hit multiple) ---
+    this.atkTimer -= delta;
+    if (this.atkTimer <= 0 && this.enemies.length > 0) {
+      const inRange = this.enemies
+        .map(e => ({ e, d: Math.hypot(e.x-this.player.x, e.y-this.player.y) }))
+        .filter(o => o.d <= this.player.weapon.range)
+        .sort((a,b) => a.d - b.d)
+        .slice(0, this.player.weapon.shots || 1);
+
+      if (inRange.length) {
+        this.atkTimer = this.player.weapon.atkSpeed;
+        this.attackFx.clear();
+        this.attackFx.lineStyle(2, 0x4dd0ff, 0.8);
+        inRange.forEach(({e}) => {
+          this.attackFx.lineBetween(this.player.x, this.player.y, e.x, e.y);
+          if (e.shieldOn) return; // shielded bosses take no damage until their anchors are destroyed
+          let dmg = this.player.weapon.dmg * PHASE_DEFS[this.phase].playerDmgMult;
+          if (e.isBoss && (!e.isSectorBoss || e.bossPhase === 'timing')) {
+            dmg *= (this.phase === e.weakPhase) ? 1 : 0.12;
+          }
+          if (this.player.weapon.effect === 'executioner' && e.hp/e.maxHp <= 0.25) {
+            dmg *= this.player.weapon.executeBonusMult;
+          }
+          e.hp -= dmg;
+          if (this.player.weapon.effect === 'vampiric') {
+            this.player.hp = Math.min(this.player.maxHp, this.player.hp + dmg * this.player.weapon.lifestealPct);
+          }
+          if (this.player.weapon.effect === 'venom') {
+            e.poison = { dmgPerTick: this.player.weapon.poisonDmg, ticksLeft: 4, tickTimer: 500 };
+          }
+        });
+        // Chain: after primary hits land, jump to one nearby enemy not already hit
+        if (this.player.weapon.effect === 'chain') {
+          const primaryIds = new Set(inRange.map(o => o.e.id));
+          inRange.forEach(({e: primary}) => {
+            let secondary = null, sd = 90;
+            for (const cand of this.enemies) {
+              if (primaryIds.has(cand.id) || cand.shieldOn) continue;
+              const d = Math.hypot(cand.x-primary.x, cand.y-primary.y);
+              if (d <= sd) { secondary = cand; sd = d; }
+            }
+            if (secondary) {
+              this.attackFx.lineBetween(primary.x, primary.y, secondary.x, secondary.y);
+              secondary.hp -= this.player.weapon.dmg * PHASE_DEFS[this.phase].playerDmgMult * this.player.weapon.chainPct;
+              if (secondary.hp <= 0) this.killEnemy(secondary);
+            }
+          });
+        }
+        this.time.delayedCall(80, () => this.attackFx.clear());
+        inRange.forEach(({e}) => { if (e.hp <= 0) this.killEnemy(e); });
+        inRange.forEach(({e}) => {
+          if (e.isMega && e.bossPhase === 'timing' && e.hp > 0 && e.hp <= e.maxHp * 0.55) {
+            this.transitionMegaBossToShield(e);
+          }
+        });
+      } else {
+        this.atkTimer = 100;
+      }
+    }
+
+    // --- loot pickups (walk over to equip, no pause) ---
+    for (let i = this.pickups.length - 1; i >= 0; i--) {
+      const pk = this.pickups[i];
+      if (Math.hypot(pk.x - this.player.x, pk.y - this.player.y) < 26) {
+        this.applyLoot(pk.item, pk.isMystery);
+        pk.sprite.destroy();
+        pk.label.destroy();
+        this.pickups.splice(i,1);
+      }
+    }
+
+    // --- passive trinket effects: Aegis recharge, Regen healing ---
+    if (this.player.trinket) {
+      if (this.player.trinket.effect === 'aegis') {
+        this.player.shieldRechargeTimer -= delta;
+        if (this.player.shieldRechargeTimer <= 0 && this.player.shieldCharge < 1) {
+          this.player.shieldCharge = 1;
+          this.player.shieldRechargeTimer = this.player.trinket.rechargeMs;
+          this.showToast('SHIELD READY', '#4dd0ff');
+        }
+      } else if (this.player.trinket.effect === 'regen') {
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.trinket.regenPerSec * dt);
+      }
+    }
+
+    // --- HP bar update ---
+    const hpPct = Math.max(0, this.player.hp/this.player.maxHp);
+    this.hpBarFill.width = this.hpBarW * hpPct;
+    this.hpBarFill.fillColor = hpPct > 0.5 ? 0x2fbf71 : (hpPct > 0.25 ? 0xffd23c : 0xff5c5c);
+
+    // --- HUD text ---
+    this.hudText.setText(`Sector ${this.sector} · Wave ${Math.min(this.wave,5)}/5   Gold: ${this.runGold}`);
+    this.weaponText.setText(`${this.player.weapon.name}${this.player.weapon.shots>1 ? ' x'+this.player.weapon.shots : ''}   ${Math.ceil(this.player.hp)}/${Math.ceil(this.player.maxHp)} HP`);
+  }
+}
+
+const config = {
+  type: Phaser.AUTO,
+  width: W,
+  height: H,
+  parent: 'game-container',
+  backgroundColor: '#0d0a1a',
+  physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+  scene: LootScene
+};
+
+new Phaser.Game(config);
+</script>
+</body>
+</html>

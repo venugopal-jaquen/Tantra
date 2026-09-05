@@ -1,0 +1,4 @@
+# Normalize line endings: LF in the repo, native in working copies.
+* text=auto eol=lf
+*.html text eol=lf
+*.md   text eol=lf
