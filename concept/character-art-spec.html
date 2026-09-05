@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loot Chase — Character Art Spec</title>
+<style>
+  :root {
+    --void:#0d0a1a; --panel:#17122b; --plate:#1a1533; --edge:#3a2f66;
+    --ink:#e8e0ff; --muted:#9a8fc2; --dim:#7a6fa0;
+    --drift:#4dd0ff; --surge:#ffa63c; --eclipse:#c23cff;
+    --gold:#ffd23c; --threat:#ff5c5c; --steel:#d8d8e0; --split:#c77dff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; background:var(--void); color:var(--ink);
+    font:14px/1.65 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 40px 24px 80px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size:32px; letter-spacing:.06em; color:var(--split); margin:0 0 4px; font-weight:800; }
+  .sub { color:var(--dim); font-size:11px; letter-spacing:.22em; text-transform:uppercase; margin-bottom:36px; }
+  h2 {
+    font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted);
+    border-bottom:1px solid var(--edge); padding-bottom:8px; margin:48px 0 20px; font-weight:600;
+  }
+  p.lede { color:var(--muted); max-width:74ch; }
+  code, .mono { font-family:'JetBrains Mono', ui-monospace, Consolas, monospace; }
+
+  .anchor {
+    background:var(--panel); border:1px solid var(--edge); border-radius:8px;
+    padding:16px 18px; font-size:12.5px; line-height:1.7; color:#cfc6ee;
+    font-family:'JetBrains Mono', ui-monospace, Consolas, monospace; white-space:pre-wrap;
+  }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(330px, 1fr)); gap:18px; }
+  .card {
+    background:var(--panel); border:1px solid var(--edge); border-radius:10px;
+    padding:18px; display:flex; flex-direction:column;
+  }
+  .art {
+    background:radial-gradient(circle at 50% 45%, var(--plate), #100c20 70%);
+    border-radius:8px; display:grid; place-items:center; padding:10px; margin-bottom:14px;
+  }
+  .art svg { width:100%; height:auto; max-width:190px; display:block; }
+  .name { font-size:17px; font-weight:700; margin:0 0 2px; }
+  .role { font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-bottom:10px; }
+  .desc { font-size:13px; color:var(--muted); margin:0 0 12px; }
+  .stats { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .chip {
+    font-family:'JetBrains Mono', ui-monospace, Consolas, monospace; font-size:10.5px;
+    background:var(--plate); border:1px solid var(--edge); border-radius:4px;
+    padding:3px 7px; color:var(--muted);
+  }
+  .swatch { width:9px; height:9px; border-radius:2px; display:inline-block; margin-right:5px; vertical-align:-1px; }
+  details { margin-top:auto; border-top:1px solid var(--edge); padding-top:10px; }
+  summary {
+    cursor:pointer; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--dim); font-weight:600; list-style:none;
+  }
+  summary::-webkit-details-marker { display:none; }
+  summary::before { content:'\25B8\00a0'; }
+  details[open] summary::before { content:'\25BE\00a0'; }
+  .prompt {
+    margin-top:10px; background:var(--void); border:1px solid var(--edge); border-radius:6px;
+    padding:11px 12px; font-family:'JetBrains Mono', ui-monospace, Consolas, monospace;
+    font-size:11.5px; line-height:1.65; color:#bdb2e0; white-space:pre-wrap;
+  }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:6px; }
+  th, td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--edge); }
+  th { color:var(--muted); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; }
+  td { color:var(--ink); }
+  td.m { font-family:'JetBrains Mono', ui-monospace, Consolas, monospace; font-size:12px; color:var(--muted); }
+  .bgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:18px; }
+  .bcard { background:var(--panel); border:1px solid var(--edge); border-radius:10px; overflow:hidden; }
+  .bcard svg { display:block; width:100%; height:auto; }
+  .bmeta { padding:14px 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>LOOT CHASE</h1>
+  <div class="sub">Character Art Spec — Custom Cosmic Direction</div>
+
+  <p class="lede">
+    Replaces the abstract "Cut Light" polygons with entities that have real identity, while staying
+    inside requirements §1.2.5 — cosmic and astronomical, deliberately secular. No demons, no undead,
+    no mythological or religious forms. Every creature here is a <em>structure</em> the Cycle produced:
+    debris, lenses, masses, fractures.
+  </p>
+  <p class="lede">
+    Each card carries the vector concept, the in-game stats it must match, and a generation prompt for
+    producing a painted version later. The vector art is production-usable as-is.
+  </p>
+
+  <h2>Shared Style Anchor</h2>
+  <p class="lede">Prefix every generation prompt with this block. Consistency across the roster comes from
+  reusing it verbatim — changing it per entity is what makes a set look mismatched.</p>
+  <div class="anchor">top-down 2D game sprite, flat vector illustration, faceted geometric forms,
+strong single-source rim lighting, cosmic / astronomy science-fiction,
+strictly secular — no religious, occult, demonic or mythological symbolism,
+palette limited to deep indigo #0d0a1a, plate violet #2a2340, and one accent hue,
+clean readable silhouette at 64x64, centered, transparent background, no text, no UI</div>
+
+  <h2>Player &amp; Enemy Roster</h2>
+  <div class="grid">
+
+    <div class="card">
+      <div class="art">
+        <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="60" cy="128" rx="30" ry="6" fill="#4dd0ff" opacity=".14"/>
+          <path d="M60 42 L94 120 L60 109 L26 120 Z" fill="#241d40" stroke="#4dd0ff" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M60 47 L79 71 L73 109 L47 109 L41 71 Z" fill="#2a2340" stroke="#4dd0ff" stroke-width="2" stroke-linejoin="round"/>
+          <polygon points="60,65 69,77 60,90 51,77" fill="#4dd0ff"/>
+          <polygon points="60,70 64,77 60,84 56,77" fill="#0d0a1a" opacity=".55"/>
+          <path d="M60 13 L77 28 L77 45 L60 53 L43 45 L43 28 Z" fill="#2a2340" stroke="#4dd0ff" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M47 32 L73 32 L69 43 L51 43 Z" fill="#4dd0ff"/>
+          <path d="M47 32 L73 32 L71 36 L49 36 Z" fill="#ffffff" opacity=".45"/>
+        </svg>
+      </div>
+      <p class="name">The Seeker</p>
+      <div class="role">Player</div>
+      <p class="desc">A diver in sealed plate armour, cut in even facets — the only deliberate, symmetrical
+      form in the game. Everything else is debris; the Seeker is <em>made</em>. The visor and chest core
+      re-tint to the live Cosmic Cycle phase, so the player reads their own timing state off their own body.</p>
+      <div class="stats">
+        <span class="chip"><span class="swatch" style="background:#4dd0ff"></span>#4dd0ff</span>
+        <span class="chip">radius 15</span>
+        <span class="chip">rim = live phase</span>
+      </div>
+      <details>
+        <summary>Generation prompt</summary>
+        <div class="prompt">[STYLE ANCHOR] + a lone armoured void-diver explorer, sealed faceted helmet with
+a glowing horizontal visor slit, layered cloak falling in sharp angular planes,
+a diamond-shaped power core set in the chest, cyan #4dd0ff rim light,
+poised and symmetrical, heroic but small-scale, three-quarter top-down view</div>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="art">
+        <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="60" cy="122" rx="22" ry="5" fill="#ff5c5c" opacity=".13"/>
+          <path d="M60 26 L90 96 L60 82 L30 96 Z" fill="#33202c" stroke="#ff5c5c" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M60 40 L74 78 L60 71 L46 78 Z" fill="#4a2431" stroke="#ff5c5c" stroke-width="1.4" stroke-linejoin="round" opacity=".9"/>
+          <polygon points="60,58 67,72 60,80 53,72" fill="#ff5c5c"/>
+          <path d="M52 55 L57 61 L52 63 Z" fill="#ffd7d7"/>
+          <path d="M68 55 L63 61 L68 63 Z" fill="#ffd7d7"/>
+        </svg>
+      </div>
+      <p class="name">Mote</p>
+      <div class="role">Enemy — Melee</div>
+      <p class="desc">The Cycle's smallest debris, and the first thing that comes for you. A bare arrowhead
+      with two lit slits for eyes — no armour, no restraint, pure heading. Reads instantly as "fast and
+      disposable" because there is nothing else to it.</p>
+      <div class="stats">
+        <span class="chip"><span class="swatch" style="background:#ff5c5c"></span>#ff5c5c</span>
+        <span class="chip">radius 12</span>
+        <span class="chip">hp x1.0</span>
+        <span class="chip">spd x1.0</span>
+      </div>
+      <details>
+        <summary>Generation prompt</summary>
+        <div class="prompt">[STYLE ANCHOR] + a small aggressive arrowhead-shaped shard creature,
+sharp swept-back angular wings, two narrow glowing eye slits,
+crimson #ff5c5c rim light on dark maroon plating, no limbs,
+built entirely from straight cuts, fast and weightless silhouette</div>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="art">
+        <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="60" cy="126" rx="18" ry="4" fill="#ffa63c" opacity=".13"/>
+          <path d="M60 18 L80 64 L60 110 L40 64 Z" fill="#33240f" stroke="#ffa63c" stroke-width="2" stroke-linejoin="round"/>
+          <ellipse cx="60" cy="64" rx="34" ry="11" fill="none" stroke="#ffa63c" stroke-width="1.6" opacity=".45"/>
+          <circle cx="60" cy="64" r="11" fill="#ffa63c"/>
+          <circle cx="60" cy="64" r="5" fill="#0d0a1a" opacity=".6"/>
+          <circle cx="94" cy="64" r="4" fill="#ffd23c"/>
+          <circle cx="26" cy="64" r="2.6" fill="#ffd23c" opacity=".65"/>
+        </svg>
+      </div>
+      <p class="name">Caster</p>
+      <div class="role">Enemy — Ranged</div>
+      <p class="desc">A suspended lens that never closes distance — it holds at range and fires focused light.
+      The orbiting mote is the tell: when it completes a pass, a shot is coming. Kites at 175px, so its
+      silhouette must stay legible small and far from the player.</p>
+      <div class="stats">
+        <span class="chip"><span class="swatch" style="background:#ffa63c"></span>#ffa63c</span>
+        <span class="chip">radius 10</span>
+        <span class="chip">hp x0.6</span>
+        <span class="chip">range 175</span>
+      </div>
+      <details>
+        <summary>Generation prompt</summary>
+        <div class="prompt">[STYLE ANCHOR] + a floating elongated diamond-shaped sentry,
+a large glowing amber lens set at its centre like a single eye,
+a thin elliptical orbit ring with one bright mote travelling along it,
+amber #ffa63c rim light, hovering, no contact with the ground, precise and watchful</div>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="art">
+        <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="60" cy="126" rx="34" ry="6" fill="#d8d8e0" opacity=".1"/>
+          <path d="M60 14 L100 38 L100 94 L60 120 L20 94 L20 38 Z" fill="#2f2f3a" stroke="#d8d8e0" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M60 30 L86 46 L86 88 L60 104 L34 88 L34 46 Z" fill="#3b3b48" stroke="#8a8a9c" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M20 38 L60 62 L100 38" fill="none" stroke="#8a8a9c" stroke-width="1.4" opacity=".8"/>
+          <path d="M60 62 L60 120" fill="none" stroke="#8a8a9c" stroke-width="1.4" opacity=".8"/>
+          <rect x="52" y="60" width="16" height="16" fill="#d8d8e0" opacity=".85"/>
+        </svg>
+      </div>
+      <p class="name">Monolith</p>
+      <div class="role">Enemy — Tank</div>
+      <p class="desc">Compacted Cycle-matter that stopped moving long enough to set. Broad hexagonal mass,
+      visible seam lines, almost no accent colour — it is the one enemy that reads as <em>heavy</em> rather
+      than lit. Slow and punishing; the silhouette should make you want to walk around it.</p>
+      <div class="stats">
+        <span class="chip"><span class="swatch" style="background:#8a8a9c"></span>#8a8a9c</span>
+        <span class="chip">radius 19</span>
+        <span class="chip">hp x2.6</span>
+        <span class="chip">dmg x1.7</span>
+      </div>
+      <details>
+        <summary>Generation prompt</summary>
+        <div class="prompt">[STYLE ANCHOR] + a massive slow hexagonal slab of compacted stone-metal,
+thick layered armour plates with deep visible seam lines, blunt and wide,
+desaturated steel grey #8a8a9c with a single pale core plate,
+minimal glow, enormous weight, immovable presence</div>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="art">
+        <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="60" cy="124" rx="26" ry="5" fill="#c77dff" opacity=".13"/>
+          <path d="M60 16 L96 46 L86 110 L34 110 L24 46 Z" fill="#2e2140" stroke="#c77dff" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M60 16 L52 54 L68 76 L56 110" fill="none" stroke="#c77dff" stroke-width="2.4" opacity=".95"/>
+          <path d="M60 16 L52 54 L68 76 L56 110" fill="none" stroke="#ffffff" stroke-width=".9" opacity=".5"/>
+          <polygon points="43,62 51,72 43,82 35,72" fill="#c77dff" opacity=".9"/>
+          <polygon points="77,62 85,72 77,82 69,72" fill="#c77dff" opacity=".9"/>
+        </svg>
+      </div>
+      <p class="name">Fissure</p>
+      <div class="role">Enemy — Splitter</div>
+      <p class="desc">Already broken when it reaches you. The crack running corner-to-corner and the two
+      separate cores are a promise the game keeps — kill it and you get two. Telegraphing the split in the
+      art is the whole point; a player should never be surprised twice by the same enemy.</p>
+      <div class="stats">
+        <span class="chip"><span class="swatch" style="background:#c77dff"></span>#c77dff</span>
+        <span class="chip">radius 11</span>
+        <span class="chip">splits x2</span>
+        <span class="chip">spd x1.1</span>
+      </div>
+      <details>
+        <summary>Generation prompt</summary>
+        <div class="prompt">[STYLE ANCHOR] + a crystalline creature with a single jagged fracture line
+splitting it corner to corner, two separate glowing cores on either side of the crack,
+violet #c77dff rim light, visibly unstable and about to come apart,
+the two halves already reading as distinct shapes</div>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="art">
+        <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="60" cy="126" rx="34" ry="6" fill="#c23cff" opacity=".12"/>
+          <path d="M60 12 L94 32 L94 88 L60 108 L26 88 L26 32 Z" fill="none" stroke="#9a8fc2" stroke-width="3.4" stroke-linejoin="round"/>
+          <path d="M60 26 L82 39 L82 81 L60 94 L38 81 L38 39 Z" fill="#241d40" stroke="#9a8fc2" stroke-width="1.6" stroke-linejoin="round" opacity=".9"/>
+          <circle cx="60" cy="60" r="30" fill="none" stroke="#c23cff" stroke-width="1.5" stroke-dasharray="5 7" opacity=".75"/>
+          <polygon points="60,44 74,60 60,76 46,60" fill="#c23cff"/>
+          <polygon points="60,51 67,60 60,69 53,60" fill="#ffffff" opacity=".55"/>
+          <circle cx="60" cy="12" r="3.4" fill="#c23cff"/>
+          <circle cx="94" cy="88" r="3.4" fill="#c23cff" opacity=".6"/>
+          <circle cx="26" cy="88" r="3.4" fill="#c23cff" opacity=".6"/>
+        </svg>
+      </div>
+      <p class="name">The Gatekeeper</p>
+      <div class="role">Semi-Boss — Wave 3</div>
+      <p class="desc">A hollow ring construct built around an exposed core. The core is the entire fight:
+      it burns the colour of one Cosmic Cycle phase, and only takes full damage while the live Cycle matches
+      it. The dashed inner ring spins faster as its AoE slam charges.</p>
+      <div class="stats">
+        <span class="chip">core = weak phase</span>
+        <span class="chip">telegraphed slam</span>
+        <span class="chip">HP bar</span>
+      </div>
+      <details>
+        <summary>Generation prompt</summary>
+        <div class="prompt">[STYLE ANCHOR] + a hollow octagonal ring construct, thick outer frame,
+a single large faceted gem core suspended and exposed at its centre,
+a dashed rotating inner ring, violet #c23cff core glow,
+guardian silhouette, imposing but clearly built rather than grown</div>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="art">
+        <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="60" cy="128" rx="38" ry="6" fill="#ffd23c" opacity=".12"/>
+          <circle cx="60" cy="66" r="46" fill="#bfc4d6" opacity=".12"/>
+          <circle cx="60" cy="66" r="46" fill="none" stroke="#bfc4d6" stroke-width="2" opacity=".65"/>
+          <path d="M60 20 L92 40 L92 92 L60 112 L28 92 L28 40 Z" fill="#2a2340" stroke="#ffd23c" stroke-width="2.6" stroke-linejoin="round"/>
+          <path d="M44 56 L76 56 L76 88 L44 88 Z" fill="#241d40" stroke="#ffd23c" stroke-width="1.5"/>
+          <path d="M44 68 L76 68" stroke="#ffd23c" stroke-width="1.5" opacity=".85"/>
+          <circle cx="60" cy="68" r="4.6" fill="#ffd23c"/>
+          <polygon points="60,14 66,22 60,30 54,22" fill="#4dd0ff"/>
+          <polygon points="102,90 108,98 102,106 96,98" fill="#4dd0ff"/>
+          <polygon points="18,90 24,98 18,106 12,98" fill="#4dd0ff"/>
+          <path d="M60 30 L60 40 M96 94 L86 88 M24 94 L34 88" stroke="#4dd0ff" stroke-width="1.4" opacity=".55"/>
+        </svg>
+      </div>
+      <p class="name">Hoardbound</p>
+      <div class="role">Sector Boss</div>
+      <p class="desc">A vault that grew armour. It opens shielded and untouchable — the three cyan anchors
+      tethered to it are the lock, and cutting all three drops the shield. The body reads as something
+      holding treasure shut, which is exactly what the Extract/Descend choice is about.</p>
+      <div class="stats">
+        <span class="chip">shielded on spawn</span>
+        <span class="chip">3 anchors</span>
+        <span class="chip"><span class="swatch" style="background:#ffd23c"></span>#ffd23c</span>
+      </div>
+      <details>
+        <summary>Generation prompt</summary>
+        <div class="prompt">[STYLE ANCHOR] + a heavy armoured vault-creature, hexagonal plated shell
+sealed shut with a horizontal seam and a single gold lock-core,
+enclosed in a translucent spherical energy shield,
+three small cyan anchor crystals tethered around it by thin light filaments,
+gold #ffd23c trim on deep violet plating, hoarding posture</div>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="art">
+        <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="60" cy="130" rx="42" ry="7" fill="#c23cff" opacity=".14"/>
+          <circle cx="60" cy="66" r="52" fill="none" stroke="#c23cff" stroke-width="1.4" stroke-dasharray="14 9" opacity=".5"/>
+          <path d="M60 8 L100 30 L100 100 L60 124 L20 100 L20 30 Z" fill="#241d40" stroke="#ffd23c" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M60 22 L88 38 L88 92 L60 110 L32 92 L32 38 Z" fill="#2a2340" stroke="#c23cff" stroke-width="1.8" stroke-linejoin="round"/>
+          <circle cx="60" cy="65" r="24" fill="none" stroke="#c23cff" stroke-width="1.4" stroke-dasharray="4 6" opacity=".8"/>
+          <polygon points="60,45 78,65 60,85 42,65" fill="#c23cff"/>
+          <polygon points="60,54 69,65 60,76 51,65" fill="#ffffff" opacity=".6"/>
+          <circle cx="60" cy="13" r="4" fill="#ffd23c"/>
+          <circle cx="100" cy="100" r="4" fill="#4dd0ff"/>
+          <circle cx="20" cy="100" r="4" fill="#4dd0ff"/>
+          <path d="M14 44 L30 52 M106 44 L90 52" stroke="#ffd23c" stroke-width="1.6" opacity=".7"/>
+        </svg>
+      </div>
+      <p class="name">Rift Warden</p>
+      <div class="role">Mega Boss — Sector 3</div>
+      <p class="desc">The thing destabilising the Cycle. Largest silhouette in the game, and the only one
+      carrying <em>both</em> boss languages at once: an exposed phase core (Gatekeeper) and gold anchor
+      plating (Hoardbound). Below ~55% HP the outer ring breaks and the anchor puzzle begins.</p>
+      <div class="stats">
+        <span class="chip">phase core, then shield</span>
+        <span class="chip">two-stage at 55%</span>
+        <span class="chip">largest silhouette</span>
+      </div>
+      <details>
+        <summary>Generation prompt</summary>
+        <div class="prompt">[STYLE ANCHOR] + an immense two-stage guardian construct,
+outer gold-trimmed hexagonal frame with a fractured rotating containment ring,
+a huge violet faceted phase core burning at its centre,
+gold and cyan anchor nodes at its extremities,
+violet #c23cff and gold #ffd23c, unstable, reality distorting around its edges, final-boss scale</div>
+      </details>
+    </div>
+
+  </div>
+
+  <h2>Sector Backgrounds</h2>
+  <p class="lede">Backgrounds must never compete with entity silhouettes — they carry mood and depth only.
+  Value stays below the darkest enemy plating so every creature reads as foreground.</p>
+  <div class="bgrid">
+
+    <div class="bcard">
+      <svg viewBox="0 0 300 150" xmlns="http://www.w3.org/2000/svg">
+        <defs><radialGradient id="g1" cx="50%" cy="45%"><stop offset="0%" stop-color="#221a3d"/><stop offset="100%" stop-color="#0d0a1a"/></radialGradient></defs>
+        <rect width="300" height="150" fill="url(#g1)"/>
+        <path d="M0 96 L70 60 L130 88 L210 44 L300 74" fill="none" stroke="#4dd0ff" stroke-width="1.2" opacity=".35"/>
+        <path d="M40 150 L96 8 M188 150 L232 12" stroke="#4dd0ff" stroke-width="1" opacity=".2"/>
+        <circle cx="52" cy="36" r="1.4" fill="#e8e0ff" opacity=".8"/>
+        <circle cx="168" cy="28" r="1" fill="#e8e0ff" opacity=".55"/>
+        <circle cx="248" cy="104" r="1.6" fill="#e8e0ff" opacity=".7"/>
+        <circle cx="112" cy="122" r="1.1" fill="#e8e0ff" opacity=".5"/>
+      </svg>
+      <div class="bmeta">
+        <p class="name" style="font-size:14px">The Fractured Approach</p>
+        <div class="role">Sector 1</div>
+        <p class="desc" style="margin:0">Still, cold, mostly empty. Thin cyan fracture lines drift across a
+        near-black field — the Cycle is only just beginning to crack.</p>
+      </div>
+    </div>
+
+    <div class="bcard">
+      <svg viewBox="0 0 300 150" xmlns="http://www.w3.org/2000/svg">
+        <defs><radialGradient id="g2" cx="50%" cy="50%"><stop offset="0%" stop-color="#3a2a10"/><stop offset="60%" stop-color="#1c1428"/><stop offset="100%" stop-color="#0d0a1a"/></radialGradient></defs>
+        <rect width="300" height="150" fill="url(#g2)"/>
+        <ellipse cx="150" cy="75" rx="120" ry="46" fill="none" stroke="#ffa63c" stroke-width="1.3" opacity=".3"/>
+        <ellipse cx="150" cy="75" rx="86" ry="30" fill="none" stroke="#ffa63c" stroke-width="1.1" opacity=".22"/>
+        <ellipse cx="150" cy="75" rx="52" ry="16" fill="none" stroke="#ffa63c" stroke-width="1" opacity=".16"/>
+        <path d="M22 120 Q80 96 40 66 M278 34 Q220 58 262 88" fill="none" stroke="#ffa63c" stroke-width="1" opacity=".28"/>
+        <circle cx="88" cy="40" r="1.3" fill="#ffd23c" opacity=".7"/>
+        <circle cx="222" cy="116" r="1.5" fill="#ffd23c" opacity=".6"/>
+      </svg>
+      <div class="bmeta">
+        <p class="name" style="font-size:14px">The Churning Depths</p>
+        <div class="role">Sector 2</div>
+        <p class="desc" style="margin:0">Everything is turning. Concentric amber orbits and curved motion
+        trails sell acceleration — this is where the Cycle visibly speeds up.</p>
+      </div>
+    </div>
+
+    <div class="bcard">
+      <svg viewBox="0 0 300 150" xmlns="http://www.w3.org/2000/svg">
+        <defs><radialGradient id="g3" cx="50%" cy="50%"><stop offset="0%" stop-color="#ffffff" stop-opacity=".22"/><stop offset="28%" stop-color="#5a1c78"/><stop offset="100%" stop-color="#0d0a1a"/></radialGradient></defs>
+        <rect width="300" height="150" fill="url(#g3)"/>
+        <path d="M150 8 L150 142 M64 20 L236 130 M236 20 L64 130" stroke="#c23cff" stroke-width="1" opacity=".28"/>
+        <circle cx="150" cy="75" r="34" fill="none" stroke="#ffffff" stroke-width="1.2" opacity=".38" stroke-dasharray="6 8"/>
+        <circle cx="150" cy="75" r="56" fill="none" stroke="#c23cff" stroke-width="1" opacity=".3" stroke-dasharray="3 10"/>
+        <circle cx="150" cy="75" r="9" fill="#ffffff" opacity=".75"/>
+      </svg>
+      <div class="bmeta">
+        <p class="name" style="font-size:14px">The Convergence Core</p>
+        <div class="role">Sector 3+</div>
+        <p class="desc" style="margin:0">Unstable white centre bleeding violet. Broken dashed containment
+        rings imply something is failing — the Rift Warden's home.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>Production Notes</h2>
+  <table>
+    <tr><th>Item</th><th>Spec</th></tr>
+    <tr><td>Sprite export size</td><td class="m">128x128 PNG, transparent, 4x the ~32px in-game draw size for retina headroom</td></tr>
+    <tr><td>Anchor point</td><td class="m">centre (0.5, 0.5) — all existing collision code assumes a centred origin</td></tr>
+    <tr><td>Phase re-tint</td><td class="m">keep rim/core on a separate layer so Phaser <code>setTint()</code> hits only that layer</td></tr>
+    <tr><td>Hit feedback</td><td class="m">white flash overlay, 80ms — do not bake damage states into the sprite</td></tr>
+    <tr><td>Bosses</td><td class="m">export at 256x256; HP bar sits above the sprite, not on it</td></tr>
+    <tr><td>Backgrounds</td><td class="m">400x700 portrait, or a seamless tile — must stay darker than every entity</td></tr>
+    <tr><td>Format</td><td class="m">the SVG on this sheet is production-usable; Phaser loads it via <code>load.svg()</code> or a pre-rasterised PNG atlas</td></tr>
+  </table>
+
+  <h2>Licensing</h2>
+  <p class="lede">Every asset described here is original to this project — no third-party pack, no attribution
+  obligation, no redistribution clause to track at Steam or Play Store submission. That was the deciding
+  argument for generating rather than sourcing: the free packs that met the quality bar did not match the
+  cosmic brief, and the ones that matched the brief carried licensing worth avoiding on a commercial release.</p>
+
+</div>
+</body>
+</html>
