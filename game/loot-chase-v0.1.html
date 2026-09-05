@@ -2,16 +2,20 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Loot Chase - v0.1 POC</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
 <style>
   html, body {
     margin: 0; padding: 0; background: #0d0a1a;
-    display: flex; align-items: center; justify-content: center;
     height: 100%; width: 100%; overflow: hidden;
     font-family: 'Trebuchet MS', sans-serif;
   }
-  #game-container { box-shadow: 0 0 40px rgba(120,90,255,0.25); border-radius: 8px; overflow: hidden; }
+  #game-container {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #game-container canvas { box-shadow: 0 0 40px rgba(120,90,255,0.25); border-radius: 8px; }
 </style>
 </head>
 <body>
@@ -32,12 +36,27 @@ const SECTOR_LORE = {
 function sectorTitle(n) { return SECTOR_LORE[n] ? SECTOR_LORE[n].name : `THE ENDLESS DESCENT — SECTOR ${n}`; }
 function sectorSub(n) { return SECTOR_LORE[n] ? SECTOR_LORE[n].sub : 'Deeper than any map remembers.'; }
 
-// Persists across run restarts (in-memory only, resets on page reload)
+// Persists across page reloads via localStorage (falls back to in-memory if unavailable, e.g. private browsing)
+const SAVE_KEY = 'loot-chase-session-v1';
 const session = {
   metaGold: 0,
   vitalityLevel: 0,   // +10% max HP per level
-  powerLevel: 0        // +8% weapon dmg per level
+  powerLevel: 0,       // +8% weapon dmg per level
+  bestSector: 0
 };
+
+function loadSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (saved) Object.assign(session, saved);
+  } catch (e) { /* localStorage unavailable — session stays in-memory only */ }
+}
+
+function saveSession() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(session)); } catch (e) { /* ignore */ }
+}
+
+loadSession();
 
 const RARITY = {
   common: { mult: 1.0,  color: 0xaeb4c2, label: 'Common' },
@@ -173,12 +192,12 @@ class LootScene extends Phaser.Scene {
 
     this.uiObjects.push(this.add.text(W/2, 290, `Vitality Lv.${session.vitalityLevel}  (+${session.vitalityLevel*10}% Max HP)`, { fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
     this.makeButton(W/2, 325, 220, 40, `Upgrade — ${vitCost}g`, session.metaGold >= vitCost ? 0x3a2f66 : 0x241d40, () => {
-      if (session.metaGold >= vitCost) { session.metaGold -= vitCost; session.vitalityLevel++; this.showHub(); }
+      if (session.metaGold >= vitCost) { session.metaGold -= vitCost; session.vitalityLevel++; saveSession(); this.showHub(); }
     });
 
     this.uiObjects.push(this.add.text(W/2, 385, `Power Lv.${session.powerLevel}  (+${session.powerLevel*8}% Weapon Dmg)`, { fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
     this.makeButton(W/2, 420, 220, 40, `Upgrade — ${powCost}g`, session.metaGold >= powCost ? 0x3a2f66 : 0x241d40, () => {
-      if (session.metaGold >= powCost) { session.metaGold -= powCost; session.powerLevel++; this.showHub(); }
+      if (session.metaGold >= powCost) { session.metaGold -= powCost; session.powerLevel++; saveSession(); this.showHub(); }
     });
 
     this.makeButton(W/2, 520, 200, 54, 'START RUN', 0x7c3fff, () => this.startRun());
@@ -663,6 +682,7 @@ class LootScene extends Phaser.Scene {
     this.state = 'summary';
     session.metaGold += this.runGold;
     if (this.sector > (session.bestSector || 0)) session.bestSector = this.sector;
+    saveSession();
 
     this.clearUI();
     this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 280, 0x17122b, 0.97).setStrokeStyle(2, victory ? 0x2fbf71 : 0xff5c5c));
@@ -1029,11 +1049,15 @@ class LootScene extends Phaser.Scene {
 
 const config = {
   type: Phaser.AUTO,
-  width: W,
-  height: H,
   parent: 'game-container',
   backgroundColor: '#0d0a1a',
   physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: W,
+    height: H
+  },
   scene: LootScene
 };
 
