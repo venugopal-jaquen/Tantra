@@ -107,6 +107,11 @@ const PHASE_DEFS = {
 const PHASE_SEQUENCE = ['drift', 'surge', 'eclipse'];
 const CONVERGENCE_INTERVAL = 90000;
 
+// Texture key per enemy type; loaded in preload(). See assets/CREDITS.md.
+const ENEMY_SPRITES = {
+  melee: 'e_melee', ranged: 'e_ranged', tank: 'e_tank', splitter: 'e_splitter'
+};
+
 const ENEMY_TYPES = {
   melee:    { hpMult: 1.0, speedMult: 1.0, dmgMult: 1.0, radius: 12, color: 0xff5c5c },
   ranged:   { hpMult: 0.6, speedMult: 0.85, dmgMult: 0.0, radius: 10, color: 0xffa63c,
@@ -133,19 +138,36 @@ function pickEnemyType(wave) {
 class LootScene extends Phaser.Scene {
   constructor() { super('LootScene'); }
 
+  // Kenney "Space Shooter Remastered", CC0 — see assets/CREDITS.md for the file map.
+  preload() {
+    this.load.image('player',     'assets/player.png');
+    this.load.image('e_melee',    'assets/enemy-melee.png');
+    this.load.image('e_ranged',   'assets/enemy-ranged.png');
+    this.load.image('e_tank',     'assets/enemy-tank.png');
+    this.load.image('e_splitter', 'assets/enemy-splitter.png');
+    this.load.image('bg_stars',   'assets/bg-stars.png');
+  }
+
   create() {
     this.state = 'hub'; // hub -> playing -> loot -> playing... -> summary -> hub
     this.uiObjects = [];
 
     this.add.rectangle(W/2, H/2, W, H, 0x0d0a1a);
-    this.add.rectangle(W/2, HUD_H/2, W, HUD_H, 0x17122b);
-
-    this.hudText = this.add.text(14, 8, '', { fontSize: '13px', color: '#e8e0ff' });
-    this.weaponText = this.add.text(14, 60, '', { fontSize: '11px', color: '#9a8fc2' });
 
     this.arenaBounds = new Phaser.Geom.Rectangle(MARGIN, HUD_H + MARGIN, W - MARGIN*2, H - HUD_H - MARGIN*2);
-    this.add.rectangle(W/2, HUD_H + (H-HUD_H)/2, W - MARGIN*2, H - HUD_H - MARGIN*2, 0x1a1533, 0.6)
+
+    // Scrolling starfield, clipped to the arena. Sits under the phase tint and every entity.
+    const ab = this.arenaBounds;
+    this.starfield = this.add.tileSprite(ab.centerX, ab.centerY, ab.width, ab.height, 'bg_stars')
+      .setAlpha(0.85);
+
+    this.add.rectangle(ab.centerX, ab.centerY, ab.width, ab.height, 0x000000, 0)
       .setStrokeStyle(1, 0x3a2f66);
+
+    // HUD chrome is drawn after the arena so it always wins the depth fight.
+    this.add.rectangle(W/2, HUD_H/2, W, HUD_H, 0x17122b);
+    this.hudText = this.add.text(14, 8, '', { fontSize: '13px', color: '#e8e0ff' });
+    this.weaponText = this.add.text(14, 60, '', { fontSize: '11px', color: '#9a8fc2' });
 
     // input for movement (only acts while playing)
     this.pointerTarget = null;
@@ -236,8 +258,9 @@ class LootScene extends Phaser.Scene {
       weapon: { name: 'Dagger', rarity: 'common', shots: 1, effect: 'none', dmg: 10 * (1 + session.powerLevel * 0.08), range: 130, atkSpeed: 500 },
       trinket: null
     };
-    this.playerSprite = this.add.circle(this.player.x, this.player.y, 15, 0x4dd0ff);
-    this.playerRing = this.add.circle(this.player.x, this.player.y, 15, 0xffffff, 0).setStrokeStyle(2, 0xffffff, 0.6);
+    this.playerSprite = this.add.image(this.player.x, this.player.y, 'player').setDisplaySize(38, 38);
+    // The ring stays a vector circle: it is the phase-colour tell, and must not inherit ship art.
+    this.playerRing = this.add.circle(this.player.x, this.player.y, 19, 0xffffff, 0).setStrokeStyle(2, 0xffffff, 0.6);
 
     // HP bar
     const barX = 14, barY = 24, barW = W - 28, barH = 8;
@@ -481,8 +504,16 @@ class LootScene extends Phaser.Scene {
       splitsOnDeath: !!def.splitsOnDeath && !isSplit
     };
     this.enemies.push(enemy);
-    const spr = this.add.circle(x, y, enemy.radius, def.color);
-    if (type === 'tank' || isElite) spr.setStrokeStyle(isElite ? 3 : 2, isElite ? 0xffd23c : 0xd8d8e0);
+    // Art is Kenney CC0; the tint carries the mechanical colour language the player reads
+    // (red melee / orange ranged / grey tank / violet splitter), so it stays authoritative.
+    const spr = this.add.image(x, y, ENEMY_SPRITES[type])
+      .setDisplaySize(enemy.radius * 2.4, enemy.radius * 2.4)
+      .setTint(def.color);
+    if (isElite) spr.setTint(0xffd23c);
+    // Rocks tumble; ships hold a heading and get rotated toward the player each frame.
+    if (type === 'tank' || type === 'splitter') {
+      enemy.spin = Phaser.Math.FloatBetween(-0.6, 0.6);
+    }
     this.enemySprites.set(enemy.id, spr);
     if (type === 'tank' || isElite) this.addHpBar(enemy);
     return enemy;
@@ -814,6 +845,18 @@ class LootScene extends Phaser.Scene {
     this.playerSprite.setPosition(this.player.x, this.player.y);
     this.playerRing.setPosition(this.player.x, this.player.y);
 
+    // Face the nearest enemy so the ship reads as aiming at whatever it is auto-attacking.
+    // Cheap linear scan - the arena never holds enough enemies for this to matter.
+    let aim = null, aimD = Infinity;
+    for (const e of this.enemies) {
+      const d = Phaser.Math.Distance.Squared(this.player.x, this.player.y, e.x, e.y);
+      if (d < aimD) { aimD = d; aim = e; }
+    }
+    if (aim) this.playerSprite.rotation = Math.atan2(aim.y - this.player.y, aim.x - this.player.x) + Math.PI/2;
+
+    // Slow drift sells "descending" without moving the arena itself.
+    if (this.starfield) this.starfield.tilePositionY -= 0.28 * (delta / 16.67);
+
     if (this.player.flashTimer > 0) {
       this.player.flashTimer -= delta;
       this.playerSprite.setAlpha(Math.sin(time/40) > 0 ? 1 : 0.4);
@@ -920,7 +963,15 @@ class LootScene extends Phaser.Scene {
       }
 
       const spr = this.enemySprites.get(enemy.id);
-      if (spr) spr.setPosition(enemy.x, enemy.y);
+      if (spr) {
+        spr.setPosition(enemy.x, enemy.y);
+        if (enemy.spin !== undefined) {
+          spr.rotation += enemy.spin * dt;                  // rocks tumble
+        } else {
+          // Ship art points up (-Y), so bias by +90deg to make it face the player.
+          spr.rotation = Math.atan2(this.player.y - enemy.y, this.player.x - enemy.x) + Math.PI/2;
+        }
+      }
 
       if (enemy.hpBarBg) {
         const by = enemy.y - enemy.radius - 16;
@@ -1061,7 +1112,9 @@ const config = {
   scene: LootScene
 };
 
-new Phaser.Game(config);
+// Kept on window so the running game can be inspected or driven from the console
+// (e.g. game.scene.keys.LootScene) - useful for debugging and automated smoke tests.
+window.game = new Phaser.Game(config);
 </script>
 </body>
 </html>
