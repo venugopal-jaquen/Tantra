@@ -47,7 +47,9 @@ Correct choice for the design/mechanics-proving phase already completed — zero
 
 Superseded by the 2026-09-24 direction change, kept as history: `concept/visual-style-sheet.html` (Cut Light) and `concept/character-art-spec.html` (abstract cosmic roster — Seeker/Mote/Caster/Monolith/Fissure, now replaced by the Sanskrit naming in `requirements.md` §2.12).
 
-**Not in this repo:** two "Cosmic Forge" style sheets were produced in a claude.ai chat on 2026-09-24 (`Loot chase visual forge` and `Loot chase visual forge v2`, the second with the saffron-amber background and Devanagari UI). They are the current canonical visual reference and should be exported into `concept/` — until then, the newest art direction lives outside version control, which is the exact failure mode §4 and §5 warn about.
+**Current canonical visual reference:** `concept/loot-chase-visual-forge-v2.html` — the Cosmic Forge v2 style sheet from the 2026-09-24 claude.ai chat, imported into the repo 2026-09-24. Renders the saffron-amber background, the full Sanskrit-named roster, and the refinement-ladder loot palette.
+
+The earlier `Loot chase visual forge` v1 (background `#170A00`) was rejected as still too dark and was not imported — v2 supersedes it.
 
 ---
 
