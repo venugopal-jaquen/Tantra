@@ -132,6 +132,17 @@ const CHARS = {
   megaboss:    'kalachakra' // कालचक्र — wheel of time
 };
 const FACINGS = ['front', 'back', 'left', 'right'];
+const INV_MAX = 8;   // satchel capacity; oldest falls out past this
+
+// Shown above every enemy. These are the Sanskrit *type* names, not proper nouns -
+// the point is that the player is reading "Asura", "Yaksha", "Mahish" constantly
+// during a run, so the Indian identity lands through play rather than through a
+// menu nobody opens. Devanagari is deliberately omitted here: at ~9px over a moving
+// sprite it turns to mush, and it already carries the identity on the codex screen.
+const CHAR_LABELS = {
+  melee: 'Asura', ranged: 'Yaksha', tank: 'Mahish', splitter: 'Bheda',
+  gatekeeper: 'Dwarapal', sectorboss: 'Nidhi-Raksha', megaboss: 'Kalachakra'
+};
 
 // "Cosmic Forge" palette, measured from concept/loot-chase-visual-forge-v2.html.
 // Warm throughout: the direction was rejected twice for reading too dark.
@@ -500,6 +511,12 @@ class LootScene extends Phaser.Scene {
     this.clearUI();
     this.state = 'playing';
 
+    // Satchel: items swapped out during this run, so a pickup no longer destroys
+    // whatever you were holding. Run-scoped by design - carrying loot between runs
+    // would undermine the Extract/Descend decision (2.5).
+    this.inventory = [];
+    this.invOpen = false;
+
     // Cosmic Cycle state - continuous, learnable timer independent of waves
     this.phase = 'drift';
     this.phaseTimeLeft = PHASE_DEFS.drift.duration;
@@ -524,7 +541,10 @@ class LootScene extends Phaser.Scene {
       flashTimer: 0,
       shieldCharge: 0,
       shieldRechargeTimer: 0,
-      weapon: { name: 'Dagger', rarity: 'common', shots: 1, effect: 'none', dmg: 10 * (1 + session.powerLevel * 0.08), range: 130, atkSpeed: 500 },
+      // `type` matters now that the satchel can hand this back to applyLoot: without
+      // it the starting Dagger fell through to the trinket branch and equipped itself
+      // into the wrong slot. Every dropped item already carries one.
+      weapon: { type: 'weapon', name: 'Dagger', rarity: 'common', shots: 1, effect: 'none', dmg: 10 * (1 + session.powerLevel * 0.08), range: 130, atkSpeed: 500 },
       trinket: null
     };
     this.playerFacing = 'front';
@@ -569,6 +589,7 @@ class LootScene extends Phaser.Scene {
 
     this.atkTimer = 0;
     this.attackFx = this.add.graphics();
+    this.buildSatchelUI();
 
     this.enemies = [];
     this.enemySprites = new Map();
@@ -658,6 +679,129 @@ class LootScene extends Phaser.Scene {
     enemy.hpBarFill = this.add.rectangle(enemy.x - w/2, y, w, h, FORGE.gold).setOrigin(0, 0.5);
   }
 
+  // ---------- SATCHEL (run inventory) ----------
+  // Deliberately does NOT pause: 2.7 says pickups never interrupt play, and a
+  // pause-to-swap would turn every drop into a menu trip. The panel is translucent
+  // and hugs the right edge so the arena stays readable while it is open - swapping
+  // mid-fight is meant to cost you something.
+  buildSatchelUI() {
+    const b = this.arenaBounds;
+    const tabW = 26, tabH = 84;
+    const tx = b.right - tabW / 2 - 2, ty = b.centerY;
+
+    this.satchelTab = this.add.rectangle(tx, ty, tabW, tabH, FORGE.panel, 0.92)
+      .setStrokeStyle(1, FORGE.bronze, 0.8)
+      .setInteractive({ useHandCursor: true });
+    this.satchelTabIcon = this.add.text(tx, ty - 12, '◀', { resolution: RES, fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
+    this.satchelTabCount = this.add.text(tx, ty + 8, '0', { resolution: RES, fontSize: '13px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(0.5);
+    this.satchelTab.on('pointerdown', () => this.toggleSatchel());
+
+    this.satchelItems = [];
+    this.satchelPanel = null;
+  }
+
+  toggleSatchel() {
+    this.invOpen = !this.invOpen;
+    this.satchelTabIcon.setText(this.invOpen ? '▶' : '◀');
+    this.refreshSatchel();
+  }
+
+  clearSatchelPanel() {
+    if (this.satchelPanel) { this.satchelPanel.destroy(); this.satchelPanel = null; }
+    (this.satchelItems || []).forEach(o => o.destroy());
+    this.satchelItems = [];
+  }
+
+  refreshSatchel() {
+    if (!this.satchelTab) return;
+    this.satchelTabCount.setText(String(this.inventory.length));
+    this.clearSatchelPanel();
+    if (!this.invOpen) return;
+
+    const b = this.arenaBounds;
+    // Height follows the actual contents, not INV_MAX - an empty satchel should not
+    // black out a third of the arena you are still fighting in.
+    const rows = Math.max(1, this.inventory.length);
+    const pw = 150, ph = Math.min(b.height - 20, 30 + rows * 34 + 12);
+    const px = b.right - pw / 2 - 28, py = b.centerY;
+
+    this.satchelPanel = this.add.rectangle(px, py, pw, ph, FORGE.deep, 0.93)
+      .setStrokeStyle(1, FORGE.bronze, 0.85);
+
+    const top = py - ph / 2;
+    this.satchelItems.push(this.add.text(px, top + 14, 'SATCHEL', { resolution: RES, fontSize: '10px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
+
+    if (this.inventory.length === 0) {
+      this.satchelItems.push(this.add.text(px, top + 44, 'nothing swapped out yet', {
+        resolution: RES, fontSize: '9px', color: '#8a7360', align: 'center', wordWrap: { width: pw - 20 }
+      }).setOrigin(0.5));
+      return;
+    }
+
+    this.inventory.forEach((item, i) => {
+      const iy = top + 38 + i * 34;
+      const row = this.add.rectangle(px, iy, pw - 14, 30, FORGE.panel, 0.9)
+        .setStrokeStyle(1, FORGE.bronze, 0.4)
+        .setInteractive({ useHandCursor: true });
+      const icon = this.add.image(px - pw/2 + 20, iy, `icon_${item.effect || 'none'}`)
+        .setDisplaySize(18, 18).setTint(RARITY[item.rarity].color);
+      const name = this.add.text(px - pw/2 + 34, iy - 6, item.name, { resolution: RES, fontSize: '8px', color: '#fffbef' });
+      const slot = this.add.text(px - pw/2 + 34, iy + 4, `${item.type} · tap to equip`, { resolution: RES, fontSize: '7px', color: '#8a7360' });
+      row.on('pointerdown', () => this.equipFromSatchel(i));
+      this.satchelItems.push(row, icon, name, slot);
+    });
+  }
+
+  // Swap: the equipped item of the same slot goes back into the satchel, so nothing
+  // is ever destroyed by a swap - only by the satchel overflowing.
+  equipFromSatchel(index) {
+    const item = this.inventory[index];
+    if (!item) return;
+    this.inventory.splice(index, 1);
+    this.applyLoot(item, false);
+    this.refreshSatchel();
+  }
+
+  stashItem(item) {
+    if (!item || !this.inventory) return;
+    this.inventory.push(item);
+    // Oldest falls out rather than blocking pickups - losing the thing you stopped
+    // using ages ago is a kinder failure than being unable to pick anything up.
+    if (this.inventory.length > INV_MAX) this.inventory.shift();
+    this.refreshSatchel();
+  }
+
+  destroySatchelUI() {
+    this.clearSatchelPanel();
+    [this.satchelTab, this.satchelTabIcon, this.satchelTabCount].forEach(o => o && o.destroy());
+    this.satchelTab = this.satchelTabIcon = this.satchelTabCount = null;
+  }
+
+  addNameLabel(enemy) {
+    const big = !!enemy.isBoss;
+    const name = CHAR_LABELS[enemy.type] || '';
+    if (!name) return;
+    const label = enemy.isElite ? name.toUpperCase() : name;
+    enemy.nameLabel = this.add.text(enemy.x, 0, label, {
+      resolution: RES,
+      fontSize: big ? '11px' : '8px',
+      color: enemy.isElite ? '#ffd23c' : (big ? '#fffbef' : '#e3c9a8'),
+      fontStyle: big ? 'bold' : 'normal'
+    }).setOrigin(0.5).setAlpha(big ? 1 : 0.82);
+  }
+
+  // A second, separate bar above the HP bar showing how much shield is left. It sits
+  // apart on purpose: while it has any fill the HP bar underneath is unreachable, and
+  // two stacked bars say that far faster than a toast does.
+  addShieldBar(enemy) {
+    const w = Math.max(58, enemy.radius * 2.4);
+    enemy.shieldBarW = w;
+    enemy.shieldBarBg = this.add.rectangle(enemy.x, enemy.y - enemy.radius - 27, w, 5, FORGE.deep, 0.8)
+      .setStrokeStyle(1, 0x000000, 0.45);
+    enemy.shieldBarFill = this.add.rectangle(enemy.x - w/2, enemy.y - enemy.radius - 27, w, 5, 0x9fd8ff)
+      .setOrigin(0, 0.5);
+  }
+
   spawnGatekeeper() {
     const b = this.arenaBounds;
     const x = (b.x + b.right) / 2, y = b.y + 60;
@@ -685,6 +829,7 @@ class LootScene extends Phaser.Scene {
     this.enemySprites.set(enemy.id, spr);
     this.enemyCores.set(enemy.id, core);
     this.addHpBar(enemy);
+    this.addNameLabel(enemy);
     return enemy;
   }
 
@@ -716,6 +861,7 @@ class LootScene extends Phaser.Scene {
     const outerRing = this.add.circle(x, y, enemy.radius + 10, 0x000000, 0).setStrokeStyle(2, isMega ? 0xc23cff : FORGE.gold, 0.5);
     this.enemyRings.set(enemy.id, outerRing);
     this.addHpBar(enemy);
+    this.addNameLabel(enemy);
 
     if (isMega) {
       enemy.orbiters = [ this.add.circle(x, y, 4, 0xffd23c), this.add.circle(x, y, 4, 0xffd23c) ];
@@ -747,9 +893,23 @@ class LootScene extends Phaser.Scene {
       // same read ("this one is an anchor, kill it"), and it survives any art swap.
       if (spr) spr.setTint(0xffd23c);
     }
-    const shieldGfx = this.add.circle(boss.x, boss.y, boss.radius + 6, 0xbfc4d6, 0.15).setStrokeStyle(2, 0xbfc4d6, 0.6);
-    this.enemyShields.set(boss.id, shieldGfx);
-    this.time.delayedCall(900, () => this.showToast('DESTROY THE ANCHORS', '#bfc4d6'));
+    // Shield: a breathing inner dome plus two counter-rotating rings. The old flat
+    // circle gave no sense that it was holding anything back.
+    const r = boss.radius + 8;
+    const dome = this.add.circle(boss.x, boss.y, r, 0x9fd8ff, 0.16);
+    const ringA = this.add.circle(boss.x, boss.y, r + 3, 0x000000, 0).setStrokeStyle(2, 0x9fd8ff, 0.75);
+    const ringB = this.add.circle(boss.x, boss.y, r + 9, 0x000000, 0).setStrokeStyle(1.5, FORGE.cool, 0.45);
+
+    this.tweens.add({ targets: dome, scale: 1.09, alpha: 0.28, duration: 780,
+                      yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: ringA, angle: 360, duration: 6000, repeat: -1 });
+    this.tweens.add({ targets: ringB, angle: -360, duration: 9000, repeat: -1 });
+
+    boss.shieldParts = [dome, ringA, ringB];
+    boss.shieldMax = boss.keyAddIds.length;
+    this.enemyShields.set(boss.id, dome);   // kept for the existing pulse-on-hit path
+    this.addShieldBar(boss);
+    this.time.delayedCall(900, () => this.showToast('DESTROY THE ANCHORS', '#9fd8ff'));
   }
 
   transitionMegaBossToShield(boss) {
@@ -805,6 +965,7 @@ class LootScene extends Phaser.Scene {
     if (isElite) spr.setTint(0xffd23c);
     this.enemySprites.set(enemy.id, spr);
     this.addHpBar(enemy);
+    this.addNameLabel(enemy);
     return enemy;
   }
 
@@ -846,6 +1007,9 @@ class LootScene extends Phaser.Scene {
     if (this.enemyRings.has(enemy.id)) { this.enemyRings.get(enemy.id).destroy(); this.enemyRings.delete(enemy.id); }
     if (this.enemyShields.has(enemy.id)) { this.enemyShields.get(enemy.id).destroy(); this.enemyShields.delete(enemy.id); }
     if (enemy.hpBarBg) { enemy.hpBarBg.destroy(); enemy.hpBarFill.destroy(); }
+    if (enemy.shieldBarBg) { enemy.shieldBarBg.destroy(); enemy.shieldBarFill.destroy(); }
+    if (enemy.shieldParts) enemy.shieldParts.forEach(pt => pt.destroy());
+    if (enemy.nameLabel) enemy.nameLabel.destroy();
     if (enemy.orbiters) enemy.orbiters.forEach(o => o.destroy());
     if (enemy.telegraphGfx) { enemy.telegraphGfx.destroy(); enemy.telegraphGfx = null; }
     this.enemies.splice(this.enemies.indexOf(enemy), 1);
@@ -860,7 +1024,19 @@ class LootScene extends Phaser.Scene {
         if (boss.keyAddIds.length === 0 && boss.shieldOn) {
           boss.shieldOn = false;
           boss.bossPhase = 'active';
-          if (this.enemyShields.has(boss.id)) { this.enemyShields.get(boss.id).destroy(); this.enemyShields.delete(boss.id); }
+          // Blow the shield outward rather than snapping it off - the break is the
+          // payoff for the anchor puzzle and deserves to be seen.
+          (boss.shieldParts || []).forEach(part => {
+            this.tweens.killTweensOf(part);
+            this.tweens.add({ targets: part, scale: 1.7, alpha: 0, duration: 260,
+                              ease: 'Cubic.easeOut', onComplete: () => part.destroy() });
+          });
+          boss.shieldParts = null;
+          this.enemyShields.delete(boss.id);
+          if (boss.shieldBarBg) {
+            boss.shieldBarBg.destroy(); boss.shieldBarFill.destroy();
+            boss.shieldBarBg = null; boss.shieldBarFill = null;
+          }
           this.showToast('THE SHIELD BREAKS', '#2fbf71');
         }
       }
@@ -970,10 +1146,13 @@ class LootScene extends Phaser.Scene {
   applyLoot(item, isMystery) {
     const tag = isMystery ? 'Mystery Revealed: ' : '';
     if (item.type === 'weapon') {
+      // The outgoing weapon goes to the satchel rather than being lost.
+      if (this.player.weapon) this.stashItem(this.player.weapon);
       this.player.weapon = item;
       this.showToast(`${tag}Equipped: ${item.name}`, isMystery ? '#ffd23c' : '#4dd0ff');
     } else {
       const oldHpBonus = (this.player.trinket && this.player.trinket.hpBonus) || 0;
+      if (this.player.trinket) this.stashItem(this.player.trinket);
       this.player.trinket = item;
       this.player.maxHp += (item.hpBonus - oldHpBonus);
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + (item.hpBonus - oldHpBonus));
@@ -1032,6 +1211,7 @@ class LootScene extends Phaser.Scene {
       if (this.progressMarker) this.progressMarker.destroy();
       if (this.sectorLabel) this.sectorLabel.destroy();
       if (this.weaponText) this.weaponText.setText('');
+      this.destroySatchelUI();
       this.enemySprites.forEach(s => s.destroy());
       if (this.enemyCores) this.enemyCores.forEach(c => c.destroy());
       if (this.enemyRings) this.enemyRings.forEach(r => r.destroy());
@@ -1040,6 +1220,9 @@ class LootScene extends Phaser.Scene {
         if (e.telegraphGfx) e.telegraphGfx.destroy();
         if (e.orbiters) e.orbiters.forEach(o => o.destroy());
         if (e.hpBarBg) { e.hpBarBg.destroy(); e.hpBarFill.destroy(); }
+        if (e.shieldBarBg) { e.shieldBarBg.destroy(); e.shieldBarFill.destroy(); }
+        if (e.shieldParts) e.shieldParts.forEach(pt => pt.destroy());
+        if (e.nameLabel) e.nameLabel.destroy();
       });
       this.goldPickups.forEach(g => g.sprite && g.sprite.destroy());
       if (this.projectiles) this.projectiles.forEach(p => { if (p.sprite) p.sprite.destroy(); if (p.halo) p.halo.destroy(); });
@@ -1290,6 +1473,23 @@ class LootScene extends Phaser.Scene {
         }
       }
 
+      if (enemy.nameLabel) {
+        // Sits above the topmost bar, so a shielded boss does not overlap its own name.
+        const topBar = enemy.shieldBarFill ? 27 : (enemy.isBoss ? 18 : 13);
+        // Clamped below the progress track: bosses spawn near the top of the arena and
+        // their label would otherwise sit on top of the sector rail.
+        const floor = (this.trackY || this.arenaBounds.y) + 14;
+        enemy.nameLabel.setPosition(enemy.x, Math.max(floor, enemy.y - enemy.radius - topBar - 8));
+      }
+      if (enemy.shieldBarFill) {
+        const sy = enemy.y - enemy.radius - 27;
+        const left = (enemy.keyAddIds ? enemy.keyAddIds.length : 0) / (enemy.shieldMax || 1);
+        enemy.shieldBarBg.setPosition(enemy.x, sy);
+        enemy.shieldBarFill.x = enemy.x - enemy.shieldBarW/2;
+        enemy.shieldBarFill.y = sy;
+        enemy.shieldBarFill.width = enemy.shieldBarW * Math.max(0, left);
+      }
+      if (enemy.shieldParts) enemy.shieldParts.forEach(pt => pt.setPosition(enemy.x, enemy.y));
       if (enemy.hpBarBg) {
         const by = enemy.y - enemy.radius - (enemy.isBoss ? 18 : 13);
         const pct = Math.max(0, enemy.hp / enemy.maxHp);

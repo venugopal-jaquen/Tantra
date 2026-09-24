@@ -64,6 +64,7 @@ Kept so a reversal is never mistaken for drift or an error.
 ### 2.4 Enemy Types
 - Melee, Ranged (kites + projectiles), Tank (slow/tanky), Splitter (splits into two on death) — each unlocked progressively by depth, permanently once unlocked.
 - Stats scale off a cumulative `depth` counter `(sector-1)*5 + wave`, not the wave-within-sector number, so difficulty never resets on Descend.
+- **Every enemy carries its Sanskrit type name above it** (2026-09-24): Asura, Yaksha, Mahish, Bheda, Dwarapal, Nidhi-Raksha, Kalachakra. Elites render theirs in caps and gold. These are *type* names, not proper nouns — the point is that the player reads them constantly during play, so the Indian identity lands through the game rather than through a menu nobody opens. Devanagari is deliberately omitted at this size: at ~8px over a moving sprite it turns to mush, and the codex already carries it.
 
 ### 2.5 Progression Structure
 - A **Sector** = 5 waves. Wave 3 spawns a **Gatekeeper** (semi-boss). Wave 6 (i.e., past wave 5) spawns a **Sector Boss**.
@@ -73,6 +74,7 @@ Kept so a reversal is never mistaken for drift or an error.
 ### 2.6 Bosses
 - **Gatekeeper**: weak-phase puzzle — full damage only when the Cosmic Cycle matches its core color; telegraphed AoE slam.
 - **Hoardbound** (Sector Boss): starts shielded; 3 "anchor" adds must be killed to break the shield before it becomes damageable.
+- **Shield presentation (2026-09-24):** a breathing inner dome plus two counter-rotating rings, and a **second bar above the HP bar** showing anchors remaining. The two bars sit apart deliberately — while the shield bar has any fill, the HP bar underneath is unreachable, which says the rule faster than a toast does. Breaking the shield blows the rings outward rather than snapping them off, because that break is the payoff for the whole anchor puzzle.
 - **Rift Warden** (Mega Boss, Sector 3): combines both mechanics sequentially — weak-phase timing first, then shield/anchor puzzle once below ~55% HP.
 - **Every enemy** displays a live HP bar (2026-09-24 — previously bosses, tanks and elites only). Bars scale with the enemy so a swarm reads as chatter and a boss reads as a wall, and drain gold → ember → crimson so health is legible without a number.
 
@@ -84,7 +86,15 @@ Kept so a reversal is never mistaken for drift or an error.
 - **Each effect has its own icon** (2026-09-24), generated procedurally at boot rather than shipped as files, so they stay on-palette and cost nothing to download. The icon says *what* dropped; the rarity tint says *how good*. Unidentified drops deliberately show one blank sigil regardless of contents — that ambiguity is the incentive to risk the pickup.
 - **Each weapon effect has its own attack visual** (2026-09-24): Venom drips beads, Vampiric draws a thick crimson pull, Chain arcs jagged, Executioner swings a widening gold wedge, and the plain weapon stays a clean thin bolt. Previously every weapon drew the same cyan line, so a Venom Blade and an Executioner felt identical to use.
 
-### 2.7.1 Powers Codex
+### 2.7.1 Satchel (run inventory)
+A collapsible panel on the right edge of the arena, opened by a tab that shows a live item count.
+
+- A pickup no longer destroys what you were holding — **the outgoing item is stashed**, and tapping a stashed item swaps it back, returning the current one to the satchel. Nothing is ever lost to a swap.
+- Capacity **8**; past that the oldest falls out. Losing something you stopped using long ago is a kinder failure than being unable to pick anything up.
+- **Run-scoped.** Carrying loot between runs would undermine the Extract/Descend decision (§2.5).
+- **Does not pause.** §2.7 says pickups never interrupt play, and a pause-to-swap would turn every drop into a menu trip. The panel is translucent, hugs the right edge, and sizes to its contents — swapping mid-fight is meant to cost you something.
+
+### 2.7.2 Powers Codex
 A **POWERS** screen on the hub lists every weapon and trinket effect with its icon, description and unlock Sector. Effects the player has not yet reached the depth for are shown dimmed as *"Locked — reaches you in Sector N"*, and the hub button carries a live count (*"3 still locked — descend to find them"*).
 
 The purpose is retention, not reference: a concrete count of unseen powers is a far better reason to press Descend than any amount of copy about replayability. It also satisfies §1.2.1 (mastery over grind) by making the system legible rather than hiding it.
@@ -161,6 +171,11 @@ Object keys were **deliberately left in English** (`PHASE_DEFS.drift`, enemy typ
 save data is keyed off them — renaming would break existing saves for no visible gain.
 
 Still using old names: the **"Hoard Gold"** and **hub** strings (→ Nidhi, Kshetra).
+
+### 2.12.1 First-run Tutorial (planned — pinned)
+A live, in-game tutorial for first-time players, teaching each system during Wave 1 rather than through a wall of text up front: movement, auto-attack, the Cosmic Cycle bar, the Gatekeeper weak-phase rule, loot pickup, and the satchel.
+
+**Deliberately deferred.** Pinned by the founder on 2026-09-24 until the mechanics are final — teaching a system that is still moving means rewriting the tutorial every time it moves. Revisit once §2.7.1, §2.7.2 and the boss set are settled.
 
 ### 2.13 Sprite Sourcing (open)
 

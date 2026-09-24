@@ -15,6 +15,7 @@
 | M6 | **Project infrastructure** (git, deployment, formal spec) | ✅ **Done 2026-09-11** | Repo at github.com/venugopal-jaquen/Tantra with full history; live at venugopal-jaquen.github.io/Tantra |
 | M7 | Visual reskin (apply **Cosmic Forge** + Indian identity to the real game) | ⏳ In progress, **partly superseded** | Warm saffron-amber arena, gold player, dark-ore enemies with amber glow, Sanskrit naming live in-game. The Kenney CC0 sci-fi sprites shipped 2026-09-11 predate this direction and are placeholder only. |
 | M8 | Narrative depth pass (optional expansion beyond banners) | 🔜 Planned | Only if desired — current light-banner narrative already meets M1-level requirements |
+| M8.5 | First-run tutorial | 📌 **Pinned** | Teaches each system live during Wave 1. Deliberately held until mechanics are final — see `requirements.md` §2.12.1 |
 | M9 | Capstone boss + perpetual post-capstone scaling | 🔜 Planned | A fixed deep milestone (e.g. Sector 6) ends the game with a real finale; Sectors continue infinitely after |
 | M10 | Platform packaging (web → Android → Steam) | 🔜 Planned | Matches `docs/launch-roadmap.md` sequencing |
 | M11 | Marketing & launch | 🔜 Planned | Store page live, wishlist campaign running pre-Steam |
@@ -59,13 +60,13 @@ Reference: Peter Yang's Claude Code game-dev tutorial (5 steps: set up the proje
 
 | Step | Our status | Notes |
 |---|---|---|
-| 1. Set up the project | ⚠️ **Gap** | No local project folder or git repo exists yet — everything lives as claude.ai artifacts only |
+| 1. Set up the project | ✅ **Closed 2026-09-11** | Local project folder and git repo exist with full commit history |
 | 2. Find pixel art assets | ⚠️ **Now a real gap** | The procedural-vector divergence (Cut Light) was reversed on 2026-09-24 — abstract shapes cannot carry an Indian cultural identity. Real sprites are now required and unsourced; see `requirements.md` §2.13 for the three costed options |
 | 3. Draft the spec | ✅ Done, informally | Happened conversationally throughout development; this document and the Requirements doc formalize it retroactively |
 | 4. Build the MVP and iterate | ✅ Done, extensively | The largest share of work so far |
-| 5. Ship with GitHub and Vercel | ⚠️ **Biggest gap** | No version control, no deployment. The game currently exists only as ephemeral chat artifacts — no backup, no shareable persistent link, no history if something goes wrong |
+| 5. Ship with GitHub and Vercel | ✅ **Closed 2026-09-11** | github.com/venugopal-jaquen/Tantra, deployed via GitHub Pages at venugopal-jaquen.github.io/Tantra. Backup, history and a shareable playtest link all exist |
 
-**The single highest-priority action from this whole document:** set up a real git repository and a free deployment (GitHub Pages, Vercel, or even itch.io early) *now*, independent of the later commercial-launch planning. This serves a different purpose than launch — it's backup, version history, and a real shareable link for playtesting beyond this chat.
+**Resolved.** The former highest-priority action — get a real git repository and a free deployment — was completed on 2026-09-11. The remaining gap is step 2: real sprites, which the 2026-09-24 direction change turned from a deliberate divergence back into a genuine dependency (`requirements.md` §2.13).
 
 ---
 
