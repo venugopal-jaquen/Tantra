@@ -11,15 +11,15 @@
 | M2 | Enemy variety + Cosmic Cycle | ✅ Done | All 4 enemy types + all 4 phases appear and visibly change gameplay in a single run |
 | M3 | Sector structure + boss encounters | ✅ Done | Player can Descend past Sector 3 and fight the Rift Warden |
 | M4 | Item identity system | ✅ Done | At least one run demonstrates a weapon effect and a trinket effect changing how combat feels |
-| M5 | Visual direction defined (Cut Light) | ✅ Done | Style sheet artifact renders palette, player, all enemy/boss tiers |
-| M6 | **Project infrastructure** (git, deployment, formal spec) | ⚠️ **Not started** | Code lives in a real git repo with commit history; a live URL exists outside claude.ai |
-| M7 | Visual reskin (apply Cut Light to the real game) | 🔜 Next | Actual gameplay renders faceted shapes, not circles |
+| M5 | Visual direction defined | ⚠️ **Redone** | ~~Cut Light~~ rejected 2026-09-24 as too dark/generic. Replaced by **Cosmic Forge** + Indian cultural identity — see `requirements.md` §1.7, §2.10, §2.12 |
+| M6 | **Project infrastructure** (git, deployment, formal spec) | ✅ **Done 2026-09-11** | Repo at github.com/venugopal-jaquen/Tantra with full history; live at venugopal-jaquen.github.io/Tantra |
+| M7 | Visual reskin (apply **Cosmic Forge** + Indian identity to the real game) | ⏳ In progress, **partly superseded** | Warm saffron-amber arena, gold player, dark-ore enemies with amber glow, Sanskrit naming live in-game. The Kenney CC0 sci-fi sprites shipped 2026-09-11 predate this direction and are placeholder only. |
 | M8 | Narrative depth pass (optional expansion beyond banners) | 🔜 Planned | Only if desired — current light-banner narrative already meets M1-level requirements |
 | M9 | Capstone boss + perpetual post-capstone scaling | 🔜 Planned | A fixed deep milestone (e.g. Sector 6) ends the game with a real finale; Sectors continue infinitely after |
 | M10 | Platform packaging (web → Android → Steam) | 🔜 Planned | Matches `docs/launch-roadmap.md` sequencing |
 | M11 | Marketing & launch | 🔜 Planned | Store page live, wishlist campaign running pre-Steam |
 
-**Immediate priority: M6.** Every milestone after it benefits from being in real version control before more systems get layered on.
+**Immediate priority: M7.** M6 closed on 2026-09-11 — the code is in git with history and deployed. The open question now is visual: the game needs the Cosmic Forge palette, the Sanskrit naming layer, and real sprites that can carry an Indian identity. Sprite sourcing is the one genuinely unresolved dependency (`requirements.md` §2.13).
 
 ---
 
@@ -43,7 +43,11 @@ Correct choice for the design/mechanics-proving phase already completed — zero
 ---
 
 ## 3. Initial Builds
-**Done.** Delivered so far: `dragons-hoard-v0.1.html` (exploratory prototype), `game/loot-chase-v0.1.html` (full current build — sectors, bosses, Cosmic Cycle, item identity, HUD), `concept/visual-style-sheet.html` (Cut Light direction), `docs/launch-roadmap.md` (cost/sequencing plan).
+**Done.** Delivered so far: `dragons-hoard-v0.1.html` (exploratory prototype, pre-pivot), `game/loot-chase-v0.1.html` (full current build — sectors, bosses, Cosmic Cycle, item identity, HUD), `docs/launch-roadmap.md` (cost/sequencing plan).
+
+Superseded by the 2026-09-24 direction change, kept as history: `concept/visual-style-sheet.html` (Cut Light) and `concept/character-art-spec.html` (abstract cosmic roster — Seeker/Mote/Caster/Monolith/Fissure, now replaced by the Sanskrit naming in `requirements.md` §2.12).
+
+**Not in this repo:** two "Cosmic Forge" style sheets were produced in a claude.ai chat on 2026-09-24 (`Loot chase visual forge` and `Loot chase visual forge v2`, the second with the saffron-amber background and Devanagari UI). They are the current canonical visual reference and should be exported into `concept/` — until then, the newest art direction lives outside version control, which is the exact failure mode §4 and §5 warn about.
 
 ---
 
@@ -54,7 +58,7 @@ Reference: Peter Yang's Claude Code game-dev tutorial (5 steps: set up the proje
 | Step | Our status | Notes |
 |---|---|---|
 | 1. Set up the project | ⚠️ **Gap** | No local project folder or git repo exists yet — everything lives as claude.ai artifacts only |
-| 2. Find pixel art assets | ➡️ Deliberately diverged | Chose the procedural "Cut Light" faceted-vector direction instead of pixel art — a valid alternative, not a failure, but worth naming as a conscious choice |
+| 2. Find pixel art assets | ⚠️ **Now a real gap** | The procedural-vector divergence (Cut Light) was reversed on 2026-09-24 — abstract shapes cannot carry an Indian cultural identity. Real sprites are now required and unsourced; see `requirements.md` §2.13 for the three costed options |
 | 3. Draft the spec | ✅ Done, informally | Happened conversationally throughout development; this document and the Requirements doc formalize it retroactively |
 | 4. Build the MVP and iterate | ✅ Done, extensively | The largest share of work so far |
 | 5. Ship with GitHub and Vercel | ⚠️ **Biggest gap** | No version control, no deployment. The game currently exists only as ephemeral chat artifacts — no backup, no shareable persistent link, no history if something goes wrong |
