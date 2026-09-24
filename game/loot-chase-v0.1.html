@@ -23,6 +23,14 @@
 <script>
 
 const W = 400, H = 700;
+
+// Backing-store multiplier for high-DPI screens. The game still thinks in 400x700
+// world units - RES only raises the number of real pixels those units are drawn
+// into, and the main camera zooms back in by the same factor so no coordinate in
+// this file has to change. Without it a 400px buffer gets stretched across ~1179
+// device pixels on a modern iPhone, which is the softness you can see.
+// Clamped to 3: beyond that the buffer cost stops buying visible sharpness.
+const RES = Math.min(3, Math.max(2, Math.round(window.devicePixelRatio || 1)));
 const MARGIN = 30, HUD_H = 76;
 const GATEKEEPER_WAVE = 3;
 const MEGA_BOSS_SECTOR = 3;
@@ -187,6 +195,11 @@ class LootScene extends Phaser.Scene {
     this.state = 'hub'; // hub -> playing -> loot -> playing... -> summary -> hub
     this.uiObjects = [];
 
+    // Canvas is RES times larger than the world; zoom back in by RES so the visible
+    // area is exactly 0..W, 0..H. Every coordinate below stays in world units.
+    this.cameras.main.setZoom(RES).centerOn(W/2, H/2);
+    this.makeLootIcons();
+
     this.add.rectangle(W/2, H/2, W, H, FORGE.deep);
 
     this.arenaBounds = new Phaser.Geom.Rectangle(MARGIN, HUD_H + MARGIN, W - MARGIN*2, H - HUD_H - MARGIN*2);
@@ -222,19 +235,165 @@ class LootScene extends Phaser.Scene {
 
     // HUD chrome is drawn after the arena so it always wins the depth fight.
     this.add.rectangle(W/2, HUD_H/2, W, HUD_H, FORGE.panel);
-    this.hudText = this.add.text(14, 8, '', { fontSize: '13px', color: '#e8e0ff' });
-    this.weaponText = this.add.text(14, 60, '', { fontSize: '11px', color: '#9a8fc2' });
+    this.hudText = this.add.text(14, 8, '', { resolution: RES, fontSize: '13px', color: '#e8e0ff' });
+    this.weaponText = this.add.text(14, 60, '', { resolution: RES, fontSize: '11px', color: '#9a8fc2' });
 
     // input for movement (only acts while playing)
     this.pointerTarget = null;
-    this.input.on('pointerdown', p => { if (this.state === 'playing') this.pointerTarget = { x: p.x, y: p.y }; });
-    this.input.on('pointermove', p => { if (this.state === 'playing' && p.isDown) this.pointerTarget = { x: p.x, y: p.y }; });
+    this.input.on('pointerdown', p => { if (this.state === 'playing') this.pointerTarget = { x: p.worldX, y: p.worldY }; });
+    this.input.on('pointermove', p => { if (this.state === 'playing' && p.isDown) this.pointerTarget = { x: p.worldX, y: p.worldY }; });
     this.input.on('pointerup', () => { this.pointerTarget = null; });
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys('W,A,S,D');
 
     this.showHub();
+  }
+
+  // ---------- ATTACK VISUALS ----------
+  // Every weapon used to draw the same cyan line, so a Venom Blade and an Executioner
+  // felt identical to use. Each effect now has its own beam shape and colour, which is
+  // also free build feedback: you can see what you're holding without reading the HUD.
+  drawWeaponBeam(x1, y1, x2, y2, effect) {
+    const fx = this.attackFx;
+    const ang = Math.atan2(y2 - y1, x2 - x1);
+    const len = Math.hypot(x2 - x1, y2 - y1);
+
+    switch (effect) {
+      case 'venom': {            // sickly, dripping - beads of poison along the path
+        fx.lineStyle(2, 0x7fdd3c, 0.75);
+        fx.lineBetween(x1, y1, x2, y2);
+        fx.fillStyle(0x7fdd3c, 0.9);
+        for (let t = 0.25; t < 1; t += 0.25) {
+          const px = x1 + (x2 - x1) * t, py = y1 + (y2 - y1) * t;
+          fx.fillCircle(px, py + Math.sin(t * 9) * 3, 2.6);
+        }
+        break;
+      }
+      case 'vampiric': {         // crimson draw, thicker at the victim end
+        fx.lineStyle(4, 0xc4331f, 0.55); fx.lineBetween(x1, y1, x2, y2);
+        fx.lineStyle(1.5, 0xff8080, 0.95); fx.lineBetween(x1, y1, x2, y2);
+        fx.fillStyle(0xff8080, 0.9); fx.fillCircle(x2, y2, 4);
+        break;
+      }
+      case 'chain': {            // jagged arc rather than a straight line
+        fx.lineStyle(2, 0x4dd0ff, 0.95);
+        fx.beginPath(); fx.moveTo(x1, y1);
+        const steps = Math.max(3, Math.round(len / 22));
+        for (let i = 1; i < steps; i++) {
+          const t = i / steps;
+          const off = (i % 2 ? 1 : -1) * Phaser.Math.Between(4, 9);
+          fx.lineTo(x1 + (x2-x1)*t + Math.cos(ang + Math.PI/2) * off,
+                    y1 + (y2-y1)*t + Math.sin(ang + Math.PI/2) * off);
+        }
+        fx.lineTo(x2, y2); fx.strokePath();
+        break;
+      }
+      case 'executioner': {      // heavy gold wedge - widens toward the target
+        const n = ang + Math.PI/2;
+        fx.fillStyle(FORGE.gold, 0.6);
+        fx.beginPath();
+        fx.moveTo(x1 + Math.cos(n)*1.5, y1 + Math.sin(n)*1.5);
+        fx.lineTo(x2 + Math.cos(n)*7,   y2 + Math.sin(n)*7);
+        fx.lineTo(x2 - Math.cos(n)*7,   y2 - Math.sin(n)*7);
+        fx.lineTo(x1 - Math.cos(n)*1.5, y1 - Math.sin(n)*1.5);
+        fx.closePath(); fx.fillPath();
+        break;
+      }
+      default: {                 // plain weapon: clean, quick, unremarkable on purpose
+        fx.lineStyle(2, FORGE.cool, 0.8);
+        fx.lineBetween(x1, y1, x2, y2);
+      }
+    }
+  }
+
+  // Short-lived burst where a hit lands. Destroys itself, so it needs no bookkeeping
+  // in the run-cleanup path.
+  impactBurst(x, y, colour) {
+    const ring = this.add.circle(x, y, 5, colour, 0.55);
+    this.tweens.add({
+      targets: ring, scale: 2.4, alpha: 0,
+      duration: 180, ease: 'Cubic.easeOut',
+      onComplete: () => ring.destroy()
+    });
+  }
+
+  // ---------- LOOT ICONS ----------
+  // Drawn once into textures at boot rather than shipped as files: they stay exactly
+  // on-palette, cost nothing to download, and one texture serves every rarity because
+  // the rarity colour is applied as a tint at pickup time.
+  makeLootIcons() {
+    const S = 32, C = S / 2;
+    const g = this.make.graphics({ add: false });
+    const ink = 0xfffbef;
+    const def = (key, draw) => {
+      g.clear();
+      g.fillStyle(ink, 1); g.lineStyle(3, ink, 1);
+      draw(g);
+      g.generateTexture('icon_' + key, S, S);
+    };
+
+    // --- weapons ---
+    def('none', g => {                      // plain blade
+      g.fillTriangle(C, 3, C - 5, 14, C + 5, 14);
+      g.fillRect(C - 4, 14, 8, 11);
+      g.fillRect(C - 8, 24, 16, 4);
+    });
+    def('venom', g => {                     // droplet
+      g.fillTriangle(C, 4, C - 8, 17, C + 8, 17);
+      g.fillCircle(C, 19, 8);
+    });
+    def('vampiric', g => {                  // paired fangs
+      g.fillTriangle(C - 7, 5, C - 1, 5, C - 4, 24);
+      g.fillTriangle(C + 1, 5, C + 7, 5, C + 4, 24);
+      g.fillRect(C - 9, 4, 18, 4);
+    });
+    def('chain', g => {                     // two interlocked links
+      g.strokeCircle(C - 5, C, 7);
+      g.strokeCircle(C + 5, C, 7);
+    });
+    def('executioner', g => {               // axe head
+      g.fillRect(C - 2, 4, 4, 24);
+      g.beginPath(); g.moveTo(C + 1, 6); g.lineTo(C + 13, 12);
+      g.lineTo(C + 13, 20); g.lineTo(C + 1, 24); g.closePath(); g.fillPath();
+    });
+
+    // --- trinkets ---
+    def('vitality', g => {                  // heart
+      g.fillCircle(C - 5, 12, 6); g.fillCircle(C + 5, 12, 6);
+      g.fillTriangle(C - 11, 14, C + 11, 14, C, 28);
+    });
+    def('aegis', g => {                     // shield
+      g.beginPath(); g.moveTo(C, 3); g.lineTo(C + 11, 9); g.lineTo(C + 9, 21);
+      g.lineTo(C, 29); g.lineTo(C - 9, 21); g.lineTo(C - 11, 9);
+      g.closePath(); g.fillPath();
+    });
+    def('thorns', g => {                    // spiked ring
+      g.strokeCircle(C, C, 7);
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        g.lineBetween(C + Math.cos(a) * 8, C + Math.sin(a) * 8,
+                      C + Math.cos(a) * 14, C + Math.sin(a) * 14);
+      }
+    });
+    def('swift', g => {                     // stacked chevrons
+      for (const dy of [0, 9]) {
+        g.beginPath(); g.moveTo(C - 9, 8 + dy); g.lineTo(C, 15 + dy); g.lineTo(C + 9, 8 + dy);
+        g.strokePath();
+      }
+    });
+    def('regen', g => {                     // cross
+      g.fillRect(C - 3, 6, 6, 20);
+      g.fillRect(6, C - 3, 20, 6);
+    });
+
+    // --- unidentified ---
+    def('mystery', g => {
+      g.strokeCircle(C, C, 11);
+      g.fillCircle(C, C, 3);
+    });
+
+    g.destroy();
   }
 
   // ---------- UI HELPERS ----------
@@ -245,7 +404,7 @@ class LootScene extends Phaser.Scene {
 
   makeButton(x, y, w, h, label, color, onClick) {
     const bg = this.add.rectangle(x, y, w, h, color).setStrokeStyle(2, 0xffffff, 0.25).setInteractive({ useHandCursor: true });
-    const txt = this.add.text(x, y, label, { fontSize: '16px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    const txt = this.add.text(x, y, label, { resolution: RES, fontSize: '16px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     bg.on('pointerdown', onClick);
     this.uiObjects.push(bg, txt);
     return bg;
@@ -257,29 +416,83 @@ class LootScene extends Phaser.Scene {
     this.state = 'hub';
     this.hudText.setText('');
 
-    this.uiObjects.push(this.add.text(W/2, 130, 'LOOT CHASE', { fontSize: '30px', color: '#c77dff', fontStyle: 'bold' }).setOrigin(0.5));
-    this.uiObjects.push(this.add.text(W/2, 165, 'auto-battle · collect loot · descend deeper', { fontSize: '12px', color: '#9a8fc2' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, 130, 'LOOT CHASE', { resolution: RES, fontSize: '30px', color: '#c77dff', fontStyle: 'bold' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, 165, 'auto-battle · collect loot · descend deeper', { resolution: RES, fontSize: '12px', color: '#9a8fc2' }).setOrigin(0.5));
     if (session.bestSector) {
-      this.uiObjects.push(this.add.text(W/2, 185, `Best depth reached: Sector ${session.bestSector}`, { fontSize: '11px', color: '#7a6fa0' }).setOrigin(0.5));
+      this.uiObjects.push(this.add.text(W/2, 185, `Best depth reached: Sector ${session.bestSector}`, { resolution: RES, fontSize: '11px', color: '#7a6fa0' }).setOrigin(0.5));
     }
 
-    this.uiObjects.push(this.add.text(W/2, 230, `Hoard Gold: ${session.metaGold}`, { fontSize: '18px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, 230, `Hoard Gold: ${session.metaGold}`, { resolution: RES, fontSize: '18px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
 
     const vitCost = 50 * (session.vitalityLevel + 1);
     const powCost = 60 * (session.powerLevel + 1);
 
-    this.uiObjects.push(this.add.text(W/2, 290, `Vitality Lv.${session.vitalityLevel}  (+${session.vitalityLevel*10}% Max HP)`, { fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, 290, `Vitality Lv.${session.vitalityLevel}  (+${session.vitalityLevel*10}% Max HP)`, { resolution: RES, fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
     this.makeButton(W/2, 325, 220, 40, `Upgrade — ${vitCost}g`, session.metaGold >= vitCost ? 0x3a2f66 : 0x241d40, () => {
       if (session.metaGold >= vitCost) { session.metaGold -= vitCost; session.vitalityLevel++; saveSession(); this.showHub(); }
     });
 
-    this.uiObjects.push(this.add.text(W/2, 385, `Power Lv.${session.powerLevel}  (+${session.powerLevel*8}% Weapon Dmg)`, { fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, 385, `Power Lv.${session.powerLevel}  (+${session.powerLevel*8}% Weapon Dmg)`, { resolution: RES, fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
     this.makeButton(W/2, 420, 220, 40, `Upgrade — ${powCost}g`, session.metaGold >= powCost ? 0x3a2f66 : 0x241d40, () => {
       if (session.metaGold >= powCost) { session.metaGold -= powCost; session.powerLevel++; saveSession(); this.showHub(); }
     });
 
-    this.makeButton(W/2, 520, 200, 54, 'START RUN', 0x7c3fff, () => this.startRun());
-    this.uiObjects.push(this.add.text(W/2, 570, 'Clear each sector, then extract or descend.', { fontSize: '12px', color: '#7a6fa0' }).setOrigin(0.5));
+    this.makeButton(W/2, 510, 200, 54, 'START RUN', 0x7c3fff, () => this.startRun());
+    this.uiObjects.push(this.add.text(W/2, 556, 'Clear each sector, then extract or descend.', { resolution: RES, fontSize: '12px', color: '#7a6fa0' }).setOrigin(0.5));
+
+    const locked = this.lockedPowerCount();
+    this.makeButton(W/2, 606, 200, 38, 'POWERS', 0x5c2a05, () => this.showCodex());
+    this.uiObjects.push(this.add.text(W/2, 640,
+      locked > 0 ? `${locked} still locked — descend to find them` : 'all powers unlocked',
+      { resolution: RES, fontSize: '11px', color: locked > 0 ? '#ffd23c' : '#7a6fa0' }).setOrigin(0.5));
+  }
+
+  // ---------- CODEX ----------
+  // How many effects the player has not yet reached the depth to see drop. Surfaced on
+  // the hub button because "3 still locked" is a far better reason to press Descend
+  // than any amount of copy about replayability.
+  lockedPowerCount() {
+    const reached = session.bestSector || 1;
+    return [...Object.entries(WEAPON_EFFECTS), ...Object.entries(TRINKET_EFFECTS)]
+      .filter(([k, e]) => k !== 'none' && e.minSector > reached).length;
+  }
+
+  showCodex() {
+    this.clearUI();
+    this.state = 'hub';
+    const reached = session.bestSector || 1;
+
+    // Both sit fully inside the HUD panel (height HUD_H) rather than straddling its edge.
+    this.uiObjects.push(this.add.text(W/2, 30, 'POWERS', { resolution: RES, fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, 56, `found in the depths · best sector ${reached}`, { resolution: RES, fontSize: '11px', color: '#c8a96e' }).setOrigin(0.5));
+
+    const row = (key, def, y, kind) => {
+      const unlocked = def.minSector <= reached;
+      const tint = unlocked ? (kind === 'weapon' ? 0xff8c42 : 0x4dd0ff) : 0x5a4535;
+      const icon = this.add.image(44, y, `icon_${key}`).setDisplaySize(26, 26).setTint(tint);
+      const name = this.add.text(70, y - 8, def.label,
+        { resolution: RES, fontSize: '13px', color: unlocked ? '#fffbef' : '#7a6656', fontStyle: 'bold' });
+      const desc = this.add.text(70, y + 6, unlocked ? def.desc : `Locked — reaches you in Sector ${def.minSector}`,
+        { resolution: RES, fontSize: '10px', color: unlocked ? '#c8a96e' : '#6b5847' });
+      this.uiObjects.push(icon, name, desc);
+    };
+
+    this.uiObjects.push(this.add.text(24, 108, 'WEAPONS', { resolution: RES, fontSize: '11px', color: '#ff8c42', fontStyle: 'bold' }));
+    let y = 136;
+    for (const [key, def] of Object.entries(WEAPON_EFFECTS)) {
+      if (key === 'none') continue;          // the starting dagger is not a discovery
+      row(key, def, y, 'weapon'); y += 40;
+    }
+
+    this.uiObjects.push(this.add.text(24, y + 4, 'TRINKETS', { resolution: RES, fontSize: '11px', color: '#4dd0ff', fontStyle: 'bold' }));
+    y += 32;
+    for (const [key, def] of Object.entries(TRINKET_EFFECTS)) { row(key, def, y, 'trinket'); y += 40; }
+
+    this.uiObjects.push(this.add.text(W/2, y + 12,
+      'Rarity scales how strong an effect is.\nAbout 1 in 4 drops is unidentified — riskier, better odds.',
+      { resolution: RES, fontSize: '10px', color: '#8a7360', align: 'center' }).setOrigin(0.5));
+
+    this.makeButton(W/2, H - 56, 160, 40, 'BACK', 0x5c2a05, () => this.showHub());
   }
 
   // ---------- RUN SETUP ----------
@@ -333,7 +546,7 @@ class LootScene extends Phaser.Scene {
     const pbarX = 14, pbarY = 42, pbarW = W - 28, pbarH = 14;
     this.phaseBarBg = this.add.rectangle(pbarX, pbarY, pbarW, pbarH, 0x241d40).setOrigin(0,0.5).setStrokeStyle(1, 0x4a4460);
     this.phaseBarFill = this.add.rectangle(pbarX, pbarY, pbarW, pbarH, PHASE_DEFS.drift.color).setOrigin(0,0.5);
-    this.phaseBarLabel = this.add.text(pbarX + pbarW/2, pbarY, 'DRIFT', { fontSize: '11px', color: '#0d0a1a', fontStyle: 'bold' }).setOrigin(0.5);
+    this.phaseBarLabel = this.add.text(pbarX + pbarW/2, pbarY, 'DRIFT', { resolution: RES, fontSize: '11px', color: '#0d0a1a', fontStyle: 'bold' }).setOrigin(0.5);
     this.phaseBarW = pbarW;
 
     // Progress track - Dota-lane style: waves 1-5, gate at wave 3, ancient/flag at wave 5, moving marker
@@ -352,7 +565,7 @@ class LootScene extends Phaser.Scene {
     }
     this.progressMarker = this.add.triangle(this.trackStartX, trackY+16, 0,0, -6,9, 6,9, 0xffd23c);
     this.trackY = trackY;
-    this.sectorLabel = this.add.text(this.trackStartX - 14, trackY, 'S1', { fontSize: '10px', color: '#7a6fa0', fontStyle: 'bold' }).setOrigin(1, 0.5);
+    this.sectorLabel = this.add.text(this.trackStartX - 14, trackY, 'S1', { resolution: RES, fontSize: '10px', color: '#7a6fa0', fontStyle: 'bold' }).setOrigin(1, 0.5);
 
     this.atkTimer = 0;
     this.attackFx = this.add.graphics();
@@ -376,9 +589,9 @@ class LootScene extends Phaser.Scene {
   }
 
   showSectorBanner(n) {
-    const t1 = this.add.text(W/2, H/2-40, `SECTOR ${n}`, { fontSize: '14px', color: '#7a6fa0', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
-    const t2 = this.add.text(W/2, H/2-14, sectorTitle(n), { fontSize: '20px', color: '#c77dff', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
-    const t3 = this.add.text(W/2, H/2+16, sectorSub(n), { fontSize: '12px', color: '#9a8fc2' }).setOrigin(0.5).setAlpha(0);
+    const t1 = this.add.text(W/2, H/2-40, `SECTOR ${n}`, { resolution: RES, fontSize: '14px', color: '#7a6fa0', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
+    const t2 = this.add.text(W/2, H/2-14, sectorTitle(n), { resolution: RES, fontSize: '20px', color: '#c77dff', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
+    const t3 = this.add.text(W/2, H/2+16, sectorSub(n), { resolution: RES, fontSize: '12px', color: '#9a8fc2' }).setOrigin(0.5).setAlpha(0);
     [t1,t2,t3].forEach(t => {
       this.tweens.add({ targets: t, alpha: 1, duration: 300, hold: 1500, yoyo: true, onComplete: () => t.destroy() });
     });
@@ -430,12 +643,19 @@ class LootScene extends Phaser.Scene {
     this.nextWave();
   }
 
+  // Every enemy carries one now, not just tanks and bosses - you cannot read a
+  // fight you cannot see the state of. Bars scale with the enemy so a swarm of
+  // Asura reads as chatter and a boss bar reads as a wall.
   addHpBar(enemy) {
-    const w = Math.max(30, enemy.radius * 2.2);
-    const y = enemy.y - enemy.radius - 16;
+    const big = !!enemy.isBoss;
+    const w = big ? Math.max(58, enemy.radius * 2.4) : Math.max(22, enemy.radius * 1.9);
+    const h = big ? 6 : 3.5;
+    const y = enemy.y - enemy.radius - (big ? 18 : 13);
     enemy.hpBarW = w;
-    enemy.hpBarBg = this.add.rectangle(enemy.x, y, w, 5, 0x1a1533, 0.85).setStrokeStyle(1, 0x000000, 0.4);
-    enemy.hpBarFill = this.add.rectangle(enemy.x - w/2, y, w, 5, 0xff5c5c).setOrigin(0, 0.5);
+    enemy.hpBarH = h;
+    enemy.hpBarBg = this.add.rectangle(enemy.x, y, w, h, FORGE.deep, 0.8)
+      .setStrokeStyle(1, 0x000000, 0.45);
+    enemy.hpBarFill = this.add.rectangle(enemy.x - w/2, y, w, h, FORGE.gold).setOrigin(0, 0.5);
   }
 
   spawnGatekeeper() {
@@ -454,8 +674,13 @@ class LootScene extends Phaser.Scene {
       slamState: 'idle', slamTimer: 2200, slamRadius: 72
     };
     this.enemies.push(enemy);
-    const spr = this.add.circle(x, y, enemy.radius, 0x2a2340).setStrokeStyle(3, 0x9a8fc2);
-    const core = this.add.circle(x, y, 9, PHASE_DEFS[weakPhase].color);
+    enemy.char = CHARS.gatekeeper;
+    enemy.facing = 'front';
+    const spr = this.add.image(x, y, `${enemy.char}-front`).setDisplaySize(enemy.radius * 2.8, enemy.radius * 2.8);
+    // The weak-phase core sits UNDER the sprite as a glow pool, so Dwarapal's
+    // silhouette stays readable while the colour tell is still unmistakable.
+    const core = this.add.circle(x, y + enemy.radius * 0.55, 14, PHASE_DEFS[weakPhase].color, 0.85);
+    core.setDepth(spr.depth - 1);
     this.tweens.add({ targets: core, alpha: 0.45, duration: 500, yoyo: true, repeat: -1 });
     this.enemySprites.set(enemy.id, spr);
     this.enemyCores.set(enemy.id, core);
@@ -484,9 +709,11 @@ class LootScene extends Phaser.Scene {
     };
     this.enemies.push(enemy);
 
-    const spr = this.add.circle(x, y, enemy.radius, 0x2a2340).setStrokeStyle(4, isMega ? 0xffd23c : 0x9a8fc2);
+    enemy.char = isMega ? CHARS.megaboss : CHARS.sectorboss;
+    enemy.facing = 'front';
+    const spr = this.add.image(x, y, `${enemy.char}-front`).setDisplaySize(enemy.radius * 2.8, enemy.radius * 2.8);
     this.enemySprites.set(enemy.id, spr);
-    const outerRing = this.add.circle(x, y, enemy.radius + 10, 0x000000, 0).setStrokeStyle(2, isMega ? 0xc23cff : 0x4dd0ff, 0.5);
+    const outerRing = this.add.circle(x, y, enemy.radius + 10, 0x000000, 0).setStrokeStyle(2, isMega ? 0xc23cff : FORGE.gold, 0.5);
     this.enemyRings.set(enemy.id, outerRing);
     this.addHpBar(enemy);
 
@@ -495,7 +722,8 @@ class LootScene extends Phaser.Scene {
     }
 
     if (enemy.bossPhase === 'timing') {
-      const core = this.add.circle(x, y, 11, PHASE_DEFS[weakPhase].color);
+      const core = this.add.circle(x, y + enemy.radius * 0.55, 16, PHASE_DEFS[weakPhase].color, 0.85);
+      core.setDepth(spr.depth - 1);
       this.tweens.add({ targets: core, alpha: 0.45, duration: 500, yoyo: true, repeat: -1 });
       this.enemyCores.set(enemy.id, core);
     } else {
@@ -515,7 +743,9 @@ class LootScene extends Phaser.Scene {
       add.ownerBossId = boss.id;
       boss.keyAddIds.push(add.id);
       const spr = this.enemySprites.get(add.id);
-      if (spr) spr.setStrokeStyle(2, 0xffd23c);
+      // Character sprites are Images now, so the old gold outline is a gold wash -
+      // same read ("this one is an anchor, kill it"), and it survives any art swap.
+      if (spr) spr.setTint(0xffd23c);
     }
     const shieldGfx = this.add.circle(boss.x, boss.y, boss.radius + 6, 0xbfc4d6, 0.15).setStrokeStyle(2, 0xbfc4d6, 0.6);
     this.enemyShields.set(boss.id, shieldGfx);
@@ -574,7 +804,7 @@ class LootScene extends Phaser.Scene {
       .setDisplaySize(enemy.radius * 2.8, enemy.radius * 2.8);
     if (isElite) spr.setTint(0xffd23c);
     this.enemySprites.set(enemy.id, spr);
-    if (type === 'tank' || isElite) this.addHpBar(enemy);
+    this.addHpBar(enemy);
     return enemy;
   }
 
@@ -713,18 +943,24 @@ class LootScene extends Phaser.Scene {
     const py = Phaser.Math.Clamp(y, this.arenaBounds.y+16, this.arenaBounds.bottom-16);
 
     const dispColor = isMystery ? 0xbfc4d6 : r.color;
-    const sprite = this.add.rectangle(px, py, 16, 16, dispColor).setAngle(45).setStrokeStyle(2, 0xffffff, isMystery ? 0.9 : 0.6);
+    // Icon tells you WHAT dropped, tint tells you how good it is. Unidentified drops
+    // deliberately show the same blank sigil regardless of contents - that ambiguity
+    // is the whole incentive to risk walking over one.
+    const iconKey = isMystery ? 'mystery' : (item.effect || 'none');
+    const sprite = this.add.image(px, py, `icon_${iconKey}`)
+      .setDisplaySize(19, 19)
+      .setTint(dispColor);
     this.tweens.add({ targets: sprite, y: py-6, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     if (isMystery) {
       this.tweens.add({ targets: sprite, alpha: 0.45, duration: 350, yoyo: true, repeat: -1 });
     }
-    const label = this.add.text(px, py-20, isMystery ? '???' : item.name, { fontSize: '9px', color: isMystery ? '#bfc4d6' : '#e8e0ff' }).setOrigin(0.5);
+    const label = this.add.text(px, py-20, isMystery ? '???' : item.name, { resolution: RES, fontSize: '9px', color: isMystery ? '#bfc4d6' : '#e8e0ff' }).setOrigin(0.5);
 
     this.pickups.push({ x: px, y: py, item, sprite, label, isMystery });
   }
 
   showToast(msg, color) {
-    const t = this.add.text(W/2, HUD_H + 20, msg, { fontSize: '14px', color, fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
+    const t = this.add.text(W/2, HUD_H + 20, msg, { resolution: RES, fontSize: '14px', color, fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
     this.tweens.add({
       targets: t, alpha: 1, y: HUD_H + 8, duration: 200, yoyo: true, hold: 700,
       onComplete: () => t.destroy()
@@ -756,12 +992,12 @@ class LootScene extends Phaser.Scene {
     this.state = 'sectorChoice';
     this.clearUI();
     this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 300, 0x17122b, 0.97).setStrokeStyle(2, 0x2fbf71));
-    this.uiObjects.push(this.add.text(W/2, H/2-115, isMega ? 'THE RIFT WARDEN FALLS' : 'SECTOR CLEARED', { fontSize: '19px', color: '#2fbf71', fontStyle: 'bold' }).setOrigin(0.5));
-    this.uiObjects.push(this.add.text(W/2, H/2-80, `Sector ${this.sector} complete`, { fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
-    this.uiObjects.push(this.add.text(W/2, H/2-55, `Gold banked so far: ${this.runGold}`, { fontSize: '13px', color: '#ffd23c' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-115, isMega ? 'THE RIFT WARDEN FALLS' : 'SECTOR CLEARED', { resolution: RES, fontSize: '19px', color: '#2fbf71', fontStyle: 'bold' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-80, `Sector ${this.sector} complete`, { resolution: RES, fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-55, `Gold banked so far: ${this.runGold}`, { resolution: RES, fontSize: '13px', color: '#ffd23c' }).setOrigin(0.5));
     this.uiObjects.push(this.add.text(W/2, H/2-15,
       'Extract now and keep it all safe,\nor descend for tougher fights\nand better loot.',
-      { fontSize: '12px', color: '#9a8fc2', align: 'center', lineSpacing: 4 }).setOrigin(0.5));
+      { resolution: RES, fontSize: '12px', color: '#9a8fc2', align: 'center', lineSpacing: 4 }).setOrigin(0.5));
 
     this.makeButton(W/2, H/2+65, 230, 46, 'Extract — Bank & End Run', 0x3a2f66, () => this.endRun(true));
     this.makeButton(W/2, H/2+120, 230, 46, `Descend to Sector ${this.sector+1}`, 0x7c3fff, () => this.descend());
@@ -776,10 +1012,10 @@ class LootScene extends Phaser.Scene {
 
     this.clearUI();
     this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 280, 0x17122b, 0.97).setStrokeStyle(2, victory ? 0x2fbf71 : 0xff5c5c));
-    this.uiObjects.push(this.add.text(W/2, H/2-100, victory ? 'EXTRACTED SAFELY' : 'YOU FELL', { fontSize: '24px', color: victory ? '#2fbf71' : '#ff5c5c', fontStyle: 'bold' }).setOrigin(0.5));
-    this.uiObjects.push(this.add.text(W/2, H/2-55, `Sector reached: ${this.sector}`, { fontSize: '15px', color: '#e8e0ff' }).setOrigin(0.5));
-    this.uiObjects.push(this.add.text(W/2, H/2-25, `Gold earned: ${this.runGold}`, { fontSize: '15px', color: '#ffd23c' }).setOrigin(0.5));
-    this.uiObjects.push(this.add.text(W/2, H/2+5, `Hoard total: ${session.metaGold}`, { fontSize: '13px', color: '#9a8fc2' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-100, victory ? 'EXTRACTED SAFELY' : 'YOU FELL', { resolution: RES, fontSize: '24px', color: victory ? '#2fbf71' : '#ff5c5c', fontStyle: 'bold' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-55, `Sector reached: ${this.sector}`, { resolution: RES, fontSize: '15px', color: '#e8e0ff' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-25, `Gold earned: ${this.runGold}`, { resolution: RES, fontSize: '15px', color: '#ffd23c' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2+5, `Hoard total: ${session.metaGold}`, { resolution: RES, fontSize: '13px', color: '#9a8fc2' }).setOrigin(0.5));
 
     this.makeButton(W/2, H/2+80, 200, 48, 'Continue to Hub', 0x7c3fff, () => {
       // clean up run visuals
@@ -806,7 +1042,7 @@ class LootScene extends Phaser.Scene {
         if (e.hpBarBg) { e.hpBarBg.destroy(); e.hpBarFill.destroy(); }
       });
       this.goldPickups.forEach(g => g.sprite && g.sprite.destroy());
-      if (this.projectiles) this.projectiles.forEach(p => p.sprite && p.sprite.destroy());
+      if (this.projectiles) this.projectiles.forEach(p => { if (p.sprite) p.sprite.destroy(); if (p.halo) p.halo.destroy(); });
       if (this.pickups) this.pickups.forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); });
       this.showHub();
     });
@@ -964,11 +1200,16 @@ class LootScene extends Phaser.Scene {
         if (enemy.fireTimer <= 0 && edist <= enemy.preferredRange + 60) {
           enemy.fireTimer = enemy.fireInterval;
           const pdx = edx/edist, pdy = edy/edist;
+          // Yaksha's bolt: an elongated shard pointed along its travel, with a soft
+          // halo behind it. A plain dot was hard to pick out against the forge floor.
+          const halo = this.add.circle(enemy.x, enemy.y, 8, FORGE.flame, 0.25);
+          const shard = this.add.ellipse(enemy.x, enemy.y, 14, 5, FORGE.gold)
+            .setRotation(Math.atan2(pdy, pdx));
           const proj = {
             x: enemy.x, y: enemy.y,
             vx: pdx * enemy.projSpeed, vy: pdy * enemy.projSpeed,
             dmg: enemy.projDmg,
-            sprite: this.add.circle(enemy.x, enemy.y, 5, 0xffa63c)
+            sprite: shard, halo
           };
           this.projectiles.push(proj);
         }
@@ -1050,11 +1291,15 @@ class LootScene extends Phaser.Scene {
       }
 
       if (enemy.hpBarBg) {
-        const by = enemy.y - enemy.radius - 16;
+        const by = enemy.y - enemy.radius - (enemy.isBoss ? 18 : 13);
+        const pct = Math.max(0, enemy.hp / enemy.maxHp);
         enemy.hpBarBg.setPosition(enemy.x, by);
         enemy.hpBarFill.x = enemy.x - enemy.hpBarW/2;
         enemy.hpBarFill.y = by;
-        enemy.hpBarFill.width = enemy.hpBarW * Math.max(0, enemy.hp / enemy.maxHp);
+        enemy.hpBarFill.width = enemy.hpBarW * pct;
+        // Gold -> ember -> crimson as it drains: reads at a glance without a number,
+        // and stays inside the forge palette instead of the old generic green/red.
+        enemy.hpBarFill.fillColor = pct > 0.5 ? FORGE.gold : (pct > 0.22 ? FORGE.flame : 0xc4331f);
       }
     }
 
@@ -1063,17 +1308,19 @@ class LootScene extends Phaser.Scene {
       const p = this.projectiles[i];
       p.x += p.vx * dt; p.y += p.vy * dt;
       p.sprite.setPosition(p.x, p.y);
+      if (p.halo) p.halo.setPosition(p.x, p.y);
 
       const pdist = Math.hypot(p.x - this.player.x, p.y - this.player.y);
       const offscreen = p.x < 0 || p.x > W || p.y < 0 || p.y > H;
 
       if (pdist < 18) {
         const died = this.damagePlayer(p.dmg * PHASE_DEFS[this.phase].enemyDmgMult);
-        p.sprite.destroy();
+        this.impactBurst(p.x, p.y, FORGE.flame);
+        p.sprite.destroy(); if (p.halo) p.halo.destroy();
         this.projectiles.splice(i,1);
         if (died) return;
       } else if (offscreen) {
-        p.sprite.destroy();
+        p.sprite.destroy(); if (p.halo) p.halo.destroy();
         this.projectiles.splice(i,1);
       }
     }
@@ -1090,10 +1337,18 @@ class LootScene extends Phaser.Scene {
       if (inRange.length) {
         this.atkTimer = this.player.weapon.atkSpeed;
         this.attackFx.clear();
-        this.attackFx.lineStyle(2, 0x4dd0ff, 0.8);
+        const wfx = this.player.weapon.effect;
+        const beamColour = { venom: 0x7fdd3c, vampiric: 0xff8080, chain: 0x4dd0ff,
+                             executioner: FORGE.gold }[wfx] || FORGE.cool;
         inRange.forEach(({e}) => {
-          this.attackFx.lineBetween(this.player.x, this.player.y, e.x, e.y);
-          if (e.shieldOn) return; // shielded bosses take no damage until their anchors are destroyed
+          this.drawWeaponBeam(this.player.x, this.player.y, e.x, e.y, wfx);
+          if (e.shieldOn) {
+            // Shielded bosses take no damage until their anchors die - show the beam
+            // stopping dead on the shield so that reads as "blocked", not "missed".
+            this.impactBurst(e.x, e.y, 0xbfc4d6);
+            return;
+          }
+          this.impactBurst(e.x, e.y, beamColour);
           let dmg = this.player.weapon.dmg * PHASE_DEFS[this.phase].playerDmgMult;
           if (e.isBoss && (!e.isSectorBoss || e.bossPhase === 'timing')) {
             dmg *= (this.phase === e.weakPhase) ? 1 : 0.12;
@@ -1120,7 +1375,8 @@ class LootScene extends Phaser.Scene {
               if (d <= sd) { secondary = cand; sd = d; }
             }
             if (secondary) {
-              this.attackFx.lineBetween(primary.x, primary.y, secondary.x, secondary.y);
+              this.drawWeaponBeam(primary.x, primary.y, secondary.x, secondary.y, 'chain');
+              this.impactBurst(secondary.x, secondary.y, 0x4dd0ff);
               secondary.hp -= this.player.weapon.dmg * PHASE_DEFS[this.phase].playerDmgMult * this.player.weapon.chainPct;
               if (secondary.hp <= 0) this.killEnemy(secondary);
             }
@@ -1182,8 +1438,8 @@ const config = {
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: W,
-    height: H
+    width: W * RES,
+    height: H * RES
   },
   scene: LootScene
 };
