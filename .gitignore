@@ -1,3 +1,8 @@
 .DS_Store
 node_modules/
 *.log
+
+# Raw asset-pack downloads: hundreds of MB of vector sources and full
+# animation sets. Only the selected, optimised sprites belong in git.
+game/assets/incoming/*.zip
+game/assets/incoming/extracted/

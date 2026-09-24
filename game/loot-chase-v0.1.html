@@ -7,7 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
 <style>
   html, body {
-    margin: 0; padding: 0; background: #0d0a1a;
+    margin: 0; padding: 0; background: #2a0800;
     height: 100%; width: 100%; overflow: hidden;
     font-family: 'Trebuchet MS', sans-serif;
   }
@@ -98,19 +98,53 @@ function pickTrinketEffect(sector) {
 
 // The Cosmic Cycle: a continuous, learnable timer independent of waves.
 // Predictable on purpose - mastery comes from planning around it, not reacting blind.
+// Object keys stay English so save data and existing logic keep working; only the
+// player-facing label changes (requirements.md 2.12). Tints are warm now - a cool
+// overlay on a forge arena fought the palette.
 const PHASE_DEFS = {
-  drift:    { label: 'DRIFT',    color: 0x4dd0ff, duration: 20000, enemyDmgMult: 1.0,  playerDmgMult: 1.0,  spawnRateMult: 1.0, lootBoost: 0,  tint: 0x1a1533, tintAlpha: 0.6 },
-  surge:    { label: 'SURGE',    color: 0xffa63c, duration: 12000, enemyDmgMult: 1.0,  playerDmgMult: 1.0,  spawnRateMult: 0.65,lootBoost: 15, tint: 0x3a2a10, tintAlpha: 0.55 },
-  eclipse:  { label: 'ECLIPSE',  color: 0xc23cff, duration: 10000, enemyDmgMult: 1.3,  playerDmgMult: 1.3,  spawnRateMult: 1.0, lootBoost: 0,  tint: 0x28103a, tintAlpha: 0.65 },
-  convergence: { label: 'CONVERGENCE', color: 0xffffff, duration: 8000, enemyDmgMult: 1.0, playerDmgMult: 1.0, spawnRateMult: 1.0, lootBoost: 30, tint: 0x3a3a10, tintAlpha: 0.6 }
+  drift:    { label: 'SHANTI',  color: 0x4dd0ff, duration: 20000, enemyDmgMult: 1.0,  playerDmgMult: 1.0,  spawnRateMult: 1.0, lootBoost: 0,  tint: 0x1d4a5c, tintAlpha: 0.35 },
+  surge:    { label: 'SHAKTI',  color: 0xff8c42, duration: 12000, enemyDmgMult: 1.0,  playerDmgMult: 1.0,  spawnRateMult: 0.65,lootBoost: 15, tint: 0x5c2a05, tintAlpha: 0.45 },
+  eclipse:  { label: 'GRAHAN',  color: 0xc4331f, duration: 10000, enemyDmgMult: 1.3,  playerDmgMult: 1.3,  spawnRateMult: 1.0, lootBoost: 0,  tint: 0x4a0f08, tintAlpha: 0.55 },
+  convergence: { label: 'PRALAYA', color: 0xfffbef, duration: 8000, enemyDmgMult: 1.0, playerDmgMult: 1.0, spawnRateMult: 1.0, lootBoost: 30, tint: 0x6b5a1a, tintAlpha: 0.4 }
 };
 const PHASE_SEQUENCE = ['drift', 'surge', 'eclipse'];
 const CONVERGENCE_INTERVAL = 90000;
 
-// Texture key per enemy type; loaded in preload(). See assets/CREDITS.md.
-const ENEMY_SPRITES = {
-  melee: 'e_melee', ranged: 'e_ranged', tank: 'e_tank', splitter: 'e_splitter'
+// Sanskrit roster (requirements.md 2.12). Each entry is a character folder in
+// assets/chars/ with four facing frames: -front, -back, -left, -right.
+// Art is CraftPix (commercial use, no attribution) - see assets/CREDITS.md.
+const CHARS = {
+  melee:    'asura',        // असुर  — cosmic dark being
+  ranged:   'yaksha',       // यक्ष   — keeper of hidden treasure
+  tank:     'mahish',       // महिष  — great force
+  splitter: 'bheda',        // भेद   — division, splitting
+  player:   'kiran',        // किरण  — ray of light
+  gatekeeper:  'dwarapal',  // द्वारपाल — gate guardian
+  sectorboss:  'nidhiraksha', // निधि-रक्षा — treasure guardian
+  megaboss:    'kalachakra' // कालचक्र — wheel of time
 };
+const FACINGS = ['front', 'back', 'left', 'right'];
+
+// "Cosmic Forge" palette, measured from concept/loot-chase-visual-forge-v2.html.
+// Warm throughout: the direction was rejected twice for reading too dark.
+const FORGE = {
+  deep:   0x2a0800,  // furthest back
+  bg:     0x3d1200,  // arena floor
+  panel:  0x4a1a04,  // HUD chrome
+  ember:  0xff6b1a,  // hot edge
+  flame:  0xff8c42,  // forge orange
+  gold:   0xffd23c,  // player-facing highlight, currency
+  bronze: 0xc8a96e,  // tarnished trim
+  cream:  0xfffbef,  // brightest
+  cool:   0x4dd0ff   // the single cool accent (Shanti) - pops against everything
+};
+
+// Movement vector -> facing frame. Vertical wins ties so a diagonal runner
+// still reads as advancing rather than flickering between two side frames.
+function facingFor(dx, dy) {
+  if (Math.abs(dy) >= Math.abs(dx)) return dy >= 0 ? 'front' : 'back';
+  return dx >= 0 ? 'right' : 'left';
+}
 
 const ENEMY_TYPES = {
   melee:    { hpMult: 1.0, speedMult: 1.0, dmgMult: 1.0, radius: 12, color: 0xff5c5c },
@@ -140,32 +174,54 @@ class LootScene extends Phaser.Scene {
 
   // Kenney "Space Shooter Remastered", CC0 — see assets/CREDITS.md for the file map.
   preload() {
-    this.load.image('player',     'assets/player.png');
-    this.load.image('e_melee',    'assets/enemy-melee.png');
-    this.load.image('e_ranged',   'assets/enemy-ranged.png');
-    this.load.image('e_tank',     'assets/enemy-tank.png');
-    this.load.image('e_splitter', 'assets/enemy-splitter.png');
-    this.load.image('bg_stars',   'assets/bg-stars.png');
+    // 8 characters x 4 facings. Texture key is "<char>-<facing>", e.g. "asura-left".
+    for (const name of Object.values(CHARS)) {
+      for (const f of FACINGS) {
+        this.load.image(`${name}-${f}`, `assets/chars/${name}-${f}.png`);
+      }
+    }
+    this.load.image('bg_stars', 'assets/bg-stars.png');
   }
 
   create() {
     this.state = 'hub'; // hub -> playing -> loot -> playing... -> summary -> hub
     this.uiObjects = [];
 
-    this.add.rectangle(W/2, H/2, W, H, 0x0d0a1a);
+    this.add.rectangle(W/2, H/2, W, H, FORGE.deep);
 
     this.arenaBounds = new Phaser.Geom.Rectangle(MARGIN, HUD_H + MARGIN, W - MARGIN*2, H - HUD_H - MARGIN*2);
 
-    // Scrolling starfield, clipped to the arena. Sits under the phase tint and every entity.
     const ab = this.arenaBounds;
+
+    // Warm forge floor, plus a radial heat glow from the upper-middle. The flat fill
+    // alone still read as "dark room" - the glow is what makes it a forge. Matches the
+    // layered radial warmth in concept/loot-chase-visual-forge-v2.html.
+    this.add.rectangle(ab.centerX, ab.centerY, ab.width, ab.height, FORGE.bg);
+    const glowCx = ab.centerX, glowCy = ab.y + ab.height * 0.32;
+    // Masked to the arena, or the wider rings would bleed over the HUD and the margins.
+    const glowMask = this.make.graphics({ add: false });
+    glowMask.fillStyle(0xffffff).fillRect(ab.x, ab.y, ab.width, ab.height);
+    const mask = glowMask.createGeometryMask();
+    for (const [rx, ry, colour, alpha] of [
+      [ab.width * 1.10, ab.height * 0.55, FORGE.ember, 0.06],
+      [ab.width * 0.75, ab.height * 0.38, FORGE.ember, 0.07],
+      [ab.width * 0.46, ab.height * 0.23, FORGE.flame, 0.08],
+      [ab.width * 0.22, ab.height * 0.11, FORGE.gold,  0.07]
+    ]) {
+      this.add.ellipse(glowCx, glowCy, rx * 2, ry * 2, colour, alpha).setMask(mask);
+    }
+
+    // The old starfield texture, tinted hot and held faint: it now reads as drifting
+    // embers over the forge rather than stars in space.
     this.starfield = this.add.tileSprite(ab.centerX, ab.centerY, ab.width, ab.height, 'bg_stars')
-      .setAlpha(0.85);
+      .setTint(FORGE.ember)
+      .setAlpha(0.28);
 
     this.add.rectangle(ab.centerX, ab.centerY, ab.width, ab.height, 0x000000, 0)
-      .setStrokeStyle(1, 0x3a2f66);
+      .setStrokeStyle(1, FORGE.bronze, 0.7);
 
     // HUD chrome is drawn after the arena so it always wins the depth fight.
-    this.add.rectangle(W/2, HUD_H/2, W, HUD_H, 0x17122b);
+    this.add.rectangle(W/2, HUD_H/2, W, HUD_H, FORGE.panel);
     this.hudText = this.add.text(14, 8, '', { fontSize: '13px', color: '#e8e0ff' });
     this.weaponText = this.add.text(14, 60, '', { fontSize: '11px', color: '#9a8fc2' });
 
@@ -258,9 +314,14 @@ class LootScene extends Phaser.Scene {
       weapon: { name: 'Dagger', rarity: 'common', shots: 1, effect: 'none', dmg: 10 * (1 + session.powerLevel * 0.08), range: 130, atkSpeed: 500 },
       trinket: null
     };
-    this.playerSprite = this.add.image(this.player.x, this.player.y, 'player').setDisplaySize(38, 38);
+    this.playerFacing = 'front';
+    this.playerSprite = this.add.image(this.player.x, this.player.y, `${CHARS.player}-front`).setDisplaySize(44, 44);
     // The ring stays a vector circle: it is the phase-colour tell, and must not inherit ship art.
-    this.playerRing = this.add.circle(this.player.x, this.player.y, 19, 0xffffff, 0).setStrokeStyle(2, 0xffffff, 0.6);
+    // Stance ring at Kiran's feet, not a circle around the body - a ring around a
+    // character sprite reads as a bubble, but on the floor it reads as a stance and
+    // leaves the silhouette clean. This is the Cosmic Cycle phase tell.
+    this.playerRing = this.add.ellipse(this.player.x, this.player.y + 16, 34, 13, 0xffffff, 0)
+      .setStrokeStyle(2, PHASE_DEFS.drift.color, 0.9);
 
     // HP bar
     const barX = 14, barY = 24, barW = W - 28, barH = 8;
@@ -504,16 +565,14 @@ class LootScene extends Phaser.Scene {
       splitsOnDeath: !!def.splitsOnDeath && !isSplit
     };
     this.enemies.push(enemy);
-    // Art is Kenney CC0; the tint carries the mechanical colour language the player reads
-    // (red melee / orange ranged / grey tank / violet splitter), so it stays authoritative.
-    const spr = this.add.image(x, y, ENEMY_SPRITES[type])
-      .setDisplaySize(enemy.radius * 2.4, enemy.radius * 2.4)
-      .setTint(def.color);
+    // Characters are now visually distinct by design (goblin / chieftain / brute / rogue),
+    // so type no longer needs a tint to be readable - and tinting detailed art just
+    // muddies it. Elites keep a gold wash because that IS a state, not an identity.
+    enemy.char = CHARS[type];
+    enemy.facing = 'front';
+    const spr = this.add.image(x, y, `${enemy.char}-front`)
+      .setDisplaySize(enemy.radius * 2.8, enemy.radius * 2.8);
     if (isElite) spr.setTint(0xffd23c);
-    // Rocks tumble; ships hold a heading and get rotated toward the player each frame.
-    if (type === 'tank' || type === 'splitter') {
-      enemy.spin = Phaser.Math.FloatBetween(-0.6, 0.6);
-    }
     this.enemySprites.set(enemy.id, spr);
     if (type === 'tank' || isElite) this.addHpBar(enemy);
     return enemy;
@@ -804,6 +863,8 @@ class LootScene extends Phaser.Scene {
     }
 
     // --- movement ---
+    // Captured before any movement so facing can be derived from where we actually went.
+    const prevX = this.player.x, prevY = this.player.y;
     const swiftBonus = (this.player.trinket && this.player.trinket.effect === 'swift') ? this.player.trinket.speedBonus : 0;
     const moveSpeed = this.player.speed + swiftBonus;
     if (this.pointerTarget) {
@@ -843,16 +904,28 @@ class LootScene extends Phaser.Scene {
     this.player.y = Phaser.Math.Clamp(this.player.y, this.arenaBounds.y+15, this.arenaBounds.bottom-15);
 
     this.playerSprite.setPosition(this.player.x, this.player.y);
-    this.playerRing.setPosition(this.player.x, this.player.y);
+    this.playerRing.setPosition(this.player.x, this.player.y + 16);
+    // Ring carries the live phase colour, so the player reads Cycle timing off their own feet.
+    this.playerRing.setStrokeStyle(2, PHASE_DEFS[this.phase].color, 0.9);
 
-    // Face the nearest enemy so the ship reads as aiming at whatever it is auto-attacking.
-    // Cheap linear scan - the arena never holds enough enemies for this to matter.
-    let aim = null, aimD = Infinity;
-    for (const e of this.enemies) {
-      const d = Phaser.Math.Distance.Squared(this.player.x, this.player.y, e.x, e.y);
-      if (d < aimD) { aimD = d; aim = e; }
+    // Facing follows actual movement while moving, and falls back to the nearest
+    // enemy when standing still - so a stationary player still looks engaged.
+    const mdx = this.player.x - prevX, mdy = this.player.y - prevY;
+    let want;
+    if (Math.abs(mdx) > 0.05 || Math.abs(mdy) > 0.05) {
+      want = facingFor(mdx, mdy);
+    } else {
+      let aim = null, aimD = Infinity;
+      for (const e of this.enemies) {
+        const d = Phaser.Math.Distance.Squared(this.player.x, this.player.y, e.x, e.y);
+        if (d < aimD) { aimD = d; aim = e; }
+      }
+      want = aim ? facingFor(aim.x - this.player.x, aim.y - this.player.y) : this.playerFacing;
     }
-    if (aim) this.playerSprite.rotation = Math.atan2(aim.y - this.player.y, aim.x - this.player.x) + Math.PI/2;
+    if (want && want !== this.playerFacing) {
+      this.playerFacing = want;
+      this.playerSprite.setTexture(`${CHARS.player}-${want}`);
+    }
 
     // Slow drift sells "descending" without moving the arena itself.
     if (this.starfield) this.starfield.tilePositionY -= 0.28 * (delta / 16.67);
@@ -965,11 +1038,14 @@ class LootScene extends Phaser.Scene {
       const spr = this.enemySprites.get(enemy.id);
       if (spr) {
         spr.setPosition(enemy.x, enemy.y);
-        if (enemy.spin !== undefined) {
-          spr.rotation += enemy.spin * dt;                  // rocks tumble
-        } else {
-          // Ship art points up (-Y), so bias by +90deg to make it face the player.
-          spr.rotation = Math.atan2(this.player.y - enemy.y, this.player.x - enemy.x) + Math.PI/2;
+        // 4-direction art must never be rotated - swap the facing frame instead.
+        // Face the player, which is also the direction almost every enemy is moving.
+        if (enemy.char) {
+          const f = facingFor(this.player.x - enemy.x, this.player.y - enemy.y);
+          if (f !== enemy.facing) {
+            enemy.facing = f;
+            spr.setTexture(`${enemy.char}-${f}`);
+          }
         }
       }
 
@@ -1101,7 +1177,7 @@ class LootScene extends Phaser.Scene {
 const config = {
   type: Phaser.AUTO,
   parent: 'game-container',
-  backgroundColor: '#0d0a1a',
+  backgroundColor: '#2a0800',
   physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
   scale: {
     mode: Phaser.Scale.FIT,

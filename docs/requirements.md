@@ -142,7 +142,15 @@ Adopted 2026-09-24 (§1.7). Sanskrit/Hindi naming replaces the previous abstract
 
 **Constraint:** naming is flavour, not doctrine (§1.3). Names are chosen for meaning and atmosphere; the game makes no claim about belief and depicts no worship.
 
-**Not yet implemented.** `game/loot-chase-v0.1.html` still uses the old names throughout (`PHASE_DEFS` keys `drift`/`surge`/`eclipse`/`convergence`, enemy types `melee`/`ranged`/`tank`/`splitter`, and the "Hoard Gold" / hub strings). Renaming touches display strings *and* object keys, so it should be done as one deliberate pass rather than piecemeal.
+**Partly implemented (2026-09-24).** The roster and the phase labels are live in
+`game/loot-chase-v0.1.html`: each entity now loads a named character (`CHARS`), and the
+Cosmic Cycle displays SHANTI / SHAKTI / GRAHAN / PRALAYA.
+
+Object keys were **deliberately left in English** (`PHASE_DEFS.drift`, enemy type
+`melee`, …). They are internal identifiers the player never sees, and `loot-chase-session-v1`
+save data is keyed off them — renaming would break existing saves for no visible gain.
+
+Still using old names: the **"Hoard Gold"** and **hub** strings (→ Nidhi, Kshetra).
 
 ### 2.13 Sprite Sourcing (open)
 
@@ -154,4 +162,17 @@ Abstract shapes are ruled out (§1.7). Three paths were identified, none yet cho
 | Free asset packs | ₹0 | itch.io / Kenney / CraftPix. None are Indian-themed, which is now the whole point — so these can only ever be placeholder. |
 | Commission a 2D artist | ₹3,000–8,000 | Fiverr or local Pune/Jalna. 4–6 core sprites. Genuinely unique, but worth doing *after* itch.io validates the game. |
 
-**Conflict to resolve:** the Kenney CC0 space-shooter sprites currently shipped in `game/assets/` are sci-fi ships and grey meteors on a dark purple field. They satisfy none of this section and contradict §2.10. They are placeholder only.
+**Resolved 2026-09-24 — option 2 (free packs), consciously.** The Kenney sci-fi sprites
+were removed and replaced with a CraftPix roster: four free **vector**, 4-direction packs
+from one house style, covering all eight entities. See `game/assets/CREDITS.md` for the
+full mapping and licence.
+
+Market check that informed this: itch.io's entire `indian` tag returns **11 assets**, free
+and paid combined, several of which are Native-American tag collisions. **Zero** are a
+top-down enemy roster. Paying does not solve this — the market does not exist.
+
+So the trade taken is explicit: **the names and gameplay carry the Indian identity; the
+art does not.** The art is European fantasy — goblins, a viking, a caveman, an assassin.
+This is accepted in order to ship on itch.io and learn the release pipeline. Option 3
+(commission, ₹3,000–8,000) remains the intended path *if the game finds an audience*, at
+which point this roster is replaced rather than extended.
