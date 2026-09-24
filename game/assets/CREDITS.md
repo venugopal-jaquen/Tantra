@@ -34,16 +34,22 @@ not.** This is a deliberate, documented trade to ship on itch.io, not an oversig
 |---|---|---|---|
 | `kiran-*`       | किरण      | Player | Warrior |
 | `asura-*`       | असुर      | Melee | Male Goblin |
-| `yaksha-*`      | यक्ष       | Ranged | Chief Goblin |
-| `bheda-*`       | भेद       | Splitter | Female Goblin |
+| `rakshasa-*`    | राक्षस     | Ranged | Chief Goblin |
+| `raktabija-*`   | रक्तबीज    | Splitter | Female Goblin |
 | `mahish-*`      | महिष      | Tank | Giant Goblin |
-| `dwarapal-*`    | द्वारपाल   | Semi-boss | Viking Leader |
+| `bakasura-*`    | बकासुर     | Semi-boss | Viking Leader |
 | `nidhiraksha-*` | निधि-रक्षा | Sector boss | Caveman Boss |
-| `kalachakra-*`  | कालचक्र    | Mega boss | Assassin |
+| `vritra-*`      | वृत्र       | Mega boss | Assassin |
 
-Two of these are closer than "close enough": **Mahish** literally means buffalo
-(Mahishasura is the buffalo demon), so a heavy horned brute fits; and **Nidhi-Raksha**
-means treasure guardian, which is what a boss standing over a hoard is.
+**Renamed 2026-09-24** after a naming audit (see `docs/requirements.md` §2.12): Yaksha, Dwarapal
+and Kalachakra are revered or benevolent in living traditions and should not be cast as
+enemies; Bheda was an abstract noun where Raktabija - whose every drop of blood rose as a new
+demon - *is* the splitter mechanic. Files were renamed to match (`git mv`), not copied.
+
+Several are closer than "close enough": **Mahish** literally means buffalo (Mahishasura
+is the buffalo demon), so a heavy horned brute fits; **Nidhi-Raksha** means treasure guardian;
+**Bakasura** demanded tribute before anyone could pass, which is what a gatekeeper does; and
+**Raktabija** multiplying from spilled blood is exactly what the splitter does.
 
 ### How these files were produced
 

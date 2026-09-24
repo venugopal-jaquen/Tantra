@@ -40,6 +40,7 @@ Kept so a reversal is never mistaken for drift or an error.
 | 2026-09-24 | **Secular/no-mythology → Indian cultural identity.** §1.2.5 and the §1.3 non-goal both reversed. | Founder decision: market this as an Indian game, with Sanskrit naming and non-explicit Hindu-mythological flavour. Judged the project's strongest differentiator. |
 | 2026-09-24 | **"Cut Light" → "Cosmic Forge."** §2.10 rewritten. | "Cut Light" rejected as too dark and generic — dark background with purple/cyan accents reads as every other indie roguelite (Hades, Dead Cells). Warm amber/gold chosen instead. A first Cosmic Forge pass on `#170A00` was *also* rejected as still too dark; the background was brightened to saffron-amber. |
 | 2026-09-24 | **Abstract shapes rejected outright.** | Polygons cannot carry an Indian-themed identity. Real sprites now required; sourcing unresolved (§2.12). |
+| 2026-09-24 | **Roster naming audit.** Yaksha → Rakshasa, Dwarapal → Bakasura, Kalachakra → Vritra, Bheda → Raktabija. | Founder flagged that Yaksha is not evil. The audit found two more beings revered in living traditions (Dwarapala temple guardians; Kalachakra, a major Vajrayana Buddhist tantra and deity) — casting them as villains risks offending the very audience the Indian identity targets. See §2.12. |
 
 **Provenance:** these decisions were made in a claude.ai chat on 2026-09-24, not in this repo. Recorded here so `docs/` stays the single source of truth — see `docs/design-document.md` §5 on why context living outside version control is a recurring problem.
 
@@ -55,6 +56,10 @@ Kept so a reversal is never mistaken for drift or an error.
 ### 2.2 Combat
 - Auto-attack targets the nearest enemy/enemies (up to `weapon.shots` count) within `weapon.range`, on an `atkSpeed` cooldown.
 - Damage is modified by: Cosmic Cycle phase multiplier, boss weak-phase multiplier (where applicable), and any equipped weapon effect (Executioner, Vampiric, Venom, Chain).
+- **One damage door (2026-09-24).** All player-sourced damage — auto-attack, chain arcs, poison ticks, Thorns, Tejas — goes through `damageEnemy()`, so shields, weak phases and the Vritra 55% transition are enforced identically everywhere. Previously a single big hit could take Vritra from above 55% straight to dead, skipping its whole second phase; the transition now clamps.
+- **Boss focus.** Every other volley, an in-range boss is guaranteed a shot even when adds are nearer — but only while it is vulnerable. Focusing an off-phase boss wasted half of a new player's damage on 12%-effective hits (§2.14). As a side effect the auto-attack visibly swings onto the boss when its weak phase opens, so the weak-phase rule teaches itself.
+- **Hit feedback (2026-09-24).** Taking damage used to produce one 150 ms flicker — players lost half their HP without registering a hit. Every hit now reads on several channels at once, scaled by the share of max HP it took: the attacker lunges, a slash arc marks where the blow landed, the camera shakes, the arena flashes red, Kiran flashes red, and a damage number floats up.
+- **Invulnerability window.** 280 ms after a melee or ranged hit (never after a slam — slams are telegraphed, so standing in one should always cost). Without it five Asura touching you landed five hits in the same instant: a one-frame death that reads as unfair rather than hard. The hit flicker lasts exactly as long as the window, so the player can see it.
 
 ### 2.3 Cosmic Cycle (core learnable system)
 - Four phases in fixed sequence: Drift → Surge → Eclipse → (repeat), each with a defined duration, enemy/player damage multiplier, spawn-rate multiplier, and loot-rarity boost.
@@ -72,6 +77,20 @@ Kept so a reversal is never mistaken for drift or an error.
 - Every Sector boss encounter must leave the game state clean on either choice (no leftover UI — this was a real shipped bug, now fixed, and should stay covered by manual regression testing).
 
 ### 2.6 Bosses
+- **Every boss attacks (2026-09-24).** Previously a shielded boss was completely inert, slams did a flat 22–28 that never scaled, and boss contact damage was 0 — standing next to a boss was safe indefinitely. Now every boss:
+  - hits on contact, with a **30 px reach** past its own edge (collision holds Kiran at exactly body-contact distance, and a rooted boss never steps back into him, so a pure contact check almost never fired);
+  - **summons two Asura** on a timer, capped at 4 alive per boss — pressure, and Tejas charge (§2.15);
+  - cycles a **telegraphed slam kit**. Telegraphs paint on the floor under the characters: a faint zone shows where it will land and a bright fill grows toward the edge — when the fill reaches the edge, it lands. Impacts throw a shockwave, stone chips and camera shake.
+
+  | Slam | Shape | Wind-up | % of max HP |
+  |---|---|---|---|
+  | Circle | ring around the boss | 950 ms | 14% |
+  | Line | a 280 px cleave aimed where you stood when it began | 850 ms | 12% |
+  | Scatter | 4–6 eruptions around you, one always on you | 1150 ms | 8% |
+
+  Slam damage = `(14 + 1.6 × depth) × sector multiplier + max HP × pct`. The percentage part is what keeps slams dangerous against HP stacking; Sector 1 gets only 60% of it, so a first boss is a lesson rather than a wall.
+  - **Bakasura** (gatekeeper): circle; adds line from Sector 2. **Nidhi-Raksha**: circle + line. **Vritra**: all three.
+  - A **shielded boss is rooted** (the anchor puzzle is a stand-off) but always casts **scatter**, so it reaches you instead of idling.
 - **Gatekeeper**: weak-phase puzzle — full damage only when the Cosmic Cycle matches its core color; telegraphed AoE slam.
 - **Hoardbound** (Sector Boss): starts shielded; 3 "anchor" adds must be killed to break the shield before it becomes damageable.
 - **Shield presentation (2026-09-24):** a breathing inner dome plus two counter-rotating rings, and a **second bar above the HP bar** showing anchors remaining. The two bars sit apart deliberately — while the shield bar has any fill, the HP bar underneath is unreachable, which says the rule faster than a toast does. Breaking the shield blows the rings outward rather than snapping them off, because that break is the payoff for the whole anchor puzzle.
@@ -123,6 +142,8 @@ Governing idea: everything in this world is precious material at some stage of r
 
 Target feeling, stated by the founder: **"rich and rewarding — treasure, wealth, loot fantasy."**
 
+- **Arena floor (2026-09-24):** a carved sandstone **jaali** lattice — the pierced stone screens of Rajput and Mughal architecture, 8-point stars joined through the tile edges — with a **rangoli** at the centre and one smooth radial heat glow. Replaces four concentric glow ellipses, which read as generic "circles within circles". The lattice is drawn at device resolution so it stays sharp on retina screens.
+- **Phase tints are colour shifts, not dimmers.** Shanti laid a 35% dark-teal wash over the floor for its full 20 s, which was the main reason the arena still read grey. Tints are now 10–14%, except Grahan (38%): it *is* an eclipse, and the darkening doubles as a warning for the high-damage phase.
 - **Canonical reference:** `concept/loot-chase-visual-forge-v2.html`. Measured palette: background `#3D1200`, gold `#FFD23C`, cream `#FFFBEF`, dark ore `#2A0800`, forge orange `#FF8C42` / `#FF6B1A`, bronze `#C8A96E`, and cyan `#4DD0FF` as the single cool accent (Shanti).
 - **Superseded:** `concept/visual-style-sheet.html` ("Cut Light") and `concept/character-art-spec.html` (abstract cosmic roster) both predate this direction and are retained only as history.
 - **Open:** abstract polygon shapes were rejected as unable to carry an Indian-themed identity. Real sprites are required; sourcing is unresolved (see §2.12).
@@ -141,13 +162,13 @@ Adopted 2026-09-24 (§1.7). Sanskrit/Hindi naming replaces the previous abstract
 | System concept | Name | Devanagari | Meaning |
 |---|---|---|---|
 | Player | **Kiran** | किरण | Ray of light |
-| Melee enemy | **Asura** | असुर | Cosmic dark being |
-| Ranged enemy | **Yaksha** | यक्ष | Supernatural keeper of hidden treasure — fits a loot game exactly |
-| Tank enemy | **Mahish** | महिष | Great force |
-| Splitter enemy | **Bheda** | भेद | Division, splitting |
-| Gatekeeper (semi-boss) | **Dwarapal** | द्वारपाल | Literally "gate guardian" |
-| Hoardbound (sector boss) | **Nidhi-Raksha** | निधि-रक्षा | Treasure guardian |
-| Rift Warden (mega boss) | **Kalachakra** | कालचक्र | Wheel of time |
+| Melee enemy | **Asura** | असुर | Power-seeking antagonists of the devas |
+| Ranged enemy | **Rakshasa** | राक्षस | Shape-shifting demons famed for sorcery (*maya*) — a caster |
+| Tank enemy | **Mahish** | महिष | The buffalo demon |
+| Splitter enemy | **Raktabija** | रक्तबीज | Every drop of his blood rose as a new demon — literally the split mechanic |
+| Gatekeeper (semi-boss) | **Bakasura** | बकासुर | Demanded tribute before anyone could pass |
+| Sector boss | **Nidhi-Raksha** | निधि-रक्षा | Treasure guardian (a descriptive compound, not a figure) |
+| Mega boss | **Vritra** | वृत्र | The Vedic serpent who hoarded the world's waters — a hoarder, for a loot game |
 | Hoard Gold (currency) | **Nidhi** | निधि | Treasure, wealth |
 | Hub | **Kshetra** | क्षेत्र | Realm, field of action |
 
@@ -162,6 +183,36 @@ Adopted 2026-09-24 (§1.7). Sanskrit/Hindi naming replaces the previous abstract
 
 **Constraint:** naming is flavour, not doctrine (§1.3). Names are chosen for meaning and atmosphere; the game makes no claim about belief and depicts no worship.
 
+**Enemy-naming rule (from the 2026-09-24 audit).** An enemy name must be an *antagonist* in its source tradition — never a being that is revered, protective or worshipped today. The audit replaced three:
+
+| Was | Problem | Now |
+|---|---|---|
+| Yaksha | Ambivalent nature spirits and treasure-keepers; Kubera, god of wealth, is their king | Rakshasa |
+| Dwarapal | The guardian figures carved at temple doorways — protectors, and sacred architecture | Bakasura |
+| Kalachakra | A major Vajrayana Buddhist tantra and meditational deity; the Dalai Lama confers Kalachakra initiations | Vritra |
+
+Bheda → Raktabija was an improvement rather than a fix: *bheda* is an abstract noun, while Raktabija *is* the splitter.
+
+**Items, rarity and currency (2026-09-24).** No Western names remain in player-facing text.
+
+| Rarity | Metal |
+|---|---|
+| Tamra | copper |
+| Rajat | silver |
+| Swarna | gold |
+
+Rarity is a metal-refinement ladder because the Cosmic Forge metaphor *is* refinement. Unidentified drops turned violet (they were grey, which no longer stood apart once silver joined the ladder).
+
+| Weapon | Meaning | | Trinket | Meaning |
+|---|---|---|---|---|
+| Katar | push-dagger (starter) | | Prana Mani | life-force jewel |
+| Visha Katar | poison dagger | | Kavach | armour |
+| Rakta Talwar | blood sword | | Kantak Kangan | thorn bangle |
+| Vidyut Chakram | lightning discus | | Vega Paduka | swift sandals |
+| Vadha Parashu | slaying axe | | Sanjeevani | healing herb |
+
+Currency is **Nidhi** (treasure). Items read as `<metal> <item>`, e.g. *Swarna Vidyut Chakram*.
+
 **Partly implemented (2026-09-24).** The roster and the phase labels are live in
 `game/loot-chase-v0.1.html`: each entity now loads a named character (`CHARS`), and the
 Cosmic Cycle displays SHANTI / SHAKTI / GRAHAN / PRALAYA.
@@ -170,7 +221,7 @@ Object keys were **deliberately left in English** (`PHASE_DEFS.drift`, enemy typ
 `melee`, …). They are internal identifiers the player never sees, and `loot-chase-session-v1`
 save data is keyed off them — renaming would break existing saves for no visible gain.
 
-Still using old names: the **"Hoard Gold"** and **hub** strings (→ Nidhi, Kshetra).
+Currency is now Nidhi. The hub is still unnamed in-game — left for the title-screen redesign (roadmap P1).
 
 ### 2.12.1 First-run Tutorial (planned — pinned)
 A live, in-game tutorial for first-time players, teaching each system during Wave 1 rather than through a wall of text up front: movement, auto-attack, the Cosmic Cycle bar, the Gatekeeper weak-phase rule, loot pickup, and the satchel.
@@ -201,3 +252,39 @@ art does not.** The art is European fantasy — goblins, a viking, a caveman, an
 This is accepted in order to ship on itch.io and learn the release pipeline. Option 3
 (commission, ₹3,000–8,000) remains the intended path *if the game finds an audience*, at
 which point this roster is replaced rather than extended.
+
+### 2.14 Difficulty Scaling (2026-09-24)
+The founder reported that by Sector 3 a well-upgraded player lost under 5% HP while tanking hits. Causes: enemy damage grew linearly (`8 + 1.4 × depth`), bosses did flat damage, and meta upgrades cost only `50 × (level + 1)`, so HP outgrew the game.
+
+- **Sector multipliers** on enemy damage (`1.22^(sector-1)`) and HP (`1.26^(sector-1)`). Sector 1 is untouched.
+- **More enemies deeper:** `3 + wave + (sector − 1)` per wave. HP scaling alone made Sector 5 feel like Sector 1 with bigger numbers.
+- **Exponential upgrade cost:** `50 × 1.45^level` (Vitality), `60 × 1.45^level` (Power). Levels plateau around 8–12 instead of outpacing every sector.
+- **Boss slams scale with the player's max HP** (§2.6) — the direct counter to HP stacking.
+- **Sector-clear heal:** beating a sector boss restores 35% of max HP. HP otherwise carries over, and players were arriving at Sector 2 on 19–45% HP. Nobody presses Descend on 20% HP, and that decision is §1.6's success test.
+- **Rakshasa arrive a wave later in Sector 1**, at half weight until depth 5. Their bolts were the #1 killer of new players (up to 98% of max HP in a single sector). Sector 2 onward is unchanged.
+
+**Measured with `tools/playtest-bot.js`** — a headless bot that plays whole runs (kites, sidesteps bolts and slam telegraphs, grabs loot, fires Tejas, always Descends). Calibrated first against the pre-change build: there the bot's fully upgraded profile lost ~59% HP in Sector 3 where the founder reported under 5%, so **the bot is a much weaker player than the founder** and its numbers are read *relative to the old build*, not as absolutes.
+
+| Profile | S1 HP lost | S2 | S3 | Avg sector reached |
+|---|---|---|---|---|
+| Fresh (0/0 upgrades) | 39% | 186% | — | 1.9 |
+| Grinder (14/14) | 14% | 67% | 219% | 3.0 (old build: 5–6) |
+
+HP lost can exceed 100% because heals are spent along the way. Across 30+ bot runs: zero runtime errors, zero leaked objects. Final feel still needs human playtesting — the bot measures *direction*, not fun.
+
+### 2.15 Tejas — supercharge (2026-09-24)
+**Tejas** (तेजस्, radiance) is a meter that fills slowly on its own (1.1%/s) and faster per kill — Asura +3.5, Rakshasa +4.5, Mahish +7, Raktabija +2.5, elites +10. When it is full, tapping the TEJAS button (bottom-left) or pressing Space/E unleashes a 6-second form. Farming boss-summoned Asura to charge it before committing to a boss is a deliberate strategy.
+
+- **Unlocks the first time the player reaches Sector 2**, and stays unlocked (`session.tejasUnlocked`) — so it is also a reward for choosing Descend over Extract.
+- **The form follows the equipped weapon**, so every weapon has its own super:
+
+| Weapon | Tejas form | Effect |
+|---|---|---|
+| Katar | Agni (fire) | fire novas burst out around you |
+| Visha Katar | Visha (poison) | a poison cloud clings to you |
+| Rakta Talwar | Rakta (blood) | drain everything near you to heal |
+| Vidyut Chakram | Vidyut (lightning) | continuous chain lightning |
+| Vadha Parashu | Prahar (the blow) | ground slams that execute the weak |
+
+- Kiran glows gold for the duration and the meter drains as it runs. The codex has a Tejas tab.
+- Taps on the Tejas button (or the satchel tab) no longer also walk Kiran to that spot.

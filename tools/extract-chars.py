@@ -24,12 +24,12 @@ SIZE = 96  # entities draw at ~24-46px; 96 gives retina headroom without bloat
 ROSTER = {
     "kiran":       ("warrior-4-direction-character-sprites", "Warrior_clothes_1", "warrior"),
     "asura":       ("top-down-goblin-character-sprite", "Male Goblin", "std"),
-    "yaksha":      ("top-down-goblin-character-sprite", "Chief Goblin", "std"),
-    "bheda":       ("top-down-goblin-character-sprite", "Female Goblin", "std"),
+    "rakshasa":      ("top-down-goblin-character-sprite", "Chief Goblin", "std"),
+    "raktabija":       ("top-down-goblin-character-sprite", "Female Goblin", "std"),
     "mahish":      ("top-down-boss-character-4-direction-pack", "Giant Goblin", "std"),
-    "dwarapal":    ("top-down-boss-character-4-direction-pack", "Viking Leader", "std"),
+    "bakasura":    ("top-down-boss-character-4-direction-pack", "Viking Leader", "std"),
     "nidhiraksha": ("top-down-boss-character-4-direction-pack", "Caveman Boss", "std"),
-    "kalachakra":  ("medieval-bandit-4-direction-character-pack", "Assassin", "std"),
+    "vritra":  ("medieval-bandit-4-direction-character-pack", "Assassin", "std"),
 }
 DIRS_STD = {"front": "Front", "back": "Back", "left": "Left", "right": "Right"}
 DIRS_WAR = {"front": "Front", "back": "Back", "left": "Left_Side", "right": "Right_Side"}
