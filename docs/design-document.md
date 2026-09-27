@@ -15,7 +15,7 @@
 | M6 | **Project infrastructure** (git, deployment, formal spec) | ✅ **Done 2026-09-11** | Repo at github.com/venugopal-jaquen/Tantra with full history; live at venugopal-jaquen.github.io/Tantra |
 | M7 | Visual reskin (apply **Cosmic Forge** + Indian identity to the real game) | ⏳ **Mostly done** | Live: warm forge floor with jaali lattice + rangoli, CraftPix character roster under Sanskrit names, Indian item/rarity/currency names. Remaining: the title screen (pinned P1) and commissioned Indian art (pinned P4). |
 | M8 | Narrative depth pass (optional expansion beyond banners) | 🔜 Planned | Only if desired — current light-banner narrative already meets M1-level requirements |
-| M8.5 | First-run tutorial | 📌 **Pinned** (P3) | Teaches each system live during Wave 1. Deliberately held until mechanics are final — see `requirements.md` §2.12.1 |
+| M8.5 | First-run tutorial | ✅ **Built 2026-09-27** (live tips, §2.12.1) | Teaches each system live during Wave 1. Deliberately held until mechanics are final — see `requirements.md` §2.12.1 |
 | M9 | Capstone boss + perpetual post-capstone scaling | 🔜 Planned | A fixed deep milestone (e.g. Sector 6) ends the game with a real finale; Sectors continue infinitely after |
 | M10 | Platform packaging (web → Android → Steam) | 🔜 Planned | Matches `docs/launch-roadmap.md` sequencing |
 | M11 | Marketing & launch | 🔜 Planned | Store page live, wishlist campaign running pre-Steam |
@@ -26,14 +26,33 @@ Features the founder has deliberately **parked** — agreed, but not to be built
 
 | # | Pinned | Date | What it is | Why it waits |
 |---|---|---|---|---|
-| P1 | **Title / front page redesign** | 2026-09-24 | A complete redesign of the pre-game screen, which currently reads as a plain menu. Covers the visuals shown *before* the game loads. | Founder wants the in-game visuals settled first, so the front page can be designed to match them rather than guessed ahead of them. |
+| P1 | **Title / front page redesign** — ▶ *due, see L2* | 2026-09-24 | A complete redesign of the pre-game screen, which currently reads as a plain menu. Covers the visuals shown *before* the game loads. | Founder wants the in-game visuals settled first, so the front page can be designed to match them rather than guessed ahead of them. |
 | P2 | **Name your character + look-builder loading screen** | 2026-09-24 | The player names Kiran's successor and builds cosmetic looks for a loading/character screen (reference: Destiny 2's character screen). Cosmetic only — no stat effect. | Intended as a social hook: players styling and sharing their character. Needs its own interface and a cosmetics pipeline, which depends on art that does not exist yet (P4). |
-| P3 | **First-run tutorial** (= M8.5) | 2026-09-24 | A live tutorial teaching each system during Wave 1. | Mechanics are still moving — teaching a system that changes means rewriting the tutorial each time. |
+| P3 | **First-run tutorial** (= M8.5) — ✅ *built, see L4* | 2026-09-24 | A live tutorial teaching each system during Wave 1. | Mechanics are still moving — teaching a system that changes means rewriting the tutorial each time. |
 | P4 | **Commission custom Indian art** | 2026-09-24 | Replace the CraftPix European-fantasy roster with commissioned art that carries the Indian identity visually, not just by name. Est. ₹3,000–8,000 (`requirements.md` §2.13). | Only once the itch.io release shows the game has an audience. |
 | P5 | **Full visual-story polish** | 2026-09-24 | A broader art and narrative pass across the whole game. | Explicitly tied to the game reaching "critical mass". |
-| P6 | **Real-device performance check** | 2026-09-24 | Profile on an actual mid-range Android and an iPhone. `RES` caps the canvas at 3× (1200×2100 buffer), untested on budget hardware. | Should happen **before** the itch.io launch, not after — this one is a pre-launch gate, not a someday item. |
+| P6 | **Real-device performance check** — ▶ *due, see L8* | 2026-09-24 | Profile on an actual mid-range Android and an iPhone. `RES` caps the canvas at 3× (1200×2100 buffer), untested on budget hardware. | Should happen **before** the itch.io launch, not after — this one is a pre-launch gate, not a someday item. |
 
-**Immediate priority: M7.** M6 closed on 2026-09-11 — the code is in git with history and deployed. The open question now is visual: the game needs the Cosmic Forge palette, the Sanskrit naming layer, and real sprites that can carry an Indian identity. Sprite sourcing is the one genuinely unresolved dependency (`requirements.md` §2.13).
+## 1.2 Launch track — itch.io POC (added 2026-09-27)
+
+Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the condition P1 and P3 were waiting on ("mechanics final"), so both move from pinned to **due**. What stands between the current build and an itch.io page, in order:
+
+| # | Item | State today | Done when |
+|---|---|---|---|
+| L1 | **Game name** | Undecided. The game says "Loot Chase" (generic, pre-pivot); the repo says "Tantra" — which reads as sexual/new-age to a Western audience and is a religious practice term (the reason Kalachakra was cut). | A name is chosen. Blocks L2 and L9 — the title screen, store page and cover art all carry it. |
+| L2 | **Title / welcome screen** (= P1) | The hub is a plain menu still in the pre-pivot purple (`#c77dff`, `0x7c3fff`); `index.html` is the old sci-fi redirect page. The hub has no in-game name. | A Cosmic Forge title screen with the name, art and a Start that leads into the hub; the hub restyled to match. |
+| L3 | **How to play** | ✅ **Built 2026-09-27**: seven illustrated cards (`requirements.md` §2.12.2). | A help page reachable from the title and the hub. |
+| L4 | **First-run tutorial** (= P3) | ✅ **Built 2026-09-27**: 14 one-time live tips, skippable (§2.12.1). | Wave 1 of a player's first run teaches movement, loot, the satchel and slams live. |
+| L5 | **Audio** | ⏳ **SFX built 2026-09-27** (36 Kenney CC0 sounds). The music system is built; **waiting on the founder's track picks** (§2.16). | Free SFX (hits, slams, pickups, Tejas) plus an Indian-flavoured loop (tanpura/tabla), with a mute toggle. |
+| L6 | **Pause + settings** | ✅ **Built 2026-09-27** (§2.17). | Pause mid-run (essential on mobile), mute, and a "reset save" with a confirmation step. |
+| L7 | **Loading screen** | The canvas is blank while assets load. | A branded loader with a progress bar. |
+| L8 | **Real-device check** (= P6) | Untested on a real phone. | Profiled on a mid-range Android and an iPhone; the frame rate holds with a full arena. |
+| L9 | **itch.io page** | Nothing. | Zipped build, embed size set, mobile-friendly flag, fullscreen button, cover image (630×500), 3–5 screenshots, a short GIF, description, tags, credits. Released **free**: no money changes hands, so the GST/CA question waits. |
+| L10 | **Feedback loop** | Nothing. | An in-game "Send feedback" link, and itch.io analytics watched for the first two weeks. |
+
+**Not needed for the POC:** P2 (look-builder), P4 (commissioned art), P5 (visual-story polish), M8 (narrative), M9 (capstone boss). These wait on the itch.io response, as the "prove it, then invest" rule in `launch-roadmap.md` says.
+
+**Immediate priority: the launch track (§1.2), starting with L1 (the name).** M7 is effectively closed for the POC; its remainder is L2 plus the post-launch P4.
 
 ---
 

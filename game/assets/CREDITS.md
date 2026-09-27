@@ -1,4 +1,4 @@
-# Art Asset Credits
+# Asset Credits
 
 Provenance for every shipped asset, kept auditable ahead of store submission.
 
@@ -64,6 +64,40 @@ without paying for detail nobody sees. Result: 32 sprites, ~432 KB total.
 The raw zips live in `incoming/` and are **gitignored** — only the derived sprites
 belong in version control. `tools/extract-chars.py` regenerates them from fresh downloads; see its
 docstring for the three steps.
+
+## Kenney — sound effects (`sfx/`)
+
+Sources: https://kenney.nl/assets/impact-sounds · https://kenney.nl/assets/interface-sounds ·
+https://kenney.nl/assets/rpg-audio (downloaded 2026-09-27)
+License: **CC0 1.0 Universal (Public Domain)** — commercial use, no attribution required.
+
+36 of the ~280 sounds are shipped. Each one was mixed to mono, had its leading silence
+trimmed and its tail faded, was peak-normalised to -1 dBFS, and was written as 16-bit
+WAV (older iOS Safari cannot play the packs' Ogg Vorbis). Total size is 1.4 MB. The raw
+zips sit in `incoming/` and are gitignored.
+
+| Game file | Kenney source | | Game file | Kenney source |
+|---|---|---|---|---|
+| ui-click | select_002 | | loot-tamra | impactTin_medium_000 |
+| ui-confirm | confirmation_001 | | loot-rajat | glass_001 |
+| ui-error | error_001 | | loot-swarna | impactBell_heavy_003 |
+| ui-open / ui-close | open_002 / close_002 | | loot-mystery | maximize_004 |
+| ui-page | bookFlip3 | | coins | handleCoins |
+| satchel | cloth2 | | wave-clear | confirmation_002 |
+| equip | metalLatch | | gate-open | doorOpen_1 |
+| hit-blade | knifeSlice2 | | boss-fall | impactBell_heavy_001 |
+| hit-axe | chop | | descend | doorOpen_2 |
+| hit-zap | glitch_002 | | toll | impactBell_heavy_000 |
+| hit-blocked | impactGlass_light_001 | | tejas-ready | glass_004 |
+| enemy-die-1 / -2 | impactSoft_medium_000 / _002 | | tejas-go | maximize_006 |
+| hurt-1 / -2 | impactPunch_heavy_001 / _003 | | tejas-bell | impactBell_heavy_002 |
+| kavach | impactMetal_medium_000 | | thud | impactWood_heavy_002 |
+| bolt | drawKnife3 | | boom | impactSoft_heavy_001 |
+| slam-warn | bong_001 | | slam-land | impactSoft_heavy_003 |
+| shield-break | impactGlass_heavy_000 | | | |
+
+`tools/convert-sfx.py` regenerates `sfx/` from fresh downloads. Change the `MAP` there to
+swap any sound.
 
 ## Kenney — background (`bg-stars.png`)
 

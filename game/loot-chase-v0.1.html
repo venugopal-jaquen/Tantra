@@ -90,7 +90,8 @@ const session = {
   vitalityLevel: 0,   // +10% max HP per level
   powerLevel: 0,       // +8% weapon dmg per level
   bestSector: 0,
-  tejasUnlocked: false // set the first time the player reaches TEJAS_UNLOCK_SECTOR
+  tejasUnlocked: false, // set the first time the player reaches TEJAS_UNLOCK_SECTOR
+  hintsSeen: {}         // live tips already shown once (the first-run tutorial)
 };
 
 function loadSession() {
@@ -105,6 +106,82 @@ function saveSession() {
 }
 
 loadSession();
+if (!session.hintsSeen) session.hintsSeen = {};
+
+// "Reset save" in Settings. Settings themselves survive it - wiping someone's volume
+// because they wanted a fresh run would be a surprise.
+function resetSession() {
+  Object.assign(session, { metaGold: 0, vitalityLevel: 0, powerLevel: 0, bestSector: 0,
+                           tejasUnlocked: false, hintsSeen: {} });
+  saveSession();
+}
+
+// Player preferences, stored apart from the save (requirements 2.17).
+const SETTINGS_KEY = 'loot-chase-settings-v1';
+const settings = {
+  music: 0.7, sfx: 0.8,    // 0..1
+  shake: true,             // camera shake on hits and slams
+  reduceFlash: false,      // accessibility: caps the red hit flash, drops the Tejas flash
+  dmgNumbers: true,        // floating -N / +N over Kiran
+  vibrate: true,           // Android only - iOS Safari exposes no vibration API
+  tips: true               // live first-run tips
+};
+function loadSettings() {
+  try { const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)); if (saved) Object.assign(settings, saved); }
+  catch (e) { /* storage unavailable - defaults stand */ }
+}
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* ignore */ }
+}
+loadSettings();
+
+// Sound effects - Kenney CC0 packs, trimmed and converted to WAV (assets/CREDITS.md).
+// vol is relative to the player's SFX setting. gap is a minimum spacing in ms, so a
+// 3-target volley or a swarm dying on one frame reads as one hit instead of a buzz.
+// Chosen by measurement (length, brightness, ring-out), not by ear - the founder's ear
+// is the final judge (requirements 2.16).
+const SFX = {
+  'ui-click':     { vol: 0.45 },
+  'ui-confirm':   { vol: 0.55 },
+  'ui-error':     { vol: 0.4 },
+  'ui-open':      { vol: 0.4 },
+  'ui-close':     { vol: 0.4 },
+  'ui-page':      { vol: 0.6 },
+  'satchel':      { vol: 0.6 },
+  'equip':        { vol: 0.45 },
+  'hit-blade':    { vol: 0.28, gap: 70 },
+  'hit-axe':      { vol: 0.34, gap: 70 },
+  'hit-zap':      { vol: 0.35, gap: 60 },
+  'hit-blocked':  { vol: 0.3,  gap: 120 },
+  'enemy-die':    { vol: 0.4,  gap: 45, files: ['enemy-die-1', 'enemy-die-2'] },
+  'hurt':         { vol: 0.55, gap: 90, files: ['hurt-1', 'hurt-2'] },
+  'kavach':       { vol: 0.6 },
+  'bolt':         { vol: 0.22, gap: 140 },
+  'slam-warn':    { vol: 0.75 },
+  'slam-land':    { vol: 0.9,  gap: 60 },
+  'shield-break': { vol: 0.8 },
+  'loot-tamra':   { vol: 0.55 },
+  'loot-rajat':   { vol: 0.5 },
+  'loot-swarna':  { vol: 0.6 },
+  'loot-mystery': { vol: 0.45 },
+  'coins':        { vol: 0.6 },
+  'wave-clear':   { vol: 0.4 },
+  'gate-open':    { vol: 0.6 },
+  'boss-fall':    { vol: 0.7 },
+  'descend':      { vol: 0.6 },
+  'toll':         { vol: 0.6 },
+  'tejas-ready':  { vol: 0.5 },
+  'tejas-go':     { vol: 0.6 },
+  'tejas-bell':   { vol: 0.55 },
+  'thud':         { vol: 0.45, gap: 80 },
+  'boom':         { vol: 0.8 }
+};
+const LOOT_SFX = { common: 'loot-tamra', rare: 'loot-rajat', epic: 'loot-swarna' };
+
+// Music: one track per mood, crossfaded. Empty until the founder picks tracks by ear
+// (requirements 2.16) - a missing entry is simply silence, never an error.
+const MUSIC = { hub: null, combat: null, boss: null };
+const MUSIC_BASE_VOL = 0.5;
 
 // Tamra / Rajat / Swarna - copper, silver, gold. The Cosmic Forge metaphor is literally
 // refinement, so rarity reads as a metal ladder rather than an arbitrary colour code.
@@ -254,6 +331,12 @@ class LootScene extends Phaser.Scene {
       }
     }
     this.load.image('bg_stars', 'assets/bg-stars.png');
+    for (const [key, def] of Object.entries(SFX)) {
+      for (const f of def.files || [key]) this.load.audio(f, `assets/sfx/${f}.wav`);
+    }
+    for (const [mood, file] of Object.entries(MUSIC)) {
+      if (file) this.load.audio('music-' + mood, file);
+    }
   }
 
   create() {
@@ -315,6 +398,19 @@ class LootScene extends Phaser.Scene {
     this.wasd = this.input.keyboard.addKeys('W,A,S,D');
     this.tejasKeys = this.input.keyboard.addKeys('SPACE,E');   // desktop trigger for Tejas
 
+    this.buildPauseButton();
+    const escape = () => {
+      if (this.state === 'playing') this.pauseGame();
+      else if (this.state === 'paused') this.resumeGame();
+      else if (this.overlay && this.overlay.length) this.closeOverlay();
+    };
+    this.input.keyboard.on('keydown-ESC', escape);
+    this.input.keyboard.on('keydown-P', escape);
+    // Switching apps or tabs mid-fight pauses the run, so nobody comes back to a death
+    // they never saw. The playtest bot turns this off (it runs in a hidden pane).
+    this.autoPause = true;
+    this.game.events.on('hidden', () => { if (this.autoPause) this.pauseGame(); });
+
     this.showHub();
   }
 
@@ -357,7 +453,9 @@ class LootScene extends Phaser.Scene {
       .setStrokeStyle(2, f.colour, 0.55).setDepth(Z.fx);
     this.tweens.add({ targets: this.tejasAura, alpha: 0.18, duration: 260, yoyo: true, repeat: -1 });
     this.restorePlayerTint();
-    this.cameras.main.flash(160, 255, 210, 120);
+    if (!settings.reduceFlash) this.cameras.main.flash(160, 255, 210, 120);
+    this.sfx('tejas-go'); this.sfx('tejas-bell');
+    this.buzz(60);
     this.showToast(`TEJAS - ${f.name.toUpperCase()}`, '#ffd23c');
   }
 
@@ -384,6 +482,13 @@ class LootScene extends Phaser.Scene {
   drawTejasMeter() {
     const g = this.tejasArc, { x, y } = this.tejasPos, f = this.tejasForm();
     const p = this.tejas / 100, ready = p >= 1 && this.tejasActive <= 0;
+    if (ready && !this.tejasWasReady) {
+      this.sfx('tejas-ready');
+      this.hint('tejas', this.sys.game.device.input.touch
+        ? 'Tejas is full! Tap the glowing button (bottom-left) to unleash it.'
+        : 'Tejas is full! Press Space (or click the glowing button) to unleash it.');
+    }
+    this.tejasWasReady = ready;
     g.clear();
     g.lineStyle(4, 0x3a1a08, 0.9); g.strokeCircle(x, y, 25);
     g.lineStyle(4, this.tejasActive > 0 ? f.colour : FORGE.gold, 1);
@@ -410,6 +515,7 @@ class LootScene extends Phaser.Scene {
       // Arc to the nearest few, each hop jumping onward to its own nearest - a live web.
       const targets = near.slice().sort((a, b) => Math.hypot(a.x-px, a.y-py) - Math.hypot(b.x-px, b.y-py)).slice(0, f.targets);
       this.attackFx.clear();
+      if (targets.length) this.sfx('hit-zap', { vol: 1.3 });
       let from = { x: px, y: py };
       targets.forEach(t => {
         this.drawWeaponBeam(from.x, from.y, t.x, t.y, 'chain');
@@ -424,8 +530,10 @@ class LootScene extends Phaser.Scene {
 
     if (f.kind === 'slam') {
       this.shockwave(px, py, f.radius, f.colour);
-      this.cameras.main.shake(140, 0.005);
+      this.shake(140, 0.005);
+      this.sfx('slam-land', { vol: 0.5, rate: 1.3 });
     } else if (f.kind === 'nova') {
+      this.sfx('thud');
       const ring = this.add.circle(px, py, 18, 0x000000, 0).setStrokeStyle(5, f.colour, 0.95).setDepth(Z.fx);
       this.tweens.add({ targets: ring, scale: f.radius / 18, alpha: 0, duration: 300, onComplete: () => ring.destroy() });
     }
@@ -442,6 +550,482 @@ class LootScene extends Phaser.Scene {
     if (f.heal && dealt > 0) this.player.hp = Math.min(this.player.maxHp, this.player.hp + dealt * f.heal);
   }
 
+  // ---------- AUDIO ----------
+  sfx(key, opts = {}) {
+    if (this.silent || settings.sfx <= 0) return;
+    const def = SFX[key];
+    if (!def) return;
+    const now = this.time.now;
+    this.sfxLast = this.sfxLast || {};
+    if (def.gap && now - (this.sfxLast[key] || -1e9) < def.gap) return;
+    this.sfxLast[key] = now;
+    const file = def.files ? Phaser.Utils.Array.GetRandom(def.files) : key;
+    if (!this.cache.audio.exists(file)) return;
+    // A few percent of pitch drift so a repeated hit never sounds like a machine gun.
+    const rate = (opts.rate || 1) * (1 + (Math.random() - 0.5) * 0.08);
+    try { this.sound.play(file, { volume: Math.min(1, def.vol * (opts.vol || 1) * settings.sfx), rate }); }
+    catch (e) { /* audio not unlocked yet - skip rather than throw mid-frame */ }
+  }
+
+  shake(duration, intensity) { if (settings.shake) this.cameras.main.shake(duration, intensity); }
+
+  buzz(ms) {
+    if (!settings.vibrate || this.silent || !navigator.vibrate) return;
+    try { navigator.vibrate(Math.round(ms)); } catch (e) { /* ignore */ }
+  }
+
+  playMusic(mood) {
+    if (this.musicMood === mood) return;
+    this.musicMood = mood;
+    const old = this.music;
+    if (old) {
+      this.tweens.killTweensOf(old);
+      this.tweens.add({ targets: old, volume: 0, duration: 900, onComplete: () => { old.stop(); old.destroy(); } });
+    }
+    this.music = null;
+    const key = 'music-' + mood;
+    if (this.silent || !this.cache.audio.exists(key)) return;
+    this.music = this.sound.add(key, { loop: true, volume: 0 });
+    this.music.play();
+    this.routeMusic(this.music);
+    this.tweens.add({ targets: this.music, volume: this.musicTarget(), duration: 900 });
+  }
+
+  // Pralaya lifts the music; pausing ducks it rather than cutting it.
+  musicTarget() {
+    const inRun = this.state !== 'hub' && this.phase;
+    const lift = inRun && this.phase === 'convergence' ? 1.25 : 1;
+    const duck = this.state === 'paused' ? 0.35 : 1;
+    return Math.min(1, settings.music * MUSIC_BASE_VOL * lift * duck);
+  }
+
+  refreshMusic() {
+    if (this.music) { this.tweens.killTweensOf(this.music); this.music.setVolume(this.musicTarget()); }
+    this.setMusicFilter();
+  }
+
+  // The Cosmic Cycle colours whatever is playing: Grahan (eclipse) muffles the track as
+  // if heard underwater. A lowpass between the music and the master bus - Web Audio only;
+  // on the HTML5-audio fallback the music simply plays unfiltered.
+  routeMusic(snd) {
+    const ctx = this.sound.context;
+    if (!ctx || !snd.volumeNode) return;
+    if (!this.musicFilter) {
+      this.musicFilter = ctx.createBiquadFilter();
+      this.musicFilter.type = 'lowpass';
+      this.musicFilter.frequency.value = 22000;
+      this.musicFilter.connect(this.sound.destination);
+    }
+    try { snd.volumeNode.disconnect(); snd.volumeNode.connect(this.musicFilter); } catch (e) { /* leave it routed direct */ }
+    this.setMusicFilter();
+  }
+
+  setMusicFilter() {
+    if (!this.musicFilter) return;
+    const muffled = this.state !== 'hub' && this.phase === 'eclipse';
+    const f = this.musicFilter.frequency, t = this.sound.context.currentTime;
+    f.cancelScheduledValues(t);
+    f.setTargetAtTime(muffled ? 700 : 22000, t, 0.35);
+  }
+
+  // ---------- PAUSE ----------
+  buildPauseButton() {
+    const x = W - 24, y = 12;
+    this.pauseBtn = this.add.rectangle(x, y, 30, 17, FORGE.deep, 0.9).setStrokeStyle(1, FORGE.bronze, 0.8).setDepth(60);
+    this.pauseIcon = this.add.text(x, y, 'II', { resolution: RES, fontSize: '10px', color: '#ffd23c', fontStyle: 'bold' })
+      .setOrigin(0.5).setDepth(61);
+    // The touch target is much larger than the drawn button: 30x17 is too small for a thumb.
+    this.pauseHit = this.add.zone(x - 8, y + 4, 56, 36).setInteractive({ useHandCursor: true }).setDepth(62);
+    this.pauseHit.on('pointerdown', () => this.pauseGame());
+    this.showPauseButton(false);
+  }
+
+  showPauseButton(on) {
+    if (!this.pauseBtn) return;
+    this.pauseBtn.setVisible(on); this.pauseIcon.setVisible(on);
+    if (this.pauseHit.input) this.pauseHit.input.enabled = on;
+  }
+
+  pauseGame() {
+    if (this.state !== 'playing') return;
+    this.state = 'paused';
+    this.pointerTarget = null;
+    this.time.paused = true;
+    this.tweens.pauseAll();
+    this.sfx('ui-open');
+    this.refreshMusic();
+    this.showPauseMenu();
+  }
+
+  resumeGame() {
+    if (this.state !== 'paused') return;
+    this.closeOverlay();
+    this.state = 'playing';
+    this.time.paused = false;
+    this.tweens.resumeAll();
+    this.sfx('ui-close');
+    this.refreshMusic();
+  }
+
+  // Counts as a death: an escape hatch that dodged the cost of a bad run would make
+  // the Extract/Descend choice meaningless.
+  abandonRun() {
+    this.closeOverlay();
+    this.time.paused = false;
+    this.tweens.resumeAll();
+    this.state = 'playing';
+    this.endRun(false, true);
+  }
+
+  showPauseMenu() {
+    this.openOverlay(0.78);
+    const cx = W / 2;
+    this.ov(this.add.rectangle(cx, 372, 336, 486, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold, 0.8));
+    this.ovText(cx, 156, 'VIRAM', { fontSize: '26px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
+    this.ovText(cx, 181, 'विराम · paused', { fontSize: '11px', color: '#c8a96e' }).setOrigin(0.5);
+
+    // The build you are carrying - Brotato and Vampire Survivors both put it here, since
+    // pause is the one calm moment to read what your items actually do.
+    const left = cx - 146, textX = left + 40;
+    const row = (y, iconKey, tint, title, body) => {
+      this.ov(this.add.image(left + 16, y + 8, `icon_${iconKey}`).setDisplaySize(24, 24).setTint(tint));
+      this.ovText(textX, y - 4, title, { fontSize: '12px', color: '#fffbef', fontStyle: 'bold', wordWrap: { width: 250 } });
+      this.ovText(textX, y + 12, body, { fontSize: '10px', color: '#c8a96e', wordWrap: { width: 250 } });
+    };
+    this.ovText(left, 204, 'YOUR BUILD', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
+    const w = this.player.weapon, tr = this.player.trinket;
+    row(226, w.effect || 'none', RARITY[w.rarity].color, w.name + (w.shots > 1 ? `  x${w.shots}` : ''),
+        (WEAPON_EFFECTS[w.effect] || WEAPON_EFFECTS.none).desc);
+    if (tr) row(270, tr.effect, RARITY[tr.rarity].color, tr.name, TRINKET_EFFECTS[tr.effect].desc);
+    else row(270, 'mystery', 0x5a4535, 'No trinket', 'Trinkets drop from enemies - walk over one');
+    const f = this.tejasForm();
+    if (session.tejasUnlocked) row(314, w.effect || 'none', f.colour, `Tejas: ${f.name}`, f.desc);
+    else row(314, 'mystery', 0x5a4535, 'Tejas: dormant', `Awakens the first time you reach Sector ${TEJAS_UNLOCK_SECTOR}`);
+    this.ovText(cx, 364, `Sector ${this.sector} · Wave ${Math.min(this.wave, 5)}/5 · ${this.runGold} Nidhi this run`,
+      { fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
+
+    this.ovButton(cx, 410, 240, 44, 'RESUME', 0x7a3a0a, () => this.resumeGame(), { sound: null, stroke: FORGE.gold, size: 16 });
+    this.ovButton(cx, 462, 240, 38, 'HOW TO PLAY', 0x3a1a08, () => this.showHowTo(0, () => this.showPauseMenu()));
+    this.ovButton(cx, 508, 240, 38, 'SETTINGS', 0x3a1a08, () => this.showSettings(() => this.showPauseMenu()));
+    let armed = false;
+    this.ovButton(cx, 566, 240, 38, 'ABANDON RUN', 0x3a0f08, (bg, t) => {
+      if (!armed) {
+        armed = true;
+        t.setText('TAP AGAIN - counts as a death').setFontSize(11);
+        bg.setStrokeStyle(1.5, 0xff5c5c, 1);
+        this.sfx('ui-error');
+        return;
+      }
+      this.abandonRun();
+    }, { sound: null, color: '#ff9a80' });
+  }
+
+  // ---------- OVERLAYS (pause menu, settings, how to play) ----------
+  // Drawn above everything on their own list, so opening one never disturbs the run or
+  // hub UI underneath. A full-screen blocker swallows taps meant for what's below.
+  openOverlay(dim = 0.72) {
+    this.closeOverlay();
+    this.overlay = [];
+    this.ov(this.add.rectangle(W / 2, H / 2, W, H, 0x120400, dim).setInteractive(), 100);
+  }
+
+  closeOverlay() {
+    (this.overlay || []).forEach(o => o.destroy());
+    this.overlay = [];
+  }
+
+  ov(obj, depth = 101) { obj.setDepth(depth); this.overlay.push(obj); return obj; }
+
+  ovText(x, y, str, style) { return this.ov(this.add.text(x, y, str, Object.assign({ resolution: RES }, style)), 102); }
+
+  ovButton(x, y, w, h, label, fill, onClick, opts = {}) {
+    const bg = this.ov(this.add.rectangle(x, y, w, h, fill, 1)
+      .setStrokeStyle(1.5, opts.stroke || FORGE.bronze, 0.9).setInteractive({ useHandCursor: true }));
+    const t = this.ovText(x, y, label, { fontSize: (opts.size || 13) + 'px', color: opts.color || '#fffbef', fontStyle: 'bold' }).setOrigin(0.5);
+    bg.on('pointerdown', () => { if (opts.sound !== null) this.sfx(opts.sound || 'ui-click'); onClick(bg, t); });
+    return { bg, t };
+  }
+
+  // ---------- SETTINGS ----------
+  showSettings(onBack) {
+    this.openOverlay(0.82);
+    const cx = W / 2, left = cx - 150;
+    this.ov(this.add.rectangle(cx, 362, 344, 540, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold, 0.8));
+    this.ovText(cx, 118, 'SETTINGS', { fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
+
+    // Volume: eleven tap-cells (off, 1..10) - easier to hit on a phone than a slider.
+    const volRow = (y, label, key) => {
+      this.ovText(left, y, label, { fontSize: '12px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(0, 0.5);
+      const cells = [];
+      const paint = () => cells.forEach((c, i) => {
+        const on = i > 0 && i <= Math.round(settings[key] * 10);
+        c.setFillStyle(i === 0 ? (settings[key] === 0 ? 0x7a3a0a : 0x2a0f04) : (on ? FORGE.gold : 0x3a1a08), 1);
+      });
+      for (let i = 0; i <= 10; i++) {
+        const c = this.ov(this.add.rectangle(left + 128 + i * 16.5, y, i === 0 ? 22 : 13, 22, 0x3a1a08, 1)
+          .setStrokeStyle(1, FORGE.bronze, 0.5).setInteractive({ useHandCursor: true }));
+        if (i === 0) this.ovText(c.x, y, 'off', { fontSize: '8px', color: '#c8a96e' }).setOrigin(0.5);
+        c.on('pointerdown', () => {
+          settings[key] = i / 10; saveSettings(); paint();
+          if (key === 'sfx') this.sfx('ui-click'); else this.refreshMusic();
+        });
+        cells.push(c);
+      }
+      if (cells[0]) cells[0].x -= 4;
+      paint();
+    };
+
+    const toggleRow = (y, label, sub, key) => {
+      this.ovText(left, y - (sub ? 7 : 0), label, { fontSize: '12px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(0, 0.5);
+      if (sub) this.ovText(left, y + 9, sub, { fontSize: '9px', color: '#8a7360' }).setOrigin(0, 0.5);
+      const btn = this.ovButton(left + 268, y, 64, 26, '', 0x3a1a08, () => {
+        settings[key] = !settings[key]; saveSettings(); paint();
+      });
+      const paint = () => {
+        btn.t.setText(settings[key] ? 'ON' : 'OFF').setColor(settings[key] ? '#ffd23c' : '#8a7360');
+        btn.bg.setFillStyle(settings[key] ? 0x7a3a0a : 0x2a0f04, 1);
+      };
+      paint();
+    };
+
+    let y = 164;
+    volRow(y, 'Music', 'music'); y += 40;
+    volRow(y, 'Sound effects', 'sfx'); y += 48;
+    toggleRow(y, 'Screen shake', null, 'shake'); y += 42;
+    toggleRow(y, 'Reduce flashing', 'softer hit flash, no Tejas flash', 'reduceFlash'); y += 42;
+    toggleRow(y, 'Damage numbers', null, 'dmgNumbers'); y += 42;
+    if (navigator.vibrate) { toggleRow(y, 'Vibration', null, 'vibrate'); y += 42; }
+    toggleRow(y, 'Tutorial tips', 'short hints the first time things happen', 'tips'); y += 40;
+    const replay = this.ovButton(left + 244, y, 112, 24, 'show tips again', 0x2a0f04, () => {
+      session.hintsSeen = {}; saveSession();
+      settings.tips = true; saveSettings();
+      replay.t.setText('done');
+    }, { size: 10, color: '#c8a96e' });
+    y += 44;
+
+    // Only from the hub: wiping the save from inside a run would leave the run orphaned.
+    if (this.state === 'hub') {
+      let armed = false;
+      this.ovButton(cx, y, 260, 34, 'RESET SAVE', 0x3a0f08, (bg, t) => {
+        if (!armed) {
+          armed = true;
+          t.setText('TAP AGAIN - erases Nidhi, upgrades, unlocks').setFontSize(10);
+          bg.setStrokeStyle(1.5, 0xff5c5c, 1);
+          this.sfx('ui-error');
+          return;
+        }
+        resetSession();
+        this.closeOverlay();
+        this.showHub();
+      }, { sound: null, color: '#ff9a80', size: 12 });
+    }
+
+    this.ovButton(cx, 604, 180, 40, 'BACK', 0x5c2a05, () => onBack(), { stroke: FORGE.gold });
+  }
+
+  // ---------- HOW TO PLAY ----------
+  // Illustrated cards, one system each (requirements 2.12.2). Illustrations reuse the
+  // real game art and shapes, so what you learn here is exactly what you'll see.
+  showHowTo(page, onBack) {
+    const touch = this.sys.game.device.input.touch;
+    const cards = this.howToCards(touch);
+    page = Phaser.Math.Clamp(page, 0, cards.length - 1);
+    this.openOverlay(0.84);
+    const cx = W / 2, card = cards[page];
+    this.ov(this.add.rectangle(cx, 370, 350, 548, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold, 0.8));
+    this.ovText(cx, 118, 'HOW TO PLAY', { fontSize: '11px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
+    this.ovText(cx, 142, card.title, { fontSize: '19px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
+    this.ov(this.add.rectangle(cx, 250, 310, 172, 0x3d1200, 1).setStrokeStyle(1, FORGE.bronze, 0.5));
+    card.draw(cx, 250);
+    this.ovText(cx, 348, card.body, { fontSize: '12px', color: '#f0dcc0', align: 'left', lineSpacing: 3,
+      wordWrap: { width: 300 } }).setOrigin(0.5, 0);
+
+    // Swipe anywhere on the card, or use the arrows.
+    const swipe = this.ov(this.add.zone(cx, 330, 350, 440).setInteractive(), 101);
+    let downX = null;
+    swipe.on('pointerdown', p => { downX = p.x; });
+    swipe.on('pointerup', p => {
+      if (downX === null) return;
+      const dx = p.x - downX; downX = null;
+      if (Math.abs(dx) > 40 * RES) { this.sfx('ui-page'); this.showHowTo(page + (dx < 0 ? 1 : -1), onBack); }
+    });
+
+    const dotsY = 566;
+    cards.forEach((_, i) => this.ov(this.add.circle(cx + (i - (cards.length - 1) / 2) * 14, dotsY, i === page ? 4 : 3,
+      i === page ? FORGE.gold : 0x6b4a2e, 1), 102));
+    if (page > 0) this.ovButton(cx - 128, dotsY, 58, 32, '<', 0x3a1a08, () => this.showHowTo(page - 1, onBack), { sound: 'ui-page', size: 16 });
+    if (page < cards.length - 1) this.ovButton(cx + 128, dotsY, 58, 32, '>', 0x7a3a0a, () => this.showHowTo(page + 1, onBack), { sound: 'ui-page', size: 16, stroke: FORGE.gold });
+    this.ovButton(cx, 614, 180, 38, page < cards.length - 1 ? 'CLOSE' : 'GOT IT', 0x5c2a05, () => onBack(), { stroke: FORGE.gold });
+  }
+
+  howToCards(touch) {
+    const g = () => this.ov(this.add.graphics(), 102);
+    const img = (key, x, y, size, tint) => { const i = this.ov(this.add.image(x, y, key).setDisplaySize(size, size), 102); if (tint) i.setTint(tint); return i; };
+    const label = (x, y, str, colour, size = 9) => this.ovText(x, y, str, { fontSize: size + 'px', color: colour || '#c8a96e', fontStyle: 'bold' }).setOrigin(0.5);
+    const warn = 0xff3b1f;
+    return [
+      { title: 'MOVE · FIGHT',
+        body: (touch ? 'Drag anywhere to move - Kiran follows your finger.' : 'Move with WASD or the arrow keys (or click and drag).') +
+              ' Attacks are automatic: Kiran strikes the nearest enemy in range. Your whole job is where you stand.',
+        draw: (cx, cy) => {
+          const gr = g();
+          gr.lineStyle(1, FORGE.cool, 0.35); gr.strokeCircle(cx - 50, cy, 70);
+          gr.lineStyle(2, FORGE.cool, 0.9); gr.lineBetween(cx - 50, cy, cx + 62, cy - 12);
+          img(`${CHARS.player}-right`, cx - 50, cy, 56);
+          img(`${CHARS.melee}-left`, cx + 70, cy - 12, 44);
+          gr.lineStyle(2, FORGE.gold, 0.8); gr.strokeCircle(cx - 8, cy + 58, 9);
+          gr.fillStyle(FORGE.gold, 0.35); gr.fillCircle(cx - 8, cy + 58, 9);
+          label(cx - 8, cy + 76, touch ? 'drag' : 'WASD / drag', '#ffd23c');
+          label(cx - 50, cy - 76, 'attack range', '#4dd0ff', 8);
+        } },
+      { title: 'LOOT · SATCHEL',
+        body: 'Walk over a drop to equip it - no menus. The metal is the quality: Tamra (copper), Rajat (silver), Swarna (gold). Violet ??? is unidentified - a gamble that usually pays. What you replace goes to the Satchel on the right edge: tap it to swap back.',
+        draw: (cx, cy) => {
+          [['common', 'Tamra'], ['rare', 'Rajat'], ['epic', 'Swarna']].forEach(([r, n], i) => {
+            img('icon_chain', cx - 118 + i * 58, cy - 18, 34, RARITY[r].color);
+            label(cx - 118 + i * 58, cy + 14, n, '#' + RARITY[r].color.toString(16));
+          });
+          img('icon_mystery', cx + 56, cy - 18, 34, MYSTERY_COLOR);
+          label(cx + 56, cy + 14, '???', '#b48cff');
+          this.ov(this.add.rectangle(cx + 128, cy, 22, 70, FORGE.panel, 1).setStrokeStyle(1, FORGE.bronze, 0.8), 102);
+          label(cx + 128, cy - 10, '<', '#ffd23c', 10); label(cx + 128, cy + 8, '2', '#fffbef', 11);
+          label(cx + 128, cy + 48, 'satchel', '#c8a96e', 8);
+          label(cx - 60, cy + 50, 'finer metal = stronger item', '#8a7360', 9);
+        } },
+      { title: 'THE COSMIC CYCLE',
+        body: 'The bar at the top loops through three phases. SHANTI is calm. SHAKTI floods the arena but pays richer loot. In GRAHAN everyone hits 30% harder - you included. Every 90 seconds, PRALAYA brings an elite and the best drops. The ring at your feet always shows the phase.',
+        draw: (cx, cy) => {
+          const seq = [['drift', 20], ['surge', 12], ['eclipse', 10]], total = 42, bw = 270;
+          let x = cx - bw / 2;
+          seq.forEach(([k, d]) => {
+            const w = bw * d / total;
+            this.ov(this.add.rectangle(x + w / 2, cy - 36, w - 2, 20, PHASE_DEFS[k].color, 1), 102);
+            label(x + w / 2, cy - 36, PHASE_DEFS[k].label, '#1a0600', 9);
+            x += w;
+          });
+          label(cx, cy - 58, 'loops forever', '#8a7360', 8);
+          this.ov(this.add.rectangle(cx + 92, cy + 20, 70, 18, PHASE_DEFS.convergence.color, 1), 102);
+          label(cx + 92, cy + 20, 'PRALAYA', '#1a0600', 9);
+          label(cx + 92, cy + 38, 'every 90s', '#8a7360', 8);
+          img(`${CHARS.player}-front`, cx - 60, cy + 22, 44);
+          this.ov(this.add.ellipse(cx - 60, cy + 38, 34, 13, 0, 0).setStrokeStyle(2, PHASE_DEFS.eclipse.color, 0.95), 102);
+          label(cx - 60, cy + 62, 'phase ring', '#c8a96e', 8);
+        } },
+      { title: 'BOSSES',
+        body: "Every boss has a glowing core. It takes full damage only while the phase bar matches the core's colour - survive until then. A shielded boss can't be hurt at all: kill the gold-glowing Asura anchoring the shield to break it.",
+        draw: (cx, cy) => {
+          const gr = g(); gr.setDepth(101.5);
+          gr.fillStyle(PHASE_DEFS.surge.color, 0.35); gr.fillEllipse(cx - 70, cy + 32, 72, 26);
+          gr.fillStyle(PHASE_DEFS.surge.color, 0.9); gr.fillEllipse(cx - 70, cy + 32, 40, 13);
+          img(`${CHARS.gatekeeper}-front`, cx - 70, cy - 4, 76);
+          label(cx - 70, cy + 58, 'orange core = hit in SHAKTI', '#ff8c42', 8);
+          this.ov(this.add.circle(cx + 70, cy, 38, 0x9fd8ff, 0.18), 102);
+          this.ov(this.add.circle(cx + 70, cy, 42, 0, 0).setStrokeStyle(2, 0x9fd8ff, 0.8), 102);
+          img(`${CHARS.sectorboss}-front`, cx + 70, cy, 70);
+          [[-50, -44], [52, -40], [0, 50]].forEach(([dx, dy]) => img(`${CHARS.melee}-front`, cx + 70 + dx * 0.9, cy + dy * 0.9, 26, 0xffd23c));
+          label(cx + 70, cy + 72, 'kill the gold anchors', '#9fd8ff', 8);
+        } },
+      { title: 'SLAMS',
+        body: 'Bosses slam. A red zone shows where, and its bright fill grows - when the fill reaches the edge, it lands. Three shapes: a ring around the boss, a line aimed where you stood, and eruptions around you. Slams scale with your max HP, so no amount of Vitality makes standing in one safe.',
+        draw: (cx, cy) => {
+          const gr = g();
+          gr.fillStyle(warn, 0.14); gr.fillCircle(cx - 100, cy, 40);
+          gr.fillStyle(warn, 0.36); gr.fillCircle(cx - 100, cy, 26);
+          gr.lineStyle(2.5, warn, 0.95); gr.strokeCircle(cx - 100, cy, 40);
+          gr.fillStyle(warn, 0.14); gr.fillRect(cx - 18, cy - 55, 36, 110);
+          gr.fillStyle(warn, 0.36); gr.fillRect(cx - 18, cy - 55, 36, 64);
+          gr.lineStyle(2.5, warn, 0.95); gr.strokeRect(cx - 18, cy - 55, 36, 110);
+          [[92, -30, 20, 0.8], [124, 6, 18, 0.5], [88, 30, 20, 0.3]].forEach(([dx, dy, r, p]) => {
+            gr.fillStyle(warn, 0.14); gr.fillCircle(cx + dx, cy + dy, r);
+            gr.fillStyle(warn, 0.36); gr.fillCircle(cx + dx, cy + dy, r * p);
+            gr.lineStyle(2, warn, 0.9); gr.strokeCircle(cx + dx, cy + dy, r);
+          });
+          label(cx - 100, cy + 62, 'ring', '#ff8a70'); label(cx, cy + 68, 'line', '#ff8a70'); label(cx + 104, cy + 62, 'scatter', '#ff8a70');
+        } },
+      { title: 'TEJAS',
+        body: (touch ? 'From Sector 2, a meter fills as you fight - faster with every kill. When it is full, tap the glowing TEJAS button' : 'From Sector 2, a meter fills as you fight - faster with every kill. When it is full, press Space (or click the TEJAS button)') +
+              ' for six seconds of power. The form follows your weapon: fire novas, a poison cloud, a blood drain, chain lightning or executing slams.' +
+              (session.tejasUnlocked ? '' : ' (Not awakened yet - reach Sector 2.)'),
+        draw: (cx, cy) => {
+          const gr = g(), bx = cx - 70;
+          gr.fillStyle(0x5c2a05, 1); gr.fillCircle(bx, cy, 30);
+          gr.lineStyle(5, FORGE.gold, 1); gr.strokeCircle(bx, cy, 30);
+          gr.lineStyle(2, FORGE.gold, 0.5); gr.strokeCircle(bx, cy, 37);
+          label(bx, cy - 6, 'TEJAS', '#ffd23c', 10); label(bx, cy + 8, 'READY', '#ffd23c', 9);
+          img(`${CHARS.player}-front`, cx + 70, cy, 48, 0xffe08a);
+          gr.lineStyle(4, 0xff8c42, 0.9); gr.strokeCircle(cx + 70, cy, 44);
+          gr.lineStyle(2, 0xff8c42, 0.45); gr.strokeCircle(cx + 70, cy, 62);
+          label(cx + 70, cy + 72, 'Agni - fire nova', '#ff8c42', 8);
+        } },
+      { title: 'EXTRACT OR DESCEND',
+        body: "Beat a sector's boss and choose: Extract to bank your Nidhi and end the run, or Descend for tougher fights, better loot and new powers. Spend Nidhi at the hub on Vitality and Power - but deep sectors hit hard enough that upgrades alone won't carry you.",
+        draw: (cx, cy) => {
+          this.ov(this.add.rectangle(cx, cy - 30, 230, 40, 0x3a1a08, 1).setStrokeStyle(1.5, FORGE.bronze, 0.9), 102);
+          label(cx, cy - 30, 'Extract - bank & end run', '#fffbef', 11);
+          this.ov(this.add.rectangle(cx, cy + 22, 230, 40, 0x7a3a0a, 1).setStrokeStyle(1.5, FORGE.gold, 0.9), 102);
+          label(cx, cy + 22, 'Descend to Sector 2', '#ffd23c', 11);
+          label(cx, cy + 62, 'deeper = richer and deadlier', '#8a7360', 9);
+        } }
+    ];
+  }
+
+  // ---------- LIVE TIPS (first-run tutorial, requirements 2.12.1) ----------
+  // Each tip shows once, ever, at the moment its system first appears - the Hades and
+  // Archero approach, never a forced lesson. Play never stops; tap one to dismiss it.
+  hint(id, text, urgent) {
+    if (!settings.tips || this.silent || this.state !== 'playing' || session.hintsSeen[id]) return;
+    this.hintQueue = this.hintQueue || [];
+    if (this.hintShowing === id || this.hintQueue.some(q => q.id === id)) return;
+    const entry = { id, text, at: this.time.now };
+    if (urgent) { this.hintQueue.unshift(entry); this.dismissHint(true); }
+    else { this.hintQueue.push(entry); if (!this.hintBox) this.nextHint(); }
+  }
+
+  nextHint() {
+    if (this.hintBox || !this.hintQueue || this.state === 'hub') return;
+    // A tip that waited more than 10s is about a moment that has passed. Drop it unseen;
+    // it will come back the next time that thing happens.
+    while (this.hintQueue.length && this.time.now - this.hintQueue[0].at > 10000) this.hintQueue.shift();
+    if (!this.hintQueue.length) return;
+    const { id, text } = this.hintQueue.shift();
+    session.hintsSeen[id] = true;
+    saveSession();
+    this.hintShowing = id;
+    const b = this.arenaBounds;
+    // Bottom-right of the arena: clear of bosses (they enter at the top) and of the
+    // Tejas button (bottom-left), whose taps it must never swallow.
+    const left = b.x + 76, w = b.right - 8 - left, cx = left + w / 2;
+    const t = this.add.text(cx, 0, text, { resolution: RES, fontSize: '11px', color: '#fffbef', align: 'center',
+      lineSpacing: 2, wordWrap: { width: w - 20 } }).setOrigin(0.5, 0).setDepth(71);
+    const h = t.height + 26, top = b.bottom - 8 - h;
+    t.setY(top + 7);
+    const bg = this.add.rectangle(cx, top + h / 2, w, h, FORGE.deep, 0.93).setStrokeStyle(1.5, FORGE.gold, 0.9)
+      .setDepth(70).setInteractive();
+    const sub = this.add.text(cx, top + h - 9, 'tap to dismiss', { resolution: RES, fontSize: '8px', color: '#8a7360' })
+      .setOrigin(0.5).setDepth(71);
+    bg.on('pointerdown', () => this.dismissHint());
+    this.hintBox = [bg, t, sub];
+    this.sfx('ui-open', { vol: 0.6 });
+    this.hintTimer = this.time.delayedCall(3800 + text.length * 30, () => this.dismissHint());
+  }
+
+  dismissHint(immediate) {
+    if (this.hintTimer) { this.hintTimer.remove(false); this.hintTimer = null; }
+    if (this.hintBox) { this.hintBox.forEach(o => o.destroy()); this.hintBox = null; }
+    this.hintShowing = null;
+    if (this.hintQueue && this.hintQueue.length) {
+      if (immediate) this.nextHint();
+      else this.time.delayedCall(350, () => this.nextHint());
+    }
+  }
+
+  clearHints() {
+    this.hintQueue = [];
+    this.hintShowing = null;
+    if (this.hintTimer) { this.hintTimer.remove(false); this.hintTimer = null; }
+    if (this.hintBox) { this.hintBox.forEach(o => o.destroy()); this.hintBox = null; }
+  }
+
   // ---------- HIT FEEDBACK ----------
   // Being hit used to produce one 150ms alpha flicker - players could lose half their HP
   // without registering that anything touched them. Every hit now reads on four
@@ -449,9 +1033,11 @@ class LootScene extends Phaser.Scene {
   // Asura is a nudge and a Vritra slam is an event.
   hitFeedback(amount, source, kind) {
     const frac = Phaser.Math.Clamp(amount / Math.max(1, this.player.maxHp), 0, 1);
-    this.cameras.main.shake(90 + frac * 280, 0.0025 + frac * 0.02);
+    this.shake(90 + frac * 280, 0.0025 + frac * 0.02);
+    this.sfx('hurt', { vol: 0.7 + frac * 1.5, rate: kind === 'slam' ? 0.85 : 1 });
+    this.buzz(kind === 'slam' ? 90 : 25 + frac * 80);
 
-    this.hurtFlash.setAlpha(0.1 + frac * 0.55);
+    this.hurtFlash.setAlpha(settings.reduceFlash ? Math.min(0.12, 0.05 + frac * 0.2) : 0.1 + frac * 0.55);
     this.tweens.killTweensOf(this.hurtFlash);
     this.tweens.add({ targets: this.hurtFlash, alpha: 0, duration: 240 + frac * 200 });
 
@@ -460,14 +1046,14 @@ class LootScene extends Phaser.Scene {
       this.time.delayedCall(120, () => this.restorePlayerTint());
     }
 
+    if (source && kind === 'melee') this.slashFx(source, this.player);
+    if (!settings.dmgNumbers) return;
     const num = this.add.text(this.player.x + Phaser.Math.Between(-10, 10), this.player.y - 28,
       `-${Math.max(1, Math.round(amount))}`,
       { resolution: RES, fontSize: frac > 0.15 ? '15px' : '11px', color: '#ff5a44',
         fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 }).setOrigin(0.5).setDepth(40);
     this.tweens.add({ targets: num, y: num.y - 26, alpha: 0, duration: 700, ease: 'Cubic.easeOut',
                       onComplete: () => num.destroy() });
-
-    if (source && kind === 'melee') this.slashFx(source, this.player);
   }
 
   // Returns Kiran to whatever tint the current state calls for (Tejas glows gold).
@@ -599,6 +1185,9 @@ class LootScene extends Phaser.Scene {
     // Reusing telegraphGfx means killEnemy and run cleanup already destroy it.
     e.telegraphGfx = this.add.graphics().setDepth(Z.telegraph);
     e.slam = slam;
+    // A distinct warning gong per shape, so the ear can tell the slam before the eye finds it.
+    this.sfx('slam-warn', { rate: { circle: 1, line: 1.25, scatter: 0.8 }[type] });
+    this.hint('slam', 'RED ZONE! A slam lands when the bright fill reaches the edge - get out of it!', true);
   }
 
   drawSlamTelegraph(e) {
@@ -662,7 +1251,8 @@ class LootScene extends Phaser.Scene {
         if (Math.hypot(px - bl.x, py - bl.y) <= bl.r) hit = true;   // one hit per slam, not per blob
       });
     }
-    this.cameras.main.shake(230, SLAM[s.type].shake);
+    this.shake(230, SLAM[s.type].shake);
+    this.sfx('slam-land', { rate: e.isMega ? 0.8 : 1 });
     return hit ? this.damagePlayer(this.slamDamage(SLAM[s.type].pct), e, 'slam') : false;
   }
 
@@ -962,10 +1552,10 @@ class LootScene extends Phaser.Scene {
     this.uiObjects = [];
   }
 
-  makeButton(x, y, w, h, label, color, onClick) {
+  makeButton(x, y, w, h, label, color, onClick, opts = {}) {
     const bg = this.add.rectangle(x, y, w, h, color).setStrokeStyle(2, 0xffffff, 0.25).setInteractive({ useHandCursor: true });
-    const txt = this.add.text(x, y, label, { resolution: RES, fontSize: '16px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-    bg.on('pointerdown', onClick);
+    const txt = this.add.text(x, y, label, { resolution: RES, fontSize: (opts.size || 16) + 'px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    bg.on('pointerdown', () => { if (opts.sound !== null) this.sfx(opts.sound || 'ui-click'); onClick(); });
     this.uiObjects.push(bg, txt);
     return bg;
   }
@@ -975,6 +1565,8 @@ class LootScene extends Phaser.Scene {
     this.clearUI();
     this.state = 'hub';
     this.hudText.setText('');
+    this.showPauseButton(false);
+    this.playMusic('hub');
 
     this.uiObjects.push(this.add.text(W/2, 130, 'LOOT CHASE', { resolution: RES, fontSize: '30px', color: '#c77dff', fontStyle: 'bold' }).setOrigin(0.5));
     this.uiObjects.push(this.add.text(W/2, 165, 'auto-battle · collect loot · descend deeper', { resolution: RES, fontSize: '12px', color: '#9a8fc2' }).setOrigin(0.5));
@@ -991,19 +1583,23 @@ class LootScene extends Phaser.Scene {
 
     this.uiObjects.push(this.add.text(W/2, 290, `Vitality Lv.${session.vitalityLevel}  (+${session.vitalityLevel*10}% Max HP)`, { resolution: RES, fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
     this.makeButton(W/2, 325, 220, 40, `Upgrade — ${vitCost} Nidhi`, session.metaGold >= vitCost ? 0x3a2f66 : 0x241d40, () => {
-      if (session.metaGold >= vitCost) { session.metaGold -= vitCost; session.vitalityLevel++; saveSession(); this.showHub(); }
-    });
+      if (session.metaGold >= vitCost) { session.metaGold -= vitCost; session.vitalityLevel++; saveSession(); this.sfx('ui-confirm'); this.showHub(); }
+      else this.sfx('ui-error');
+    }, { sound: null });
 
     this.uiObjects.push(this.add.text(W/2, 385, `Power Lv.${session.powerLevel}  (+${session.powerLevel*8}% Weapon Dmg)`, { resolution: RES, fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
     this.makeButton(W/2, 420, 220, 40, `Upgrade — ${powCost} Nidhi`, session.metaGold >= powCost ? 0x3a2f66 : 0x241d40, () => {
-      if (session.metaGold >= powCost) { session.metaGold -= powCost; session.powerLevel++; saveSession(); this.showHub(); }
-    });
+      if (session.metaGold >= powCost) { session.metaGold -= powCost; session.powerLevel++; saveSession(); this.sfx('ui-confirm'); this.showHub(); }
+      else this.sfx('ui-error');
+    }, { sound: null });
 
     this.makeButton(W/2, 510, 200, 54, 'START RUN', 0x7c3fff, () => this.startRun());
     this.uiObjects.push(this.add.text(W/2, 556, 'Clear each sector, then extract or descend.', { resolution: RES, fontSize: '12px', color: '#7a6fa0' }).setOrigin(0.5));
 
     const locked = this.lockedPowerCount();
-    this.makeButton(W/2, 606, 200, 38, 'POWERS', 0x5c2a05, () => this.showCodex());
+    this.makeButton(W/2 - 126, 606, 118, 38, 'POWERS', 0x5c2a05, () => this.showCodex(), { size: 13 });
+    this.makeButton(W/2, 606, 118, 38, 'HOW TO PLAY', 0x5c2a05, () => this.showHowTo(0, () => this.closeOverlay()), { size: 13 });
+    this.makeButton(W/2 + 126, 606, 118, 38, 'SETTINGS', 0x5c2a05, () => this.showSettings(() => this.closeOverlay()), { size: 13 });
     this.uiObjects.push(this.add.text(W/2, 640,
       locked > 0 ? `${locked} still locked — descend to find them` : 'all powers unlocked',
       { resolution: RES, fontSize: '11px', color: locked > 0 ? '#ffd23c' : '#7a6fa0' }).setOrigin(0.5));
@@ -1040,7 +1636,7 @@ class LootScene extends Phaser.Scene {
       const btn = this.add.rectangle(tx, b.y + 24, 100, 30, active ? 0x7a3a0a : 0x3a1a08, 1)
         .setStrokeStyle(1, active ? FORGE.gold : FORGE.bronze, active ? 1 : 0.5)
         .setInteractive({ useHandCursor: true });
-      btn.on('pointerdown', () => this.showCodex(key));
+      btn.on('pointerdown', () => { this.sfx('ui-page'); this.showCodex(key); });
       const t = this.add.text(tx, b.y + 24, label, { resolution: RES, fontSize: '11px', fontStyle: 'bold',
         color: active ? '#ffd23c' : '#c8a96e' }).setOrigin(0.5);
       this.uiObjects.push(btn, t);
@@ -1198,6 +1794,11 @@ class LootScene extends Phaser.Scene {
 
     this.showSectorBanner(this.sector);
     this.nextWave();
+    this.showPauseButton(true);
+    this.playMusic('combat');
+    this.time.delayedCall(900, () => this.hint('move', this.sys.game.device.input.touch
+      ? 'Drag anywhere to move. You attack on your own - just stay in range.'
+      : 'Move with WASD or the arrow keys. You attack on your own - just stay in range.'));
   }
 
   showSectorBanner(n) {
@@ -1227,6 +1828,8 @@ class LootScene extends Phaser.Scene {
 
     if (this.wave > 5) {
       this.spawnSectorBoss();
+      this.playMusic('boss');
+      this.sfx('boom');
       const isMega = this.sector === MEGA_BOSS_SECTOR;
       this.showToast(isMega ? 'VRITRA AWAKENS' : 'NIDHI-RAKSHA STIRS', '#ffffff');
       return;
@@ -1234,6 +1837,7 @@ class LootScene extends Phaser.Scene {
 
     if (this.wave === GATEKEEPER_WAVE) {
       this.spawnGatekeeper();
+      this.sfx('boom', { vol: 0.7 });
       for (let i = 0; i < 2; i++) this.spawnQueue.push(i); // a little escort pressure alongside the boss
       this.spawnTimer = 700;
       this.showToast('BAKASURA BARS THE WAY', '#ffffff');
@@ -1249,6 +1853,8 @@ class LootScene extends Phaser.Scene {
 
   descend() {
     this.clearUI();
+    this.sfx('descend');
+    this.playMusic('combat');
     this.sector++;
     if (this.sector >= TEJAS_UNLOCK_SECTOR && !session.tejasUnlocked) {
       session.tejasUnlocked = true;
@@ -1301,6 +1907,7 @@ class LootScene extends Phaser.Scene {
 
   toggleSatchel() {
     this.invOpen = !this.invOpen;
+    this.sfx('satchel');
     this.satchelTabIcon.setText(this.invOpen ? '▶' : '◀');
     this.refreshSatchel();
   }
@@ -1358,6 +1965,7 @@ class LootScene extends Phaser.Scene {
     if (!item) return;
     this.inventory.splice(index, 1);
     this.applyLoot(item, false);
+    this.sfx('equip');
     this.refreshSatchel();
   }
 
@@ -1368,6 +1976,7 @@ class LootScene extends Phaser.Scene {
     // using ages ago is a kinder failure than being unable to pick anything up.
     if (this.inventory.length > INV_MAX) this.inventory.shift();
     this.refreshSatchel();
+    this.hint('satchel', 'Your old item went into the Satchel - the tab on the right edge. Tap it to swap back any time.');
   }
 
   destroySatchelUI() {
@@ -1447,6 +2056,7 @@ class LootScene extends Phaser.Scene {
     this.enemyCores.set(enemy.id, core);
     this.addHpBar(enemy);
     this.addNameLabel(enemy);
+    this.hint('core', "Bakasura's glowing core is its weak spot: full damage only while the phase bar matches that colour.");
     return enemy;
   }
 
@@ -1527,6 +2137,7 @@ class LootScene extends Phaser.Scene {
     this.enemyShields.set(boss.id, dome);   // kept for the existing pulse-on-hit path
     this.addShieldBar(boss);
     this.time.delayedCall(900, () => this.showToast('DESTROY THE ANCHORS', '#9fd8ff'));
+    this.hint('shield', 'Shielded - no damage gets through. Kill the gold-glowing Asura anchoring it and the shield breaks.');
   }
 
   transitionMegaBossToShield(boss) {
@@ -1534,6 +2145,7 @@ class LootScene extends Phaser.Scene {
     boss.bossPhase = 'shielded';
     boss.shieldOn = true;
     this.showToast('VRITRA COILS - DESTROY THE ANCHORS', '#9fd8ff');
+    this.sfx('toll', { rate: 1.3 });
     this.spawnShieldAdds(boss);
   }
 
@@ -1583,6 +2195,7 @@ class LootScene extends Phaser.Scene {
     this.enemySprites.set(enemy.id, spr);
     this.addHpBar(enemy);
     this.addNameLabel(enemy);
+    if (type === 'ranged') this.hint('ranged', 'Rakshasa shoot bolts from range. Keep moving sideways to dodge them.');
     return enemy;
   }
 
@@ -1609,6 +2222,7 @@ class LootScene extends Phaser.Scene {
     if (this.player.shieldCharge > 0) {
       this.player.shieldCharge--;
       this.showToast('KAVACH BLOCKED', '#4dd0ff');
+      this.sfx('kavach');
       this.impactBurst(this.player.x, this.player.y, 0x9fd8ff);
       return false;
     }
@@ -1618,6 +2232,9 @@ class LootScene extends Phaser.Scene {
     // player can read "I'm safe for a moment" off Kiran himself.
     this.player.flashTimer = Math.max(150, kind !== 'slam' ? IFRAMES_MS : 0);
     this.hitFeedback(amount, source, kind);
+    if (this.player.hp > 0 && this.player.hp < this.player.maxHp * 0.3) {
+      this.hint('lowhp', 'Low HP! Keep your distance. Beating a sector boss restores 35% of your health.');
+    }
     if (this.player.hp <= 0) {
       this.player.hp = 0;
       this.endRun(false);
@@ -1643,6 +2260,10 @@ class LootScene extends Phaser.Scene {
 
     this.runGold += enemy.goldDrop;
     this.gainTejas(enemy);
+    if (enemy.isMega) { this.sfx('boss-fall'); this.sfx('toll', { rate: 0.8 }); }
+    else if (enemy.isSectorBoss) this.sfx('boss-fall');
+    else if (enemy.isBoss) { this.sfx('gate-open'); this.sfx('boom', { vol: 0.6 }); }
+    else this.sfx('enemy-die', { rate: enemy.type === 'tank' ? 0.75 : (enemy.isSplit ? 1.25 : 1) });
 
     // if this was a shield anchor, check whether its boss's shield should now break
     if (enemy.isKeyAdd && enemy.ownerBossId) {
@@ -1666,6 +2287,7 @@ class LootScene extends Phaser.Scene {
             boss.shieldBarBg = null; boss.shieldBarFill = null;
           }
           this.showToast('THE SHIELD BREAKS', '#2fbf71');
+          this.sfx('shield-break');
         }
       }
     }
@@ -1687,7 +2309,7 @@ class LootScene extends Phaser.Scene {
       const before = this.player.hp;
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
       const gained = Math.round(this.player.hp - before);
-      if (gained > 0) {
+      if (gained > 0 && settings.dmgNumbers) {
         const n = this.add.text(this.player.x, this.player.y - 30, `+${gained}`, { resolution: RES, fontSize: '15px',
           color: '#5fe08a', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 }).setOrigin(0.5).setDepth(40);
         this.tweens.add({ targets: n, y: n.y - 30, alpha: 0, duration: 1100, onComplete: () => n.destroy() });
@@ -1773,6 +2395,8 @@ class LootScene extends Phaser.Scene {
       label.x = Phaser.Math.Clamp(px, b.x + half + 4, b.right - half - 4); }   // never over the border
 
     this.pickups.push({ x: px, y: py, item, sprite, label, isMystery });
+    if (isMystery) this.hint('mystery', "Violet ??? is unidentified - you won't know what it is until you grab it. It usually pays.");
+    else this.hint('loot', 'Loot! Walk over it to equip. Copper, then silver, then gold: finer metal, stronger item.');
   }
 
   showToast(msg, color) {
@@ -1804,12 +2428,14 @@ class LootScene extends Phaser.Scene {
 
   afterWaveClear() {
     this.runGold += 15 + this.depth * 4;
+    this.sfx('wave-clear');
     this.time.delayedCall(400, () => { if (this.state === 'playing') this.nextWave(); });
   }
 
   showSectorClearChoice(isMega) {
     this.state = 'sectorChoice';
     this.clearUI();
+    this.playMusic('hub');   // the decision is a breath between fights
     this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 300, 0x17122b, 0.97).setStrokeStyle(2, 0x2fbf71));
     this.uiObjects.push(this.add.text(W/2, H/2-115, isMega ? 'VRITRA FALLS' : 'SECTOR CLEARED', { resolution: RES, fontSize: '19px', color: '#2fbf71', fontStyle: 'bold' }).setOrigin(0.5));
     this.uiObjects.push(this.add.text(W/2, H/2-80, `Sector ${this.sector} complete`, { resolution: RES, fontSize: '13px', color: '#e8e0ff' }).setOrigin(0.5));
@@ -1823,15 +2449,19 @@ class LootScene extends Phaser.Scene {
   }
 
   // ---------- END OF RUN ----------
-  endRun(victory) {
+  endRun(victory, abandoned) {
     this.state = 'summary';
+    this.clearHints();
+    this.showPauseButton(false);
+    if (victory) this.sfx('coins'); else this.sfx('toll', { rate: 0.75 });
+    this.playMusic('hub');
     session.metaGold += this.runGold;
     if (this.sector > (session.bestSector || 0)) session.bestSector = this.sector;
     saveSession();
 
     this.clearUI();
     this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 280, 0x17122b, 0.97).setStrokeStyle(2, victory ? 0x2fbf71 : 0xff5c5c));
-    this.uiObjects.push(this.add.text(W/2, H/2-100, victory ? 'EXTRACTED SAFELY' : 'YOU FELL', { resolution: RES, fontSize: '24px', color: victory ? '#2fbf71' : '#ff5c5c', fontStyle: 'bold' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-100, victory ? 'EXTRACTED SAFELY' : (abandoned ? 'RUN ABANDONED' : 'YOU FELL'), { resolution: RES, fontSize: '24px', color: victory ? '#2fbf71' : '#ff5c5c', fontStyle: 'bold' }).setOrigin(0.5));
     this.uiObjects.push(this.add.text(W/2, H/2-55, `Sector reached: ${this.sector}`, { resolution: RES, fontSize: '15px', color: '#e8e0ff' }).setOrigin(0.5));
     this.uiObjects.push(this.add.text(W/2, H/2-25, `Nidhi earned: ${this.runGold}`, { resolution: RES, fontSize: '15px', color: '#ffd23c' }).setOrigin(0.5));
     this.uiObjects.push(this.add.text(W/2, H/2+5, `Treasury: ${session.metaGold} Nidhi`, { resolution: RES, fontSize: '13px', color: '#9a8fc2' }).setOrigin(0.5));
@@ -1902,11 +2532,18 @@ class LootScene extends Phaser.Scene {
         this.convergenceCountdown = CONVERGENCE_INTERVAL;
         this.showToast('CONVERGENCE — an elite approaches', '#ffffff');
         this.spawnElite();
+        this.sfx('tejas-bell', { rate: 0.7 });
+        this.refreshMusic();
+        this.hint('pralaya', 'Pralaya! An elite Mahish joins the fight - and the best loot drops now.');
       } else if (this.phaseTimeLeft <= 0) {
         const idx = (PHASE_SEQUENCE.indexOf(this.phase) + 1) % PHASE_SEQUENCE.length;
         this.phase = PHASE_SEQUENCE[idx];
         this.phaseTimeLeft = PHASE_DEFS[this.phase].duration;
         this.showToast(`${PHASE_DEFS[this.phase].label} begins`, '#' + PHASE_DEFS[this.phase].color.toString(16).padStart(6,'0'));
+        this.sfx('slam-warn', { rate: 0.6, vol: 0.5 });
+        this.refreshMusic();
+        if (this.phase === 'eclipse') this.hint('grahan', 'Grahan: everyone hits 30% harder - you included. Bosses with a red core are vulnerable now.');
+        if (this.phase === 'surge') this.hint('shakti', 'Shakti: enemies pour in faster, but loot drops richer.');
       }
     } else {
       this.phaseTimeLeft -= delta;
@@ -1915,6 +2552,7 @@ class LootScene extends Phaser.Scene {
         this.phase = this.savedPhase;
         this.phaseTimeLeft = this.savedPhaseTimeLeft > 0 ? this.savedPhaseTimeLeft : PHASE_DEFS[this.phase].duration;
         this.showToast(`${PHASE_DEFS[this.phase].label} resumes`, '#' + PHASE_DEFS[this.phase].color.toString(16).padStart(6,'0'));
+        this.refreshMusic();
       }
     }
 
@@ -2049,6 +2687,7 @@ class LootScene extends Phaser.Scene {
             sprite: shard, halo
           };
           this.projectiles.push(proj);
+          this.sfx('bolt');
         }
       } else if (enemy.isBoss) {
         if (this.updateBoss(enemy, edx, edy, edist, dt, delta)) return;   // true = player died
@@ -2189,6 +2828,8 @@ class LootScene extends Phaser.Scene {
         this.atkTimer = this.player.weapon.atkSpeed;
         this.attackFx.clear();
         const wfx = this.player.weapon.effect;
+        this.sfx(inRange.every(o => o.e.shieldOn) ? 'hit-blocked'
+          : ({ chain: 'hit-zap', executioner: 'hit-axe' }[wfx] || 'hit-blade'));
         const beamColour = { venom: 0x7fdd3c, vampiric: 0xff8080, chain: 0x4dd0ff,
                              executioner: FORGE.gold }[wfx] || FORGE.cool;
         inRange.forEach(({e}) => {
@@ -2238,6 +2879,9 @@ class LootScene extends Phaser.Scene {
       const pk = this.pickups[i];
       if (Math.hypot(pk.x - this.player.x, pk.y - this.player.y) < 26) {
         this.applyLoot(pk.item, pk.isMystery);
+        const lootSfx = LOOT_SFX[pk.item.rarity];
+        if (pk.isMystery) { this.sfx('loot-mystery'); this.time.delayedCall(260, () => this.sfx(lootSfx)); }
+        else this.sfx(lootSfx);
         pk.sprite.destroy();
         pk.label.destroy();
         this.pickups.splice(i,1);

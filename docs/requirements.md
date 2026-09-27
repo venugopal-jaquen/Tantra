@@ -223,10 +223,29 @@ save data is keyed off them — renaming would break existing saves for no visib
 
 Currency is now Nidhi. The hub is still unnamed in-game — left for the title-screen redesign (roadmap P1).
 
-### 2.12.1 First-run Tutorial (planned — pinned)
-A live, in-game tutorial for first-time players, teaching each system during Wave 1 rather than through a wall of text up front: movement, auto-attack, the Cosmic Cycle bar, the Gatekeeper weak-phase rule, loot pickup, and the satchel.
+### 2.12.1 First-run Tutorial — live tips (built 2026-09-27)
+Pinned 2026-09-24 until the mechanics were final; unpinned 2026-09-27 when the founder called gameplay ~99% done. The founder chose **live prompts, skippable** over a forced practice wave.
 
-**Deliberately deferred.** Pinned by the founder on 2026-09-24 until the mechanics are final — teaching a system that is still moving means rewriting the tutorial every time it moves. Revisit once §2.7.1, §2.7.2 and the boss set are settled.
+Modelled on Hades and Archero, not Brotato: Brotato's "figure it out" onboarding is a known reason new players bounce off it. Each tip appears **once, ever**, at the moment its system first shows up, in a small panel at the bottom-right of the arena. That spot keeps it clear of bosses, which enter at the top, and of the Tejas button at the bottom-left. Play never stops. Tapping a tip dismisses it.
+
+| Tip | Fires when |
+|---|---|
+| move | 0.9s into the first run (touch and keyboard wording differ) |
+| loot / mystery | first identified / unidentified drop appears |
+| satchel | first item goes into the satchel |
+| ranged | first Rakshasa spawns |
+| core | first Bakasura spawns (the weak-phase rule) |
+| slam | first slam telegraph (**urgent**: it replaces whatever tip is showing) |
+| shield | first shielded boss |
+| shakti / grahan / pralaya | first time each phase begins |
+| tejas | first time the Tejas meter is full |
+| lowhp | first time HP drops below 30% |
+
+- A tip counts as seen only once it is **displayed**. One that waits more than 10s in the queue is dropped unseen, and it returns the next time its moment comes. (The first version marked tips seen on arrival, and eight arrived in the first 25 seconds.)
+- Seen tips live in `session.hintsSeen`, so "Reset save" re-arms them. Settings has a **Tutorial tips** on/off switch and a **show tips again** button.
+
+### 2.12.2 How to Play (built 2026-09-27)
+Seven illustrated cards, reachable from the hub and the pause menu: Move · Fight, Loot · Satchel, The Cosmic Cycle, Bosses, Slams, Tejas, and Extract or Descend. The illustrations reuse the real sprites, icons and telegraph shapes, so what the card shows is exactly what the player will see. Players swipe, or use the arrows. The copy switches between touch and keyboard wording.
 
 ### 2.13 Sprite Sourcing (open)
 
@@ -288,3 +307,36 @@ HP lost can exceed 100% because heals are spent along the way. Across 30+ bot ru
 
 - Kiran glows gold for the duration and the meter drains as it runs. The codex has a Tejas tab.
 - Taps on the Tejas button (or the satchel tab) no longer also walk Kiran to that spot.
+
+### 2.16 Audio (built 2026-09-27)
+**Sound effects:** 36 sounds from three Kenney CC0 packs (Impact, Interface and RPG Audio). These are recorded sounds, which the founder chose over generated ones. They ship as mono 16-bit WAV (1.4 MB) because older iOS Safari cannot decode the packs' Ogg Vorbis. Every file has its leading silence trimmed; `knifeSlice` had 235 ms of dead air, which would have read as input lag. Every file is also peak-normalised, so the `SFX` table's per-sound `vol` is the only loudness control.
+
+The sounds were picked by measurement (length, brightness, ring-out) because **Claude cannot hear audio; the founder's ear is the final judge.** Anything can be swapped by editing the `MAP` in the conversion script and re-running it. Design rules:
+- **Loot quality is audible.** Tamra is a tin clink, Rajat a glass chime, Swarna a bell. An unidentified drop plays a rising swell before its reveal. This follows Vampire Survivors, where pickup sounds are the addiction loop.
+- **Every slam has its own warning gong,** pitched by shape (circle / line / scatter), so the ear can tell the slam before the eye finds it (as in Hades).
+- **Repeated sounds are kept in check.** Each gets ±4% pitch drift, and noisy sounds have a minimum gap (`gap`), so a 3-target volley or a dying swarm reads as one hit.
+- **Getting hit scales with damage.** The hurt sound's volume scales with the share of max HP lost, and slams play it lower.
+
+**Music (pending the founder's picks):** one track per mood (`hub`, `combat`, `boss`), crossfaded over 0.9s. The `MUSIC` table is empty until the founder chooses tracks by ear, and an empty entry is simply silence. Shortlist (Pixabay licence, allows use in games, no attribution required, no standalone resale):
+- **Hub:** Stardust Sitar & Tanpura · Sitar and Tanpura BGM · Ethereal Raga
+- **Combat:** Tabla Rhythmic Raga Pulse · Tabla Flute 106 · "Indian" (Rockot)
+- **Boss:** The Descent of Hanuman · Indian Rock Bollywood Epic
+
+Rules for the picks: **no vocals or mantras** (the rule that cut Kalachakra), a clean loop point, and **no Content ID registration**, because every streamer who plays the game would otherwise get a claim.
+
+Hades plays stems in layers, and licensed tracks don't come with stems, so the **Cosmic Cycle colours the track instead**: Grahan runs it through a 700 Hz lowpass (muffled, underwater), Pralaya lifts the volume 25%, and pausing ducks it to 35%. Verified with an analyser node: the signal passes through the filter.
+
+### 2.17 Pause & Settings (built 2026-09-27)
+**Pause (VIRAM, विराम):** a button at the top-right of the HUD whose touch target (56×36) is larger than the drawn button. Esc or P also toggles pause. **Switching apps or tabs pauses the run automatically.** Pausing freezes game logic, timers and tweens. The menu shows the build you are carrying (weapon, trinket and Tejas form, each with what it does), your sector and wave, and the Nidhi from this run, followed by Resume, How to Play, Settings and **Abandon Run**. Abandon takes two taps and **counts as a death**.
+
+**Settings** (stored apart from the save, key `loot-chase-settings-v1`, so "Reset save" keeps your volume):
+
+| Setting | Default | Notes |
+|---|---|---|
+| Music / Sound effects | 7 / 8 of 10 | Eleven tap-cells (off, 1–10). Easier to hit on a phone than a slider |
+| Screen shake | on | |
+| Reduce flashing | off | Caps the red hit flash at 12% and drops the Tejas screen flash (accessibility) |
+| Damage numbers | on | The floating −N / +N over Kiran |
+| Vibration | on | Android only. Hidden where `navigator.vibrate` doesn't exist (iOS Safari) |
+| Tutorial tips | on | Plus a "show tips again" button |
+| Reset save | — | Hub only, two taps. Erases Nidhi, upgrades and unlocks |

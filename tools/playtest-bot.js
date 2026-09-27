@@ -193,6 +193,9 @@
       queue = profiles.map(p => Object.assign({ capMin: 30, tejas: false }, p));
       results = []; errors = []; baseline = null;
       t = performance.now() + 5e6;
+      // Thousands of hits at ~80x speed would be an audio storm, tips would pile up,
+      // and the hidden test pane would trigger auto-pause and stall the run.
+      S().silent = true; S().autoPause = false;
     },
     tick(budgetMs = 15000) {
       const t0 = performance.now();
@@ -207,6 +210,7 @@
       if (backup !== null) localStorage.setItem('loot-chase-session-v1', backup);
       else localStorage.removeItem('loot-chase-session-v1');
       loadSession();
+      S().silent = false; S().autoPause = true;
       return { errors: [...new Set(errors)], runs: results.map(r => ({
         profile: r.profile.name, result: r.result, finalSector: r.finalSector, gameMin: r.gameMin, leak: r.leak,
         sectors: r.sectors.map(x => ({
