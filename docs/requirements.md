@@ -45,6 +45,7 @@ Kept so a reversal is never mistaken for drift or an error.
 | 2026-10-02 | **Falling keeps half the run's Nidhi.** §2.5. | Death banked everything, exactly like Extract, so Descend carried no risk and the Extract/Descend choice was a fake one. The founder approved 50%. |
 | 2026-10-02 | **Typography: Yatra One + Baloo 2.** §2.18. | The founder asked for type that feels Indian. The game had been rendering in the engine's default monospace. |
 | 2026-10-02 | **Asura (2017) reviewed as a reference game.** | Outcome of a separate research session. *Adopted:* a glossary-card loading screen (§2.19). *Pinned for after itch.io:* the Bhagya chart and boss-kill perks (`design-document.md` P7, P8). *Unchanged:* the live-tip tutorial (Asura shipped a separate tutorial, players disliked it, and it was replaced with learn-as-you-play, which is what §2.12.1 already does) and the antagonists-only naming rule (stricter than Asura's, and it stays). The lesson worth keeping: Asura turned cultural ideas into mechanics instead of using them only as names. |
+| 2026-10-02 | **The stepwell becomes the game's place.** §2.10. | The founder still found the arena background generic after the jaali-and-rangoli floor. A lattice is a pattern, not a place. The game is now one descent down a stepwell: the title looks down the shaft, every arena is framed by its stairs, and each sector has its own painted floor. |
 
 **Provenance:** the 2026-09-24 decisions were made in a claude.ai chat, and the 2026-10-02 Asura review in a separate Claude Code session, not in this repo. Recorded here so `docs/` stays the single source of truth — see `docs/design-document.md` §5 on why context living outside version control is a recurring problem.
 
@@ -147,7 +148,20 @@ Governing idea: everything in this world is precious material at some stage of r
 
 Target feeling, stated by the founder: **"rich and rewarding — treasure, wealth, loot fantasy."**
 
-- **Arena floor (2026-09-24):** a carved sandstone **jaali** lattice — the pierced stone screens of Rajput and Mughal architecture, 8-point stars joined through the tile edges — with a **rangoli** at the centre and one smooth radial heat glow. Replaces four concentric glow ellipses, which read as generic "circles within circles". The lattice is drawn at device resolution so it stays sharp on retina screens.
+- **The stepwell (2026-10-02).** The whole game is one descent down a *baori*, the stepped wells of Rajasthan and Gujarat (Chand Baori, Rani ki Vav). It replaces the jaali lattice and rangoli, which the founder found generic: they were a pattern, not a place.
+  - **Frame.** Every arena is the landing of one level, ringed by two courses of saw-tooth stairs climbing away on all four sides: the pattern that makes Chand Baori recognisable from above.
+  - **A painted floor per sector** (`FLOORS`), drawn once into a texture and crossfaded on Descend:
+
+    | Sector | Level of the well | Floor |
+    |---|---|---|
+    | 1, The Fractured Approach | the sunlit courtyard | red sandstone paving, a carved lotus medallion with corner rosettes, a shaft of daylight |
+    | 2, The Churning Depths | the flooded level | green well-water drawn as miniature painters draw it (rows of scalloped waves), a whirlpool spiral, lily pads and lotus, a warm stone rim |
+    | 3, The Convergence Core | the vault at the bottom | dark stone inlaid with glowing gold in interlocking circles, heat cracks, a gold seal |
+    | 4 and deeper | the endless descent | the same three, under a deepening wash |
+
+  - Sector 2 is deliberately cool. The rule that cyan belongs to Shanti alone gave way to the founder's request that sectors look different; the stone rim keeps the warm world around it.
+  - **Legibility.** Floors stay mid-dark and keep their detail at the edges and in one central medallion. Slam zones gained a dark under-layer so the red reads on any floor, and enemy names, loot labels, toasts and the sector banner gained a dark outline.
+  - Hand-made or generated art can replace any of this file for file; `docs/art-prompts.md` has the prompts and sizes.
 - **Phase tints are colour shifts, not dimmers.** Shanti laid a 35% dark-teal wash over the floor for its full 20 s, which was the main reason the arena still read grey. Tints are now 10–14%, except Grahan (38%): it *is* an eclipse, and the darkening doubles as a warning for the high-damage phase.
 - **Canonical reference:** `concept/loot-chase-visual-forge-v2.html`. Measured palette: background `#3D1200`, gold `#FFD23C`, cream `#FFFBEF`, dark ore `#2A0800`, forge orange `#FF8C42` / `#FF6B1A`, bronze `#C8A96E`, and cyan `#4DD0FF` as the single cool accent (Shanti).
 - **Superseded:** `concept/visual-style-sheet.html` ("Cut Light") and `concept/character-art-spec.html` (abstract cosmic roster) both predate this direction and are retained only as history.
@@ -327,11 +341,13 @@ The sounds were picked by measurement (length, brightness, ring-out) because **C
 
 | Mood | Track | Status |
 |---|---|---|
-| Hub | *Sitar and Tanpura - Indian style BGM*, ShidenBeatsMusic (0:51) | Chosen 2026-10-02. Not Content ID registered. **Waiting on the founder to download it.** |
-| Combat | *Indian*, Rockot (2:55) | Chosen 2026-10-02. Not Content ID registered. **Waiting on the founder to download it.** |
-| Boss | none yet | The founder's pick, *The Descent of Hanuman* (Openly), is **Content ID registered** and tagged devotional/bhakti, so it was not used. Until a replacement is chosen, boss fights keep the combat track and push it (5% faster, 15% louder). |
+| Hub | *Sitar and Tanpura - Indian style BGM*, ShidenBeatsMusic (0:51) | In the game since 2026-10-02. Not Content ID registered. |
+| Combat | *Indian*, Rockot (2:54) | In the game since 2026-10-02. Not Content ID registered. |
+| Boss | *INDIA - Drums of the World*, Rockot (2:59) | In the game since 2026-10-02. Not Content ID registered. It replaced the founder's first pick, *The Descent of Hanuman* (Openly), which is Content ID registered and tagged devotional/bhakti. |
 
-Rules for every pick: **no vocals or mantras** (§1.3, and the rule that cut Kalachakra), and **no Content ID registration**. A Content ID track puts a copyright claim on every video a streamer makes of the game, which works against the game being shared. Pixabay marks these on each track's page ("Content ID Registered"); of 48 Indian-flavoured candidates checked on 2026-10-02, 29 were registered. Pixabay's licence allows use in games with no attribution and forbids only standalone redistribution. Its download links refuse automated requests, so tracks are downloaded by hand into `game/assets/incoming/music/` and prepared by `tools/convert-music.py` (trim silence, level every track to the same loudness, re-encode at about 120 kbps).
+The three files total 7 MB and stream one at a time. If the boss file is ever missing, boss fights keep the combat track and push it (5% faster, 15% louder) instead of falling silent.
+
+Rules for every pick: **no vocals or mantras** (§1.3, and the rule that cut Kalachakra), and **no Content ID registration**. A Content ID track puts a copyright claim on every video a streamer makes of the game, which works against the game being shared. Pixabay marks these on each track's page ("Content ID Registered"); of 48 Indian-flavoured candidates checked on 2026-10-02, 29 were registered. Pixabay's licence allows use in games with no attribution and forbids only standalone redistribution. Its download links refuse automated requests, so the founder downloads tracks by hand into `game/assets/incoming/music/`, and they are prepared by `tools/convert-music.py` (trim silence, level every track to the same loudness, re-encode at about 120 kbps).
 
 **Streamed, not decoded.** Each track plays from an `<audio>` element routed into the Web Audio graph. Decoding three tracks into memory would cost roughly 150 MB on a phone and would hold the loading screen until all had downloaded. Routing through Web Audio is also what makes the volume setting work on iOS, which ignores an element's own volume. Every track is touched inside the Begin tap, because iOS only lets code start an `<audio>` element that has first been played from a real tap.
 
@@ -346,7 +362,7 @@ Rules for every pick: **no vocals or mantras** (§1.3, and the rule that cut Kal
 
 Pitch glides rather than steps. Pausing ducks the music to 35%. Because these tracks were not written to loop, the volume dips for 1.5 s either side of the loop point, so the restart is a breath rather than a cut. **All of these values were set without hearing them** and should be tuned by ear. True layered music (stems) belongs with the commissioned-art pass (`design-document.md` P4).
 
-Verified 2026-10-02 with stand-in tracks and an analyser node: crossfade, per-phase volume, filter and rate, the boss fallback, pause ducking, pause-on-hidden and the loop-seam fade all behave as specified.
+**No one has yet listened to the result.** Claude cannot hear, so the mix, the phase effects and the loop points all wait on the founder's ear. Verified 2026-10-02 with stand-in tracks and an analyser node: crossfade, per-phase volume, filter and rate, the boss fallback, pause ducking, pause-on-hidden and the loop-seam fade all behave as specified.
 
 ### 2.17 Pause & Settings (built 2026-09-27)
 **Pause (VIRAM, विराम):** a button at the top-right of the HUD whose touch target (56×36) is larger than the drawn button. Esc or P also toggles pause. **Switching apps or tabs pauses the run automatically.** Pausing freezes game logic, timers and tweens. The menu shows the build you are carrying (weapon, trinket and Tejas form, each with what it does), your sector and wave, and the Nidhi from this run, followed by Resume, How to Play, Settings and **Abandon Run**. Abandon opens a confirmation that states the cost before anything happens: it **counts as a death**, and you keep only half of the run's Nidhi, with the exact numbers shown ("62 of 125"). *Keep Fighting* is the primary button.
@@ -386,6 +402,24 @@ Launch track L7. Each load shows **one glossary card**: the word large in Devana
 - If the engine cannot be downloaded, the bar is replaced by a plain message instead of hanging.
 - The loader's design came from the Asura review (§1.7); Asura's own loading screens could not be seen, so this is original.
 
+### 2.21 Title screen (2026-10-02)
+Launch track L2, first design. **One screen, not two:** the title, the way into a run and the two upgrades share it, because a title in front of a separate hub would put three taps between a player and a fight. It replaces the plain menu that was drawn over the arena.
+
+- **Backdrop:** the view straight down the stepwell shaft. Seventeen square tiers of stairs shrink toward a glowing floor, each turned slightly more than the last, and the whole shaft sinks forever (a tier every 5.2 s) with embers rising.
+- **DESCEND** is a round button on the glow at the bottom of the well: the player presses the light they are falling toward.
+- Below it: deepest descent, Nidhi, the Vitality and Power cards (gold-edged when affordable), the locked-powers count, then Powers, How to Play, Settings and Feedback.
+- It is built in code, with no image files. The founder will judge it and may replace the backdrop with art made from `docs/art-prompts.md`.
+
+### 2.22 Feedback (2026-10-02)
+Launch track L10, the basic version the founder asked for: a text box whose contents are emailed to them.
+
+- **Where:** a Feedback button on the title screen and a "Send feedback" button on every run summary, since the end of a run is when a player has something to say.
+- **What is sent:** the message, an optional reply address, the build, the player's best sector, the screen size and the browser's device string. The dialog says so.
+- **How:** a static page cannot send mail, so the message is posted to FormSubmit (`formsubmit.co`), a free relay that needs no account. **The first message ever sent triggers an activation email to the founder; nothing is delivered until the link in it is clicked once.** FormSubmit then issues a private alias, which should replace the address in the page source (the address is visible there until it does).
+- If the relay fails, the dialog offers "Email it instead", which opens the player's own mail app with the message filled in.
+- The dialog is plain DOM, because a canvas has no text box. While it is open the game's keyboard handling is switched off; otherwise W, A, S, D, E, P and Space, which the game claims, could not be typed.
+- To grow later: a proper backend, categories, screenshots.
+
 ### 2.20 Automated checks
 - **`tools/playtest-bot.js`** plays complete runs with game logic only (about 80x real time) and records per-sector balance figures, errors and leaked objects (§2.14).
-- **`tools/smoke-test.mjs`** (2026-10-02) loads the game in a private, muted, headless Chrome with a throwaway profile; clicks through the loading screen; checks the fonts, the first tip, the HUD, the abandon prompt, the death and extract payouts and the sector-banner cleanup; measures every text on the how-to, settings, Powers and hub screens against its panel; runs three bot profiles; and saves screenshots. `node tools/smoke-test.mjs`. It needs Chrome or Edge and Node 22+, and no packages. It exists so testing never plays sound on, or takes over, the machine someone is working on.
+- **`tools/smoke-test.mjs`** (2026-10-02) loads the game in a private, muted, headless Chrome with a throwaway profile; clicks through the loading screen; checks the fonts, the first tip, the HUD, the abandon prompt, the death and extract payouts and the sector-banner cleanup; checks that all three music tracks load and that each sector paints its own floor; measures every text on the how-to, settings, Powers and title screens against its panel; opens the feedback dialog, types the game's own keys into it and confirms the message is posted (to a stub, so nothing is sent); runs three bot profiles; and saves screenshots. `node tools/smoke-test.mjs`. It needs Chrome or Edge and Node 22+, and no packages. It exists so testing never plays sound on, or takes over, the machine someone is working on.

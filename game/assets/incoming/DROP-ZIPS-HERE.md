@@ -3,21 +3,13 @@
 Everything here is source material. It is **not committed** (see `.gitignore`); the
 scripts in `tools/` turn it into the small files the game ships.
 
-## Music — two tracks to download (2026-10-02)
+## Music (already here)
 
-Pixabay refuses automated downloads, so these need a person and the site's own
-**Download** button. Save both into `incoming/music/` and keep the file names Pixabay
-gives them.
-
-| Mood | Track | Page |
-|---|---|---|
-| Hub | Sitar and Tanpura - Indian style BGM, by ShidenBeatsMusic | https://pixabay.com/music/india-sitar-and-tanpura-indian-style-bgm-22000/ |
-| Combat | Indian, by Rockot | https://pixabay.com/music/india-indian-559394/ |
-| Boss | *not chosen yet* | see `docs/requirements.md` §2.16 for the rules and the candidates |
-
-Then run `python tools/convert-music.py` (it needs `pip install soundfile numpy`). It
-writes `game/assets/music/hub.mp3` and `combat.mp3`, which the game picks up with no code
-change. For a boss track, add it to `PICKS` at the top of that script first.
+Three tracks from Pixabay, downloaded by hand on 2026-10-02 because the site refuses
+automated downloads. They live in `incoming/music/`. `python tools/convert-music.py`
+(needs `pip install soundfile numpy`) turns them into `game/assets/music/hub.mp3`,
+`combat.mp3` and `boss.mp3`. To change a track, drop the new file in `incoming/music/`,
+point `PICKS` at the top of that script at it, and run it again.
 
 Before picking any track, check its Pixabay page: if it says **Content ID Registered**,
 do not use it. Streamers who play the game would get a copyright claim on their videos.

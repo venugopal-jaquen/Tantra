@@ -98,6 +98,40 @@
   #loader.failed .bar { display: none; }
   #loader.failed .bar-label { color: #ff9a80; letter-spacing: .04em; text-transform: none; font-size: .85em; }
   @media (prefers-reduced-motion: reduce) { .card.in > *, .begin { animation: none; } }
+
+  /* ---------- Feedback dialog (requirements 2.21) ---------- */
+  #feedback {
+    position: fixed; inset: 0; z-index: 20; box-sizing: border-box; padding: 16px;
+    display: grid; place-items: center; background: rgba(18,4,0,.84); color: var(--cream);
+  }
+  #feedback[hidden] { display: none; }
+  .fb-box {
+    width: min(380px, 100%); box-sizing: border-box; padding: 18px 18px 16px; text-align: left;
+    background: linear-gradient(#4a1a04, #331003); border: 1.5px solid var(--gold); border-radius: 14px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.5);
+  }
+  .fb-title { font-family: "Yatra One", "Baloo 2", serif; font-weight: 400; font-size: 26px; line-height: 1.1; color: var(--gold); margin: 0 0 4px; }
+  .fb-sub { margin: 0 0 12px; font-size: 14px; line-height: 1.35; color: #f0dcc0; }
+  .fb-label { display: block; margin: 0 0 4px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--bronze); }
+  .fb-label span { font-weight: 400; letter-spacing: 0; text-transform: none; color: #8a7360; }
+  /* 16px on the fields: anything smaller makes iOS zoom the page when one is focused. */
+  #fb-text, #fb-email {
+    width: 100%; box-sizing: border-box; margin: 0 0 12px; padding: 9px 10px; font: 16px/1.35 "Baloo 2", system-ui, sans-serif;
+    color: var(--cream); background: #2a0f04; border: 1px solid #6b4a2e; border-radius: 8px;
+  }
+  #fb-text { resize: vertical; min-height: 110px; max-height: 40vh; }
+  #fb-text:focus, #fb-email:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: transparent; }
+  #fb-text::placeholder, #fb-email::placeholder { color: #8a7360; }
+  .fb-note { margin: 0 0 14px; font-size: 12px; line-height: 1.35; color: #8a7360; min-height: 2.7em; }
+  .fb-note.fb-good { color: #5fe08a; font-size: 15px; }
+  .fb-note.fb-bad { color: #ff9a80; font-size: 13px; }
+  .fb-note a { color: var(--gold); }
+  .fb-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .fb-btn { font: 700 15px "Baloo 2", system-ui, sans-serif; border-radius: 8px; padding: 9px 20px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .fb-cancel { color: var(--cream); background: #5c2a05; border: 1.5px solid rgba(200,169,110,.55); }
+  .fb-send { color: var(--deep); background: linear-gradient(#ffd23c, #ff9d2e); border: 0; }
+  .fb-send:disabled { opacity: .6; cursor: default; }
+  .fb-btn:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
 </style>
 </head>
 <body>
@@ -118,6 +152,21 @@
     <div class="bar-label" id="ldr-label" role="status">Forging · Tamra</div>
     <button class="begin" id="ldr-begin" type="button">Begin</button>
   </div>
+</div>
+<div id="feedback" hidden role="dialog" aria-modal="true" aria-labelledby="fb-title">
+  <form class="fb-box" id="fb-form" novalidate>
+    <h2 class="fb-title" id="fb-title">Send feedback</h2>
+    <p class="fb-sub">What worked, what broke, what bored you? It goes straight to the developer.</p>
+    <label class="fb-label" for="fb-text">Your message</label>
+    <textarea id="fb-text" maxlength="2000" rows="5" placeholder="Type here"></textarea>
+    <label class="fb-label" for="fb-email">Your email <span>(optional, only if you want a reply)</span></label>
+    <input id="fb-email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com">
+    <p class="fb-note" id="fb-note">Sent by email, with your game version, best sector and device type. Nothing else.</p>
+    <div class="fb-actions">
+      <button type="button" class="fb-btn fb-cancel" id="fb-cancel">Cancel</button>
+      <button type="submit" class="fb-btn fb-send" id="fb-send">Send</button>
+    </div>
+  </form>
 </div>
 <div id="game-container"></div>
 <script>
@@ -274,6 +323,73 @@ const Loader = (() => {
   };
 })();
 Loader.setProgress(0.04);
+
+const BUILD = '0.1 (2026-10-02)';
+
+// Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
+// A static page cannot send mail, so the message goes through FormSubmit, a free relay
+// that needs no account. If the relay fails, the player is offered their own mail app.
+// The address is assembled at run time only to keep the laziest scrapers off it; once
+// the form is activated, replace it with the private alias FormSubmit emails you.
+const Feedback = (() => {
+  const $ = id => document.getElementById(id);
+  const TO = ['vyjakhot', 'gmail.com'].join('@');
+  const root = $('feedback'), text = $('fb-text'), email = $('fb-email'), note = $('fb-note'), send = $('fb-send');
+  const NOTE = note.textContent;
+  let busy = false;
+  // Phaser claims W, A, S, D, E, P, Space and the arrows, and would swallow them as typed.
+  const gameKeys = on => { try { game.input.keyboard.enabled = on; } catch (e) { /* game not up */ } };
+  const details = () => {
+    let best = 0; try { best = session.bestSector || 0; } catch (e) { /* game not up */ }
+    return { build: BUILD, best_sector: best, screen: innerWidth + 'x' + innerHeight, device: navigator.userAgent };
+  };
+  const close = () => { root.hidden = true; gameKeys(true); };
+  const open = () => {
+    note.textContent = NOTE; note.className = 'fb-note';
+    send.disabled = false; send.textContent = 'Send';
+    root.hidden = false; gameKeys(false);
+    setTimeout(() => text.focus(), 50);
+  };
+  const mailto = msg => 'mailto:' + TO + '?subject=' + encodeURIComponent(GAME_TITLE + ' feedback') + '&body=' +
+    encodeURIComponent(msg + '\n\n--\n' + Object.entries(details()).map(([k, v]) => k + ': ' + v).join('\n'));
+
+  $('fb-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (busy) return;
+    const msg = text.value.trim();
+    if (msg.length < 3) { note.textContent = 'Type a few words first.'; note.className = 'fb-note fb-bad'; text.focus(); return; }
+    busy = true; send.disabled = true; send.textContent = 'Sending';
+    const reply = email.value.trim();
+    const body = Object.assign({ _subject: GAME_TITLE + ' feedback', _template: 'table', _captcha: 'false',
+                                 message: msg, reply_to: reply || '(not given)' }, details());
+    if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(reply)) body._replyto = reply;
+    let ok = false;
+    try {
+      const res = await fetch('https://formsubmit.co/ajax/' + TO, { method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json().catch(() => ({}));
+      ok = res.ok && String(data.success) === 'true';
+    } catch (err) { ok = false; }
+    busy = false;
+    if (ok) {
+      text.value = '';
+      note.textContent = 'Sent. Thank you!'; note.className = 'fb-note fb-good';
+      send.textContent = 'Sent';
+      setTimeout(close, 1500);
+    } else {
+      note.className = 'fb-note fb-bad';
+      note.textContent = "Couldn't send it from here. ";
+      const a = document.createElement('a');
+      a.href = mailto(msg); a.textContent = 'Email it instead';
+      note.appendChild(a);
+      send.disabled = false; send.textContent = 'Try again';
+    }
+  });
+  $('fb-cancel').addEventListener('click', close);
+  root.addEventListener('click', e => { if (e.target === root) close(); });
+  root.addEventListener('keydown', e => { if (e.key === 'Escape') close(); e.stopPropagation(); });
+  return { open, close, get isOpen() { return !root.hidden; } };
+})();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"
         onerror="Loader.fail('The game engine could not be downloaded. Check your connection and reload.')"></script>
@@ -462,8 +578,8 @@ const LOOT_SFX = { common: 'loot-tamra', rare: 'loot-rajat', epic: 'loot-swarna'
 const MUSIC = {
   hub:    { file: 'assets/music/hub.mp3' },
   combat: { file: 'assets/music/combat.mp3' },
-  // No boss track yet: the first pick turned out to be Content ID registered. Until there
-  // is one, a boss fight keeps the combat track and pushes it - faster and louder.
+  // If the boss track is ever missing, a boss fight keeps the combat track and pushes
+  // it - faster and louder - rather than falling silent.
   boss:   { file: 'assets/music/boss.mp3', fallback: 'combat', push: { rate: 1.05, vol: 1.15 } }
 };
 const MUSIC_BASE_VOL = 0.5;
@@ -771,6 +887,192 @@ function styleText(style, str) {
   return st;
 }
 
+// ---------- The stepwell (requirements 2.10) ----------
+// The whole game is one descent down a stepwell - a baori, the stepped wells of Rajasthan
+// and Gujarat. The title screen looks down its shaft; every arena is the landing of one
+// level, framed by stairs; each sector is a deeper level with its own painted floor.
+
+// A small seeded generator, so a floor paints the same way every time.
+function seeded(seed) {
+  return () => {
+    seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// A lens-shaped petal from radius r0 to r1 along angle a; `bulge` is its half-width.
+function petalPath(ctx, cx, cy, a, r0, r1, bulge) {
+  const c = Math.cos(a), sn = Math.sin(a), mid = (r0 + r1) / 2;
+  const at = (r, off) => [cx + c * r - sn * off, cy + sn * r + c * off];
+  const [x0, y0] = at(r0, 0), [x1, y1] = at(r1, 0), [ax, ay] = at(mid, bulge * 2), [bx, by] = at(mid, -bulge * 2);
+  ctx.beginPath(); ctx.moveTo(x0, y0);
+  ctx.quadraticCurveTo(ax, ay, x1, y1); ctx.quadraticCurveTo(bx, by, x0, y0);
+  ctx.closePath();
+}
+
+// rings: [petals, r0, r1, bulge, rotation]
+function rosette(ctx, cx, cy, rings, fill, stroke, width) {
+  rings.forEach(([n, r0, r1, bulge, rot]) => {
+    for (let i = 0; i < n; i++) {
+      petalPath(ctx, cx, cy, (i / n) * Math.PI * 2 + (rot || 0), r0, r1, bulge);
+      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.stroke(); }
+    }
+  });
+}
+
+// A border band of small triangles just inside the floor's edge - the stair motif again.
+function stairBand(ctx, w, h, inset, depth, colour) {
+  ctx.fillStyle = colour;
+  const tooth = (x0, y0, x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(x2, y2); ctx.closePath(); ctx.fill(); };
+  const nx = Math.round((w - inset * 2) / 14), sx = (w - inset * 2) / nx;
+  for (let i = 0; i < nx; i++) {
+    const x = inset + i * sx;
+    tooth(x, inset, x + sx, inset, x + sx / 2, inset + depth);
+    tooth(x, h - inset, x + sx, h - inset, x + sx / 2, h - inset - depth);
+  }
+  const ny = Math.round((h - inset * 2) / 14), sy = (h - inset * 2) / ny;
+  for (let i = 0; i < ny; i++) {
+    const y = inset + i * sy;
+    tooth(inset, y, inset, y + sy, inset + depth, y + sy / 2);
+    tooth(w - inset, y, w - inset, y + sy, w - inset - depth, y + sy / 2);
+  }
+}
+
+// One painted floor per level of the well. Sector N uses FLOORS[(N-1) % 3]; from Sector 4
+// the three repeat under a deepening wash. Each is drawn once into a texture.
+// `px` is the texture's pixels per world unit (shadow blur ignores the canvas transform).
+const FLOORS = [
+  { // Sector 1 - the sunlit courtyard at the top: red sandstone paving, a carved lotus.
+    name: 'courtyard', ember: 0xff6b1a, emberAlpha: 0.2, edge: 0xc8a96e,
+    paint(ctx, w, h) {
+      const cx = w / 2, cy = h / 2, R = seeded(11);
+      const g = ctx.createRadialGradient(cx, cy * 0.9, 10, cx, cy, Math.max(w, h) * 0.6);
+      g.addColorStop(0, '#bd5c1c'); g.addColorStop(0.5, '#903c12'); g.addColorStop(1, '#5a2209');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      // Paving: running-bond slabs, each a slightly different stone.
+      const cols = 5, rows = 8, sw = w / cols, sh = h / rows;
+      for (let r = 0; r < rows; r++) for (let c = -1; c < cols; c++) {
+        const x = c * sw + (r % 2 ? sw / 2 : 0), y = r * sh, tone = (R() - 0.5) * 0.16;
+        ctx.fillStyle = tone > 0 ? `rgba(255,205,140,${tone})` : `rgba(30,8,0,${-tone})`;
+        ctx.fillRect(x, y, sw, sh);
+        ctx.strokeStyle = 'rgba(40,14,0,0.5)'; ctx.lineWidth = 1.4; ctx.strokeRect(x, y, sw, sh);
+        ctx.strokeStyle = 'rgba(255,222,165,0.12)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x + 1.5, y + sh - 1.5); ctx.lineTo(x + 1.5, y + 1.5); ctx.lineTo(x + sw - 1.5, y + 1.5); ctx.stroke();
+      }
+      // The carving: cut once in shadow, once in light, so it reads as relief.
+      const carve = (dx, dy, fill, stroke) => {
+        ctx.save(); ctx.translate(dx, dy);
+        rosette(ctx, cx, cy, [[16, 84, 132, 13], [8, 34, 90, 21], [8, 24, 60, 12, Math.PI / 8]], fill, stroke, 1.5);
+        ctx.strokeStyle = stroke; ctx.lineWidth = 1.5;
+        for (const r of [20, 138, 146]) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); }
+        for (const [qx, qy] of [[0, 0], [w, 0], [0, h], [w, h]]) {
+          rosette(ctx, qx, qy, [[12, 22, 70, 11]], fill, stroke, 1.3);
+          ctx.beginPath(); ctx.arc(qx, qy, 78, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.restore();
+      };
+      carve(1.2, 1.4, null, 'rgba(35,10,0,0.55)');
+      carve(0, 0, 'rgba(255,200,130,0.12)', 'rgba(255,224,170,0.55)');
+      ctx.fillStyle = 'rgba(255,224,170,0.4)';
+      for (let i = 0; i < 32; i++) { const a = (i / 32) * Math.PI * 2; ctx.beginPath(); ctx.arc(cx + Math.cos(a) * 156, cy + Math.sin(a) * 156, 1.9, 0, Math.PI * 2); ctx.fill(); }
+      stairBand(ctx, w, h, 5, 8, 'rgba(255,224,170,0.2)');
+      // A shaft of daylight falling across the court.
+      const sun = ctx.createLinearGradient(0, 0, w, h * 0.5);
+      sun.addColorStop(0.15, 'rgba(255,236,190,0)'); sun.addColorStop(0.45, 'rgba(255,236,190,0.13)'); sun.addColorStop(0.75, 'rgba(255,236,190,0)');
+      ctx.fillStyle = sun; ctx.fillRect(0, 0, w, h);
+    } },
+  { // Sector 2 - "The Churning Depths": the flooded level. Green well-water, a whirlpool, lotus.
+    name: 'water', ember: 0xcffff4, emberAlpha: 0.13, edge: 0xe0c08a,
+    paint(ctx, w, h) {
+      const cx = w / 2, cy = h / 2;
+      const g = ctx.createRadialGradient(cx, cy, 10, cx, cy, Math.max(w, h) * 0.62);
+      g.addColorStop(0, '#2a8a7a'); g.addColorStop(0.5, '#175a5c'); g.addColorStop(1, '#0c3a44');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      // Water drawn the way Indian miniature painters draw it: rows of little scalloped waves.
+      ctx.strokeStyle = 'rgba(200,245,235,0.1)'; ctx.lineWidth = 1;
+      for (let row = 0, y = 10; y < h + 10; y += 15, row++) for (let x = (row % 2 ? 0 : 11); x < w + 22; x += 22) {
+        ctx.beginPath(); ctx.arc(x, y, 10, Math.PI * 1.12, Math.PI * 1.88); ctx.stroke();
+      }
+      // The churn: spiral arms winding in to the centre.
+      for (let arm = 0; arm < 6; arm++) {
+        for (let i = 0; i < 60; i++) {
+          const t0 = i / 60, t1 = (i + 1) / 60, spin = arm * Math.PI / 3;
+          const pt = t => { const r = 24 + t * 236, a = spin + t * 3.4; return [cx + Math.cos(a) * r, cy + Math.sin(a) * r * 1.12]; };
+          const [x0, y0] = pt(t0), [x1, y1] = pt(t1);
+          ctx.strokeStyle = `rgba(215,250,240,${0.26 * (1 - t0 * 0.75)})`; ctx.lineWidth = 3.4 * (1 - t0) + 0.7;
+          ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        }
+      }
+      // A stone lotus at the eye of it.
+      rosette(ctx, cx, cy, [[12, 12, 46, 8], [6, 6, 26, 7, Math.PI / 6]], 'rgba(255,214,190,0.22)', 'rgba(255,236,220,0.6)', 1.3);
+      // Lily pads and blossoms drifting at the edges.
+      const pads = [[0.13, 0.1, 21, 0.4], [0.87, 0.17, 17, 2.2], [0.1, 0.5, 15, 4.0], [0.9, 0.58, 23, 1.1], [0.19, 0.91, 19, 5.2], [0.81, 0.9, 16, 3.0], [0.55, 0.06, 13, 0.9], [0.4, 0.95, 12, 2.6]];
+      pads.forEach(([fx, fy, r, a], i) => {
+        const x = fx * w, y = fy * h;
+        ctx.fillStyle = 'rgba(58,128,70,0.62)'; ctx.strokeStyle = 'rgba(170,225,150,0.45)'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, r, a + 0.25, a + Math.PI * 2 - 0.25); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = 'rgba(170,225,150,0.22)';
+        for (let v = 0; v < 6; v++) { const va = a + 0.6 + v * 0.95; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(va) * r * 0.86, y + Math.sin(va) * r * 0.86); ctx.stroke(); }
+        if (i % 2 === 0) rosette(ctx, x + r * 0.9, y - r * 0.5, [[8, 2, r * 0.55, r * 0.16], [5, 1, r * 0.3, r * 0.12, 0.4]], 'rgba(255,170,190,0.7)', 'rgba(255,235,235,0.75)', 0.9);
+      });
+      // The stone lip of the pool, so the warm world still frames the cool one.
+      ctx.strokeStyle = '#8f5a2a'; ctx.lineWidth = 10; ctx.strokeRect(5, 5, w - 10, h - 10);
+      ctx.strokeStyle = 'rgba(255,224,170,0.35)'; ctx.lineWidth = 1; ctx.strokeRect(10.5, 10.5, w - 21, h - 21);
+      stairBand(ctx, w, h, 1, 7, 'rgba(60,28,6,0.55)');
+    } },
+  { // Sector 3 - "The Convergence Core": the vault at the bottom. Dark stone, molten gold inlay.
+    name: 'vault', ember: 0xffd23c, emberAlpha: 0.3, edge: 0xffc93c,
+    paint(ctx, w, h, px) {
+      const cx = w / 2, cy = h / 2, R = seeded(29);
+      const g = ctx.createRadialGradient(cx, cy, 6, cx, cy, Math.max(w, h) * 0.6);
+      g.addColorStop(0, '#d0600f'); g.addColorStop(0.28, '#8a2607'); g.addColorStop(0.7, '#4a1005'); g.addColorStop(1, '#300803');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      // Inlay: interlocking circles round a grid of dots - the four-petal figure common to
+      // kolam floor drawings and to stone screens alike - poured in gold.
+      ctx.save();
+      ctx.shadowColor = '#ff9a20'; ctx.shadowBlur = 5 * px;
+      const sp = 34, ox = (w % sp) / 2, oy = (h % sp) / 2;
+      ctx.strokeStyle = 'rgba(255,198,90,0.38)'; ctx.lineWidth = 1.1;
+      for (let y = oy; y <= h; y += sp) for (let x = ox; x <= w; x += sp) { ctx.beginPath(); ctx.arc(x, y, sp * 0.7071, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.fillStyle = 'rgba(255,226,140,0.7)';
+      for (let y = oy; y <= h; y += sp) for (let x = ox; x <= w; x += sp) { ctx.beginPath(); ctx.arc(x, y, 1.7, 0, Math.PI * 2); ctx.fill(); }
+      // Cracks where the heat below shows through.
+      for (let i = 0; i < 10; i++) {
+        let a = (i / 10) * Math.PI * 2 + R() * 0.4, r = 58 + R() * 20, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+        ctx.strokeStyle = 'rgba(255,170,60,0.55)'; ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        for (let k = 0; k < 7; k++) { a += (R() - 0.5) * 0.9; r = 20 + R() * 26; x += Math.cos(a) * r; y += Math.sin(a) * r; ctx.lineTo(x, y); }
+        ctx.stroke();
+      }
+      // The seal at the centre.
+      rosette(ctx, cx, cy, [[12, 30, 64, 9], [12, 14, 40, 7, Math.PI / 12]], 'rgba(255,196,80,0.2)', 'rgba(255,228,150,0.85)', 1.4);
+      ctx.strokeStyle = 'rgba(255,228,150,0.85)'; ctx.lineWidth = 1.6;
+      for (const r of [12, 70, 76]) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.restore();
+      // Let the inlay sink into darkness toward the walls.
+      const fade = ctx.createRadialGradient(cx, cy, Math.min(w, h) * 0.3, cx, cy, Math.max(w, h) * 0.62);
+      fade.addColorStop(0, 'rgba(48,8,3,0)'); fade.addColorStop(1, 'rgba(48,8,3,0.62)');
+      ctx.fillStyle = fade; ctx.fillRect(0, 0, w, h);
+      stairBand(ctx, w, h, 5, 8, 'rgba(255,205,100,0.26)');
+    } }
+];
+
+// The title screen's view down the shaft: nested square tiers shrinking toward a glowing
+// floor. `period` is the time to sink one tier; `twist` turns each tier a little more.
+const WELL = { cy: 300, size: 540, k: 0.8, tiers: 17, steps: 5, period: 5200, twist: 0.07, shade: [1.0, 0.8, 0.6, 0.86] };
+const WELL_STOPS = [[0, 244, 184, 104], [2.5, 232, 150, 66], [5, 204, 108, 38], [7.5, 158, 68, 20], [9.5, 124, 44, 10], [11.5, 190, 78, 14], [13.5, 255, 166, 52], [16, 255, 240, 176]];
+function wellColour(depth, shade) {
+  const st = WELL_STOPS;
+  let i = 0;
+  while (i < st.length - 2 && depth > st[i + 1][0]) i++;
+  const a = st[i], b = st[i + 1], t = Math.max(0, Math.min(1, (depth - a[0]) / (b[0] - a[0])));
+  const ch = n => Math.min(255, Math.round((a[n] + (b[n] - a[n]) * t) * shade));
+  return (ch(1) << 16) | (ch(2) << 8) | ch(3);
+}
+
 // Button fills. One saffron primary per screen: the thing you are most likely to press.
 const BTN = { primary: 0xc8500e, plain: 0x7a3a0a, quiet: 0x5c2a05, off: 0x2a0f04 };
 
@@ -848,24 +1150,14 @@ class LootScene extends Phaser.Scene {
 
     const ab = this.arenaBounds;
 
-    // --- Arena floor (all at Z.floor, so slam telegraphs can sit on it under characters) ---
-    // A carved sandstone JAALI lattice - the pierced stone screens of Rajput and Mughal
-    // architecture - with a RANGOLI at its centre. Replaces the concentric glow rings,
-    // which read as generic "circles within circles" and said nothing about place.
-    this.add.rectangle(ab.centerX, ab.centerY, ab.width, ab.height, FORGE.bg).setDepth(Z.floor);
-    this.makeForgeGlow(ab.width, ab.height);
-    this.add.image(ab.centerX, ab.centerY, 'forgeglow').setDisplaySize(ab.width, ab.height).setDepth(Z.floor);
-    this.makeJaaliTexture();
-    this.add.tileSprite(ab.centerX, ab.centerY, ab.width, ab.height, 'jaali')
-      .setTileScale(1 / RES).setDepth(Z.floor);
-    this.drawRangoli(ab.centerX, ab.centerY + 10).setDepth(Z.floor);
-
-    // Faint embers drifting over the stone.
-    this.starfield = this.add.tileSprite(ab.centerX, ab.centerY, ab.width, ab.height, 'bg_stars')
-      .setTint(FORGE.ember).setAlpha(0.22).setDepth(Z.floor);
-
-    this.add.rectangle(ab.centerX, ab.centerY, ab.width, ab.height, 0x000000, 0)
-      .setStrokeStyle(1, FORGE.bronze, 0.7).setDepth(Z.floor);
+    // --- Arena floor: the landing of one level of the stepwell (see FLOOR ART) ---
+    // Layers, all under the phase tint and the slam telegraphs:
+    //   stairs frame (in the margins)  <  painted floor  <  drifting embers  <  edge line
+    this.drawWellFrame();
+    this.floorLayers = [];
+    this.starfield = this.add.tileSprite(ab.centerX, ab.centerY, ab.width, ab.height, 'bg_stars').setDepth(Z.floor + 0.4);
+    this.floorEdge = this.add.rectangle(ab.centerX, ab.centerY, ab.width, ab.height, 0x000000, 0).setDepth(Z.floor + 0.5);
+    this.setFloor(1);
 
     // Full-arena red flash for taking damage. Created once and reused - it idles at
     // alpha 0 rather than being built and destroyed on every hit.
@@ -1668,7 +1960,9 @@ class LootScene extends Phaser.Scene {
     g.clear();
     // Read: faint = the danger zone, bright fill = how close it is to landing.
     // When the fill reaches the edge, it lands.
+    const under = 0x1a0000;
     if (s.type === 'circle') {
+      g.fillStyle(under, 0.34); g.fillCircle(s.x, s.y, s.r);
       g.fillStyle(warn, 0.12); g.fillCircle(s.x, s.y, s.r);
       g.fillStyle(warn, 0.26 + 0.14 * pulse); g.fillCircle(s.x, s.y, s.r * p);
       g.lineStyle(3, warn, 0.95); g.strokeCircle(s.x, s.y, s.r);
@@ -1678,18 +1972,20 @@ class LootScene extends Phaser.Scene {
         return [s.x - sn*hw, s.y + c*hw,  s.x + c*len - sn*hw, s.y + sn*len + c*hw,
                 s.x + c*len + sn*hw, s.y + sn*len - c*hw,  s.x + sn*hw, s.y - c*hw];
       };
-      const draw = (pts, fill, a) => {
+      const draw = (pts, fill, a, colour = warn) => {
         g.beginPath(); g.moveTo(pts[0], pts[1]);
         for (let i = 2; i < 8; i += 2) g.lineTo(pts[i], pts[i+1]);
         g.closePath();
-        if (fill) { g.fillStyle(warn, a); g.fillPath(); } else { g.lineStyle(3, warn, a); g.strokePath(); }
+        if (fill) { g.fillStyle(colour, a); g.fillPath(); } else { g.lineStyle(3, colour, a); g.strokePath(); }
       };
+      draw(quad(s.len), true, 0.34, under);
       draw(quad(s.len), true, 0.12);
       draw(quad(s.len * p), true, 0.26 + 0.14 * pulse);
       draw(quad(s.len), false, 0.95);
     } else {
       s.blobs.forEach(bl => {
         const bp = Phaser.Math.Clamp((s.t - bl.delay) / (s.dur - bl.delay), 0, 1);
+        g.fillStyle(under, 0.34); g.fillCircle(bl.x, bl.y, bl.r);
         g.fillStyle(warn, 0.12); g.fillCircle(bl.x, bl.y, bl.r);
         g.fillStyle(warn, 0.26 + 0.14 * pulse); g.fillCircle(bl.x, bl.y, bl.r * bp);
         g.lineStyle(2.5, warn, 0.9); g.strokeCircle(bl.x, bl.y, bl.r);
@@ -1788,86 +2084,137 @@ class LootScene extends Phaser.Scene {
   }
 
   // ---------- FLOOR ART ----------
-  // Heat light for the forge floor: a single smooth radial gradient drawn on a canvas.
-  // The earlier version stacked four translucent ellipses, which read as visible rings.
-  makeForgeGlow(w, h) {
-    if (this.textures.exists('forgeglow')) return;
-    const cw = Math.round(w * RES), ch = Math.round(h * RES);
-    const tex = this.textures.createCanvas('forgeglow', cw, ch);
-    const ctx = tex.getContext();
-    const grad = ctx.createRadialGradient(cw * 0.5, ch * 0.42, 0, cw * 0.5, ch * 0.42, Math.max(cw, ch) * 0.62);
-    grad.addColorStop(0.00, 'rgba(255,170, 70,0.30)');
-    grad.addColorStop(0.35, 'rgba(232,110, 30,0.16)');
-    grad.addColorStop(0.75, 'rgba(150, 50, 10,0.06)');
-    grad.addColorStop(1.00, 'rgba( 60, 15,  0,0.00)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, cw, ch);
+  floorKey(sector) {
+    const theme = (sector - 1) % FLOORS.length, cycle = Math.min(2, Math.floor((sector - 1) / FLOORS.length));
+    const key = `floor-${theme}-${cycle}`;
+    if (!this.textures.exists(key)) this.paintFloor(key, FLOORS[theme], cycle);
+    return key;
+  }
+
+  paintFloor(key, theme, cycle) {
+    const b = this.arenaBounds, px = Math.min(RES, 2);     // floors are soft art: 2x is plenty, and a third of the memory of 3x
+    const tex = this.textures.createCanvas(key, Math.round(b.width * px), Math.round(b.height * px));
+    const ctx = tex.getContext(), w = b.width, h = b.height;
+    ctx.scale(px, px);
+    theme.paint(ctx, w, h, px);
+    // The endless descent: past Sector 3 the same three levels return under a deepening wash.
+    if (cycle) {
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = cycle === 1 ? '#d99aa6' : '#9c86c2';
+      ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    // Shade the edges, so the floor sits below the stairs around it.
+    const shade = (x0, y0, x1, y1, rx, ry, rw, rh) => {
+      const g = ctx.createLinearGradient(x0, y0, x1, y1);
+      g.addColorStop(0, 'rgba(20,4,0,0.5)'); g.addColorStop(1, 'rgba(20,4,0,0)');
+      ctx.fillStyle = g; ctx.fillRect(rx, ry, rw, rh);
+    };
+    shade(0, 0, 0, 26, 0, 0, w, 26); shade(0, h, 0, h - 20, 0, h - 20, w, 20);
+    shade(0, 0, 22, 0, 0, 0, 22, h); shade(w, 0, w - 22, 0, w - 22, 0, 22, h);
     tex.refresh();
   }
 
-  // Jaali: an 8-point star (two overlapping squares) per tile, joined to its neighbours
-  // through the tile edges, with diamonds filling the gaps. Drawn at RES scale and
-  // shrunk back by the tileSprite, so the lattice stays sharp on high-DPI screens.
-  makeJaaliTexture() {
-    if (this.textures.exists('jaali')) return;
-    const T = 48 * RES, c = T / 2, u = RES;
-    const g = this.make.graphics({ add: false });
-    const stone = 0xe8a868;
-    const poly = pts => { g.beginPath(); g.moveTo(pts[0], pts[1]);
-      for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i+1]); g.closePath(); };
-
-    g.fillStyle(stone, 0.045);                              // faint carved infill
-    poly([c-11*u,c-11*u, c+11*u,c-11*u, c+11*u,c+11*u, c-11*u,c+11*u]); g.fillPath();
-    g.lineStyle(1.1 * u, stone, 0.24);
-    poly([c-11*u,c-11*u, c+11*u,c-11*u, c+11*u,c+11*u, c-11*u,c+11*u]); g.strokePath();
-    poly([c,c-15*u, c+15*u,c, c,c+15*u, c-15*u,c]);        g.strokePath();
-    g.lineStyle(1 * u, stone, 0.15);                        // links to neighbouring stars
-    g.lineBetween(c, c-15*u, c, 0);   g.lineBetween(c, c+15*u, c, T);
-    g.lineBetween(c-15*u, c, 0, c);   g.lineBetween(c+15*u, c, T, c);
-    for (const [cx, cy] of [[0,0],[T,0],[0,T],[T,T]]) {     // corner diamonds: quarters here,
-      poly([cx,cy-8*u, cx+8*u,cy, cx,cy+8*u, cx-8*u,cy]);   // whole diamonds once tiled
-      g.strokePath();
-    }
-    g.fillStyle(stone, 0.22); g.fillCircle(c, c, 1.6 * u);  // centre boss
-    g.generateTexture('jaali', T, T);
-    g.destroy();
+  // Swap the floor for this sector's. With `fade` the new one rises through the old.
+  setFloor(sector, fade) {
+    const key = this.floorKey(sector), b = this.arenaBounds, theme = FLOORS[(sector - 1) % FLOORS.length];
+    this.starfield.setTint(theme.ember).setAlpha(theme.emberAlpha);
+    this.floorEdge.setStrokeStyle(1, theme.edge, 0.7);
+    const top = this.floorLayers[this.floorLayers.length - 1];
+    if (top && top.texture.key === key) return;
+    const img = this.add.image(b.centerX, b.centerY, key).setDisplaySize(b.width, b.height).setDepth(Z.floor);
+    const older = this.floorLayers.slice();
+    this.floorLayers.push(img);
+    const drop = () => {
+      older.forEach(o => { this.tweens.killTweensOf(o); o.destroy(); });
+      this.floorLayers = this.floorLayers.filter(o => !older.includes(o));
+    };
+    if (fade && older.length) { img.setAlpha(0); this.tweens.add({ targets: img, alpha: 1, duration: 900, onComplete: drop }); }
+    else drop();
   }
 
-  // Rangoli at the arena's heart: a floral floor motif of petals and dot rings - folk art
-  // drawn at thresholds, not a religious diagram. Returns the Graphics so the caller can
-  // place it on a layer.
-  drawRangoli(x, y) {
-    const g = this.add.graphics({ x, y });
-    const ring = (n, r, fn) => { for (let i = 0; i < n; i++) fn((i / n) * Math.PI * 2, r); };
-    const petal = (a, r0, r1, w, colour, alpha, fill) => {
-      const mx = Math.cos(a) * (r0 + r1) / 2, my = Math.sin(a) * (r0 + r1) / 2;
-      const len = r1 - r0, n = a + Math.PI / 2;
-      const pts = [];
-      for (let t = 0; t <= 1.0001; t += 0.125) {           // lens-shaped petal along the ray
-        const along = (t - 0.5) * len, bulge = Math.sin(t * Math.PI) * w;
-        pts.push(mx + Math.cos(a) * along + Math.cos(n) * bulge, my + Math.sin(a) * along + Math.sin(n) * bulge);
+  // The stairs around every arena: two courses of saw-tooth steps climbing away on all
+  // four sides, the pattern that makes Chand Baori instantly recognisable from above.
+  drawWellFrame() {
+    const b = this.arenaBounds, g = this.add.graphics().setDepth(Z.floor - 0.5);
+    const courses = 2, ch = MARGIN / courses, tooth = 20;
+    for (let c = courses - 1; c >= 0; c--) {
+      const near = c * ch, far = (c + 1) * ch;                       // distance out from the arena edge
+      const light = c === 0 ? 0xc88a46 : 0x8a5526, dark = c === 0 ? 0x6e3c15 : 0x47240b;
+      const L = b.x - far, R = b.right + far, T = b.y - far, B = b.bottom + far;
+      g.fillStyle(dark, 1);
+      g.fillRect(L, T, R - L, ch); g.fillRect(L, B - ch, R - L, ch);
+      g.fillRect(L, T, ch, B - T); g.fillRect(R - ch, T, ch, B - T);
+      g.fillStyle(light, 1);
+      const nx = Math.round((b.width + near * 2) / tooth), sx = (b.width + near * 2) / nx, half = c % 2 ? 0.5 : 0;
+      for (let i = -1; i <= nx; i++) {
+        const x0 = b.x - near + (i + half) * sx, x1 = x0 + sx, xm = x0 + sx / 2;
+        if (x1 <= b.x - near || x0 >= b.right + near) continue;
+        g.fillTriangle(x0, b.y - near, x1, b.y - near, xm, b.y - far);               // top
+        g.fillTriangle(x0, b.bottom + near, x1, b.bottom + near, xm, b.bottom + far); // bottom
       }
-      for (let t = 1; t >= -0.0001; t -= 0.125) {
-        const along = (t - 0.5) * len, bulge = -Math.sin(t * Math.PI) * w;
-        pts.push(mx + Math.cos(a) * along + Math.cos(n) * bulge, my + Math.sin(a) * along + Math.sin(n) * bulge);
+      const ny = Math.round((b.height + near * 2) / tooth), sy = (b.height + near * 2) / ny;
+      for (let i = -1; i <= ny; i++) {
+        const y0 = b.y - near + (i + half) * sy, y1 = y0 + sy, ym = y0 + sy / 2;
+        if (y1 <= b.y - near || y0 >= b.bottom + near) continue;
+        g.fillTriangle(b.x - near, y0, b.x - near, y1, b.x - far, ym);                // left
+        g.fillTriangle(b.right + near, y0, b.right + near, y1, b.right + far, ym);    // right
       }
-      g.beginPath(); g.moveTo(pts[0], pts[1]);
-      for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i+1]);
-      g.closePath();
-      if (fill) { g.fillStyle(colour, alpha); g.fillPath(); }
-      else { g.lineStyle(1.2, colour, alpha); g.strokePath(); }
-    };
+      g.lineStyle(1, 0x2a0f04, 0.8); g.strokeRect(L, T, R - L, B - T);
+    }
+    // The half-teeth of the outer course spill past the frame's corners; square them off.
+    g.fillStyle(0x47240b, 1);
+    for (const [x, y] of [[0, b.y - MARGIN], [b.right, b.y - MARGIN], [0, b.bottom], [b.right, b.bottom]]) g.fillRect(x, y, MARGIN, MARGIN);
+    g.lineStyle(1, 0x8a5526, 0.9);
+    g.lineBetween(0, b.y - MARGIN, MARGIN, b.y); g.lineBetween(W, b.y - MARGIN, b.right, b.y);
+    g.lineBetween(0, b.bottom + MARGIN, MARGIN, b.bottom); g.lineBetween(W, b.bottom + MARGIN, b.right, b.bottom);
+  }
 
-    ring(16, 0, a => petal(a, 70, 128, 9, FORGE.gold, 0.16, false));        // outer petals
-    ring(8,  0, a => petal(a, 34, 82, 15, FORGE.flame, 0.09, true));        // inner petals, filled
-    ring(8,  0, a => petal(a, 34, 82, 15, FORGE.flame, 0.2, false));
-    ring(8,  0, a => petal(a + Math.PI / 8, 26, 58, 8, FORGE.cool, 0.12, false));  // offset cool accents
-    g.lineStyle(1.2, FORGE.gold, 0.2); g.strokeCircle(0, 0, 26); g.strokeCircle(0, 0, 138);
-    g.fillStyle(FORGE.gold, 0.28);
-    ring(32, 146, (a, r) => g.fillCircle(Math.cos(a) * r, Math.sin(a) * r, 1.8));  // outer dot ring
-    ring(8,  18,  (a, r) => g.fillCircle(Math.cos(a) * r, Math.sin(a) * r, 2.2));
-    g.fillStyle(FORGE.gold, 0.18); g.fillCircle(0, 0, 7);
-    return g;
+  // ---------- TITLE SCREEN ----------
+  makeMenuTextures() {
+    if (this.textures.exists('coreglow')) return;
+    const glow = this.textures.createCanvas('coreglow', 256, 256), gc = glow.getContext();
+    const rg = gc.createRadialGradient(128, 128, 0, 128, 128, 128);
+    rg.addColorStop(0, 'rgba(255,246,206,1)'); rg.addColorStop(0.22, 'rgba(255,196,80,0.8)');
+    rg.addColorStop(0.55, 'rgba(255,120,24,0.28)'); rg.addColorStop(1, 'rgba(255,90,10,0)');
+    gc.fillStyle = rg; gc.fillRect(0, 0, 256, 256); glow.refresh();
+    // Dusk at the top and bottom of the screen, so the words sit on something calm.
+    const veil = this.textures.createCanvas('menuveil', 4, H), vc = veil.getContext();
+    const lg = vc.createLinearGradient(0, 0, 0, H);
+    lg.addColorStop(0, 'rgba(34,6,0,0.74)'); lg.addColorStop(0.17, 'rgba(34,6,0,0.36)'); lg.addColorStop(0.27, 'rgba(34,6,0,0)');
+    lg.addColorStop(0.55, 'rgba(34,6,0,0)'); lg.addColorStop(0.66, 'rgba(34,6,0,0.78)'); lg.addColorStop(1, 'rgba(26,4,0,0.94)');
+    vc.fillStyle = lg; vc.fillRect(0, 0, 4, H); veil.refresh();
+  }
+
+  // Looking straight down the well. Every tier is a square ring of four stair-walls; the
+  // rings grow as we sink, and when one has grown a whole tier the cycle starts again, so
+  // the descent never ends.
+  drawWell(time) {
+    const g = this.menu.g, cx = W / 2, cy = WELL.cy;
+    const t = (time / WELL.period) % 1, sway = Math.sin(time / 4300) * 0.06;
+    const corners = (r, a) => {
+      const c = Math.cos(a) * r, sn = Math.sin(a) * r;
+      return [{ x: cx - c + sn, y: cy - sn - c }, { x: cx + c + sn, y: cy + sn - c }, { x: cx + c - sn, y: cy + sn + c }, { x: cx - c - sn, y: cy - sn + c }];
+    };
+    const mix = (p, q, f) => ({ x: p.x + (q.x - p.x) * f, y: p.y + (q.y - p.y) * f });
+    g.clear();
+    for (let i = 0; i < WELL.tiers; i++) {
+      const d = i - t, ro = WELL.size * Math.pow(WELL.k, d);
+      const O = corners(ro, d * WELL.twist + sway), I = corners(ro * WELL.k, (d + 1) * WELL.twist + sway);
+      for (let side = 0; side < 4; side++) {
+        const a = O[side], b = O[(side + 1) % 4], c = I[(side + 1) % 4], e = I[side];
+        g.fillStyle(wellColour(d + 0.5, WELL.shade[side] * 0.6), 1);
+        g.fillPoints([a, b, c, e], true);
+        g.fillStyle(wellColour(d + 0.5, WELL.shade[side]), 1);
+        for (let k = 0; k < WELL.steps; k++) {
+          const p0 = mix(a, b, k / WELL.steps), p1 = mix(a, b, (k + 1) / WELL.steps), q = mix(e, c, (k + 0.5) / WELL.steps);
+          g.fillTriangle(p0.x, p0.y, p1.x, p1.y, q.x, q.y);
+        }
+      }
+      g.lineStyle(1, wellColour(d, 1.3), 0.55);
+      g.strokePoints(O, true);
+    }
+    this.menu.embers.tilePositionY += 0.5;
   }
 
   // ---------- ATTACK VISUALS ----------
@@ -2018,8 +2365,9 @@ class LootScene extends Phaser.Scene {
 
   // ---------- UI HELPERS ----------
   clearUI() {
-    this.uiObjects.forEach(o => o.destroy());
+    this.uiObjects.forEach(o => { this.tweens.killTweensOf(o); o.destroy(); });
     this.uiObjects = [];
+    this.menu = null;
   }
 
   makeButton(x, y, w, h, label, color, onClick, opts = {}) {
@@ -2031,25 +2379,50 @@ class LootScene extends Phaser.Scene {
     return bg;
   }
 
-  // ---------- HUB / SHOP ----------
+  // ---------- TITLE SCREEN / HUB ----------
+  // One screen, not two: the title, the way into a run, and the two upgrades. A separate
+  // title in front of a separate hub would put three taps between a player and a fight.
   showHub() {
     this.clearUI();
     this.state = 'hub';
     this.hudText.setText('');
     this.showPauseButton(false);
+    this.setFloor(1);
     this.playMusic('hub');
+    this.makeMenuTextures();
 
-    const say = (y, str, style) => {
-      const t = this.add.text(W/2, y, str, Object.assign({ resolution: RES }, style)).setOrigin(0.5);
+    const cx = W / 2, cy = WELL.cy;
+    const g = this.add.graphics().setDepth(10);
+    const embers = this.add.tileSprite(cx, H / 2, W, H, 'bg_stars').setTint(FORGE.gold).setAlpha(0.3).setDepth(10.2);
+    const glow = this.add.image(cx, cy, 'coreglow').setDisplaySize(250, 250).setDepth(10.3).setBlendMode(Phaser.BlendModes.ADD);
+    const veil = this.add.image(cx, H / 2, 'menuveil').setDisplaySize(W, H).setDepth(10.5);
+    this.uiObjects.push(g, embers, glow, veil);
+    this.menu = { g, embers };
+    this.tweens.add({ targets: glow, scale: glow.scale * 1.14, alpha: 0.78, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.drawWell(this.time.now);
+
+    const say = (x, y, str, style) => {
+      const t = this.add.text(x, y, str, Object.assign({ resolution: RES }, style)).setOrigin(0.5);
       this.uiObjects.push(t);
       return t;
     };
-    say(124, GAME_TITLE, { fontSize: '46px', color: '#ffd23c', display: true,
-      shadow: { offsetX: 0, offsetY: 3, color: '#7a3a0a', blur: 0, fill: true } });
-    say(166, 'auto-battle · collect loot · descend deeper', { fontSize: '12px', color: '#c8a96e' });
-    if (session.bestSector) say(186, `Best depth reached: Sector ${session.bestSector}`, { fontSize: '11px', color: '#8a7360' });
+    say(cx, 84, GAME_TITLE, { fontSize: '54px', color: '#ffd23c', display: true,
+      shadow: { offsetX: 0, offsetY: 3, color: '#5c2a05', blur: 8, fill: true } });
+    say(cx, 128, 'auto-battle · collect loot · descend deeper', { fontSize: '12px', color: '#e8c690' });
 
-    say(232, `Nidhi: ${session.metaGold}`, { fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' });
+    // The way in sits at the bottom of the well: you press the light you are falling toward.
+    const ring = this.add.circle(cx, cy, 60, 0x000000, 0).setStrokeStyle(2, FORGE.gold, 0.8);
+    const core = this.add.circle(cx, cy, 54, BTN.primary, 0.96).setStrokeStyle(3, FORGE.gold, 1)
+      .setInteractive(new Phaser.Geom.Circle(54, 54, 54), Phaser.Geom.Circle.Contains);
+    core.input.cursor = 'pointer';
+    core.on('pointerdown', () => { this.sfx('ui-click'); this.startRun(); });
+    this.uiObjects.push(ring, core);
+    this.tweens.add({ targets: ring, scale: 1.3, alpha: 0, duration: 1700, repeat: -1, ease: 'Cubic.easeOut' });
+    say(cx, cy - 5, 'DESCEND', { fontSize: '19px', color: '#fffbef', fontStyle: 'bold' });
+    say(cx, cy + 16, 'start a run', { fontSize: '10px', color: '#ffe9a0' });
+
+    say(cx, 436, session.bestSector ? `Deepest descent: Sector ${session.bestSector}` : 'No descent yet', { fontSize: '11px', color: '#c8a96e' });
+    say(cx, 460, `Nidhi: ${session.metaGold}`, { fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' });
 
     // Exponential, not linear: linear costs let Vitality outgrow every sector. Levels
     // now plateau around 8-12 unless a player commits to many deep runs.
@@ -2061,24 +2434,29 @@ class LootScene extends Phaser.Scene {
       this.sfx('ui-confirm');
       this.showHub();
     };
-    const upgrade = (y, label, cost, level) => {
+    const card = (x, name, level, effect, cost, key) => {
       const can = session.metaGold >= cost;
-      say(y, label, { fontSize: '13px', color: '#fffbef' });
-      this.makeButton(W/2, y + 35, 220, 40, `Upgrade — ${cost} Nidhi`, can ? BTN.plain : BTN.off, buy(cost, level),
-        { sound: null, color: can ? '#fffbef' : '#8a7360' });
+      this.uiObjects.push(this.add.rectangle(x, 530, 178, 96, FORGE.deep, 0.9).setStrokeStyle(1.5, can ? FORGE.gold : FORGE.bronze, can ? 0.9 : 0.4));
+      say(x, 497, name, { fontSize: '11px', color: '#c8a96e', fontStyle: 'bold' });
+      say(x, 515, `Lv. ${level}  ·  ${effect}`, { fontSize: '12px', color: '#fffbef' });
+      this.makeButton(x, 550, 152, 32, `${cost} Nidhi`, can ? BTN.plain : BTN.off, buy(cost, key),
+        { sound: null, size: 14, color: can ? '#fffbef' : '#8a7360' });
     };
-    upgrade(290, `Vitality Lv.${session.vitalityLevel}  (+${session.vitalityLevel*10}% Max HP)`, vitCost, 'vitalityLevel');
-    upgrade(385, `Power Lv.${session.powerLevel}  (+${session.powerLevel*8}% Weapon Dmg)`, powCost, 'powerLevel');
-
-    this.makeButton(W/2, 510, 200, 54, 'START RUN', BTN.primary, () => this.startRun(), { stroke: FORGE.gold });
-    say(556, 'Clear each sector, then extract or descend.', { fontSize: '12px', color: '#8a7360' });
+    card(104, 'VITALITY', session.vitalityLevel, `+${session.vitalityLevel * 10}% max HP`, vitCost, 'vitalityLevel');
+    card(296, 'POWER', session.powerLevel, `+${session.powerLevel * 8}% damage`, powCost, 'powerLevel');
 
     const locked = this.lockedPowerCount();
-    this.makeButton(W/2 - 126, 606, 118, 38, 'POWERS', BTN.quiet, () => this.showCodex(), { size: 13 });
-    this.makeButton(W/2, 606, 118, 38, 'HOW TO PLAY', BTN.quiet, () => this.showHowTo(0, () => this.closeOverlay()), { size: 13 });
-    this.makeButton(W/2 + 126, 606, 118, 38, 'SETTINGS', BTN.quiet, () => this.showSettings(() => this.closeOverlay()), { size: 13 });
-    say(640, locked > 0 ? `${locked} still locked — descend to find them` : 'all powers unlocked',
+    say(cx, 598, locked > 0 ? `${locked} powers still locked — descend to find them` : 'all powers unlocked',
       { fontSize: '11px', color: locked > 0 ? '#ffd23c' : '#8a7360' });
+    const small = (x, label, fn) => this.makeButton(x, 634, 88, 34, label, BTN.quiet, fn, { size: 11 });
+    small(59,  'POWERS',      () => this.showCodex());
+    small(153, 'HOW TO PLAY', () => this.showHowTo(0, () => this.closeOverlay()));
+    small(247, 'SETTINGS',    () => this.showSettings(() => this.closeOverlay()));
+    small(341, 'FEEDBACK',    () => Feedback.open());
+    say(cx, 676, 'build ' + BUILD, { fontSize: '8px', color: '#6b4a2e' });
+
+    // Everything above sits over the well, which itself covers the arena and the HUD.
+    this.uiObjects.forEach(o => { if (o.depth === 0) o.setDepth(o.type === 'Text' ? 13 : 12); });
   }
 
   // ---------- CODEX ----------
@@ -2278,9 +2656,9 @@ class LootScene extends Phaser.Scene {
   }
 
   showSectorBanner(n) {
-    const t1 = this.add.text(W/2, H/2-40, `SECTOR ${n}`, { resolution: RES, fontSize: '14px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
-    const t2 = this.add.text(W/2, H/2-14, sectorTitle(n), { resolution: RES, fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
-    const t3 = this.add.text(W/2, H/2+16, sectorSub(n), { resolution: RES, fontSize: '12px', color: '#c8a96e' }).setOrigin(0.5).setAlpha(0);
+    const t1 = this.add.text(W/2, H/2-40, `SECTOR ${n}`, { resolution: RES, stroke: '#2a0800', strokeThickness: 4, fontSize: '14px', color: '#e8c690', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
+    const t2 = this.add.text(W/2, H/2-14, sectorTitle(n), { resolution: RES, stroke: '#2a0800', strokeThickness: 4, fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
+    const t3 = this.add.text(W/2, H/2+16, sectorSub(n), { resolution: RES, stroke: '#2a0800', strokeThickness: 4, fontSize: '12px', color: '#f0dcc0' }).setOrigin(0.5).setAlpha(0);
     this.clearBanner();
     this.banner = [t1, t2, t3];
     this.banner.forEach(t => {
@@ -2348,6 +2726,7 @@ class LootScene extends Phaser.Scene {
     this.wave = 0;
     this.progressNodes.forEach(node => { node.fillColor = 0x2a0f04; });
     this.state = 'playing';
+    this.setFloor(this.sector, true);
     this.playMusic('combat');
     this.showSectorBanner(this.sector);
     this.nextWave();
@@ -2495,9 +2874,10 @@ class LootScene extends Phaser.Scene {
     enemy.nameLabel = this.add.text(enemy.x, 0, label, {
       resolution: RES,
       fontSize: big ? '11px' : '8px',
-      color: enemy.isElite ? '#ffd23c' : (big ? '#fffbef' : '#e3c9a8'),
-      fontStyle: big ? 'bold' : 'normal'
-    }).setOrigin(0.5).setAlpha(big ? 1 : 0.82);
+      color: enemy.isElite ? '#ffd23c' : (big ? '#fffbef' : '#f0dcc0'),
+      fontStyle: big ? 'bold' : 'normal',
+      stroke: '#2a0800', strokeThickness: 2.5
+    }).setOrigin(0.5).setAlpha(big ? 1 : 0.9);
   }
 
   // A second, separate bar above the HP bar showing how much shield is left. It sits
@@ -2874,7 +3254,7 @@ class LootScene extends Phaser.Scene {
     if (isMystery) {
       this.tweens.add({ targets: sprite, alpha: 0.45, duration: 350, yoyo: true, repeat: -1 });
     }
-    const label = this.add.text(px, py-20, isMystery ? '???' : item.name, { resolution: RES, fontSize: '9px', color: isMystery ? '#b48cff' : '#fffbef' }).setOrigin(0.5);
+    const label = this.add.text(px, py-20, isMystery ? '???' : item.name, { resolution: RES, fontSize: '9px', color: isMystery ? '#d2b8ff' : '#fffbef', stroke: '#2a0800', strokeThickness: 2.5 }).setOrigin(0.5);
     { const b = this.arenaBounds, half = label.width / 2;
       label.x = Phaser.Math.Clamp(px, b.x + half + 4, b.right - half - 4); }   // never over the border
 
@@ -2884,7 +3264,8 @@ class LootScene extends Phaser.Scene {
   }
 
   showToast(msg, color) {
-    const t = this.add.text(W/2, HUD_H + 20, msg, { resolution: RES, fontSize: '14px', color, fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
+    const t = this.add.text(W/2, HUD_H + 20, msg, { resolution: RES, fontSize: '14px', color, fontStyle: 'bold',
+      stroke: '#2a0800', strokeThickness: 4 }).setOrigin(0.5).setAlpha(0).setDepth(45);
     this.tweens.add({
       targets: t, alpha: 1, y: HUD_H + 8, duration: 200, yoyo: true, hold: 700,
       onComplete: () => t.destroy()
@@ -2996,11 +3377,14 @@ class LootScene extends Phaser.Scene {
       if (this.pickups) this.pickups.forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); });
       this.showHub();
     });
+    // The end of a run is when a player has something to say.
+    this.makeButton(W/2, H/2+120, 150, 24, 'Send feedback', BTN.off, () => Feedback.open(), { size: 11, color: '#c8a96e' });
   }
 
   // ---------- MAIN LOOP ----------
   update(time, delta) {
     Music.tick(delta);
+    if (this.menu) this.drawWell(time);
     if (this.state !== 'playing') return;
     const dt = delta / 1000;
 

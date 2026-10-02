@@ -28,8 +28,8 @@ DST = REPO / "game/assets/music"
 
 PICKS = {
     "hub":    "sitar-and-tanpura",     # Sitar and Tanpura - Indian style BGM, ShidenBeatsMusic
-    "combat": "rockot-indian",         # Indian, Rockot
-    "boss":   None,                    # not chosen yet - the first pick was Content ID registered
+    "combat": "indian-559394",         # Indian, Rockot
+    "boss":   "drums-of-the-world",    # INDIA - Drums of the World, Rockot
 }
 
 TARGET_RMS_DB = -20.0     # loudness every track is brought to

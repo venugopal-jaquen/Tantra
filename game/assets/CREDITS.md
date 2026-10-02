@@ -110,21 +110,22 @@ Both licences allow commercial use and embedding. The faces are loaded from Goog
 today (`fonts.googleapis.com`); for the itch.io build they should be self-hosted in
 `game/assets/fonts/` with their `OFL.txt` files alongside.
 
-## Music (`music/`) — not in the repo yet
+## Music (`music/`)
 
-Chosen by the founder on 2026-10-02 from Pixabay (https://pixabay.com/service/license-summary/:
-free for commercial use, no attribution required, no standalone redistribution). Neither
-track is registered with YouTube Content ID, checked the same day.
+Chosen and downloaded by the founder on 2026-10-02 from Pixabay
+(https://pixabay.com/service/license-summary/: free for commercial use, no attribution
+required, no standalone redistribution). None of the three is registered with YouTube
+Content ID, checked the same day.
 
 | Game file | Track | Artist | Source |
 |---|---|---|---|
 | `hub.mp3` | Sitar and Tanpura - Indian style BGM | ShidenBeatsMusic | https://pixabay.com/music/india-sitar-and-tanpura-indian-style-bgm-22000/ |
 | `combat.mp3` | Indian | Rockot | https://pixabay.com/music/india-indian-559394/ |
-| `boss.mp3` | *not chosen* | | |
+| `boss.mp3` | INDIA - Drums of the World | Rockot | https://pixabay.com/music/upbeat-india-drums-of-the-world-173071/ |
 
-Pixabay refuses automated downloads, so these are downloaded by hand into
-`incoming/music/` (gitignored) and prepared by `tools/convert-music.py`, which trims
-silence, levels the loudness and re-encodes. Record the download date here when they land.
+The downloads sit in `incoming/music/` (gitignored). `tools/convert-music.py` made the
+files here from them: silence trimmed, every track levelled to the same loudness, and
+re-encoded at about 150 kbps (7 MB in all).
 
 **Rejected:** *The Descent of Hanuman* (Openly). It is Content ID registered, which would put
 a copyright claim on every video a streamer makes of the game, and it is tagged

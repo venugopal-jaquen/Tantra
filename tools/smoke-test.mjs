@@ -107,8 +107,11 @@ try {
   await page(`settings.music = 0; settings.sfx = 0; Loader.begin();`);
   await sleep(900);
   const hub = await page(`const s = game.scene.keys.LootScene; return { state: s.state, title: s.uiObjects.find(o => o.type === 'Text').text, families: [...new Set(s.uiObjects.filter(o => o.type === 'Text').map(o => o.style.fontFamily.split(',')[0]))] };`);
-  check('Begin opens the hub', hub.state === 'hub', JSON.stringify(hub));
-  await shot('2-hub');
+  check('Begin opens the title screen', hub.state === 'hub', JSON.stringify(hub));
+  await sleep(1300);
+  const music = await page(`return Object.fromEntries(Object.entries(Music.tracks).map(([k, t]) => [k, t.dead ? 'missing' : (t.el.duration ? Math.round(t.el.duration) + 's' : 'loading')]));`);
+  check('all three music tracks load', Object.values(music).every(v => v !== 'missing'), JSON.stringify(music));
+  await shot('2-title');
 
   // ---------- 3. a run in real time: HUD, first tip, banner ----------
   await page(`game.scene.keys.LootScene.startRun();`);
@@ -116,6 +119,16 @@ try {
   const run = await page(`const s = game.scene.keys.LootScene; return { state: s.state, tip: s.hintBox ? s.hintBox[1].text : null, hudBottom: Math.round(s.hudText.y + s.hudText.height), hpBarTop: Math.round(s.hpBarBg.y - s.hpBarBg.height / 2) };`);
   check('first tip shows during the first run', !!run.tip, run.tip || 'none');
   check('HUD line clears the HP bar', run.hudBottom <= run.hpBarTop + 1, `text bottom ${run.hudBottom}, bar top ${run.hpBarTop}`);
+
+  // Each sector's floor, with a boss and a slam zone on it to judge legibility.
+  await page(`const s = game.scene.keys.LootScene; s.player.iframes = 1e9; s.dismissHint(); const e = s.spawnGatekeeper(); e.slamTimer = 1e9; s.beginSlam(e); s.spawnLootPickup(120, 420, 'epic'); s.spawnLootPickup(280, 500, 'rare');`);
+  await sleep(450); await shot('3-floor-sector-1');
+  for (const n of [2, 3, 4]) {
+    await page(`const s = game.scene.keys.LootScene; s.setFloor(${n}); const e = s.enemies.find(x => x.isBoss); if (e && !e.slam) { e.slamTypes = ['${n === 2 ? 'line' : 'circle'}']; s.beginSlam(e); }`);
+    await sleep(450); await shot('3-floor-sector-' + n);
+  }
+  const floors = await page(`const s = game.scene.keys.LootScene; s.setFloor(1); return { layers: s.floorLayers.length, textures: ['floor-0-0', 'floor-1-0', 'floor-2-0', 'floor-0-1'].filter(k => s.textures.exists(k)).length };`);
+  check('each sector paints its own floor', floors.textures === 4 && floors.layers === 1, JSON.stringify(floors));
 
   // ---------- 4. pause, abandon prompt, death keeps half ----------
   await page(`const s = game.scene.keys.LootScene; s.runGold = 125; s.pauseGame();`);
@@ -151,6 +164,28 @@ try {
     s.showHub(); s.uiObjects.filter(o => o.type === 'Text').forEach(t => edge(t, 0, 400, 'hub'));
     return bad;`);
   check('no text spills its panel', spill.length === 0, spill.join('; '));
+
+  // ---------- 5b. feedback dialog (the mail relay is stubbed: nothing is sent) ----------
+  const fbOpen = await page(`window.__sent = []; window.__fetch = window.fetch;
+    window.fetch = (url, opts) => { window.__sent.push({ url: String(url), body: JSON.parse(opts.body) });
+      return Promise.resolve(new Response(JSON.stringify({ success: 'true' }), { status: 200, headers: { 'Content-Type': 'application/json' } })); };
+    Feedback.open(); await new Promise(r => setTimeout(r, 200));
+    return { open: Feedback.isOpen, gameKeys: game.input.keyboard.enabled, focus: document.activeElement.id };`);
+  check('feedback dialog opens with the text box focused', fbOpen.open && fbOpen.focus === 'fb-text' && fbOpen.gameKeys === false, JSON.stringify(fbOpen));
+  // Real key presses for the letters the game itself listens to: they must reach the box.
+  for (const [key, code, vk] of [['w', 'KeyW', 87], ['a', 'KeyA', 65], ['s', 'KeyS', 83], ['d', 'KeyD', 68], [' ', 'Space', 32], ['e', 'KeyE', 69], ['p', 'KeyP', 80]]) {
+    await send('Input.dispatchKeyEvent', { type: 'keyDown', key, code, text: key, unmodifiedText: key, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+    await send('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+  }
+  await send('Input.insertText', { text: ' - the bosses are great' });
+  const typed = await page(`return document.getElementById('fb-text').value;`);
+  check('game keys can be typed into the feedback box', typed === 'wasd ep - the bosses are great', JSON.stringify(typed));
+  await shot('8-feedback');
+  const fbSent = await page(`document.getElementById('fb-send').click(); await new Promise(r => setTimeout(r, 400));
+    const first = window.__sent[0] || {}; const note = document.getElementById('fb-note').textContent;
+    await new Promise(r => setTimeout(r, 1500)); window.fetch = window.__fetch;
+    return { url: first.url, message: first.body && first.body.message, hasBuild: !!(first.body && first.body.build), note, closed: !Feedback.isOpen, gameKeys: game.input.keyboard.enabled };`);
+  check('feedback is posted to the mail relay and the dialog closes', /formsubmit\.co\/ajax\//.test(fbSent.url || '') && fbSent.message === typed && fbSent.hasBuild && fbSent.closed && fbSent.gameKeys === true, JSON.stringify(fbSent));
 
   // ---------- 6. playtest bot: errors and leaks ----------
   const bot = await page(`
