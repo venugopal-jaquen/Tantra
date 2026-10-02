@@ -155,10 +155,41 @@ try {
   check('choice screen states the risk', /half is lost/i.test(extract.copy), extract.copy.replace(/\n/g, ' '));
   await page(`const s = game.scene.keys.LootScene; s.uiObjects.find(o => o.type === 'Rectangle' && o.input).emit('pointerdown');`);
 
+  // ---------- 4b. the goal, the near miss and the ending ----------
+  const texts = `s.uiObjects.filter(o => o.type === 'Text').map(o => o.text).join(' | ')`;
+  const press = `s.uiObjects.find(o => o.type === 'Rectangle' && o.input).emit('pointerdown')`;
+  const goal = await page(`const s = game.scene.keys.LootScene; session.water = 0; session.wins = 0; s.showHub();
+    const title = ${texts};
+    s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; await new Promise(r => setTimeout(r, 400));
+    return { title, hud: s.hudText.text, banner: (s.banner || []).map(t => t.text).join(' | ') };`);
+  check('title screen states the goal', /has drunk the well dry/.test(goal.title) && /The well is dry/.test(goal.title), goal.title.replace(/\n/g, ' ').slice(0, 130));
+  check('a run shows how far the goal is', goal.hud.startsWith('Level 1 of 3') && /waits two levels below/.test(goal.banner), goal.hud + ' || ' + goal.banner);
+  await shot('5b-level-banner');
+  const fell = await page(`const s = game.scene.keys.LootScene; s.sector = 2; s.runGold = 100; s.endRun(false); return ${texts};`);
+  check('falling says how close you came', /You fell in Jal-Kund, level 2 of 3/.test(fell) && /Vritra waits one level below/.test(fell), fell);
+  await sleep(250); await shot('5c-fell');
+  const won = await page(`const s = game.scene.keys.LootScene; ${press};
+    s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; s.sector = 3; s.wave = 6; s.runGold = 300; s.setFloor(3);
+    s.killEnemy(s.spawnSectorBoss());
+    await new Promise(r => setTimeout(r, 1400));
+    return { state: s.state, water: session.water, wins: session.wins, panel: ${texts} };`);
+  check('slaying the final boss wins the run', won.state === 'sectorChoice' && won.water === 3 && won.wins === 1 && /THE WATERS RETURN/.test(won.panel), JSON.stringify(won).replace(/\\n/g, ' '));
+  await shot('5d-victory');
+  const surfaced = await page(`const s = game.scene.keys.LootScene; const before = session.metaGold, carried = s.runGold; ${press};
+    const summary = ${texts}; const banked = session.metaGold - before; ${press};
+    await new Promise(r => setTimeout(r, 300));
+    return { banked, carried, summary, title: ${texts} };`);
+  check('surfacing after the win banks everything', surfaced.banked === surfaced.carried && surfaced.carried >= 300 && /VRITRA SLAIN/.test(surfaced.summary), `banked ${surfaced.banked} of ${surfaced.carried} carried | ` + surfaced.summary);
+  check('the well on the title screen has filled', /The well is 9% full/.test(surfaced.title), surfaced.title.replace(/\n/g, ' ').slice(0, 160));
+  await sleep(900); await shot('5e-title-with-water');
+  const packs = await page(`const shape = o => Object.keys(o).sort().map(k => k + (o[k] && typeof o[k] === 'object' && !Array.isArray(o[k]) ? '{' + Object.keys(o[k]).sort().join(',') + '}' : '')).join(';');
+    return Object.fromEntries(Object.keys(NAME_PACKS).map(k => [k, shape(NAME_PACKS[k]) === shape(NAME_PACKS.sanskrit)]));`);
+  check('every name pack has the same entries', Object.keys(packs).length === 3 && Object.values(packs).every(Boolean), JSON.stringify(packs));
+
   // ---------- 5. every text stays inside its panel ----------
   const spill = await page(`const s = game.scene.keys.LootScene, bad = [];
     const edge = (t, lo, hi, where) => { const l = t.x - t.width * t.originX, r = l + t.width; if (l < lo || r > hi) bad.push(where + ': ' + t.text.slice(0, 32)); };
-    for (let pg = 0; pg < 7; pg++) { s.showHowTo(pg, () => s.closeOverlay()); const tx = s.overlay.filter(o => o.type === 'Text'); tx.forEach(t => edge(t, 27, 373, 'how-to ' + pg));
+    for (let pg = 0; pg < 8; pg++) { s.showHowTo(pg, () => s.closeOverlay()); const tx = s.overlay.filter(o => o.type === 'Text'); tx.forEach(t => edge(t, 27, 373, 'how-to ' + pg));
       const body = tx.reduce((a, b) => (b.height > a.height ? b : a)); if (body.y + body.height > 548) bad.push('how-to ' + pg + ' body runs into the page dots'); }
     s.showSettings(() => s.closeOverlay()); s.overlay.filter(o => o.type === 'Text').forEach(t => edge(t, 28, 372, 'settings')); s.closeOverlay();
     for (const tab of ['weapons', 'trinkets', 'tejas']) { s.showCodex(tab); s.uiObjects.filter(o => o.type === 'Text').forEach(t => edge(t, s.arenaBounds.x, s.arenaBounds.right, 'powers/' + tab)); }
@@ -219,7 +250,7 @@ try {
     seen.push(document.getElementById('loader').textContent);
     grab(s.uiObjects);
     for (const tab of ['weapons', 'trinkets', 'tejas']) { s.showCodex(tab); grab(s.uiObjects); }
-    s.showHub(); for (let pg = 0; pg < 7; pg++) { s.showHowTo(pg, () => s.closeOverlay()); grab(s.overlay); } s.closeOverlay();
+    s.showHub(); for (let pg = 0; pg < 8; pg++) { s.showHowTo(pg, () => s.closeOverlay()); grab(s.overlay); } s.closeOverlay();
     session.tejasUnlocked = true; s.startRun(); s.player.iframes = 1e9; grab(s.banner || []);
     for (const t of ['melee', 'ranged', 'tank', 'splitter']) s.spawnEnemyOfType(t, 100, 300, 1, false);
     s.spawnGatekeeper(); s.spawnSectorBoss(); s.spawnLootPickup(200, 300, 'epic'); s.spawnLootPickup(210, 320, 'common');

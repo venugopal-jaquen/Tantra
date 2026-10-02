@@ -161,7 +161,7 @@
     <textarea id="fb-text" maxlength="2000" rows="5" placeholder="Type here"></textarea>
     <label class="fb-label" for="fb-email">Your email <span>(optional, only if you want a reply)</span></label>
     <input id="fb-email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com">
-    <p class="fb-note" id="fb-note">Sent by email, with your game version, best sector and device type. Nothing else.</p>
+    <p class="fb-note" id="fb-note">Sent by email, with your game version, how deep you have got and device type. Nothing else.</p>
     <div class="fb-actions">
       <button type="button" class="fb-btn fb-cancel" id="fb-cancel">Cancel</button>
       <button type="submit" class="fb-btn fb-send" id="fb-send">Send</button>
@@ -186,12 +186,13 @@ const GAME_TITLE = 'Anantarya';
 //   sanskrit - the game's identity since 2026-09-24: Sanskrit names, English glosses.
 //   plain    - a draft in plain English, kept so the founder can judge whether the
 //              Sanskrit helps or costs players. Its wording has not been reviewed.
+//   hybrid   - a draft that keeps Sanskrit only where it is short and easy to say.
 //
 // Internal keys (melee, drift, common, venom...) are never shown and never change, so
 // saves survive a switch of pack.
 const NAME_PACKS = {
   sanskrit: {
-    player: 'Kiran', currency: 'Nidhi', satchel: 'Satchel', supercharge: 'Tejas',
+    player: 'Kiran', currency: 'Nidhi', satchel: 'Satchel', supercharge: 'Tejas', stage: 'Level',
     pause: 'Viram', pauseSub: '\u0935\u093F\u0930\u093E\u092E \u00B7 paused',
     enemies: { melee: 'Asura', ranged: 'Rakshasa', tank: 'Mahish', splitter: 'Raktabija',
                gatekeeper: 'Bakasura', sectorboss: 'Nidhi-Raksha', megaboss: 'Vritra' },
@@ -227,9 +228,9 @@ const NAME_PACKS = {
       { kind: 'Gatekeeper',  dev: 'बकासुर',        name: 'Bakasura',       meaning: 'the demon who demanded tribute',
         role: 'Bars the way on wave 3. Strike while the phase bar matches the glow at his feet.' },
       { kind: 'Sector boss', dev: 'निधि-रक्षा',     name: 'Nidhi-Raksha',   meaning: 'treasure guardian',
-        role: "Guards each sector's hoard behind a shield. Kill the gold-glowing anchors to break it." },
+        role: "Guards each level's hoard behind a shield. Kill the gold-glowing anchors to break it." },
       { kind: 'The hoarder', dev: 'वृत्र',          name: 'Vritra',         meaning: "the serpent who hoarded the world's waters",
-        role: 'Waits at the bottom of Sector 3, and knows every trick the others use.' },
+        role: 'Waits at the bottom of the well, and knows every trick the others use. Slay him and the water returns.' },
       { kind: 'Phase',       dev: 'शांति',         name: 'Shanti',         meaning: 'peace',
         role: 'The calm stretch of the Cosmic Cycle. Catch your breath and pick your fights.' },
       { kind: 'Phase',       dev: 'शक्ति',         name: 'Shakti',         meaning: 'power',
@@ -253,27 +254,27 @@ const NAME_PACKS = {
       { kind: 'Weapon',      dev: 'रक्त तलवार',    name: 'Rakta Talwar',   meaning: 'blood sword',
         role: 'Heals you with every hit that lands.' },
       { kind: 'Weapon',      dev: 'विद्युत चक्रम',   name: 'Vidyut Chakram', meaning: 'lightning discus',
-        role: 'Each strike arcs on to a second enemy. Found from Sector 2.' },
+        role: 'Each strike arcs on to a second enemy. Found from level 2.' },
       { kind: 'Weapon',      dev: 'वध परशु',      name: 'Vadha Parashu',  meaning: 'slaying axe',
-        role: 'Hits far harder on enemies that are nearly dead. Found from Sector 3.' },
+        role: 'Hits far harder on enemies that are nearly dead. Found from level 3.' },
       { kind: 'Trinket',     dev: 'प्राण मणि',      name: 'Prana Mani',     meaning: 'life-force jewel',
         role: 'Raises your maximum health.' },
       { kind: 'Trinket',     dev: 'कवच',          name: 'Kavach',         meaning: 'armour',
         role: 'Blocks one hit completely, then recharges.' },
       { kind: 'Trinket',     dev: 'कंटक कंगन',     name: 'Kantak Kangan',  meaning: 'thorn bangle',
-        role: 'Whatever touches you takes damage back. Found from Sector 2.' },
+        role: 'Whatever touches you takes damage back. Found from level 2.' },
       { kind: 'Trinket',     dev: 'वेग पादुका',     name: 'Vega Paduka',    meaning: 'swift sandals',
-        role: 'You move faster. Found from Sector 2.' },
+        role: 'You move faster. Found from level 2.' },
       { kind: 'Trinket',     dev: 'संजीवनी',       name: 'Sanjeevani',     meaning: 'the herb that restores life',
-        role: 'Heals you slowly, all the time. Found from Sector 3.' },
+        role: 'Heals you slowly, all the time. Found from level 3.' },
       { kind: 'Power',       dev: 'तेजस्',         name: 'Tejas',          meaning: 'radiance',
-        role: 'Your supercharge. It fills as you fight; unleash it for six seconds of power shaped by your weapon. Awakens in Sector 2.' },
+        role: 'Your supercharge. It fills as you fight; unleash it for six seconds of power shaped by your weapon. Awakens on level 2.' },
       { kind: 'Menu',        dev: 'विराम',         name: 'Viram',          meaning: 'pause',
         role: 'The pause menu. It also tells you what your weapon and trinket actually do.' }
     ]
   },
   plain: {
-    player: 'Kiran', currency: 'Gold', satchel: 'Satchel', supercharge: 'Radiance',
+    player: 'Kiran', currency: 'Gold', satchel: 'Satchel', supercharge: 'Radiance', stage: 'Level',
     pause: 'Paused', pauseSub: '',
     enemies: { melee: 'Goblin', ranged: 'Hexer', tank: 'Brute', splitter: 'Splitter',
                gatekeeper: 'Gatekeeper', sectorboss: 'Hoard Guardian', megaboss: 'The Hoarder' },
@@ -302,6 +303,44 @@ const NAME_PACKS = {
       { kind: 'Treasure', dev: '', name: 'Gold',           meaning: '', role: 'What you gather in the depths. Extract to bank all of it. Fall, and you keep half.' },
       { kind: 'Loot',     dev: '', name: 'Copper, Silver, Gold', meaning: '', role: 'The metal is the quality. Gold items are more than twice as strong as copper.' },
       { kind: 'Power',    dev: '', name: 'Radiance',       meaning: '', role: 'Your supercharge. It fills as you fight; unleash it for six seconds of power shaped by your weapon.' }
+    ]
+  },
+  // A middle path: Sanskrit only where it is short and easy to say, English everywhere
+  // else. Drafted 2026-10-02 after the founder said the names felt overtly Sanskrit and
+  // hard to pronounce. Not reviewed.
+  hybrid: {
+    player: 'Kiran', currency: 'Nidhi', satchel: 'Satchel', supercharge: 'Tejas', stage: 'Level',
+    pause: 'Paused', pauseSub: '',
+    enemies: { melee: 'Asura', ranged: 'Rakshasa', tank: 'Mahish', splitter: 'Bloodseed',
+               gatekeeper: 'Gatekeeper', sectorboss: 'Hoard Guardian', megaboss: 'Vritra' },
+    phases:  { drift: 'Shanti', surge: 'Shakti', eclipse: 'Grahan', convergence: 'Pralaya' },
+    metals:  { common: 'Copper', rare: 'Silver', epic: 'Gold' },
+    metalGloss: { common: '', rare: '', epic: '' },
+    weapons:  { none: ['Katar', 'push-dagger'], venom: ['Poison Katar', ''], vampiric: ['Blood Talwar', ''],
+                chain: ['Storm Chakram', ''], executioner: ["Slayer's Axe", ''] },
+    trinkets: { vitality: ['Life Gem', ''], aegis: ['Aegis', ''], thorns: ['Thorn Band', ''],
+                swift: ['Swift Sandals', ''], regen: ['Healing Herb', ''] },
+    forms:    { none: ['Fire', ''], venom: ['Poison', ''], vampiric: ['Blood', ''], chain: ['Lightning', ''], executioner: ['Execution', ''] },
+    sectors: [['The Courtyard', 'sunlit stone at the top of the well'],
+              ['The Drowned Steps', 'the flooded level'],
+              ['The Gold Vault', 'the hoard at the bottom']],
+    deeper: ['Patal', 'the world below'],
+    cards: [
+      { kind: 'You',      dev: '\u0915\u093F\u0930\u0923',  name: 'Kiran',    meaning: 'ray of light', role: 'That is you. You strike on your own - your whole job is choosing where to stand.' },
+      { kind: 'Enemy',    dev: '\u0905\u0938\u0941\u0930',  name: 'Asura',    meaning: 'power-seeking rivals of the devas', role: 'The rank and file. They rush straight at you and hit on contact.' },
+      { kind: 'Enemy',    dev: '\u0930\u093E\u0915\u094D\u0937\u0938', name: 'Rakshasa', meaning: 'shape-shifting sorcerers', role: 'They keep their distance and throw bolts. Keep moving sideways.' },
+      { kind: 'Enemy',    dev: '\u092E\u0939\u093F\u0937',  name: 'Mahish',   meaning: 'the buffalo demon', role: "Slow, heavy, and hits like a cart. Don't let it corner you." },
+      { kind: 'Enemy',    dev: '', name: 'Bloodseed',      meaning: '', role: 'Every drop of its blood rises as a new demon. Kill one, and two smaller ones spring up.' },
+      { kind: 'Boss',     dev: '', name: 'Gatekeeper',     meaning: '', role: 'Bars the way on wave 3. Strike while the phase bar matches the glow at his feet.' },
+      { kind: 'Boss',     dev: '', name: 'Hoard Guardian', meaning: '', role: 'Hides behind a shield. Kill the gold-glowing anchors to break it.' },
+      { kind: 'The hoarder', dev: '\u0935\u0943\u0924\u094D\u0930', name: 'Vritra', meaning: "the serpent who hoarded the world's waters", role: 'Waits at the bottom of the well. Slay him and the water returns.' },
+      { kind: 'Phase',    dev: '\u0936\u093E\u0902\u0924\u093F', name: 'Shanti',  meaning: 'peace', role: 'The calm stretch of the Cosmic Cycle. Catch your breath and pick your fights.' },
+      { kind: 'Phase',    dev: '\u0936\u0915\u094D\u0924\u093F', name: 'Shakti',  meaning: 'power', role: 'Enemies pour in faster - and loot drops richer.' },
+      { kind: 'Phase',    dev: '\u0917\u094D\u0930\u0939\u0923', name: 'Grahan',  meaning: 'eclipse', role: 'Everyone hits 30% harder. You included.' },
+      { kind: 'Phase',    dev: '\u092A\u094D\u0930\u0932\u092F', name: 'Pralaya', meaning: 'dissolution', role: 'Every 90 seconds an elite arrives, and the best loot of the cycle drops.' },
+      { kind: 'Treasure', dev: '\u0928\u093F\u0927\u093F',  name: 'Nidhi',    meaning: 'treasure', role: 'What you gather in the depths. Extract to bank all of it. Fall, and you keep half.' },
+      { kind: 'Loot',     dev: '', name: 'Copper, Silver, Gold', meaning: '', role: 'The metal is the quality. Gold items are more than twice as strong as copper.' },
+      { kind: 'Power',    dev: '\u0924\u0947\u091C\u0938\u094D', name: 'Tejas',   meaning: 'radiance', role: 'Your supercharge. It fills as you fight; unleash it for six seconds of power shaped by your weapon.' }
     ]
   }
 };
@@ -484,6 +523,15 @@ const MEGA_BOSS_SECTOR = 3;
 // Sector names come from the name pack: a short name, and a line to go under it.
 function sectorTitle(n) { return (N.sectors[n - 1] || N.deeper)[0]; }
 function sectorSub(n) { return (N.sectors[n - 1] || N.deeper)[1]; }
+// "Level 2 of 3" while the final boss is still ahead; past him, just "Level 5".
+function stageLabel(n) { return n <= FINAL_SECTOR ? `${N.stage} ${n} of ${FINAL_SECTOR}` : `${N.stage} ${n}`; }
+// "two levels below" - how far down the final boss is from level n.
+function levelsBelow(n) {
+  const k = FINAL_SECTOR - n, word = ['no', 'one', 'two', 'three', 'four', 'five', 'six'][k] || String(k);
+  return `${word} ${N.stage.toLowerCase()}${k === 1 ? '' : 's'} below`;
+}
+function wellPct() { return Math.round(100 * Math.min(1, (session.water || 0) / WELL_FULL)); }
+function wellLine() { const pc = wellPct(); return pc <= 0 ? 'The well is dry' : pc >= 100 ? 'The well is full' : `The well is ${pc}% full`; }
 // "Tamra (copper), Rajat (silver), Swarna (gold)" - or just the three names when a pack has no glosses.
 function metalList() {
   return ['common', 'rare', 'epic'].map(k => N.metals[k] + (N.metalGloss[k] ? ` (${N.metalGloss[k]})` : '')).join(', ');
@@ -501,6 +549,14 @@ function sectorHpMult(sector)  { return Math.pow(1.26, Math.max(0, sector - 1));
 const IFRAMES_MS = 280;
 // Share of max HP restored when a sector boss falls.
 const SECTOR_CLEAR_HEAL = 0.35;
+// ---------- THE GOAL AND THE WELL (requirements 2.23) ----------
+// The game used to state no goal and never end. Now a run has one aim - reach the bottom
+// level and slay the final boss, who has drunk the well dry - and across runs every boss
+// beaten returns water to the well, which fills on the title screen.
+const FINAL_SECTOR = MEGA_BOSS_SECTOR;        // the level whose boss ends the run
+const WATER = { boss: 1, final: 3 };          // measures of water returned per boss beaten
+const WELL_FULL = 35;                         // measures to fill the well: seven complete descents
+
 // Share of a run's Nidhi you keep when you fall, or abandon. Extracting keeps all of it.
 // Death used to bank everything, exactly like Extract - which made Descend free and the
 // Extract/Descend choice (requirements 2.5) a fake one.
@@ -550,7 +606,10 @@ const session = {
   powerLevel: 0,       // +8% weapon dmg per level
   bestSector: 0,
   tejasUnlocked: false, // set the first time the player reaches TEJAS_UNLOCK_SECTOR
-  hintsSeen: {}         // live tips already shown once (the first-run tutorial)
+  hintsSeen: {},        // live tips already shown once (the first-run tutorial)
+  water: 0,             // measures returned to the well, 0..WELL_FULL (kept even if the run is lost)
+  wins: 0,              // times the final boss has been slain
+  wellFullSeen: false   // the "well is full" ending has been shown
 };
 
 function loadSession() {
@@ -571,7 +630,7 @@ if (!session.hintsSeen) session.hintsSeen = {};
 // because they wanted a fresh run would be a surprise.
 function resetSession() {
   Object.assign(session, { metaGold: 0, vitalityLevel: 0, powerLevel: 0, bestSector: 0,
-                           tejasUnlocked: false, hintsSeen: {} });
+                           tejasUnlocked: false, hintsSeen: {}, water: 0, wins: 0, wellFullSeen: false });
   saveSession();
 }
 
@@ -1526,8 +1585,8 @@ class LootScene extends Phaser.Scene {
     else row(270, 'mystery', 0x5a4535, 'No trinket', 'Trinkets drop from enemies - walk over one');
     const f = this.tejasForm();
     if (session.tejasUnlocked) row(314, w.effect || 'none', f.colour, `${N.supercharge}: ${f.name}`, f.desc);
-    else row(314, 'mystery', 0x5a4535, `${N.supercharge}: dormant`, `Awakens the first time you reach Sector ${TEJAS_UNLOCK_SECTOR}`);
-    this.ovText(cx, 364, `Sector ${this.sector} · Wave ${Math.min(this.wave, 5)}/5 · ${this.runGold} ${N.currency} this run`,
+    else row(314, 'mystery', 0x5a4535, `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}`);
+    this.ovText(cx, 364, `${stageLabel(this.sector)} · Wave ${Math.min(this.wave, 5)}/5 · ${this.runGold} ${N.currency} this run`,
       { fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
 
     this.ovButton(cx, 410, 240, 44, 'RESUME', 0x7a3a0a, () => this.resumeGame(), { sound: null, stroke: FORGE.gold, size: 16 });
@@ -1696,6 +1755,18 @@ class LootScene extends Phaser.Scene {
     const label = (x, y, str, colour, size = 9) => this.ovText(x, y, str, { fontSize: size + 'px', color: colour || '#c8a96e', fontStyle: 'bold' }).setOrigin(0.5);
     const warn = 0xff3b1f;
     return [
+      { title: 'THE GOAL',
+        body: `${N.enemies.megaboss} has drunk the well dry. Descend to ${N.stage.toLowerCase()} ${FINAL_SECTOR}, the bottom of the well, and slay him to bring the water back. Every boss you beat on the way returns a little water, even if the run is lost. Fill the well and the game is won.`,
+        draw: (cx, cy) => {
+          const gr = g();
+          img(`${CHARS.megaboss}-front`, cx - 84, cy - 6, 84);
+          label(cx - 84, cy + 54, N.enemies.megaboss, '#ffb38a', 10);
+          gr.fillStyle(0x2a0f04, 1); gr.fillRect(cx + 4, cy - 44, 112, 76);
+          gr.fillStyle(0x1f8f80, 0.9); gr.fillRect(cx + 4, cy + 2, 112, 30);
+          gr.lineStyle(2, 0xc8a96e, 0.9); gr.strokeRect(cx + 4, cy - 44, 112, 76);
+          gr.lineStyle(1.5, 0xbff5ea, 0.7); gr.lineBetween(cx + 4, cy + 2, cx + 116, cy + 2);
+          label(cx + 60, cy + 54, 'the well fills as you win', '#9fe8d8', 9);
+        } },
       { title: 'MOVE · FIGHT',
         body: (touch ? `Drag anywhere to move - ${N.player} follows your finger.` : 'Move with WASD or the arrow keys (or click and drag).') +
               ` Attacks are automatic: ${N.player} strikes the nearest enemy in range. Your whole job is where you stand.`,
@@ -1775,9 +1846,9 @@ class LootScene extends Phaser.Scene {
           label(cx - 100, cy + 62, 'ring', '#ff8a70'); label(cx, cy + 68, 'line', '#ff8a70'); label(cx + 104, cy + 62, 'scatter', '#ff8a70');
         } },
       { title: N.supercharge.toUpperCase(),
-        body: (touch ? `From Sector 2, a meter fills as you fight - faster with every kill. When it is full, tap the glowing ${N.supercharge.toUpperCase()} button` : `From Sector 2, a meter fills as you fight - faster with every kill. When it is full, press Space (or click the ${N.supercharge.toUpperCase()} button)`) +
+        body: (touch ? `From ${N.stage.toLowerCase()} 2, a meter fills as you fight - faster with every kill. When it is full, tap the glowing ${N.supercharge.toUpperCase()} button` : `From ${N.stage.toLowerCase()} 2, a meter fills as you fight - faster with every kill. When it is full, press Space (or click the ${N.supercharge.toUpperCase()} button)`) +
               ' for six seconds of power. The form follows your weapon: fire novas, a poison cloud, a blood drain, chain lightning or executing slams.' +
-              (session.tejasUnlocked ? '' : ' (Not awakened yet - reach Sector 2.)'),
+              (session.tejasUnlocked ? '' : ` (Not awakened yet - reach ${N.stage.toLowerCase()} 2.)`),
         draw: (cx, cy) => {
           const gr = g(), bx = cx - 70;
           gr.fillStyle(0x5c2a05, 1); gr.fillCircle(bx, cy, 30);
@@ -1790,12 +1861,12 @@ class LootScene extends Phaser.Scene {
           label(cx + 70, cy + 72, `${TEJAS_FORMS.none.name} - fire nova`, '#ff8c42', 8);
         } },
       { title: 'EXTRACT OR DESCEND',
-        body: `Beat a sector's boss and choose: Extract to bank all your ${N.currency} and end the run, or Descend for tougher fights, better loot and new powers. Fall down there and you keep only half. ${N.currency} buys Vitality and Power at the hub - but deep sectors hit hard enough that upgrades alone won't carry you.`,
+        body: `Beat a ${N.stage.toLowerCase()}'s boss and choose: Extract to bank all your ${N.currency} and end the run, or Descend toward ${N.enemies.megaboss}. Fall down there and you keep only half. ${N.currency} buys Vitality and Power on the title screen - but the deeper ${N.stage.toLowerCase()}s hit hard enough that upgrades alone won't carry you.`,
         draw: (cx, cy) => {
           this.ov(this.add.rectangle(cx, cy - 30, 230, 40, 0x3a1a08, 1).setStrokeStyle(1.5, FORGE.bronze, 0.9), 102);
           label(cx, cy - 30, 'Extract - bank & end run', '#fffbef', 11);
           this.ov(this.add.rectangle(cx, cy + 22, 230, 40, 0x7a3a0a, 1).setStrokeStyle(1.5, FORGE.gold, 0.9), 102);
-          label(cx, cy + 22, 'Descend to Sector 2', '#ffd23c', 11);
+          label(cx, cy + 22, `Descend to ${N.stage} 2`, '#ffd23c', 11);
           label(cx, cy + 62, 'deeper = richer and deadlier', '#8a7360', 9);
         } }
     ];
@@ -2286,6 +2357,18 @@ class LootScene extends Phaser.Scene {
       g.lineStyle(1, wellColour(d, 1.3), 0.55);
       g.strokePoints(O, true);
     }
+    // The water that has been won back: a pool rising from the bottom of the shaft. Dry
+    // at first, so the molten floor shows; full, and it reaches the fourth tier.
+    const fill = Math.min(1, (session.water || 0) / WELL_FULL);
+    if (fill > 0) {
+      const r = 72 + 118 * fill, d = Math.log(r / WELL.size) / Math.log(WELL.k);
+      const pool = corners(r, d * WELL.twist + sway);
+      g.fillStyle(0x1f8f80, 0.8); g.fillPoints(pool, true);
+      g.lineStyle(2, 0xbff5ea, 0.55); g.strokePoints(pool, true);
+      const ripple = 0.55 + 0.25 * ((time / 2600) % 1);
+      g.lineStyle(1.5, 0xbff5ea, 0.5 * (1 - (time / 2600) % 1));
+      g.strokePoints(corners(r * ripple, d * WELL.twist + sway), true);
+    }
     this.menu.embers.tilePositionY += 0.5;
   }
 
@@ -2480,7 +2563,9 @@ class LootScene extends Phaser.Scene {
     };
     say(cx, 84, GAME_TITLE, { fontSize: '54px', color: '#ffd23c', display: true,
       shadow: { offsetX: 0, offsetY: 3, color: '#5c2a05', blur: 8, fill: true } });
-    say(cx, 128, 'auto-battle · collect loot · descend deeper', { fontSize: '12px', color: '#e8c690' });
+    // The goal, in the first thing a player reads.
+    say(cx, 136, `${N.enemies.megaboss} has drunk the well dry.\nDescend ${['no', 'one', 'two', 'three', 'four', 'five'][FINAL_SECTOR] || FINAL_SECTOR} ${N.stage.toLowerCase()}s and take the water back.`,
+      { fontSize: '13px', color: '#fffbef', align: 'center', lineSpacing: 3, stroke: '#2a0800', strokeThickness: 3 });
 
     // The way in sits at the bottom of the well: you press the light you are falling toward.
     const ring = this.add.circle(cx, cy, 60, 0x000000, 0).setStrokeStyle(2, FORGE.gold, 0.8);
@@ -2493,7 +2578,8 @@ class LootScene extends Phaser.Scene {
     say(cx, cy - 5, 'DESCEND', { fontSize: '19px', color: '#fffbef', fontStyle: 'bold' });
     say(cx, cy + 16, 'start a run', { fontSize: '10px', color: '#ffe9a0' });
 
-    say(cx, 436, session.bestSector ? `Deepest descent: Sector ${session.bestSector}` : 'No descent yet', { fontSize: '11px', color: '#c8a96e' });
+    say(cx, 436, (session.bestSector ? `Deepest: ${N.stage} ${session.bestSector}` : 'No descent yet') + `  ·  ${wellLine()}`,
+      { fontSize: '11px', color: session.water > 0 ? '#9fe8d8' : '#c8a96e' });
     say(cx, 460, `${N.currency}: ${session.metaGold}`, { fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' });
 
     // Exponential, not linear: linear costs let Vitality outgrow every sector. Levels
@@ -2510,7 +2596,7 @@ class LootScene extends Phaser.Scene {
       const can = session.metaGold >= cost;
       this.uiObjects.push(this.add.rectangle(x, 530, 178, 96, FORGE.deep, 0.9).setStrokeStyle(1.5, can ? FORGE.gold : FORGE.bronze, can ? 0.9 : 0.4));
       say(x, 497, name, { fontSize: '11px', color: '#c8a96e', fontStyle: 'bold' });
-      say(x, 515, `Lv. ${level}  ·  ${effect}`, { fontSize: '12px', color: '#fffbef' });
+      say(x, 515, `Rank ${level}  ·  ${effect}`, { fontSize: '12px', color: '#fffbef' });
       this.makeButton(x, 550, 152, 32, `${cost} ${N.currency}`, can ? BTN.plain : BTN.off, buy(cost, key),
         { sound: null, size: 14, color: can ? '#fffbef' : '#8a7360' });
     };
@@ -2518,7 +2604,7 @@ class LootScene extends Phaser.Scene {
     card(296, 'POWER', session.powerLevel, `+${session.powerLevel * 8}% damage`, powCost, 'powerLevel');
 
     const locked = this.lockedPowerCount();
-    say(cx, 598, locked > 0 ? `${locked} powers still locked — descend to find them` : 'all powers unlocked',
+    say(cx, 598, locked > 0 ? `${locked} power${locked === 1 ? '' : 's'} still locked — descend to find them` : 'all powers unlocked',
       { fontSize: '11px', color: locked > 0 ? '#ffd23c' : '#8a7360' });
     const small = (x, label, fn) => this.makeButton(x, 634, 88, 34, label, BTN.quiet, fn, { size: 11 });
     small(59,  'POWERS',      () => this.showCodex());
@@ -2554,7 +2640,7 @@ class LootScene extends Phaser.Scene {
     // A backing panel keeps the text readable over the rangoli floor.
     this.uiObjects.push(this.add.rectangle(b.centerX, b.centerY, b.width, b.height, FORGE.deep, 0.78));
     this.uiObjects.push(this.add.text(W/2, 30, 'POWERS', { resolution: RES, fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
-    this.uiObjects.push(this.add.text(W/2, 56, `found in the depths · best sector ${reached}`, { resolution: RES, fontSize: '11px', color: '#c8a96e' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, 56, `found in the depths · deepest ${N.stage.toLowerCase()} ${reached}`, { resolution: RES, fontSize: '11px', color: '#c8a96e' }).setOrigin(0.5));
 
     const tabs = [['weapons', 'WEAPONS'], ['trinkets', 'TRINKETS'], ['tejas', N.supercharge.toUpperCase()]];
     tabs.forEach(([key, label], i) => {
@@ -2590,7 +2676,7 @@ class LootScene extends Phaser.Scene {
         if (key === 'none') continue;                     // the starting Katar is not a discovery
         const unlocked = def.minSector <= reached;
         row(y, key, tint, def.label, def.meaning,
-            unlocked ? def.desc : `Locked — reaches you in Sector ${def.minSector}`, unlocked);
+            unlocked ? def.desc : `Locked — reaches you on ${N.stage.toLowerCase()} ${def.minSector}`, unlocked);
         y += step;
       }
       this.uiObjects.push(this.add.text(b.centerX, y + 6,
@@ -2600,7 +2686,7 @@ class LootScene extends Phaser.Scene {
       const on = session.tejasUnlocked;
       this.uiObjects.push(this.add.text(b.centerX, y - 22,
         on ? `Kill to charge. When full, tap ${N.supercharge.toUpperCase()} (or Space) to unleash. The form follows your weapon.`
-           : `Locked — ${N.supercharge} awakens the first time you reach Sector ${TEJAS_UNLOCK_SECTOR}.`,
+           : `Locked — ${N.supercharge} awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}.`,
         { resolution: RES, fontSize: '10px', color: on ? '#e8a868' : '#ffd23c', align: 'center',
           wordWrap: { width: b.width - 40 } }).setOrigin(0.5, 0.5));
       y += 24;
@@ -2697,7 +2783,7 @@ class LootScene extends Phaser.Scene {
     }
     this.progressMarker = this.add.triangle(this.trackStartX, trackY+16, 0,0, -6,9, 6,9, 0xffd23c);
     this.trackY = trackY;
-    this.sectorLabel = this.add.text(this.trackStartX - 14, trackY, 'S1', { resolution: RES, fontSize: '10px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(1, 0.5);
+    this.sectorLabel = this.add.text(this.trackStartX - 14, trackY, N.stage[0] + '1', { resolution: RES, fontSize: '10px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(1, 0.5);
 
     this.atkTimer = 0;
     this.attackFx = this.add.graphics();
@@ -2714,6 +2800,8 @@ class LootScene extends Phaser.Scene {
     this.pickups = [];
 
     this.runGold = 0;
+    this.runWater = 0;         // measures returned to the well this run
+    this.bossSlain = false;    // the final boss has fallen this run
     this.wave = 0;
     this.spawnQueue = [];
     this.spawnTimer = 0;
@@ -2728,11 +2816,17 @@ class LootScene extends Phaser.Scene {
   }
 
   showSectorBanner(n) {
-    const t1 = this.add.text(W/2, H/2-40, `SECTOR ${n}`, { resolution: RES, stroke: '#2a0800', strokeThickness: 4, fontSize: '14px', color: '#e8c690', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
-    const t2 = this.add.text(W/2, H/2-14, sectorTitle(n), { resolution: RES, stroke: '#2a0800', strokeThickness: 4, fontSize: '28px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
-    const t3 = this.add.text(W/2, H/2+16, sectorSub(n), { resolution: RES, stroke: '#2a0800', strokeThickness: 4, fontSize: '12px', color: '#f0dcc0' }).setOrigin(0.5).setAlpha(0);
+    const style = (size, colour, bold) => ({ resolution: RES, stroke: '#2a0800', strokeThickness: 4, fontSize: size + 'px', color: colour, fontStyle: bold ? 'bold' : 'normal' });
+    const line = (y, str, st) => this.add.text(W/2, y, str, st).setOrigin(0.5).setAlpha(0);
+    const t1 = line(H/2-46, stageLabel(n).toUpperCase(), style(14, '#e8c690', true));
+    const t2 = line(H/2-16, sectorTitle(n), style(28, '#ffd23c', true));
+    const t3 = line(H/2+14, sectorSub(n), style(12, '#f0dcc0'));
+    // Every level says how far the goal is.
+    const boss = N.enemies.megaboss;
+    const where = n < FINAL_SECTOR ? `${boss} waits ${levelsBelow(n)}` : n === FINAL_SECTOR ? `${boss} waits at the bottom of this ${N.stage.toLowerCase()}` : '';
+    const t4 = line(H/2+38, where, style(12, '#ffb38a'));
     this.clearBanner();
-    this.banner = [t1, t2, t3];
+    this.banner = [t1, t2, t3, t4];
     this.banner.forEach(t => {
       this.tweens.add({ targets: t, alpha: 1, duration: 300, hold: 1500, yoyo: true, onComplete: () => t.destroy() });
     });
@@ -2752,7 +2846,7 @@ class LootScene extends Phaser.Scene {
       if (i < this.wave-1) node.fillColor = 0x2fbf71;
       else if (i === this.wave-1) node.fillColor = 0xffd23c;
     });
-    if (this.sectorLabel) this.sectorLabel.setText('S' + this.sector);
+    if (this.sectorLabel) this.sectorLabel.setText(N.stage[0] + this.sector);
   }
 
   nextWave() {
@@ -3169,7 +3263,7 @@ class LootScene extends Phaser.Scene {
     this.player.flashTimer = Math.max(150, kind !== 'slam' ? IFRAMES_MS : 0);
     this.hitFeedback(amount, source, kind);
     if (this.player.hp > 0 && this.player.hp < this.player.maxHp * 0.3) {
-      this.hint('lowhp', 'Low HP! Keep your distance. Beating a sector boss restores 35% of your health.');
+      this.hint('lowhp', `Low HP! Keep your distance. Beating a ${N.stage.toLowerCase()}'s boss restores 35% of your health.`);
     }
     if (this.player.hp <= 0) {
       this.player.hp = 0;
@@ -3253,6 +3347,11 @@ class LootScene extends Phaser.Scene {
       this.spawnLootPickup(enemy.x, enemy.y, 'epic');
       this.spawnLootPickup(enemy.x + 24, enemy.y, 'epic');
       this.showToast(`${N.enemies[enemy.isMega ? 'megaboss' : 'sectorboss'].toUpperCase()} FALLS`, '#2fbf71');
+      const water = enemy.isMega ? WATER.final : WATER.boss;
+      this.runWater += water;
+      session.water = Math.min(WELL_FULL, (session.water || 0) + water);
+      if (enemy.isMega) { this.bossSlain = true; session.wins = (session.wins || 0) + 1; }
+      saveSession();
       this.time.delayedCall(1000, () => { if (this.state === 'playing') this.showSectorClearChoice(enemy.isMega); });
       return;
     }
@@ -3370,19 +3469,47 @@ class LootScene extends Phaser.Scene {
   }
 
   showSectorClearChoice(isMega) {
+    if (isMega) return this.showVictory();
     this.state = 'sectorChoice';
     this.clearUI();
     this.playMusic('hub');   // the decision is a breath between fights
-    this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 300, FORGE.deep, 0.97).setStrokeStyle(2, 0x2fbf71));
-    this.uiObjects.push(this.add.text(W/2, H/2-115, isMega ? `${N.enemies.megaboss.toUpperCase()} FALLS` : 'SECTOR CLEARED', { resolution: RES, fontSize: '19px', color: '#2fbf71', fontStyle: 'bold' }).setOrigin(0.5));
-    this.uiObjects.push(this.add.text(W/2, H/2-80, `${sectorTitle(this.sector)} · Sector ${this.sector} complete`, { resolution: RES, fontSize: '13px', color: '#fffbef' }).setOrigin(0.5));
-    this.uiObjects.push(this.add.text(W/2, H/2-55, `${N.currency} carried: ${this.runGold}`, { resolution: RES, fontSize: '13px', color: '#ffd23c' }).setOrigin(0.5));
-    this.uiObjects.push(this.add.text(W/2, H/2-15,
-      'Extract now and bank all of it,\nor descend for tougher fights and\nbetter loot. Fall, and half is lost.',
-      { resolution: RES, fontSize: '12px', color: '#c8a96e', align: 'center', lineSpacing: 4 }).setOrigin(0.5));
+    const say = (y, str, size, colour) => this.uiObjects.push(this.add.text(W/2, y, str,
+      { resolution: RES, fontSize: size + 'px', color: colour, align: 'center', lineSpacing: 4 }).setOrigin(0.5));
+    this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 320, FORGE.deep, 0.97).setStrokeStyle(2, 0x2fbf71));
+    this.uiObjects.push(this.add.text(W/2, H/2-125, `${N.stage.toUpperCase()} CLEARED`, { resolution: RES, fontSize: '19px', color: '#2fbf71', fontStyle: 'bold' }).setOrigin(0.5));
+    const ahead = this.sector < FINAL_SECTOR ? ` ${N.enemies.megaboss} waits ${levelsBelow(this.sector)}.` : '';
+    say(H/2-92, `${sectorTitle(this.sector)} is cleared.${ahead}`, 13, '#fffbef');
+    say(H/2-68, `+${WATER.boss} water for the well  ·  ${wellLine()}`, 12, '#9fe8d8');
+    say(H/2-44, `${N.currency} carried: ${this.runGold}`, 13, '#ffd23c');
+    say(H/2-2, 'Extract now and bank all of it,\nor descend for tougher fights and\nbetter loot. Fall, and half is lost.', 12, '#c8a96e');
 
-    this.makeButton(W/2, H/2+65, 230, 46, 'Extract — Bank & End Run', BTN.quiet, () => this.endRun(true));
-    this.makeButton(W/2, H/2+120, 230, 46, `Descend to Sector ${this.sector+1}`, BTN.primary, () => this.descend(), { stroke: FORGE.gold });
+    this.makeButton(W/2, H/2+72, 230, 46, 'Extract — Bank & End Run', BTN.quiet, () => this.endRun(true));
+    this.makeButton(W/2, H/2+126, 230, 46, `Descend to ${N.stage} ${this.sector+1}`, BTN.primary, () => this.descend(), { stroke: FORGE.gold });
+  }
+
+  // The ending. The final boss is dead, so the run has been won whatever happens next;
+  // surfacing banks everything, and the endless depths below are there for those who
+  // want more.
+  showVictory() {
+    this.state = 'sectorChoice';
+    this.clearUI();
+    this.playMusic('hub');
+    const full = session.water >= WELL_FULL, firstFull = full && !session.wellFullSeen;
+    if (firstFull) { session.wellFullSeen = true; saveSession(); }
+    const say = (y, str, size, colour) => this.uiObjects.push(this.add.text(W/2, y, str,
+      { resolution: RES, fontSize: size + 'px', color: colour, align: 'center', lineSpacing: 4 }).setOrigin(0.5));
+    this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 360, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold));
+    this.uiObjects.push(this.add.text(W/2, H/2-142, firstFull ? 'THE WELL IS FULL' : 'THE WATERS RETURN',
+      { resolution: RES, fontSize: '23px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
+    say(H/2-104, firstFull
+      ? `Every drop ${N.enemies.megaboss} took is back in the well.\nYou have finished the game. Thank you for playing.`
+      : `${N.enemies.megaboss} is slain, and the water he hoarded\nrises through the well again.`, 13, '#fffbef');
+    say(H/2-62, `+${this.runWater} water this run  ·  ${wellLine()}`, 13, '#9fe8d8');
+    say(H/2-36, `${N.currency} carried: ${this.runGold}`, 13, '#ffd23c');
+    say(H/2+6, `Surface now and bank all of it,\nor go on into ${N.deeper[0]}, the endless depths.\nFall there, and half is lost.`, 12, '#c8a96e');
+
+    this.makeButton(W/2, H/2+84, 240, 46, 'Surface — Bank & End Run', BTN.primary, () => this.endRun(true), { stroke: FORGE.gold });
+    this.makeButton(W/2, H/2+138, 240, 46, `Descend into ${N.deeper[0]}`, BTN.quiet, () => this.descend());
   }
 
   // ---------- END OF RUN ----------
@@ -3398,19 +3525,34 @@ class LootScene extends Phaser.Scene {
     if (this.sector > (session.bestSector || 0)) session.bestSector = this.sector;
     saveSession();
 
-    this.clearUI();
-    this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 280, FORGE.deep, 0.97).setStrokeStyle(2, victory ? 0x2fbf71 : 0xff5c5c));
-    this.uiObjects.push(this.add.text(W/2, H/2-100, victory ? 'EXTRACTED SAFELY' : (abandoned ? 'RUN ABANDONED' : 'YOU FELL'), { resolution: RES, fontSize: '24px', color: victory ? '#2fbf71' : '#ff5c5c', fontStyle: 'bold' }).setOrigin(0.5));
-    this.uiObjects.push(this.add.text(W/2, H/2-58, `Sector reached: ${this.sector}`, { resolution: RES, fontSize: '15px', color: '#fffbef' }).setOrigin(0.5));
-    if (victory) {
-      this.uiObjects.push(this.add.text(W/2, H/2-28, `${N.currency} banked: ${banked}`, { resolution: RES, fontSize: '15px', color: '#ffd23c' }).setOrigin(0.5));
-    } else {
-      this.uiObjects.push(this.add.text(W/2, H/2-32, `${N.currency} gathered: ${this.runGold}`, { resolution: RES, fontSize: '15px', color: '#ffd23c' }).setOrigin(0.5));
-      this.uiObjects.push(this.add.text(W/2, H/2-10, abandoned ? `Half is forfeit. You keep ${banked}.` : `Half is lost in the fall. You keep ${banked}.`, { resolution: RES, fontSize: '12px', color: '#ff9a80' }).setOrigin(0.5));
-    }
-    this.uiObjects.push(this.add.text(W/2, H/2+20, `Treasury: ${session.metaGold} ${N.currency}`, { resolution: RES, fontSize: '13px', color: '#c8a96e' }).setOrigin(0.5));
+    // How close the player came: the strongest reason to try again.
+    const bossName = N.enemies.megaboss, where = `${sectorTitle(this.sector)}, ${stageLabel(this.sector).toLowerCase()}`;
+    const finalBoss = this.enemies.find(e => e.isMega);
+    let near;
+    if (this.bossSlain) near = `${bossName} is slain.`;
+    else if (finalBoss) near = `${bossName} had ${Math.max(1, Math.round(100 * finalBoss.hp / finalBoss.maxHp))}% health left.`;
+    else if (this.sector === FINAL_SECTOR) near = `${bossName} was waiting at the bottom of this ${N.stage.toLowerCase()}.`;
+    else near = `${bossName} waits ${levelsBelow(this.sector)}.`;
 
-    this.makeButton(W/2, H/2+80, 200, 48, 'Continue to Hub', BTN.primary, () => {
+    this.clearUI();
+    const say = (y, str, size, colour) => this.uiObjects.push(this.add.text(W/2, y, str,
+      { resolution: RES, fontSize: size + 'px', color: colour }).setOrigin(0.5));
+    this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 336, FORGE.deep, 0.97).setStrokeStyle(2, victory ? 0x2fbf71 : 0xff5c5c));
+    this.uiObjects.push(this.add.text(W/2, H/2-132,
+      victory ? (this.bossSlain ? `${bossName.toUpperCase()} SLAIN` : 'EXTRACTED SAFELY') : (abandoned ? 'RUN ABANDONED' : 'YOU FELL'),
+      { resolution: RES, fontSize: '24px', color: victory ? '#2fbf71' : '#ff5c5c', fontStyle: 'bold' }).setOrigin(0.5));
+    say(H/2-96, victory ? `You surfaced from ${where}.` : (abandoned ? `You turned back in ${where}.` : `You fell in ${where}.`), 13, '#fffbef');
+    say(H/2-74, near, 13, this.bossSlain ? '#9fe8d8' : '#ffb38a');
+    if (victory) {
+      say(H/2-40, `${N.currency} banked: ${banked}`, 15, '#ffd23c');
+    } else {
+      say(H/2-44, `${N.currency} gathered: ${this.runGold}`, 15, '#ffd23c');
+      say(H/2-22, abandoned ? `Half is forfeit. You keep ${banked}.` : `Half is lost in the fall. You keep ${banked}.`, 12, '#ff9a80');
+    }
+    say(H/2+4, `Treasury: ${session.metaGold} ${N.currency}`, 13, '#c8a96e');
+    say(H/2+30, this.runWater > 0 ? `Water returned: +${this.runWater}  ·  ${wellLine()}` : `No water returned  ·  ${wellLine()}`, 12, '#9fe8d8');
+
+    this.makeButton(W/2, H/2+88, 200, 48, 'Continue to Hub', BTN.primary, () => {
       // clean up run visuals
       if (this.playerSprite) { this.playerSprite.destroy(); this.playerSprite = null; }
       if (this.playerRing) this.playerRing.destroy();
@@ -3450,7 +3592,7 @@ class LootScene extends Phaser.Scene {
       this.showHub();
     });
     // The end of a run is when a player has something to say.
-    this.makeButton(W/2, H/2+120, 150, 24, 'Send feedback', BTN.off, () => Feedback.open(), { size: 11, color: '#c8a96e' });
+    this.makeButton(W/2, H/2+136, 150, 24, 'Send feedback', BTN.off, () => Feedback.open(), { size: 11, color: '#c8a96e' });
   }
 
   // ---------- MAIN LOOP ----------
@@ -3856,7 +3998,7 @@ class LootScene extends Phaser.Scene {
     this.hpBarFill.fillColor = hpPct > 0.5 ? 0x2fbf71 : (hpPct > 0.25 ? 0xffd23c : 0xff5c5c);
 
     // --- HUD text ---
-    this.hudText.setText(`Sector ${this.sector} · Wave ${Math.min(this.wave,5)}/5   ${N.currency}: ${this.runGold}`);
+    this.hudText.setText(`${stageLabel(this.sector)} · Wave ${Math.min(this.wave,5)}/5   ${N.currency}: ${this.runGold}`);
     this.weaponText.setText(`${this.player.weapon.name}${this.player.weapon.shots>1 ? ' x'+this.player.weapon.shots : ''}   ${Math.ceil(this.player.hp)}/${Math.ceil(this.player.maxHp)} HP`);
   }
 }
