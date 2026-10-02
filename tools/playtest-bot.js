@@ -119,6 +119,11 @@
 
   function beginRun(profile) {
     const s = S();
+    // Never start on top of a run that is still alive (paused, mid-fight, or waiting on
+    // the sector-clear choice): its HUD would be orphaned and show up as a phantom leak.
+    if (s.overlay && s.overlay.length) s.closeOverlay();
+    if (s.state === 'paused') s.resumeGame();
+    if (s.state === 'playing' || s.state === 'sectorChoice') s.endRun(false);
     if (s.state === 'summary') press('Continue to Hub');
     Object.assign(session, { vitalityLevel: profile.vit, powerLevel: profile.pow });
     if ('tejasUnlocked' in session) session.tejasUnlocked = !!profile.tejas;
@@ -189,6 +194,7 @@
 
   window.PlaytestBot = {
     start(profiles) {
+      if (typeof Loader !== 'undefined' && Loader.state === 'ready') Loader.begin();   // past the loading screen
       backup = localStorage.getItem('loot-chase-session-v1');
       queue = profiles.map(p => Object.assign({ capMin: 30, tejas: false }, p));
       results = []; errors = []; baseline = null;

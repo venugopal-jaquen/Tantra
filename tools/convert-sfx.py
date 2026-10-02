@@ -43,6 +43,7 @@ MAP = {
     "bolt":          ("kenney_rpg-audio",        "drawKnife3"),
     "slam-warn":     ("kenney_interface-sounds", "bong_001"),
     "slam-land":     ("kenney_impact-sounds",    "impactSoft_heavy_003"),
+    "phase":         ("kenney_impact-sounds",    "impactPlate_heavy_001"),
     "shield-break":  ("kenney_impact-sounds",    "impactGlass_heavy_000"),
     "loot-tamra":    ("kenney_impact-sounds",    "impactTin_medium_000"),
     "loot-rajat":    ("kenney_interface-sounds", "glass_001"),

@@ -71,7 +71,7 @@ Sources: https://kenney.nl/assets/impact-sounds · https://kenney.nl/assets/inte
 https://kenney.nl/assets/rpg-audio (downloaded 2026-09-27)
 License: **CC0 1.0 Universal (Public Domain)** — commercial use, no attribution required.
 
-36 of the ~280 sounds are shipped. Each one was mixed to mono, had its leading silence
+37 of the ~280 sounds are shipped. Each one was mixed to mono, had its leading silence
 trimmed and its tail faded, was peak-normalised to -1 dBFS, and was written as 16-bit
 WAV (older iOS Safari cannot play the packs' Ogg Vorbis). Total size is 1.4 MB. The raw
 zips sit in `incoming/` and are gitignored.
@@ -94,10 +94,41 @@ zips sit in `incoming/` and are gitignored.
 | kavach | impactMetal_medium_000 | | thud | impactWood_heavy_002 |
 | bolt | drawKnife3 | | boom | impactSoft_heavy_001 |
 | slam-warn | bong_001 | | slam-land | impactSoft_heavy_003 |
-| shield-break | impactGlass_heavy_000 | | | |
+| shield-break | impactGlass_heavy_000 | | phase | impactPlate_heavy_001 |
 
 `tools/convert-sfx.py` regenerates `sfx/` from fresh downloads. Change the `MAP` there to
 swap any sound.
+
+## Typefaces
+
+| Face | Used for | By | Licence |
+|---|---|---|---|
+| **Yatra One** | titles, toasts, banners, large buttons | Catharsis Fonts — https://github.com/cathschmidt/yatra-one | SIL Open Font License 1.1 |
+| **Baloo 2** | all other text | Ek Type — https://github.com/EkType/Baloo2 | SIL Open Font License 1.1 |
+
+Both licences allow commercial use and embedding. The faces are loaded from Google Fonts
+today (`fonts.googleapis.com`); for the itch.io build they should be self-hosted in
+`game/assets/fonts/` with their `OFL.txt` files alongside.
+
+## Music (`music/`) — not in the repo yet
+
+Chosen by the founder on 2026-10-02 from Pixabay (https://pixabay.com/service/license-summary/:
+free for commercial use, no attribution required, no standalone redistribution). Neither
+track is registered with YouTube Content ID, checked the same day.
+
+| Game file | Track | Artist | Source |
+|---|---|---|---|
+| `hub.mp3` | Sitar and Tanpura - Indian style BGM | ShidenBeatsMusic | https://pixabay.com/music/india-sitar-and-tanpura-indian-style-bgm-22000/ |
+| `combat.mp3` | Indian | Rockot | https://pixabay.com/music/india-indian-559394/ |
+| `boss.mp3` | *not chosen* | | |
+
+Pixabay refuses automated downloads, so these are downloaded by hand into
+`incoming/music/` (gitignored) and prepared by `tools/convert-music.py`, which trims
+silence, levels the loudness and re-encodes. Record the download date here when they land.
+
+**Rejected:** *The Descent of Hanuman* (Openly). It is Content ID registered, which would put
+a copyright claim on every video a streamer makes of the game, and it is tagged
+devotional/bhakti, which `docs/requirements.md` §1.3 rules out.
 
 ## Kenney — background (`bg-stars.png`)
 

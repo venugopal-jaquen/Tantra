@@ -32,6 +32,8 @@ Features the founder has deliberately **parked** — agreed, but not to be built
 | P4 | **Commission custom Indian art** | 2026-09-24 | Replace the CraftPix European-fantasy roster with commissioned art that carries the Indian identity visually, not just by name. Est. ₹3,000–8,000 (`requirements.md` §2.13). | Only once the itch.io release shows the game has an audience. |
 | P5 | **Full visual-story polish** | 2026-09-24 | A broader art and narrative pass across the whole game. | Explicitly tied to the game reaching "critical mass". |
 | P6 | **Real-device performance check** — ▶ *due, see L8* | 2026-09-24 | Profile on an actual mid-range Android and an iPhone. `RES` caps the canvas at 3× (1200×2100 buffer), untested on budget hardware. | Should happen **before** the itch.io launch, not after — this one is a pre-launch gate, not a someday item. |
+| P7 | **Bhagya chart** | 2026-10-02 | A chart cast at the start of each run: four boons, one tied to each Cosmic Cycle phase (for example, "during Grahan, kills heal"). Shown in full up front so the player plans around it, and switched on one boon at a time at each Extract/Descend screen, which is one more reason to Descend. It is our answer to Asura's procedural skill tree, whose known weakness was that a run's strength depended on the luck of the deal. Named *Bhagya* (fortune): "Kundali" was avoided because astrology is a living practice and the planets are worshipped. | After itch.io (founder, 2026-10-02). It deepens the Cosmic Cycle and needs real players' feedback on the base game first. |
+| P8 | **Boss-kill perks** | 2026-10-02 | The first kill of Bakasura, Nidhi-Raksha and Vritra each unlocks one permanent perk the player can equip, after Asura: Vengeance Edition's "Chakra" system. It rewards skill, where the Vitality and Power upgrades reward accumulated Nidhi. | After itch.io (founder, 2026-10-02). |
 
 ## 1.2 Launch track — itch.io POC (added 2026-09-27)
 
@@ -39,20 +41,20 @@ Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the cond
 
 | # | Item | State today | Done when |
 |---|---|---|---|
-| L1 | **Game name** | Undecided. The game says "Loot Chase" (generic, pre-pivot); the repo says "Tantra" — which reads as sexual/new-age to a Western audience and is a religious practice term (the reason Kalachakra was cut). | A name is chosen. Blocks L2 and L9 — the title screen, store page and cover art all carry it. |
-| L2 | **Title / welcome screen** (= P1) | The hub is a plain menu still in the pre-pivot purple (`#c77dff`, `0x7c3fff`); `index.html` is the old sci-fi redirect page. The hub has no in-game name. | A Cosmic Forge title screen with the name, art and a Start that leads into the hub; the hub restyled to match. |
+| L1 | **Game name** | **Working title: Anantarya** (founder, 2026-10-02: "will give name later"). One constant, `GAME_TITLE`, renames the loader, hub and browser tab; `index.html` carries its own copy. Earlier candidates: "Loot Chase" (generic, pre-pivot) and the repo name "Tantra" (reads as sexual/new-age to a Western audience, and is a religious practice term). One caution on the working title is logged in `requirements.md` §1.7. | A final name is chosen. It still blocks L2's art and L9's store page. |
+| L2 | **Title / welcome screen** (= P1) | ⏳ **Partly done 2026-10-02.** The hub now carries the title in the new display face and the pre-pivot purple is gone from every screen; `index.html` is restyled. Still a plain menu, and the hub has no in-game name. | A Cosmic Forge title screen with the name, art and a Start that leads into the hub. |
 | L3 | **How to play** | ✅ **Built 2026-09-27**: seven illustrated cards (`requirements.md` §2.12.2). | A help page reachable from the title and the hub. |
 | L4 | **First-run tutorial** (= P3) | ✅ **Built 2026-09-27**: 14 one-time live tips, skippable (§2.12.1). | Wave 1 of a player's first run teaches movement, loot, the satchel and slams live. |
-| L5 | **Audio** | ⏳ **SFX built 2026-09-27** (36 Kenney CC0 sounds). The music system is built; **waiting on the founder's track picks** (§2.16). | Free SFX (hits, slams, pickups, Tejas) plus an Indian-flavoured loop (tanpura/tabla), with a mute toggle. |
+| L5 | **Audio** | ⏳ **SFX done** (37 Kenney CC0 sounds; each slam shape has its own warning rhythm). **Music engine done and tested with stand-ins** (`requirements.md` §2.16): streamed, crossfaded, coloured by the Cosmic Cycle. Hub and combat tracks are chosen and **wait on the founder to download them** (the site refuses automated downloads). **Boss track: none yet**, because the first pick was Content ID registered. | Free SFX (hits, slams, pickups, Tejas) plus Indian-flavoured music, with a mute toggle. |
 | L6 | **Pause + settings** | ✅ **Built 2026-09-27** (§2.17). | Pause mid-run (essential on mobile), mute, and a "reset save" with a confirmation step. |
-| L7 | **Loading screen** | The canvas is blank while assets load. | A branded loader with a progress bar. |
+| L7 | **Loading screen** | ✅ **Built 2026-10-02**: one glossary card per load, with a copper-silver-gold progress bar and a Begin button (`requirements.md` §2.19). | A branded loader with a progress bar. |
 | L8 | **Real-device check** (= P6) | Untested on a real phone. | Profiled on a mid-range Android and an iPhone; the frame rate holds with a full arena. |
-| L9 | **itch.io page** | Nothing. | Zipped build, embed size set, mobile-friendly flag, fullscreen button, cover image (630×500), 3–5 screenshots, a short GIF, description, tags, credits. Released **free**: no money changes hands, so the GST/CA question waits. |
+| L9 | **itch.io page** | Nothing. To carry into it: **self-host the two typefaces and the engine** in the zip (both load from CDNs today); itch.io asks creators to **disclose generative-AI content**, which covers this project's AI-assisted code and any AI-generated music; give the chosen tracks **in-world names** for the credits and store page, as Asura did. | Zipped build, embed size set, mobile-friendly flag, fullscreen button, cover image (630×500), 3–5 screenshots, a short GIF, description, tags, credits. Released **free**: no money changes hands, so the GST/CA question waits. |
 | L10 | **Feedback loop** | Nothing. | An in-game "Send feedback" link, and itch.io analytics watched for the first two weeks. |
 
 **Not needed for the POC:** P2 (look-builder), P4 (commissioned art), P5 (visual-story polish), M8 (narrative), M9 (capstone boss). These wait on the itch.io response, as the "prove it, then invest" rule in `launch-roadmap.md` says.
 
-**Immediate priority: the launch track (§1.2), starting with L1 (the name).** M7 is effectively closed for the POC; its remainder is L2 plus the post-launch P4.
+**Immediate priority: the launch track (§1.2).** Open as of 2026-10-02: the music files and a boss track (L5), the final name (L1), the title screen (L2), the real-device check (L8), then the itch.io page (L9) and feedback link (L10). M7 is effectively closed for the POC; its remainder is L2 plus the post-launch P4.
 
 ---
 

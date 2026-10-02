@@ -41,8 +41,12 @@ Kept so a reversal is never mistaken for drift or an error.
 | 2026-09-24 | **"Cut Light" → "Cosmic Forge."** §2.10 rewritten. | "Cut Light" rejected as too dark and generic — dark background with purple/cyan accents reads as every other indie roguelite (Hades, Dead Cells). Warm amber/gold chosen instead. A first Cosmic Forge pass on `#170A00` was *also* rejected as still too dark; the background was brightened to saffron-amber. |
 | 2026-09-24 | **Abstract shapes rejected outright.** | Polygons cannot carry an Indian-themed identity. Real sprites now required; sourcing unresolved (§2.12). |
 | 2026-09-24 | **Roster naming audit.** Yaksha → Rakshasa, Dwarapal → Bakasura, Kalachakra → Vritra, Bheda → Raktabija. | Founder flagged that Yaksha is not evil. The audit found two more beings revered in living traditions (Dwarapala temple guardians; Kalachakra, a major Vajrayana Buddhist tantra and deity) — casting them as villains risks offending the very audience the Indian identity targets. See §2.12. |
+| 2026-10-02 | **Working title: Anantarya.** | The founder's placeholder until the final name is chosen (launch track L1). One constant, `GAME_TITLE`, renames the game. To weigh before it becomes a store name: Sanskrit *ānantarya* means "immediate succession, without interval", but in Buddhist texts *ānantarya-karma* is the term for the five gravest acts. |
+| 2026-10-02 | **Falling keeps half the run's Nidhi.** §2.5. | Death banked everything, exactly like Extract, so Descend carried no risk and the Extract/Descend choice was a fake one. The founder approved 50%. |
+| 2026-10-02 | **Typography: Yatra One + Baloo 2.** §2.18. | The founder asked for type that feels Indian. The game had been rendering in the engine's default monospace. |
+| 2026-10-02 | **Asura (2017) reviewed as a reference game.** | Outcome of a separate research session. *Adopted:* a glossary-card loading screen (§2.19). *Pinned for after itch.io:* the Bhagya chart and boss-kill perks (`design-document.md` P7, P8). *Unchanged:* the live-tip tutorial (Asura shipped a separate tutorial, players disliked it, and it was replaced with learn-as-you-play, which is what §2.12.1 already does) and the antagonists-only naming rule (stricter than Asura's, and it stays). The lesson worth keeping: Asura turned cultural ideas into mechanics instead of using them only as names. |
 
-**Provenance:** these decisions were made in a claude.ai chat on 2026-09-24, not in this repo. Recorded here so `docs/` stays the single source of truth — see `docs/design-document.md` §5 on why context living outside version control is a recurring problem.
+**Provenance:** the 2026-09-24 decisions were made in a claude.ai chat, and the 2026-10-02 Asura review in a separate Claude Code session, not in this repo. Recorded here so `docs/` stays the single source of truth — see `docs/design-document.md` §5 on why context living outside version control is a recurring problem.
 
 ---
 
@@ -69,11 +73,12 @@ Kept so a reversal is never mistaken for drift or an error.
 ### 2.4 Enemy Types
 - Melee, Ranged (kites + projectiles), Tank (slow/tanky), Splitter (splits into two on death) — each unlocked progressively by depth, permanently once unlocked.
 - Stats scale off a cumulative `depth` counter `(sector-1)*5 + wave`, not the wave-within-sector number, so difficulty never resets on Descend.
-- **Every enemy carries its Sanskrit type name above it** (2026-09-24): Asura, Yaksha, Mahish, Bheda, Dwarapal, Nidhi-Raksha, Kalachakra. Elites render theirs in caps and gold. These are *type* names, not proper nouns — the point is that the player reads them constantly during play, so the Indian identity lands through the game rather than through a menu nobody opens. Devanagari is deliberately omitted at this size: at ~8px over a moving sprite it turns to mush, and the codex already carries it.
+- **Every enemy carries its Sanskrit type name above it** (2026-09-24): Asura, Rakshasa, Mahish, Raktabija, Bakasura, Nidhi-Raksha, Vritra. Elites render theirs in caps and gold. These are *type* names, not proper nouns — the point is that the player reads them constantly during play, so the Indian identity lands through the game rather than through a menu nobody opens. Devanagari is deliberately omitted at this size: at ~8px over a moving sprite it turns to mush, and the codex already carries it.
 
 ### 2.5 Progression Structure
 - A **Sector** = 5 waves. Wave 3 spawns a **Gatekeeper** (semi-boss). Wave 6 (i.e., past wave 5) spawns a **Sector Boss**.
 - On Sector Boss defeat: present **Extract** (bank gold, end run) or **Descend** (Sector+1, harder, same shape) as an explicit, non-blocking-to-return choice screen.
+- **Falling keeps half (2026-10-02).** Extract banks all of the run's Nidhi. Dying, or abandoning from the pause menu, banks `DEATH_KEEP` = 50%, rounded down. The choice screen says so ("Fall, and half is lost"), and the run summary shows what was gathered and what was kept. Before this, death banked everything, which made Descend free.
 - Every Sector boss encounter must leave the game state clean on either choice (no leftover UI — this was a real shipped bug, now fixed, and should stay covered by manual regression testing).
 
 ### 2.6 Bosses
@@ -138,7 +143,7 @@ Governing idea: everything in this world is precious material at some stage of r
 | Enemies | Near-black crystalline ore with hot amber/orange glowing edges; glow intensity encodes threat |
 | Loot rarity | Tarnished bronze → bright gold → pure white-gold (ascending refinement). Unidentified "???" is a cold grey so it reads as alien to the ladder. |
 | Phase colours | Drift = cool cyan (the only cool thing in a warm world, so it pops), Surge = forge-orange, Eclipse = deep crimson, Convergence = blinding white |
-| Typography | Devanagari script embedded alongside Latin in the UI as an identity marker; JetBrains Mono for numerics (forge-instrument feel) |
+| Typography | Yatra One for display, Baloo 2 for text (§2.18). Both carry Devanagari and Latin in one design, so Devanagari sits beside the English as an identity marker in the same hand. (The style sheet's Syne / Inter / JetBrains Mono were replaced 2026-10-02.) |
 
 Target feeling, stated by the founder: **"rich and rewarding — treasure, wealth, loot fantasy."**
 
@@ -309,25 +314,42 @@ HP lost can exceed 100% because heals are spent along the way. Across 30+ bot ru
 - Taps on the Tejas button (or the satchel tab) no longer also walk Kiran to that spot.
 
 ### 2.16 Audio (built 2026-09-27)
-**Sound effects:** 36 sounds from three Kenney CC0 packs (Impact, Interface and RPG Audio). These are recorded sounds, which the founder chose over generated ones. They ship as mono 16-bit WAV (1.4 MB) because older iOS Safari cannot decode the packs' Ogg Vorbis. Every file has its leading silence trimmed; `knifeSlice` had 235 ms of dead air, which would have read as input lag. Every file is also peak-normalised, so the `SFX` table's per-sound `vol` is the only loudness control.
+**Sound effects:** 37 sounds from three Kenney CC0 packs (Impact, Interface and RPG Audio). These are recorded sounds, which the founder chose over generated ones. They ship as mono 16-bit WAV (1.4 MB) because older iOS Safari cannot decode the packs' Ogg Vorbis. Every file has its leading silence trimmed; `knifeSlice` had 235 ms of dead air, which would have read as input lag. Every file is also peak-normalised, so the `SFX` table's per-sound `vol` is the only loudness control.
 
 The sounds were picked by measurement (length, brightness, ring-out) because **Claude cannot hear audio; the founder's ear is the final judge.** Anything can be swapped by editing the `MAP` in the conversion script and re-running it. Design rules:
 - **Loot quality is audible.** Tamra is a tin clink, Rajat a glass chime, Swarna a bell. An unidentified drop plays a rising swell before its reveal. This follows Vampire Survivors, where pickup sounds are the addiction loop.
-- **Every slam has its own warning gong,** pitched by shape (circle / line / scatter), so the ear can tell the slam before the eye finds it (as in Hades).
+- **Every slam shape has its own warning rhythm** (`SLAM_WARN`), so the ear knows which slam is coming before the eye has found the red zone, as in Hades: one low gong for the ring, two quick high strikes for the line, three rising taps for the scatter. The first version changed only the gong's pitch per shape; a rhythm is much harder to miss.
+- **Phase changes have their own sound** (a struck metal plate). They used to share the slam gong at a lower pitch, which blurred the one sound that must never be ambiguous.
 - **Repeated sounds are kept in check.** Each gets ±4% pitch drift, and noisy sounds have a minimum gap (`gap`), so a 3-target volley or a dying swarm reads as one hit.
 - **Getting hit scales with damage.** The hurt sound's volume scales with the share of max HP lost, and slams play it lower.
 
-**Music (pending the founder's picks):** one track per mood (`hub`, `combat`, `boss`), crossfaded over 0.9s. The `MUSIC` table is empty until the founder chooses tracks by ear, and an empty entry is simply silence. Shortlist (Pixabay licence, allows use in games, no attribution required, no standalone resale):
-- **Hub:** Stardust Sitar & Tanpura · Sitar and Tanpura BGM · Ethereal Raga
-- **Combat:** Tabla Rhythmic Raga Pulse · Tabla Flute 106 · "Indian" (Rockot)
-- **Boss:** The Descent of Hanuman · Indian Rock Bollywood Epic
+**Music:** one track per mood (`hub`, `combat`, `boss`), crossfaded over 0.9 s.
 
-Rules for the picks: **no vocals or mantras** (the rule that cut Kalachakra), a clean loop point, and **no Content ID registration**, because every streamer who plays the game would otherwise get a claim.
+| Mood | Track | Status |
+|---|---|---|
+| Hub | *Sitar and Tanpura - Indian style BGM*, ShidenBeatsMusic (0:51) | Chosen 2026-10-02. Not Content ID registered. **Waiting on the founder to download it.** |
+| Combat | *Indian*, Rockot (2:55) | Chosen 2026-10-02. Not Content ID registered. **Waiting on the founder to download it.** |
+| Boss | none yet | The founder's pick, *The Descent of Hanuman* (Openly), is **Content ID registered** and tagged devotional/bhakti, so it was not used. Until a replacement is chosen, boss fights keep the combat track and push it (5% faster, 15% louder). |
 
-Hades plays stems in layers, and licensed tracks don't come with stems, so the **Cosmic Cycle colours the track instead**: Grahan runs it through a 700 Hz lowpass (muffled, underwater), Pralaya lifts the volume 25%, and pausing ducks it to 35%. Verified with an analyser node: the signal passes through the filter.
+Rules for every pick: **no vocals or mantras** (§1.3, and the rule that cut Kalachakra), and **no Content ID registration**. A Content ID track puts a copyright claim on every video a streamer makes of the game, which works against the game being shared. Pixabay marks these on each track's page ("Content ID Registered"); of 48 Indian-flavoured candidates checked on 2026-10-02, 29 were registered. Pixabay's licence allows use in games with no attribution and forbids only standalone redistribution. Its download links refuse automated requests, so tracks are downloaded by hand into `game/assets/incoming/music/` and prepared by `tools/convert-music.py` (trim silence, level every track to the same loudness, re-encode at about 120 kbps).
+
+**Streamed, not decoded.** Each track plays from an `<audio>` element routed into the Web Audio graph. Decoding three tracks into memory would cost roughly 150 MB on a phone and would hold the loading screen until all had downloaded. Routing through Web Audio is also what makes the volume setting work on iOS, which ignores an element's own volume. Every track is touched inside the Begin tap, because iOS only lets code start an `<audio>` element that has first been played from a real tap.
+
+**The Cosmic Cycle colours whatever is playing** (`MUSIC_PHASE`). The agreed ideal is the Hades approach: a drone in Shanti, tabla entering for Shakti, eerie in Grahan, full percussion in Pralaya. That needs stems written to fit together, and licensed tracks do not come that way, so each phase reshapes the one track instead:
+
+| Phase | Volume | Lowpass | Speed / pitch | Reads as |
+|---|---|---|---|---|
+| Shanti | 80% | 3.2 kHz | 100% | softer, calmer |
+| Shakti | 100% | open | 100% | full and open |
+| Grahan | 90% | 800 Hz | 97% | muffled and sunk |
+| Pralaya | 125% | open | 103% | louder, driven |
+
+Pitch glides rather than steps. Pausing ducks the music to 35%. Because these tracks were not written to loop, the volume dips for 1.5 s either side of the loop point, so the restart is a breath rather than a cut. **All of these values were set without hearing them** and should be tuned by ear. True layered music (stems) belongs with the commissioned-art pass (`design-document.md` P4).
+
+Verified 2026-10-02 with stand-in tracks and an analyser node: crossfade, per-phase volume, filter and rate, the boss fallback, pause ducking, pause-on-hidden and the loop-seam fade all behave as specified.
 
 ### 2.17 Pause & Settings (built 2026-09-27)
-**Pause (VIRAM, विराम):** a button at the top-right of the HUD whose touch target (56×36) is larger than the drawn button. Esc or P also toggles pause. **Switching apps or tabs pauses the run automatically.** Pausing freezes game logic, timers and tweens. The menu shows the build you are carrying (weapon, trinket and Tejas form, each with what it does), your sector and wave, and the Nidhi from this run, followed by Resume, How to Play, Settings and **Abandon Run**. Abandon takes two taps and **counts as a death**.
+**Pause (VIRAM, विराम):** a button at the top-right of the HUD whose touch target (56×36) is larger than the drawn button. Esc or P also toggles pause. **Switching apps or tabs pauses the run automatically.** Pausing freezes game logic, timers and tweens. The menu shows the build you are carrying (weapon, trinket and Tejas form, each with what it does), your sector and wave, and the Nidhi from this run, followed by Resume, How to Play, Settings and **Abandon Run**. Abandon opens a confirmation that states the cost before anything happens: it **counts as a death**, and you keep only half of the run's Nidhi, with the exact numbers shown ("62 of 125"). *Keep Fighting* is the primary button.
 
 **Settings** (stored apart from the save, key `loot-chase-settings-v1`, so "Reset save" keeps your volume):
 
@@ -340,3 +362,30 @@ Hades plays stems in layers, and licensed tracks don't come with stems, so the *
 | Vibration | on | Android only. Hidden where `navigator.vibrate` doesn't exist (iOS Safari) |
 | Tutorial tips | on | Plus a "show tips again" button |
 | Reset save | — | Hub only, two taps. Erases Nidhi, upgrades and unlocks |
+
+### 2.18 Typography (2026-10-02)
+The game had been rendering every word in the engine's default monospace. The founder asked for type that feels Indian.
+
+| Role | Typeface | Why |
+|---|---|---|
+| Display: titles, toasts, banners, large buttons | **Yatra One** (Catharsis Fonts, OFL 1.1) | Drawn from the hand-painted signage of Mumbai's local trains. Its Latin letters take a Devanagari brush angle, so English headings carry the flavour without resorting to fake-Devanagari lettering. Includes Marathi alternates. |
+| Text: everything else | **Baloo 2** (Ek Type, OFL 1.1) | A rounded face designed in Mumbai across nine Indian scripts. Sturdy at the 8-12 px sizes the HUD uses, and friendly enough to sit with the cartoon character art. |
+
+- **One door.** Every `this.add.text()` passes through `styleText()`: bold text of 14 px and up is a heading and gets the display face, everything else gets the text face. A style can override with `display: true/false`. No call site names a font.
+- Yatra One has a single weight, so the helper strips `bold` from display text; a canvas asked for a bold it does not have smears one.
+- Text containing Devanagari is measured with a Devanagari test string. The engine sizes a text box from Latin letters, which clips the marks above and below Devanagari letters.
+- **Loading.** Canvas text cannot swap fonts after it is drawn, so the game does not start until the faces have arrived, with a 3.5 s cap so a blocked font host never stops the game (it falls back to system fonts). The faces currently come from Google Fonts; **self-host them for the itch.io build** (launch track L9).
+- The pre-pivot purple was swept out in the same pass: hub, HUD bars, progress track, sector banner, choice and summary panels now use the forge palette, with one saffron primary button per screen.
+
+### 2.19 Loading screen: glossary cards (2026-10-02)
+Launch track L7. Each load shows **one glossary card**: the word large in Devanagari, its Latin name, its meaning, and what it does in play. There are 28 cards (the roster, the four phases, the three metals, every weapon and trinket, Tejas, Nidhi, Viram), taken from the naming table in §2.12. The card changes every 7 s, a tap brings the next one, and each visit starts on the card after the last one seen, so a returning player meets the whole glossary over time. The Sanskrit is learnt a word at a time instead of from a manual.
+
+- **The progress bar fills copper, then silver, then gold**, the rarity ladder, with a label that reads *Forging · Tamra / Rajat / Swarna*.
+- **Plain DOM, not canvas**, so it is on screen before the engine itself has downloaded. Every size is in `em` off one value that follows the smaller of the viewport's height and width, so it fits a phone held sideways.
+- **It ends on a Begin button for a technical reason:** browsers refuse to play sound until the player has tapped something, and this tap is what unlocks audio. It also lets a player finish reading the card.
+- If the engine cannot be downloaded, the bar is replaced by a plain message instead of hanging.
+- The loader's design came from the Asura review (§1.7); Asura's own loading screens could not be seen, so this is original.
+
+### 2.20 Automated checks
+- **`tools/playtest-bot.js`** plays complete runs with game logic only (about 80x real time) and records per-sector balance figures, errors and leaked objects (§2.14).
+- **`tools/smoke-test.mjs`** (2026-10-02) loads the game in a private, muted, headless Chrome with a throwaway profile; clicks through the loading screen; checks the fonts, the first tip, the HUD, the abandon prompt, the death and extract payouts and the sector-banner cleanup; measures every text on the how-to, settings, Powers and hub screens against its panel; runs three bot profiles; and saves screenshots. `node tools/smoke-test.mjs`. It needs Chrome or Edge and Node 22+, and no packages. It exists so testing never plays sound on, or takes over, the machine someone is working on.
