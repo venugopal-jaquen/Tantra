@@ -54,7 +54,35 @@ Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the cond
 
 **Not needed for the POC:** P2 (look-builder), P4 (commissioned art), P5 (visual-story polish), M8 (narrative), M9 (capstone boss). These wait on the itch.io response, as the "prove it, then invest" rule in `launch-roadmap.md` says.
 
-**Immediate priority (2026-10-02): the founder is reviewing the game's flow before any further change.** A slide deck of the whole loop and every mechanic was made for that review; it closes with the gaps found (no stated goal, no ending, an unreadable sector track), three options for sector names, and a split of what to fix before launch against what can wait. Sector names are not yet changed. Still open on the launch track: music (L5), the title screen verdict (L2), activating the feedback form (L10), the real-device check (L8), the final name (L1) and the itch.io page (L9). M7 is effectively closed for the POC; its remainder is L2 plus the post-launch P4.
+**Immediate priority (2026-10-02): the founder is settling the open design questions in §1.3 before any further change.** A slide deck of the whole loop and every mechanic was made for that review; it closes with the gaps found (no stated goal, no ending, an unreadable sector track), three options for sector names, and a split of what to fix before launch against what can wait. Sector names are not yet changed. Still open on the launch track: music (L5), the title screen verdict (L2), activating the feedback form (L10), the real-device check (L8), the final name (L1) and the itch.io page (L9). M7 is effectively closed for the POC; its remainder is L2 plus the post-launch P4.
+
+## 1.3 Open design questions (2026-10-02)
+
+After first playing the merged build, the founder paused changes to settle three things. Nothing below is decided or built.
+
+**1. The game states no goal and has no ending.** This, more than rough edges, is what makes it feel unpolished: nothing gives a player a reason to stay. Options discussed:
+
+| Option | What it is | For | Against |
+|---|---|---|---|
+| A. Slay Vritra | A run has a fixed end: descend three levels and kill Vritra, who has drunk the well dry. Victory screen; the endless descent (Patal) unlocks afterwards for those who want more | One sentence states the goal; the fiction is already in the game; it is how Hades works | Needs a reason to play after the first win |
+| B. Fill the well | A meter across runs: every Vritra kill returns water, and the title screen's well visibly fills. A true ending when it is full | Every run counts, even a failed one; progress shows on the first screen | A bar alone is a grind |
+| C. Seven worlds | Seven sectors named for the seven lower worlds, one seal each | Room to grow | Four more sectors of content first |
+| D. Endless score chase | How deep can you go | No new content | No ending at all; weakest for new players |
+
+Recommended to the founder: A now, with B's meter as the reason to win more than once. Also: say the goal on the title screen, show "level 2 of 3" during a run, and on death say how close the player came.
+
+**2. The moment-to-moment play feels plain.** Compared with the genre's hits (2026-10-02): moving while the character attacks on its own is exactly what Vampire Survivors and Brotato do, so the base is sound. What they add and this game lacks:
+
+- **A choice every 20 to 40 seconds.** Vampire Survivors offers a pick of three on every level-up, the first within a minute or two. Here a run has no choices: loot equips itself, and there is one weapon and one trinket.
+- **A reason to move toward things.** Their experience gems must be walked over. Here Nidhi is banked automatically.
+- **Power that visibly grows inside a run.** Here the attack looks the same at minute ten as at minute one.
+- Archero adds a different twist: the hero fires only while standing still, so every second is a decision.
+
+What this game has that they lack: bosses with real rules, the Cosmic Cycle, and Extract or Descend. Its big decisions are good and rare; its small decisions are missing. Candidate fixes, in rising cost: Nidhi as drops to collect; a standing-still attack bonus; level-up picks (where the pinned Bhagya chart, P7, could live).
+
+Games for the founder to play first: Vampire Survivors and 10 Minutes Till Dawn (both free in a browser on itch.io), HoloCure (free download on itch.io), Brotato and Archero (free on phones). Each states its goal as a number on screen: survive 30 minutes, survive 10 minutes, survive 20 waves.
+
+**3. Does the Indian identity help or harm onboarding and retention?** The founder is re-evaluating. The names are now switchable in one line so the question can be tested instead of argued (`requirements.md` §2.12).
 
 ---
 

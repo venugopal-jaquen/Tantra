@@ -45,6 +45,7 @@ Kept so a reversal is never mistaken for drift or an error.
 | 2026-10-02 | **Falling keeps half the run's Nidhi.** §2.5. | Death banked everything, exactly like Extract, so Descend carried no risk and the Extract/Descend choice was a fake one. The founder approved 50%. |
 | 2026-10-02 | **Typography: Yatra One + Baloo 2.** §2.18. | The founder asked for type that feels Indian. The game had been rendering in the engine's default monospace. |
 | 2026-10-02 | **Asura (2017) reviewed as a reference game.** | Outcome of a separate research session. *Adopted:* a glossary-card loading screen (§2.19). *Pinned for after itch.io:* the Bhagya chart and boss-kill perks (`design-document.md` P7, P8). *Unchanged:* the live-tip tutorial (Asura shipped a separate tutorial, players disliked it, and it was replaced with learn-as-you-play, which is what §2.12.1 already does) and the antagonists-only naming rule (stricter than Asura's, and it stays). The lesson worth keeping: Asura turned cultural ideas into mechanics instead of using them only as names. |
+| 2026-10-02 | **Sectors renamed for the stepwell; every name made switchable.** §2.12. | The founder found "The Fractured Approach" boring and vague, and chose names that say what each level is: Prangan, Jal-Kund, Nidhi-Kosh, Patal. In the same request they asked that all names be changeable in one step, because they are **re-evaluating whether so Indian a game helps or harms onboarding and retention**. That question is open; nothing about the identity has been reversed. |
 | 2026-10-02 | **The stepwell becomes the game's place.** §2.10. | The founder still found the arena background generic after the jaali-and-rangoli floor. A lattice is a pattern, not a place. The game is now one descent down a stepwell: the title looks down the shaft, every arena is framed by its stairs, and each sector has its own painted floor. |
 
 **Provenance:** the 2026-09-24 decisions were made in a claude.ai chat, and the 2026-10-02 Asura review in a separate Claude Code session, not in this repo. Recorded here so `docs/` stays the single source of truth — see `docs/design-document.md` §5 on why context living outside version control is a recurring problem.
@@ -199,6 +200,25 @@ Adopted 2026-09-24 (§1.7). Sanskrit/Hindi naming replaces the previous abstract
 | Surge | **Shakti** | शक्ति | Power |
 | Eclipse | **Grahan** | ग्रहण | Eclipse |
 | Convergence | **Pralaya** | प्रलय | Dissolution |
+
+**Sectors (2026-10-02)** are the levels of the stepwell, each a short Sanskrit name with a plain line under it:
+
+| Sector | Name | Devanagari | Line under it |
+|---|---|---|---|
+| 1 | **Prangan** | प्रांगण | the sunlit court |
+| 2 | **Jal-Kund** | जल-कुंड | the flooded steps |
+| 3 | **Nidhi-Kosh** | निधि-कोष | the gold vault |
+| 4 and deeper | **Patal** | पाताल | the world below |
+
+They replace The Fractured Approach, The Churning Depths, The Convergence Core and The Endless Descent, which described nothing.
+
+**Name packs (2026-10-02).** Every in-world word a player reads (hero, enemies, phases, metals, items, Tejas forms, sectors, the pause title, the loading-screen cards) lives in one table, `NAME_PACKS`, in `game/loot-chase-v0.1.html`. No other code spells a name out; it asks the pack.
+
+- **To rename the whole game:** change `NAME_PACK` (one line), or edit a pack.
+- **To compare without editing:** add `?names=plain` to the address.
+- `sanskrit` is the game as designed. `plain` is a **draft** in plain English (Goblin, Hexer, Brute; Calm, Surge, Eclipse; Copper, Silver, Gold; The Courtyard, The Drowned Steps, The Gold Vault), kept so the Sanskrit's cost to new players can be judged by trying both. Its wording has not been reviewed.
+- Internal keys never change, so saves survive a switch.
+- The smoke test loads the plain pack, reads about 200 on-screen texts across every screen, and fails if any Sanskrit word or Devanagari character appears.
 
 **Constraint:** naming is flavour, not doctrine (§1.3). Names are chosen for meaning and atmosphere; the game makes no claim about belief and depicts no worship.
 
