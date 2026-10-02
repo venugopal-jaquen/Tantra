@@ -45,6 +45,7 @@ Kept so a reversal is never mistaken for drift or an error.
 | 2026-10-02 | **Falling keeps half the run's Nidhi.** §2.5. | Death banked everything, exactly like Extract, so Descend carried no risk and the Extract/Descend choice was a fake one. The founder approved 50%. |
 | 2026-10-02 | **Typography: Yatra One + Baloo 2.** §2.18. | The founder asked for type that feels Indian. The game had been rendering in the engine's default monospace. |
 | 2026-10-02 | **Asura (2017) reviewed as a reference game.** | Outcome of a separate research session. *Adopted:* a glossary-card loading screen (§2.19). *Pinned for after itch.io:* the Bhagya chart and boss-kill perks (`design-document.md` P7, P8). *Unchanged:* the live-tip tutorial (Asura shipped a separate tutorial, players disliked it, and it was replaced with learn-as-you-play, which is what §2.12.1 already does) and the antagonists-only naming rule (stricter than Asura's, and it stays). The lesson worth keeping: Asura turned cultural ideas into mechanics instead of using them only as names. |
+| 2026-10-02 | **Sectors renamed for the stepwell; every name made switchable.** §2.12. | The founder found "The Fractured Approach" boring and vague, and chose names that say what each level is: Prangan, Jal-Kund, Nidhi-Kosh, Patal. In the same request they asked that all names be changeable in one step, because they are **re-evaluating whether so Indian a game helps or harms onboarding and retention**. That question is open; nothing about the identity has been reversed. |
 | 2026-10-02 | **The stepwell becomes the game's place.** §2.10. | The founder still found the arena background generic after the jaali-and-rangoli floor. A lattice is a pattern, not a place. The game is now one descent down a stepwell: the title looks down the shaft, every arena is framed by its stairs, and each sector has its own painted floor. |
 
 **Provenance:** the 2026-09-24 decisions were made in a claude.ai chat, and the 2026-10-02 Asura review in a separate Claude Code session, not in this repo. Recorded here so `docs/` stays the single source of truth — see `docs/design-document.md` §5 on why context living outside version control is a recurring problem.
@@ -200,6 +201,25 @@ Adopted 2026-09-24 (§1.7). Sanskrit/Hindi naming replaces the previous abstract
 | Eclipse | **Grahan** | ग्रहण | Eclipse |
 | Convergence | **Pralaya** | प्रलय | Dissolution |
 
+**Sectors (2026-10-02)** are the levels of the stepwell, each a short Sanskrit name with a plain line under it:
+
+| Sector | Name | Devanagari | Line under it |
+|---|---|---|---|
+| 1 | **Prangan** | प्रांगण | the sunlit court |
+| 2 | **Jal-Kund** | जल-कुंड | the flooded steps |
+| 3 | **Nidhi-Kosh** | निधि-कोष | the gold vault |
+| 4 and deeper | **Patal** | पाताल | the world below |
+
+They replace The Fractured Approach, The Churning Depths, The Convergence Core and The Endless Descent, which described nothing.
+
+**Name packs (2026-10-02).** Every in-world word a player reads (hero, enemies, phases, metals, items, Tejas forms, sectors, the pause title, the loading-screen cards) lives in one table, `NAME_PACKS`, in `game/loot-chase-v0.1.html`. No other code spells a name out; it asks the pack.
+
+- **To rename the whole game:** change `NAME_PACK` (one line), or edit a pack.
+- **To compare without editing:** add `?names=plain` to the address.
+- `sanskrit` is the game as designed. `plain` is a **draft** in plain English (Goblin, Hexer, Brute; Calm, Surge, Eclipse; Copper, Silver, Gold; The Courtyard, The Drowned Steps, The Gold Vault), kept so the Sanskrit's cost to new players can be judged by trying both. Its wording has not been reviewed.
+- Internal keys never change, so saves survive a switch.
+- The smoke test loads the plain pack, reads about 200 on-screen texts across every screen, and fails if any Sanskrit word or Devanagari character appears.
+
 **Constraint:** naming is flavour, not doctrine (§1.3). Names are chosen for meaning and atmosphere; the game makes no claim about belief and depicts no worship.
 
 **Enemy-naming rule (from the 2026-09-24 audit).** An enemy name must be an *antagonist* in its source tradition — never a being that is revered, protective or worshipped today. The audit replaced three:
@@ -337,7 +357,9 @@ The sounds were picked by measurement (length, brightness, ring-out) because **C
 - **Repeated sounds are kept in check.** Each gets ±4% pitch drift, and noisy sounds have a minimum gap (`gap`), so a 3-target volley or a dying swarm reads as one hit.
 - **Getting hit scales with damage.** The hurt sound's volume scales with the share of max HP lost, and slams play it lower.
 
-**Music:** one track per mood (`hub`, `combat`, `boss`), crossfaded over 0.9 s.
+**Music is switched off (2026-10-02).** The founder listened to the build and the music did not suit the game, the transitions least of all. `MUSIC_ON = false` stops it loading or playing and hides its Settings row; the engine, the three files and everything described below stay in place for a second attempt. What that attempt should be is undecided.
+
+**Music as built:** one track per mood (`hub`, `combat`, `boss`), crossfaded over 0.9 s.
 
 | Mood | Track | Status |
 |---|---|---|
@@ -362,7 +384,7 @@ Rules for every pick: **no vocals or mantras** (§1.3, and the rule that cut Kal
 
 Pitch glides rather than steps. Pausing ducks the music to 35%. Because these tracks were not written to loop, the volume dips for 1.5 s either side of the loop point, so the restart is a breath rather than a cut. **All of these values were set without hearing them** and should be tuned by ear. True layered music (stems) belongs with the commissioned-art pass (`design-document.md` P4).
 
-**No one has yet listened to the result.** Claude cannot hear, so the mix, the phase effects and the loop points all wait on the founder's ear. Verified 2026-10-02 with stand-in tracks and an analyser node: crossfade, per-phase volume, filter and rate, the boss fallback, pause ducking, pause-on-hidden and the loop-seam fade all behave as specified.
+The values were set without hearing them, because Claude cannot hear. Verified 2026-10-02 with stand-in tracks and an analyser node: crossfade, per-phase volume, filter and rate, the boss fallback, pause ducking, pause-on-hidden and the loop-seam fade all behave as specified.
 
 ### 2.17 Pause & Settings (built 2026-09-27)
 **Pause (VIRAM, विराम):** a button at the top-right of the HUD whose touch target (56×36) is larger than the drawn button. Esc or P also toggles pause. **Switching apps or tabs pauses the run automatically.** Pausing freezes game logic, timers and tweens. The menu shows the build you are carrying (weapon, trinket and Tejas form, each with what it does), your sector and wave, and the Nidhi from this run, followed by Resume, How to Play, Settings and **Abandon Run**. Abandon opens a confirmation that states the cost before anything happens: it **counts as a death**, and you keep only half of the run's Nidhi, with the exact numbers shown ("62 of 125"). *Keep Fighting* is the primary button.

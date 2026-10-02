@@ -149,7 +149,7 @@
   </div>
   <div class="ldr-foot">
     <div class="bar"><div class="bar-fill" id="ldr-fill"></div></div>
-    <div class="bar-label" id="ldr-label" role="status">Forging · Tamra</div>
+    <div class="bar-label" id="ldr-label" role="status">Forging</div>
     <button class="begin" id="ldr-begin" type="button">Begin</button>
   </div>
 </div>
@@ -175,68 +175,140 @@
 // root index.html redirect page carries its own copy.)
 const GAME_TITLE = 'Anantarya';
 
-// The glossary behind the loading screen (requirements 2.19): one card per load, so the
-// Sanskrit the game speaks is learnt a word at a time rather than from a manual. Each
-// card says what the word means AND what it does in play. Names and Devanagari follow
-// the naming table in requirements 2.12 - change them there first.
-const GLOSSARY = [
-  { kind: 'You',         dev: 'किरण',        name: 'Kiran',          meaning: 'ray of light',
-    role: 'That is you. You strike on your own - your whole job is choosing where to stand.' },
-  { kind: 'Enemy',       dev: 'असुर',         name: 'Asura',          meaning: 'power-seeking rivals of the devas',
-    role: 'The rank and file. They rush straight at you and hit on contact.' },
-  { kind: 'Enemy',       dev: 'राक्षस',        name: 'Rakshasa',       meaning: 'shape-shifting sorcerers',
-    role: 'They keep their distance and throw bolts. Keep moving sideways.' },
-  { kind: 'Enemy',       dev: 'महिष',         name: 'Mahish',         meaning: 'the buffalo demon',
-    role: "Slow, heavy, and hits like a cart. Don't let it corner you." },
-  { kind: 'Enemy',       dev: 'रक्तबीज',       name: 'Raktabija',      meaning: 'blood-seed',
-    role: 'Every drop of his blood rose as a new demon. Kill one, and two smaller ones spring up.' },
-  { kind: 'Gatekeeper',  dev: 'बकासुर',        name: 'Bakasura',       meaning: 'the demon who demanded tribute',
-    role: 'Bars the way on wave 3. Strike while the phase bar matches the glow at his feet.' },
-  { kind: 'Sector boss', dev: 'निधि-रक्षा',     name: 'Nidhi-Raksha',   meaning: 'treasure guardian',
-    role: "Guards each sector's hoard behind a shield. Kill the gold-glowing anchors to break it." },
-  { kind: 'The hoarder', dev: 'वृत्र',          name: 'Vritra',         meaning: "the serpent who hoarded the world's waters",
-    role: 'Waits at the bottom of Sector 3, and knows every trick the others use.' },
-  { kind: 'Phase',       dev: 'शांति',         name: 'Shanti',         meaning: 'peace',
-    role: 'The calm stretch of the Cosmic Cycle. Catch your breath and pick your fights.' },
-  { kind: 'Phase',       dev: 'शक्ति',         name: 'Shakti',         meaning: 'power',
-    role: 'Enemies pour in faster - and loot drops richer.' },
-  { kind: 'Phase',       dev: 'ग्रहण',         name: 'Grahan',         meaning: 'eclipse',
-    role: 'Everyone hits 30% harder. You included.' },
-  { kind: 'Phase',       dev: 'प्रलय',         name: 'Pralaya',        meaning: 'dissolution',
-    role: 'Every 90 seconds an elite arrives, and the best loot of the cycle drops.' },
-  { kind: 'Treasure',    dev: 'निधि',          name: 'Nidhi',          meaning: 'treasure',
-    role: 'What you gather in the depths. Extract to bank all of it. Fall, and you keep half.' },
-  { kind: 'Metal',       dev: 'ताम्र',          name: 'Tamra',          meaning: 'copper',
-    role: 'The common metal. Every item is named metal first: Tamra Katar.' },
-  { kind: 'Metal',       dev: 'रजत',          name: 'Rajat',          meaning: 'silver',
-    role: 'The middle metal - half again as strong as copper.' },
-  { kind: 'Metal',       dev: 'स्वर्ण',         name: 'Swarna',         meaning: 'gold',
-    role: 'The finest metal: more than twice as strong as copper. Listen for the bell.' },
-  { kind: 'Weapon',      dev: 'कटार',         name: 'Katar',          meaning: 'push-dagger',
-    role: 'The blade you start with. Plain and quick.' },
-  { kind: 'Weapon',      dev: 'विष कटार',      name: 'Visha Katar',    meaning: 'poison dagger',
-    role: 'Every hit poisons. The damage keeps ticking after you have moved on.' },
-  { kind: 'Weapon',      dev: 'रक्त तलवार',    name: 'Rakta Talwar',   meaning: 'blood sword',
-    role: 'Heals you with every hit that lands.' },
-  { kind: 'Weapon',      dev: 'विद्युत चक्रम',   name: 'Vidyut Chakram', meaning: 'lightning discus',
-    role: 'Each strike arcs on to a second enemy. Found from Sector 2.' },
-  { kind: 'Weapon',      dev: 'वध परशु',      name: 'Vadha Parashu',  meaning: 'slaying axe',
-    role: 'Hits far harder on enemies that are nearly dead. Found from Sector 3.' },
-  { kind: 'Trinket',     dev: 'प्राण मणि',      name: 'Prana Mani',     meaning: 'life-force jewel',
-    role: 'Raises your maximum health.' },
-  { kind: 'Trinket',     dev: 'कवच',          name: 'Kavach',         meaning: 'armour',
-    role: 'Blocks one hit completely, then recharges.' },
-  { kind: 'Trinket',     dev: 'कंटक कंगन',     name: 'Kantak Kangan',  meaning: 'thorn bangle',
-    role: 'Whatever touches you takes damage back. Found from Sector 2.' },
-  { kind: 'Trinket',     dev: 'वेग पादुका',     name: 'Vega Paduka',    meaning: 'swift sandals',
-    role: 'You move faster. Found from Sector 2.' },
-  { kind: 'Trinket',     dev: 'संजीवनी',       name: 'Sanjeevani',     meaning: 'the herb that restores life',
-    role: 'Heals you slowly, all the time. Found from Sector 3.' },
-  { kind: 'Power',       dev: 'तेजस्',         name: 'Tejas',          meaning: 'radiance',
-    role: 'Your supercharge. It fills as you fight; unleash it for six seconds of power shaped by your weapon. Awakens in Sector 2.' },
-  { kind: 'Menu',        dev: 'विराम',         name: 'Viram',          meaning: 'pause',
-    role: 'The pause menu. It also tells you what your weapon and trinket actually do.' }
-];
+// ---------- NAMES (requirements 2.12) ----------
+// Every word of the game's world that a player reads lives in one of these packs: the
+// hero, enemies, phases, metals, items, sectors, and the loading-screen cards. Nothing
+// else in this file spells a name out; it asks the pack (`N`).
+//
+// To change how the whole game is named, change NAME_PACK below - one line. To compare
+// packs without editing anything, add ?names=plain (or ?names=sanskrit) to the address.
+//
+//   sanskrit - the game's identity since 2026-09-24: Sanskrit names, English glosses.
+//   plain    - a draft in plain English, kept so the founder can judge whether the
+//              Sanskrit helps or costs players. Its wording has not been reviewed.
+//
+// Internal keys (melee, drift, common, venom...) are never shown and never change, so
+// saves survive a switch of pack.
+const NAME_PACKS = {
+  sanskrit: {
+    player: 'Kiran', currency: 'Nidhi', satchel: 'Satchel', supercharge: 'Tejas',
+    pause: 'Viram', pauseSub: '\u0935\u093F\u0930\u093E\u092E \u00B7 paused',
+    enemies: { melee: 'Asura', ranged: 'Rakshasa', tank: 'Mahish', splitter: 'Raktabija',
+               gatekeeper: 'Bakasura', sectorboss: 'Nidhi-Raksha', megaboss: 'Vritra' },
+    phases:  { drift: 'Shanti', surge: 'Shakti', eclipse: 'Grahan', convergence: 'Pralaya' },
+    metals:  { common: 'Tamra', rare: 'Rajat', epic: 'Swarna' },
+    metalGloss: { common: 'copper', rare: 'silver', epic: 'gold' },
+    // [name, gloss]
+    weapons:  { none: ['Katar', 'push-dagger'], venom: ['Visha Katar', 'poison dagger'], vampiric: ['Rakta Talwar', 'blood sword'],
+                chain: ['Vidyut Chakram', 'lightning discus'], executioner: ['Vadha Parashu', 'slaying axe'] },
+    trinkets: { vitality: ['Prana Mani', 'life-force jewel'], aegis: ['Kavach', 'armour'], thorns: ['Kantak Kangan', 'thorn bangle'],
+                swift: ['Vega Paduka', 'swift sandals'], regen: ['Sanjeevani', 'healing herb'] },
+    forms:    { none: ['Agni', 'fire'], venom: ['Visha', 'poison'], vampiric: ['Rakta', 'blood'],
+                chain: ['Vidyut', 'lightning'], executioner: ['Prahar', 'the blow'] },
+    // Levels of the stepwell, top to bottom: [name, the line under it]. `deeper` covers
+    // every sector past the last one listed.
+    sectors: [['Prangan', '\u092A\u094D\u0930\u093E\u0902\u0917\u0923 \u00B7 the sunlit court'],
+              ['Jal-Kund', '\u091C\u0932-\u0915\u0941\u0902\u0921 \u00B7 the flooded steps'],
+              ['Nidhi-Kosh', '\u0928\u093F\u0927\u093F-\u0915\u094B\u0937 \u00B7 the gold vault']],
+    deeper: ['Patal', '\u092A\u093E\u0924\u093E\u0932 \u00B7 the world below'],
+    // Loading-screen cards: one per load, so the Sanskrit is learnt a word at a time.
+    // Each says what the word means AND what it does in play.
+    cards: [
+      { kind: 'You',         dev: 'किरण',        name: 'Kiran',          meaning: 'ray of light',
+        role: 'That is you. You strike on your own - your whole job is choosing where to stand.' },
+      { kind: 'Enemy',       dev: 'असुर',         name: 'Asura',          meaning: 'power-seeking rivals of the devas',
+        role: 'The rank and file. They rush straight at you and hit on contact.' },
+      { kind: 'Enemy',       dev: 'राक्षस',        name: 'Rakshasa',       meaning: 'shape-shifting sorcerers',
+        role: 'They keep their distance and throw bolts. Keep moving sideways.' },
+      { kind: 'Enemy',       dev: 'महिष',         name: 'Mahish',         meaning: 'the buffalo demon',
+        role: "Slow, heavy, and hits like a cart. Don't let it corner you." },
+      { kind: 'Enemy',       dev: 'रक्तबीज',       name: 'Raktabija',      meaning: 'blood-seed',
+        role: 'Every drop of his blood rose as a new demon. Kill one, and two smaller ones spring up.' },
+      { kind: 'Gatekeeper',  dev: 'बकासुर',        name: 'Bakasura',       meaning: 'the demon who demanded tribute',
+        role: 'Bars the way on wave 3. Strike while the phase bar matches the glow at his feet.' },
+      { kind: 'Sector boss', dev: 'निधि-रक्षा',     name: 'Nidhi-Raksha',   meaning: 'treasure guardian',
+        role: "Guards each sector's hoard behind a shield. Kill the gold-glowing anchors to break it." },
+      { kind: 'The hoarder', dev: 'वृत्र',          name: 'Vritra',         meaning: "the serpent who hoarded the world's waters",
+        role: 'Waits at the bottom of Sector 3, and knows every trick the others use.' },
+      { kind: 'Phase',       dev: 'शांति',         name: 'Shanti',         meaning: 'peace',
+        role: 'The calm stretch of the Cosmic Cycle. Catch your breath and pick your fights.' },
+      { kind: 'Phase',       dev: 'शक्ति',         name: 'Shakti',         meaning: 'power',
+        role: 'Enemies pour in faster - and loot drops richer.' },
+      { kind: 'Phase',       dev: 'ग्रहण',         name: 'Grahan',         meaning: 'eclipse',
+        role: 'Everyone hits 30% harder. You included.' },
+      { kind: 'Phase',       dev: 'प्रलय',         name: 'Pralaya',        meaning: 'dissolution',
+        role: 'Every 90 seconds an elite arrives, and the best loot of the cycle drops.' },
+      { kind: 'Treasure',    dev: 'निधि',          name: 'Nidhi',          meaning: 'treasure',
+        role: 'What you gather in the depths. Extract to bank all of it. Fall, and you keep half.' },
+      { kind: 'Metal',       dev: 'ताम्र',          name: 'Tamra',          meaning: 'copper',
+        role: 'The common metal. Every item is named metal first: Tamra Katar.' },
+      { kind: 'Metal',       dev: 'रजत',          name: 'Rajat',          meaning: 'silver',
+        role: 'The middle metal - half again as strong as copper.' },
+      { kind: 'Metal',       dev: 'स्वर्ण',         name: 'Swarna',         meaning: 'gold',
+        role: 'The finest metal: more than twice as strong as copper. Listen for the bell.' },
+      { kind: 'Weapon',      dev: 'कटार',         name: 'Katar',          meaning: 'push-dagger',
+        role: 'The blade you start with. Plain and quick.' },
+      { kind: 'Weapon',      dev: 'विष कटार',      name: 'Visha Katar',    meaning: 'poison dagger',
+        role: 'Every hit poisons. The damage keeps ticking after you have moved on.' },
+      { kind: 'Weapon',      dev: 'रक्त तलवार',    name: 'Rakta Talwar',   meaning: 'blood sword',
+        role: 'Heals you with every hit that lands.' },
+      { kind: 'Weapon',      dev: 'विद्युत चक्रम',   name: 'Vidyut Chakram', meaning: 'lightning discus',
+        role: 'Each strike arcs on to a second enemy. Found from Sector 2.' },
+      { kind: 'Weapon',      dev: 'वध परशु',      name: 'Vadha Parashu',  meaning: 'slaying axe',
+        role: 'Hits far harder on enemies that are nearly dead. Found from Sector 3.' },
+      { kind: 'Trinket',     dev: 'प्राण मणि',      name: 'Prana Mani',     meaning: 'life-force jewel',
+        role: 'Raises your maximum health.' },
+      { kind: 'Trinket',     dev: 'कवच',          name: 'Kavach',         meaning: 'armour',
+        role: 'Blocks one hit completely, then recharges.' },
+      { kind: 'Trinket',     dev: 'कंटक कंगन',     name: 'Kantak Kangan',  meaning: 'thorn bangle',
+        role: 'Whatever touches you takes damage back. Found from Sector 2.' },
+      { kind: 'Trinket',     dev: 'वेग पादुका',     name: 'Vega Paduka',    meaning: 'swift sandals',
+        role: 'You move faster. Found from Sector 2.' },
+      { kind: 'Trinket',     dev: 'संजीवनी',       name: 'Sanjeevani',     meaning: 'the herb that restores life',
+        role: 'Heals you slowly, all the time. Found from Sector 3.' },
+      { kind: 'Power',       dev: 'तेजस्',         name: 'Tejas',          meaning: 'radiance',
+        role: 'Your supercharge. It fills as you fight; unleash it for six seconds of power shaped by your weapon. Awakens in Sector 2.' },
+      { kind: 'Menu',        dev: 'विराम',         name: 'Viram',          meaning: 'pause',
+        role: 'The pause menu. It also tells you what your weapon and trinket actually do.' }
+    ]
+  },
+  plain: {
+    player: 'Kiran', currency: 'Gold', satchel: 'Satchel', supercharge: 'Radiance',
+    pause: 'Paused', pauseSub: '',
+    enemies: { melee: 'Goblin', ranged: 'Hexer', tank: 'Brute', splitter: 'Splitter',
+               gatekeeper: 'Gatekeeper', sectorboss: 'Hoard Guardian', megaboss: 'The Hoarder' },
+    phases:  { drift: 'Calm', surge: 'Surge', eclipse: 'Eclipse', convergence: 'Convergence' },
+    metals:  { common: 'Copper', rare: 'Silver', epic: 'Gold' },
+    metalGloss: { common: '', rare: '', epic: '' },
+    weapons:  { none: ['Dagger', ''], venom: ['Venom Dagger', ''], vampiric: ['Blood Sword', ''],
+                chain: ['Storm Disc', ''], executioner: ["Executioner's Axe", ''] },
+    trinkets: { vitality: ['Life Gem', ''], aegis: ['Aegis', ''], thorns: ['Thorn Band', ''],
+                swift: ['Swift Sandals', ''], regen: ['Healing Herb', ''] },
+    forms:    { none: ['Fire', ''], venom: ['Poison', ''], vampiric: ['Blood', ''], chain: ['Lightning', ''], executioner: ['Execution', ''] },
+    sectors: [['The Courtyard', 'sunlit stone at the top of the well'],
+              ['The Drowned Steps', 'the flooded level'],
+              ['The Gold Vault', 'the hoard at the bottom']],
+    deeper: ['The Bottomless Well', 'deeper than any map remembers'],
+    cards: [
+      { kind: 'You',      dev: '', name: 'Kiran',          meaning: '', role: 'That is you. You strike on your own - your whole job is choosing where to stand.' },
+      { kind: 'Enemy',    dev: '', name: 'Goblin',         meaning: '', role: 'The rank and file. They rush straight at you and hit on contact.' },
+      { kind: 'Enemy',    dev: '', name: 'Hexer',          meaning: '', role: 'Keeps its distance and throws bolts. Keep moving sideways.' },
+      { kind: 'Enemy',    dev: '', name: 'Brute',          meaning: '', role: "Slow, heavy, and hits like a cart. Don't let it corner you." },
+      { kind: 'Enemy',    dev: '', name: 'Splitter',       meaning: '', role: 'Kill one, and two smaller ones spring up.' },
+      { kind: 'Boss',     dev: '', name: 'Gatekeeper',     meaning: '', role: 'Bars the way on wave 3. Strike while the phase bar matches the glow at his feet.' },
+      { kind: 'Boss',     dev: '', name: 'Hoard Guardian', meaning: '', role: 'Hides behind a shield. Kill the gold-glowing anchors to break it.' },
+      { kind: 'Phase',    dev: '', name: 'Eclipse',        meaning: '', role: 'Everyone hits 30% harder. You included.' },
+      { kind: 'Phase',    dev: '', name: 'Convergence',    meaning: '', role: 'Every 90 seconds an elite arrives, and the best loot of the cycle drops.' },
+      { kind: 'Treasure', dev: '', name: 'Gold',           meaning: '', role: 'What you gather in the depths. Extract to bank all of it. Fall, and you keep half.' },
+      { kind: 'Loot',     dev: '', name: 'Copper, Silver, Gold', meaning: '', role: 'The metal is the quality. Gold items are more than twice as strong as copper.' },
+      { kind: 'Power',    dev: '', name: 'Radiance',       meaning: '', role: 'Your supercharge. It fills as you fight; unleash it for six seconds of power shaped by your weapon.' }
+    ]
+  }
+};
+const NAME_PACK = 'sanskrit';
+const N = NAME_PACKS[new URLSearchParams(location.search).get('names')] || NAME_PACKS[NAME_PACK];
+const GLOSSARY = N.cards;
+
 
 // The loading screen. Plain DOM rather than Phaser, so it is on screen before the engine
 // has even downloaded. It ends on a Begin button for a real reason: browsers refuse to
@@ -254,8 +326,9 @@ const Loader = (() => {
     const n = GLOSSARY.length, g = GLOSSARY[((i % n) + n) % n], card = $('ldr-card');
     $('ldr-kind').textContent = g.kind;
     $('ldr-dev').textContent = g.dev;
+    $('ldr-dev').style.display = g.dev ? '' : 'none';
     $('ldr-name').textContent = g.name;
-    $('ldr-meaning').textContent = '\u201C' + g.meaning + '\u201D';
+    $('ldr-meaning').textContent = g.meaning ? '\u201C' + g.meaning + '\u201D' : '';
     $('ldr-role').textContent = g.role;
     card.classList.remove('in'); void card.offsetWidth; card.classList.add('in');   // replay the entrance
     try { localStorage.setItem('loot-chase-glossary-i', String(((i % n) + n) % n)); } catch (e) { /* ignore */ }
@@ -305,7 +378,7 @@ const Loader = (() => {
       if (state !== 'loading') return;
       p = Math.max(0, Math.min(1, p));
       $('ldr-fill').style.width = (p * 100).toFixed(1) + '%';
-      $('ldr-label').textContent = 'Forging \u00B7 ' + (p < 0.34 ? 'Tamra' : p < 0.67 ? 'Rajat' : 'Swarna');
+      $('ldr-label').textContent = 'Forging \u00B7 ' + (p < 0.34 ? N.metals.common : p < 0.67 ? N.metals.rare : N.metals.epic);
     },
     ready(cb) {
       if (state !== 'loading') return;
@@ -408,14 +481,13 @@ const MARGIN = 30, HUD_H = 76;
 const GATEKEEPER_WAVE = 3;
 const MEGA_BOSS_SECTOR = 3;
 
-// Light narrative frame - secular, cosmic/sci-fi, delivered via short banners, never blocking gameplay
-const SECTOR_LORE = {
-  1: { name: 'THE FRACTURED APPROACH', sub: "Cracks in the Cycle spill gold and monsters alike." },
-  2: { name: 'THE CHURNING DEPTHS',    sub: "The Cycle turns faster the deeper you go." },
-  3: { name: 'THE CONVERGENCE CORE',   sub: "Something is destabilizing the Cycle itself." }
-};
-function sectorTitle(n) { return SECTOR_LORE[n] ? SECTOR_LORE[n].name : `THE ENDLESS DESCENT — SECTOR ${n}`; }
-function sectorSub(n) { return SECTOR_LORE[n] ? SECTOR_LORE[n].sub : 'Deeper than any map remembers.'; }
+// Sector names come from the name pack: a short name, and a line to go under it.
+function sectorTitle(n) { return (N.sectors[n - 1] || N.deeper)[0]; }
+function sectorSub(n) { return (N.sectors[n - 1] || N.deeper)[1]; }
+// "Tamra (copper), Rajat (silver), Swarna (gold)" - or just the three names when a pack has no glosses.
+function metalList() {
+  return ['common', 'rare', 'epic'].map(k => N.metals[k] + (N.metalGloss[k] ? ` (${N.metalGloss[k]})` : '')).join(', ');
+}
 
 // Per-sector difficulty. Sector 1 is untouched; every sector deeper compounds, so a
 // player who keeps buying Vitality cannot simply out-grow the game (see 2.14). Damage
@@ -463,11 +535,11 @@ const TEJAS = {
   duration: 6000
 };
 const TEJAS_FORMS = {
-  none:        { name: 'Agni',   meaning: 'fire',      desc: 'Fire novas burst out around you',     kind: 'nova',  every: 420, radius: 128, dmgMult: 1.1, colour: 0xff8c42 },
-  venom:       { name: 'Visha',  meaning: 'poison',    desc: 'A poison cloud clings to you',        kind: 'aura',  every: 300, radius: 112, dmgMult: 0.5, colour: 0x7fdd3c, poison: true },
-  vampiric:    { name: 'Rakta',  meaning: 'blood',     desc: 'Drain everything near you to heal',   kind: 'aura',  every: 300, radius: 104, dmgMult: 0.6, colour: 0xff5f5f, heal: 0.2 },
-  chain:       { name: 'Vidyut', meaning: 'lightning', desc: 'Continuous chain lightning',          kind: 'chain', every: 200, radius: 230, dmgMult: 0.9, colour: 0x4dd0ff, targets: 3 },
-  executioner: { name: 'Prahar', meaning: 'the blow',  desc: 'Ground slams that execute the weak',  kind: 'slam',  every: 620, radius: 124, dmgMult: 2.2, colour: 0xffd23c, execute: 0.3 }
+  none:        { name: N.forms.none[0], meaning: N.forms.none[1], desc: 'Fire novas burst out around you',     kind: 'nova',  every: 420, radius: 128, dmgMult: 1.1, colour: 0xff8c42 },
+  venom:       { name: N.forms.venom[0], meaning: N.forms.venom[1], desc: 'A poison cloud clings to you',        kind: 'aura',  every: 300, radius: 112, dmgMult: 0.5, colour: 0x7fdd3c, poison: true },
+  vampiric:    { name: N.forms.vampiric[0], meaning: N.forms.vampiric[1], desc: 'Drain everything near you to heal',   kind: 'aura',  every: 300, radius: 104, dmgMult: 0.6, colour: 0xff5f5f, heal: 0.2 },
+  chain:       { name: N.forms.chain[0], meaning: N.forms.chain[1], desc: 'Continuous chain lightning',          kind: 'chain', every: 200, radius: 230, dmgMult: 0.9, colour: 0x4dd0ff, targets: 3 },
+  executioner: { name: N.forms.executioner[0], meaning: N.forms.executioner[1], desc: 'Ground slams that execute the weak',  kind: 'slam',  every: 620, radius: 124, dmgMult: 2.2, colour: 0xffd23c, execute: 0.3 }
 };
 
 // Persists across page reloads via localStorage (falls back to in-memory if unavailable, e.g. private browsing)
@@ -582,6 +654,10 @@ const MUSIC = {
   // it - faster and louder - rather than falling silent.
   boss:   { file: 'assets/music/boss.mp3', fallback: 'combat', push: { rate: 1.05, vol: 1.15 } }
 };
+// Switched off 2026-10-02: the founder listened and the tracks, and above all the
+// transitions between them, did not suit the game. The engine, the files and the
+// Settings row all stay; set this to true to hear them again.
+const MUSIC_ON = false;
 const MUSIC_BASE_VOL = 0.5;
 const MUSIC_SEAM = 1.5;   // seconds of fade either side of a track's loop point
 
@@ -758,9 +834,9 @@ const Music = {
 // Tamra / Rajat / Swarna - copper, silver, gold. The Cosmic Forge metaphor is literally
 // refinement, so rarity reads as a metal ladder rather than an arbitrary colour code.
 const RARITY = {
-  common: { mult: 1.0,  color: 0xd9844a, label: 'Tamra',  meaning: 'copper' },
-  rare:   { mult: 1.5,  color: 0xd4dde6, label: 'Rajat',  meaning: 'silver' },
-  epic:   { mult: 2.3,  color: 0xffc93c, label: 'Swarna', meaning: 'gold' }
+  common: { mult: 1.0,  color: 0xd9844a, label: N.metals.common,  meaning: N.metalGloss.common },
+  rare:   { mult: 1.5,  color: 0xd4dde6, label: N.metals.rare,  meaning: N.metalGloss.rare },
+  epic:   { mult: 2.3,  color: 0xffc93c, label: N.metals.epic, meaning: N.metalGloss.epic }
 };
 // Unidentified drops were a cold grey so they read as alien to the ladder. With
 // silver now IN the ladder grey no longer stands apart, so they are violet instead.
@@ -777,18 +853,18 @@ function rollRarity(boost = 0) {
 // minSector gates when it starts appearing in drop pools - deeper sectors unlock stronger, more complex effects.
 // label = the item's in-game name; meaning = the English gloss shown in the codex.
 const WEAPON_EFFECTS = {
-  none:        { label: 'Katar',          meaning: 'push-dagger',      minSector: 1, desc: 'A plain, quick blade' },
-  venom:       { label: 'Visha Katar',    meaning: 'poison dagger',    minSector: 1, desc: 'Poisons on hit' },
-  vampiric:    { label: 'Rakta Talwar',   meaning: 'blood sword',      minSector: 1, desc: 'Heals you on hit' },
-  chain:       { label: 'Vidyut Chakram', meaning: 'lightning discus', minSector: 2, desc: 'Arcs to a 2nd enemy' },
-  executioner: { label: 'Vadha Parashu',  meaning: 'slaying axe',      minSector: 3, desc: 'Bonus vs low-HP enemies' }
+  none:        { label: N.weapons.none[0], meaning: N.weapons.none[1], minSector: 1, desc: 'A plain, quick blade' },
+  venom:       { label: N.weapons.venom[0], meaning: N.weapons.venom[1], minSector: 1, desc: 'Poisons on hit' },
+  vampiric:    { label: N.weapons.vampiric[0], meaning: N.weapons.vampiric[1], minSector: 1, desc: 'Heals you on hit' },
+  chain:       { label: N.weapons.chain[0], meaning: N.weapons.chain[1], minSector: 2, desc: 'Arcs to a 2nd enemy' },
+  executioner: { label: N.weapons.executioner[0], meaning: N.weapons.executioner[1], minSector: 3, desc: 'Bonus vs low-HP enemies' }
 };
 const TRINKET_EFFECTS = {
-  vitality: { label: 'Prana Mani',    meaning: 'life-force jewel', minSector: 1, desc: 'Max HP boost' },
-  aegis:    { label: 'Kavach',        meaning: 'armour',           minSector: 1, desc: 'Periodic shield charge' },
-  thorns:   { label: 'Kantak Kangan', meaning: 'thorn bangle',     minSector: 2, desc: 'Reflects contact damage' },
-  swift:    { label: 'Vega Paduka',   meaning: 'swift sandals',    minSector: 2, desc: 'Movement speed boost' },
-  regen:    { label: 'Sanjeevani',    meaning: 'healing herb',     minSector: 3, desc: 'Heals over time' }
+  vitality: { label: N.trinkets.vitality[0], meaning: N.trinkets.vitality[1], minSector: 1, desc: 'Max HP boost' },
+  aegis:    { label: N.trinkets.aegis[0], meaning: N.trinkets.aegis[1], minSector: 1, desc: 'Periodic shield charge' },
+  thorns:   { label: N.trinkets.thorns[0], meaning: N.trinkets.thorns[1], minSector: 2, desc: 'Reflects contact damage' },
+  swift:    { label: N.trinkets.swift[0], meaning: N.trinkets.swift[1], minSector: 2, desc: 'Movement speed boost' },
+  regen:    { label: N.trinkets.regen[0], meaning: N.trinkets.regen[1], minSector: 3, desc: 'Heals over time' }
 };
 function pickWeaponEffect(sector) {
   const pool = Object.keys(WEAPON_EFFECTS).filter(k => WEAPON_EFFECTS[k].minSector <= sector);
@@ -805,10 +881,10 @@ function pickTrinketEffect(sector) {
 // player-facing label changes (requirements.md 2.12). Tints are warm now - a cool
 // overlay on a forge arena fought the palette.
 const PHASE_DEFS = {
-  drift:    { label: 'SHANTI',  color: 0x4dd0ff, duration: 20000, enemyDmgMult: 1.0,  playerDmgMult: 1.0,  spawnRateMult: 1.0, lootBoost: 0,  tint: 0x3a8aa0, tintAlpha: 0.10 },
-  surge:    { label: 'SHAKTI',  color: 0xff8c42, duration: 12000, enemyDmgMult: 1.0,  playerDmgMult: 1.0,  spawnRateMult: 0.65,lootBoost: 15, tint: 0xff7a1a, tintAlpha: 0.12 },
-  eclipse:  { label: 'GRAHAN',  color: 0xc4331f, duration: 10000, enemyDmgMult: 1.3,  playerDmgMult: 1.3,  spawnRateMult: 1.0, lootBoost: 0,  tint: 0x2a0404, tintAlpha: 0.38 },
-  convergence: { label: 'PRALAYA', color: 0xfffbef, duration: 8000, enemyDmgMult: 1.0, playerDmgMult: 1.0, spawnRateMult: 1.0, lootBoost: 30, tint: 0xfff0c0, tintAlpha: 0.14 }
+  drift:    { label: N.phases.drift.toUpperCase(),  color: 0x4dd0ff, duration: 20000, enemyDmgMult: 1.0,  playerDmgMult: 1.0,  spawnRateMult: 1.0, lootBoost: 0,  tint: 0x3a8aa0, tintAlpha: 0.10 },
+  surge:    { label: N.phases.surge.toUpperCase(),  color: 0xff8c42, duration: 12000, enemyDmgMult: 1.0,  playerDmgMult: 1.0,  spawnRateMult: 0.65,lootBoost: 15, tint: 0xff7a1a, tintAlpha: 0.12 },
+  eclipse:  { label: N.phases.eclipse.toUpperCase(),  color: 0xc4331f, duration: 10000, enemyDmgMult: 1.3,  playerDmgMult: 1.3,  spawnRateMult: 1.0, lootBoost: 0,  tint: 0x2a0404, tintAlpha: 0.38 },
+  convergence: { label: N.phases.convergence.toUpperCase(), color: 0xfffbef, duration: 8000, enemyDmgMult: 1.0, playerDmgMult: 1.0, spawnRateMult: 1.0, lootBoost: 30, tint: 0xfff0c0, tintAlpha: 0.14 }
 };
 const PHASE_SEQUENCE = ['drift', 'surge', 'eclipse'];
 const CONVERGENCE_INTERVAL = 90000;
@@ -834,10 +910,7 @@ const INV_MAX = 8;   // satchel capacity; oldest falls out past this
 // during a run, so the Indian identity lands through play rather than through a
 // menu nobody opens. Devanagari is deliberately omitted here: at ~9px over a moving
 // sprite it turns to mush, and it already carries the identity on the codex screen.
-const CHAR_LABELS = {
-  melee: 'Asura', ranged: 'Rakshasa', tank: 'Mahish', splitter: 'Raktabija',
-  gatekeeper: 'Bakasura', sectorboss: 'Nidhi-Raksha', megaboss: 'Vritra'
-};
+const CHAR_LABELS = N.enemies;
 
 // Render layers. Floor < phase tint < slam telegraphs < everything else (default 0),
 // so a telegraph is painted ON the ground, under the characters standing in it, and is
@@ -1204,8 +1277,7 @@ class LootScene extends Phaser.Scene {
 
   // Runs inside the Begin tap, which is what lets the browser start audio at all.
   begin() {
-    Music.init(this.sound);
-    Music.unlock();
+    if (MUSIC_ON) { Music.init(this.sound); Music.unlock(); }
     this.showHub();
   }
 
@@ -1220,7 +1292,7 @@ class LootScene extends Phaser.Scene {
     this.tejasBtn = this.add.circle(x, y, 25, FORGE.deep, 0.9)
       .setStrokeStyle(2, FORGE.bronze, 0.8).setInteractive({ useHandCursor: true }).setDepth(20);
     this.tejasArc = this.add.graphics().setDepth(21);
-    this.tejasLabel = this.add.text(x, y - 4, 'TEJAS', { resolution: RES, fontSize: '8px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(0.5).setDepth(22);
+    this.tejasLabel = this.add.text(x, y - 4, N.supercharge.toUpperCase(), { resolution: RES, fontSize: '8px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(0.5).setDepth(22);
     this.tejasPct = this.add.text(x, y + 7, '0%', { resolution: RES, fontSize: '8px', color: '#8a7360' }).setOrigin(0.5).setDepth(22);
     this.tejasBtn.on('pointerdown', () => this.activateTejas());
   }
@@ -1251,7 +1323,7 @@ class LootScene extends Phaser.Scene {
     if (!settings.reduceFlash) this.cameras.main.flash(160, 255, 210, 120);
     this.sfx('tejas-go'); this.sfx('tejas-bell');
     this.buzz(60);
-    this.showToast(`TEJAS - ${f.name.toUpperCase()}`, '#ffd23c');
+    this.showToast(`${N.supercharge.toUpperCase()} - ${f.name.toUpperCase()}`, '#ffd23c');
   }
 
   endTejas(silent) {
@@ -1280,8 +1352,8 @@ class LootScene extends Phaser.Scene {
     if (ready && !this.tejasWasReady) {
       this.sfx('tejas-ready');
       this.hint('tejas', this.sys.game.device.input.touch
-        ? 'Tejas is full! Tap the glowing button (bottom-left) to unleash it.'
-        : 'Tejas is full! Press Space (or click the glowing button) to unleash it.');
+        ? `${N.supercharge} is full! Tap the glowing button (bottom-left) to unleash it.`
+        : `${N.supercharge} is full! Press Space (or click the glowing button) to unleash it.`);
     }
     this.tejasWasReady = ready;
     g.clear();
@@ -1435,8 +1507,8 @@ class LootScene extends Phaser.Scene {
     this.openOverlay(0.78);
     const cx = W / 2;
     this.ov(this.add.rectangle(cx, 372, 336, 486, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold, 0.8));
-    this.ovText(cx, 156, 'VIRAM', { fontSize: '26px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
-    this.ovText(cx, 181, 'विराम · paused', { fontSize: '11px', color: '#c8a96e' }).setOrigin(0.5);
+    this.ovText(cx, N.pauseSub ? 156 : 166, N.pause.toUpperCase(), { fontSize: '26px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
+    if (N.pauseSub) this.ovText(cx, 181, N.pauseSub, { fontSize: '11px', color: '#c8a96e' }).setOrigin(0.5);
 
     // The build you are carrying - Brotato and Vampire Survivors both put it here, since
     // pause is the one calm moment to read what your items actually do.
@@ -1453,9 +1525,9 @@ class LootScene extends Phaser.Scene {
     if (tr) row(270, tr.effect, RARITY[tr.rarity].color, tr.name, TRINKET_EFFECTS[tr.effect].desc);
     else row(270, 'mystery', 0x5a4535, 'No trinket', 'Trinkets drop from enemies - walk over one');
     const f = this.tejasForm();
-    if (session.tejasUnlocked) row(314, w.effect || 'none', f.colour, `Tejas: ${f.name}`, f.desc);
-    else row(314, 'mystery', 0x5a4535, 'Tejas: dormant', `Awakens the first time you reach Sector ${TEJAS_UNLOCK_SECTOR}`);
-    this.ovText(cx, 364, `Sector ${this.sector} · Wave ${Math.min(this.wave, 5)}/5 · ${this.runGold} Nidhi this run`,
+    if (session.tejasUnlocked) row(314, w.effect || 'none', f.colour, `${N.supercharge}: ${f.name}`, f.desc);
+    else row(314, 'mystery', 0x5a4535, `${N.supercharge}: dormant`, `Awakens the first time you reach Sector ${TEJAS_UNLOCK_SECTOR}`);
+    this.ovText(cx, 364, `Sector ${this.sector} · Wave ${Math.min(this.wave, 5)}/5 · ${this.runGold} ${N.currency} this run`,
       { fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
 
     this.ovButton(cx, 410, 240, 44, 'RESUME', 0x7a3a0a, () => this.resumeGame(), { sound: null, stroke: FORGE.gold, size: 16 });
@@ -1473,7 +1545,7 @@ class LootScene extends Phaser.Scene {
     this.ov(this.add.rectangle(cx, 362, 324, 300, FORGE.deep, 0.98).setStrokeStyle(2, 0xff5c5c, 0.9));
     this.ovText(cx, 252, 'ABANDON THIS RUN?', { fontSize: '21px', color: '#ff9a80', fontStyle: 'bold' }).setOrigin(0.5);
     this.ovText(cx, 296, 'Abandoning counts as a death.', { fontSize: '14px', color: '#fffbef', fontStyle: 'bold', display: false }).setOrigin(0.5);
-    this.ovText(cx, 338, `You keep only half of this run's Nidhi:\n${kept} of ${this.runGold}. The rest is lost.`,
+    this.ovText(cx, 338, `You keep only half of this run's ${N.currency}:\n${kept} of ${this.runGold}. The rest is lost.`,
       { fontSize: '12px', color: '#f0dcc0', align: 'center', lineSpacing: 4 }).setOrigin(0.5);
     this.ovButton(cx, 404, 250, 46, 'KEEP FIGHTING', 0x7a3a0a, () => this.showPauseMenu(), { stroke: FORGE.gold, size: 16 });
     this.ovButton(cx, 462, 250, 38, 'ABANDON RUN', 0x3a0f08, () => this.abandonRun(),
@@ -1549,10 +1621,10 @@ class LootScene extends Phaser.Scene {
     };
 
     let y = 164;
-    volRow(y, 'Music', 'music'); y += 40;
+    if (MUSIC_ON) { volRow(y, 'Music', 'music'); y += 40; }
     volRow(y, 'Sound effects', 'sfx'); y += 48;
     toggleRow(y, 'Screen shake', null, 'shake'); y += 42;
-    toggleRow(y, 'Reduce flashing', 'softer hit flash, no Tejas flash', 'reduceFlash'); y += 42;
+    toggleRow(y, 'Reduce flashing', `softer hit flash, no ${N.supercharge} flash`, 'reduceFlash'); y += 42;
     toggleRow(y, 'Damage numbers', null, 'dmgNumbers'); y += 42;
     if (navigator.vibrate) { toggleRow(y, 'Vibration', null, 'vibrate'); y += 42; }
     toggleRow(y, 'Tutorial tips', 'short hints the first time things happen', 'tips'); y += 40;
@@ -1569,7 +1641,7 @@ class LootScene extends Phaser.Scene {
       this.ovButton(cx, y, 260, 34, 'RESET SAVE', 0x3a0f08, (bg, t) => {
         if (!armed) {
           armed = true;
-          t.setText('TAP AGAIN - erases Nidhi, upgrades, unlocks').setFontSize(10);
+          t.setText(`TAP AGAIN - erases ${N.currency}, upgrades, unlocks`).setFontSize(10);
           bg.setStrokeStyle(1.5, 0xff5c5c, 1);
           this.sfx('ui-error');
           return;
@@ -1625,8 +1697,8 @@ class LootScene extends Phaser.Scene {
     const warn = 0xff3b1f;
     return [
       { title: 'MOVE · FIGHT',
-        body: (touch ? 'Drag anywhere to move - Kiran follows your finger.' : 'Move with WASD or the arrow keys (or click and drag).') +
-              ' Attacks are automatic: Kiran strikes the nearest enemy in range. Your whole job is where you stand.',
+        body: (touch ? `Drag anywhere to move - ${N.player} follows your finger.` : 'Move with WASD or the arrow keys (or click and drag).') +
+              ` Attacks are automatic: ${N.player} strikes the nearest enemy in range. Your whole job is where you stand.`,
         draw: (cx, cy) => {
           const gr = g();
           gr.lineStyle(1, FORGE.cool, 0.35); gr.strokeCircle(cx - 50, cy, 70);
@@ -1638,10 +1710,10 @@ class LootScene extends Phaser.Scene {
           label(cx - 8, cy + 76, touch ? 'drag' : 'WASD / drag', '#ffd23c');
           label(cx - 50, cy - 76, 'attack range', '#4dd0ff', 8);
         } },
-      { title: 'LOOT · SATCHEL',
-        body: 'Walk over a drop to equip it - no menus. The metal is the quality: Tamra (copper), Rajat (silver), Swarna (gold). Violet ??? is unidentified - a gamble that usually pays. What you replace goes to the Satchel on the right edge: tap it to swap back.',
+      { title: `LOOT · ${N.satchel.toUpperCase()}`,
+        body: `Walk over a drop to equip it - no menus. The metal is the quality: ${metalList()}. Violet ??? is unidentified - a gamble that usually pays. What you replace goes to the ${N.satchel} on the right edge: tap it to swap back.`,
         draw: (cx, cy) => {
-          [['common', 'Tamra'], ['rare', 'Rajat'], ['epic', 'Swarna']].forEach(([r, n], i) => {
+          ['common', 'rare', 'epic'].map(r => [r, N.metals[r]]).forEach(([r, n], i) => {
             img('icon_chain', cx - 118 + i * 58, cy - 18, 34, RARITY[r].color);
             label(cx - 118 + i * 58, cy + 14, n, '#' + RARITY[r].color.toString(16));
           });
@@ -1649,11 +1721,11 @@ class LootScene extends Phaser.Scene {
           label(cx + 56, cy + 14, '???', '#b48cff');
           this.ov(this.add.rectangle(cx + 128, cy, 22, 70, FORGE.panel, 1).setStrokeStyle(1, FORGE.bronze, 0.8), 102);
           label(cx + 128, cy - 10, '<', '#ffd23c', 10); label(cx + 128, cy + 8, '2', '#fffbef', 11);
-          label(cx + 128, cy + 48, 'satchel', '#c8a96e', 8);
+          label(cx + 128, cy + 48, N.satchel.toLowerCase(), '#c8a96e', 8);
           label(cx - 60, cy + 50, 'finer metal = stronger item', '#8a7360', 9);
         } },
       { title: 'THE COSMIC CYCLE',
-        body: 'The bar at the top loops through three phases. SHANTI is calm. SHAKTI floods the arena but pays richer loot. In GRAHAN everyone hits 30% harder - you included. Every 90 seconds, PRALAYA brings an elite and the best drops. The ring at your feet always shows the phase.',
+        body: `The bar at the top loops through three phases. ${PHASE_DEFS.drift.label} is calm. ${PHASE_DEFS.surge.label} floods the arena but pays richer loot. In ${PHASE_DEFS.eclipse.label} everyone hits 30% harder - you included. Every 90 seconds, ${PHASE_DEFS.convergence.label} brings an elite and the best drops. The ring at your feet always shows the phase.`,
         draw: (cx, cy) => {
           const seq = [['drift', 20], ['surge', 12], ['eclipse', 10]], total = 42, bw = 270;
           let x = cx - bw / 2;
@@ -1665,20 +1737,20 @@ class LootScene extends Phaser.Scene {
           });
           label(cx, cy - 58, 'loops forever', '#8a7360', 8);
           this.ov(this.add.rectangle(cx + 92, cy + 20, 70, 18, PHASE_DEFS.convergence.color, 1), 102);
-          label(cx + 92, cy + 20, 'PRALAYA', '#1a0600', 9);
+          label(cx + 92, cy + 20, PHASE_DEFS.convergence.label, '#1a0600', 9);
           label(cx + 92, cy + 38, 'every 90s', '#8a7360', 8);
           img(`${CHARS.player}-front`, cx - 60, cy + 22, 44);
           this.ov(this.add.ellipse(cx - 60, cy + 38, 34, 13, 0, 0).setStrokeStyle(2, PHASE_DEFS.eclipse.color, 0.95), 102);
           label(cx - 60, cy + 62, 'phase ring', '#c8a96e', 8);
         } },
       { title: 'BOSSES',
-        body: "Every boss has a glowing core. It takes full damage only while the phase bar matches the core's colour - survive until then. A shielded boss can't be hurt at all: kill the gold-glowing Asura anchoring the shield to break it.",
+        body: `Every boss has a glowing core. It takes full damage only while the phase bar matches the core's colour - survive until then. A shielded boss can't be hurt at all: kill the gold-glowing ${N.enemies.melee} anchoring the shield to break it.`,
         draw: (cx, cy) => {
           const gr = g(); gr.setDepth(101.5);
           gr.fillStyle(PHASE_DEFS.surge.color, 0.35); gr.fillEllipse(cx - 70, cy + 32, 72, 26);
           gr.fillStyle(PHASE_DEFS.surge.color, 0.9); gr.fillEllipse(cx - 70, cy + 32, 40, 13);
           img(`${CHARS.gatekeeper}-front`, cx - 70, cy - 4, 76);
-          label(cx - 70, cy + 58, 'orange core = hit in SHAKTI', '#ff8c42', 8);
+          label(cx - 70, cy + 58, `orange core = hit in ${PHASE_DEFS.surge.label}`, '#ff8c42', 8);
           this.ov(this.add.circle(cx + 70, cy, 38, 0x9fd8ff, 0.18), 102);
           this.ov(this.add.circle(cx + 70, cy, 42, 0, 0).setStrokeStyle(2, 0x9fd8ff, 0.8), 102);
           img(`${CHARS.sectorboss}-front`, cx + 70, cy, 70);
@@ -1702,8 +1774,8 @@ class LootScene extends Phaser.Scene {
           });
           label(cx - 100, cy + 62, 'ring', '#ff8a70'); label(cx, cy + 68, 'line', '#ff8a70'); label(cx + 104, cy + 62, 'scatter', '#ff8a70');
         } },
-      { title: 'TEJAS',
-        body: (touch ? 'From Sector 2, a meter fills as you fight - faster with every kill. When it is full, tap the glowing TEJAS button' : 'From Sector 2, a meter fills as you fight - faster with every kill. When it is full, press Space (or click the TEJAS button)') +
+      { title: N.supercharge.toUpperCase(),
+        body: (touch ? `From Sector 2, a meter fills as you fight - faster with every kill. When it is full, tap the glowing ${N.supercharge.toUpperCase()} button` : `From Sector 2, a meter fills as you fight - faster with every kill. When it is full, press Space (or click the ${N.supercharge.toUpperCase()} button)`) +
               ' for six seconds of power. The form follows your weapon: fire novas, a poison cloud, a blood drain, chain lightning or executing slams.' +
               (session.tejasUnlocked ? '' : ' (Not awakened yet - reach Sector 2.)'),
         draw: (cx, cy) => {
@@ -1711,14 +1783,14 @@ class LootScene extends Phaser.Scene {
           gr.fillStyle(0x5c2a05, 1); gr.fillCircle(bx, cy, 30);
           gr.lineStyle(5, FORGE.gold, 1); gr.strokeCircle(bx, cy, 30);
           gr.lineStyle(2, FORGE.gold, 0.5); gr.strokeCircle(bx, cy, 37);
-          label(bx, cy - 6, 'TEJAS', '#ffd23c', 10); label(bx, cy + 8, 'READY', '#ffd23c', 9);
+          label(bx, cy - 6, N.supercharge.toUpperCase(), '#ffd23c', N.supercharge.length > 6 ? 8 : 10); label(bx, cy + 8, 'READY', '#ffd23c', 9);
           img(`${CHARS.player}-front`, cx + 70, cy, 48, 0xffe08a);
           gr.lineStyle(4, 0xff8c42, 0.9); gr.strokeCircle(cx + 70, cy, 44);
           gr.lineStyle(2, 0xff8c42, 0.45); gr.strokeCircle(cx + 70, cy, 62);
-          label(cx + 70, cy + 72, 'Agni - fire nova', '#ff8c42', 8);
+          label(cx + 70, cy + 72, `${TEJAS_FORMS.none.name} - fire nova`, '#ff8c42', 8);
         } },
       { title: 'EXTRACT OR DESCEND',
-        body: "Beat a sector's boss and choose: Extract to bank all your Nidhi and end the run, or Descend for tougher fights, better loot and new powers. Fall down there and you keep only half. Nidhi buys Vitality and Power at the hub - but deep sectors hit hard enough that upgrades alone won't carry you.",
+        body: `Beat a sector's boss and choose: Extract to bank all your ${N.currency} and end the run, or Descend for tougher fights, better loot and new powers. Fall down there and you keep only half. ${N.currency} buys Vitality and Power at the hub - but deep sectors hit hard enough that upgrades alone won't carry you.`,
         draw: (cx, cy) => {
           this.ov(this.add.rectangle(cx, cy - 30, 230, 40, 0x3a1a08, 1).setStrokeStyle(1.5, FORGE.bronze, 0.9), 102);
           label(cx, cy - 30, 'Extract - bank & end run', '#fffbef', 11);
@@ -2422,7 +2494,7 @@ class LootScene extends Phaser.Scene {
     say(cx, cy + 16, 'start a run', { fontSize: '10px', color: '#ffe9a0' });
 
     say(cx, 436, session.bestSector ? `Deepest descent: Sector ${session.bestSector}` : 'No descent yet', { fontSize: '11px', color: '#c8a96e' });
-    say(cx, 460, `Nidhi: ${session.metaGold}`, { fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' });
+    say(cx, 460, `${N.currency}: ${session.metaGold}`, { fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' });
 
     // Exponential, not linear: linear costs let Vitality outgrow every sector. Levels
     // now plateau around 8-12 unless a player commits to many deep runs.
@@ -2439,7 +2511,7 @@ class LootScene extends Phaser.Scene {
       this.uiObjects.push(this.add.rectangle(x, 530, 178, 96, FORGE.deep, 0.9).setStrokeStyle(1.5, can ? FORGE.gold : FORGE.bronze, can ? 0.9 : 0.4));
       say(x, 497, name, { fontSize: '11px', color: '#c8a96e', fontStyle: 'bold' });
       say(x, 515, `Lv. ${level}  ·  ${effect}`, { fontSize: '12px', color: '#fffbef' });
-      this.makeButton(x, 550, 152, 32, `${cost} Nidhi`, can ? BTN.plain : BTN.off, buy(cost, key),
+      this.makeButton(x, 550, 152, 32, `${cost} ${N.currency}`, can ? BTN.plain : BTN.off, buy(cost, key),
         { sound: null, size: 14, color: can ? '#fffbef' : '#8a7360' });
     };
     card(104, 'VITALITY', session.vitalityLevel, `+${session.vitalityLevel * 10}% max HP`, vitCost, 'vitalityLevel');
@@ -2484,7 +2556,7 @@ class LootScene extends Phaser.Scene {
     this.uiObjects.push(this.add.text(W/2, 30, 'POWERS', { resolution: RES, fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
     this.uiObjects.push(this.add.text(W/2, 56, `found in the depths · best sector ${reached}`, { resolution: RES, fontSize: '11px', color: '#c8a96e' }).setOrigin(0.5));
 
-    const tabs = [['weapons', 'WEAPONS'], ['trinkets', 'TRINKETS'], ['tejas', 'TEJAS']];
+    const tabs = [['weapons', 'WEAPONS'], ['trinkets', 'TRINKETS'], ['tejas', N.supercharge.toUpperCase()]];
     tabs.forEach(([key, label], i) => {
       const tx = b.centerX + (i - 1) * 110, active = key === tab;
       const btn = this.add.rectangle(tx, b.y + 24, 100, 30, active ? 0x7a3a0a : 0x3a1a08, 1)
@@ -2522,13 +2594,13 @@ class LootScene extends Phaser.Scene {
         y += step;
       }
       this.uiObjects.push(this.add.text(b.centerX, y + 6,
-        'Tamra · Rajat · Swarna — copper, silver, gold. Finer metal, stronger effect. About 1 drop in 4 is unidentified: riskier, better odds.',
+        `${metalList()}. Finer metal, stronger effect. About 1 drop in 4 is unidentified: riskier, better odds.`,
         { resolution: RES, fontSize: '10px', color: '#8a7360', align: 'center', wordWrap: { width: b.width - 40 } }).setOrigin(0.5, 0));
     } else {
       const on = session.tejasUnlocked;
       this.uiObjects.push(this.add.text(b.centerX, y - 22,
-        on ? 'Kill to charge. When full, tap TEJAS (or Space) to unleash. The form follows your weapon.'
-           : `Locked — Tejas awakens the first time you reach Sector ${TEJAS_UNLOCK_SECTOR}.`,
+        on ? `Kill to charge. When full, tap ${N.supercharge.toUpperCase()} (or Space) to unleash. The form follows your weapon.`
+           : `Locked — ${N.supercharge} awakens the first time you reach Sector ${TEJAS_UNLOCK_SECTOR}.`,
         { resolution: RES, fontSize: '10px', color: on ? '#e8a868' : '#ffd23c', align: 'center',
           wordWrap: { width: b.width - 40 } }).setOrigin(0.5, 0.5));
       y += 24;
@@ -2584,7 +2656,7 @@ class LootScene extends Phaser.Scene {
       // `type` matters now that the satchel can hand this back to applyLoot: without
       // it the starting Dagger fell through to the trinket branch and equipped itself
       // into the wrong slot. Every dropped item already carries one.
-      weapon: { type: 'weapon', name: 'Katar', rarity: 'common', shots: 1, effect: 'none', dmg: 10 * (1 + session.powerLevel * 0.08), range: 130, atkSpeed: 500 },
+      weapon: { type: 'weapon', name: WEAPON_EFFECTS.none.label, rarity: 'common', shots: 1, effect: 'none', dmg: 10 * (1 + session.powerLevel * 0.08), range: 130, atkSpeed: 500 },
       trinket: null
     };
     this.playerFacing = 'front';
@@ -2657,7 +2729,7 @@ class LootScene extends Phaser.Scene {
 
   showSectorBanner(n) {
     const t1 = this.add.text(W/2, H/2-40, `SECTOR ${n}`, { resolution: RES, stroke: '#2a0800', strokeThickness: 4, fontSize: '14px', color: '#e8c690', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
-    const t2 = this.add.text(W/2, H/2-14, sectorTitle(n), { resolution: RES, stroke: '#2a0800', strokeThickness: 4, fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
+    const t2 = this.add.text(W/2, H/2-14, sectorTitle(n), { resolution: RES, stroke: '#2a0800', strokeThickness: 4, fontSize: '28px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
     const t3 = this.add.text(W/2, H/2+16, sectorSub(n), { resolution: RES, stroke: '#2a0800', strokeThickness: 4, fontSize: '12px', color: '#f0dcc0' }).setOrigin(0.5).setAlpha(0);
     this.clearBanner();
     this.banner = [t1, t2, t3];
@@ -2693,7 +2765,7 @@ class LootScene extends Phaser.Scene {
       this.playMusic('boss');
       this.sfx('boom');
       const isMega = this.sector === MEGA_BOSS_SECTOR;
-      this.showToast(isMega ? 'VRITRA AWAKENS' : 'NIDHI-RAKSHA STIRS', '#fffbef');
+      this.showToast(isMega ? `${N.enemies.megaboss.toUpperCase()} AWAKENS` : `${N.enemies.sectorboss.toUpperCase()} STIRS`, '#fffbef');
       return;
     }
 
@@ -2702,7 +2774,7 @@ class LootScene extends Phaser.Scene {
       this.sfx('boom', { vol: 0.7 });
       for (let i = 0; i < 2; i++) this.spawnQueue.push(i); // a little escort pressure alongside the boss
       this.spawnTimer = 700;
-      this.showToast('BAKASURA BARS THE WAY', '#fffbef');
+      this.showToast(`${N.enemies.gatekeeper.toUpperCase()} BARS THE WAY`, '#fffbef');
       return;
     }
 
@@ -2721,7 +2793,7 @@ class LootScene extends Phaser.Scene {
       session.tejasUnlocked = true;
       saveSession();
       this.buildTejasUI();
-      this.time.delayedCall(1600, () => this.showToast('TEJAS AWAKENS - kill to charge, then unleash', '#ffd23c'));
+      this.time.delayedCall(1600, () => this.showToast(`${N.supercharge.toUpperCase()} AWAKENS - kill to charge, then unleash`, '#ffd23c'));
     }
     this.wave = 0;
     this.progressNodes.forEach(node => { node.fillColor = 0x2a0f04; });
@@ -2798,7 +2870,7 @@ class LootScene extends Phaser.Scene {
       .setStrokeStyle(1, FORGE.bronze, 0.85);
 
     const top = py - ph / 2;
-    this.satchelItems.push(this.add.text(px, top + 14, 'SATCHEL', { resolution: RES, fontSize: '10px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
+    this.satchelItems.push(this.add.text(px, top + 14, N.satchel.toUpperCase(), { resolution: RES, fontSize: '10px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
 
     if (this.inventory.length === 0) {
       this.satchelItems.push(this.add.text(px, top + 44, 'nothing swapped out yet', {
@@ -2839,7 +2911,7 @@ class LootScene extends Phaser.Scene {
     // using ages ago is a kinder failure than being unable to pick anything up.
     if (this.inventory.length > INV_MAX) this.inventory.shift();
     this.refreshSatchel();
-    this.hint('satchel', 'Your old item went into the Satchel - the tab on the right edge. Tap it to swap back any time.');
+    this.hint('satchel', `Your old item went into the ${N.satchel} - the tab on the right edge. Tap it to swap back any time.`);
   }
 
   destroySatchelUI() {
@@ -2920,7 +2992,7 @@ class LootScene extends Phaser.Scene {
     this.enemyCores.set(enemy.id, core);
     this.addHpBar(enemy);
     this.addNameLabel(enemy);
-    this.hint('core', "Bakasura's glowing core is its weak spot: full damage only while the phase bar matches that colour.");
+    this.hint('core', `The glowing core at ${N.enemies.gatekeeper}'s feet is the weak spot: full damage only while the phase bar matches that colour.`);
     return enemy;
   }
 
@@ -3001,14 +3073,14 @@ class LootScene extends Phaser.Scene {
     this.enemyShields.set(boss.id, dome);   // kept for the existing pulse-on-hit path
     this.addShieldBar(boss);
     this.time.delayedCall(900, () => this.showToast('DESTROY THE ANCHORS', '#9fd8ff'));
-    this.hint('shield', 'Shielded - no damage gets through. Kill the gold-glowing Asura anchoring it and the shield breaks.');
+    this.hint('shield', `Shielded - no damage gets through. Kill the gold-glowing ${N.enemies.melee} anchoring it and the shield breaks.`);
   }
 
   transitionMegaBossToShield(boss) {
     if (this.enemyCores.has(boss.id)) { this.enemyCores.get(boss.id).destroy(); this.enemyCores.delete(boss.id); }
     boss.bossPhase = 'shielded';
     boss.shieldOn = true;
-    this.showToast('VRITRA COILS - DESTROY THE ANCHORS', '#9fd8ff');
+    this.showToast(`${N.enemies.megaboss.toUpperCase()} COILS - DESTROY THE ANCHORS`, '#9fd8ff');
     this.sfx('toll', { rate: 1.3 });
     this.spawnShieldAdds(boss);
   }
@@ -3059,7 +3131,7 @@ class LootScene extends Phaser.Scene {
     this.enemySprites.set(enemy.id, spr);
     this.addHpBar(enemy);
     this.addNameLabel(enemy);
-    if (type === 'ranged') this.hint('ranged', 'Rakshasa shoot bolts from range. Keep moving sideways to dodge them.');
+    if (type === 'ranged') this.hint('ranged', `${N.enemies.ranged} shoot bolts from range. Keep moving sideways to dodge them.`);
     return enemy;
   }
 
@@ -3085,7 +3157,7 @@ class LootScene extends Phaser.Scene {
     if (kind !== 'slam' && this.player.iframes > 0) return false;
     if (this.player.shieldCharge > 0) {
       this.player.shieldCharge--;
-      this.showToast('KAVACH BLOCKED', '#4dd0ff');
+      this.showToast(`${TRINKET_EFFECTS.aegis.label.toUpperCase()} BLOCKED`, '#4dd0ff');
       this.sfx('kavach');
       this.impactBurst(this.player.x, this.player.y, 0x9fd8ff);
       return false;
@@ -3180,7 +3252,7 @@ class LootScene extends Phaser.Scene {
       }
       this.spawnLootPickup(enemy.x, enemy.y, 'epic');
       this.spawnLootPickup(enemy.x + 24, enemy.y, 'epic');
-      this.showToast(enemy.isMega ? 'VRITRA FALLS' : 'NIDHI-RAKSHA FALLS', '#2fbf71');
+      this.showToast(`${N.enemies[enemy.isMega ? 'megaboss' : 'sectorboss'].toUpperCase()} FALLS`, '#2fbf71');
       this.time.delayedCall(1000, () => { if (this.state === 'playing') this.showSectorClearChoice(enemy.isMega); });
       return;
     }
@@ -3302,9 +3374,9 @@ class LootScene extends Phaser.Scene {
     this.clearUI();
     this.playMusic('hub');   // the decision is a breath between fights
     this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 300, FORGE.deep, 0.97).setStrokeStyle(2, 0x2fbf71));
-    this.uiObjects.push(this.add.text(W/2, H/2-115, isMega ? 'VRITRA FALLS' : 'SECTOR CLEARED', { resolution: RES, fontSize: '19px', color: '#2fbf71', fontStyle: 'bold' }).setOrigin(0.5));
-    this.uiObjects.push(this.add.text(W/2, H/2-80, `Sector ${this.sector} complete`, { resolution: RES, fontSize: '13px', color: '#fffbef' }).setOrigin(0.5));
-    this.uiObjects.push(this.add.text(W/2, H/2-55, `Nidhi carried: ${this.runGold}`, { resolution: RES, fontSize: '13px', color: '#ffd23c' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-115, isMega ? `${N.enemies.megaboss.toUpperCase()} FALLS` : 'SECTOR CLEARED', { resolution: RES, fontSize: '19px', color: '#2fbf71', fontStyle: 'bold' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-80, `${sectorTitle(this.sector)} · Sector ${this.sector} complete`, { resolution: RES, fontSize: '13px', color: '#fffbef' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2-55, `${N.currency} carried: ${this.runGold}`, { resolution: RES, fontSize: '13px', color: '#ffd23c' }).setOrigin(0.5));
     this.uiObjects.push(this.add.text(W/2, H/2-15,
       'Extract now and bank all of it,\nor descend for tougher fights and\nbetter loot. Fall, and half is lost.',
       { resolution: RES, fontSize: '12px', color: '#c8a96e', align: 'center', lineSpacing: 4 }).setOrigin(0.5));
@@ -3331,12 +3403,12 @@ class LootScene extends Phaser.Scene {
     this.uiObjects.push(this.add.text(W/2, H/2-100, victory ? 'EXTRACTED SAFELY' : (abandoned ? 'RUN ABANDONED' : 'YOU FELL'), { resolution: RES, fontSize: '24px', color: victory ? '#2fbf71' : '#ff5c5c', fontStyle: 'bold' }).setOrigin(0.5));
     this.uiObjects.push(this.add.text(W/2, H/2-58, `Sector reached: ${this.sector}`, { resolution: RES, fontSize: '15px', color: '#fffbef' }).setOrigin(0.5));
     if (victory) {
-      this.uiObjects.push(this.add.text(W/2, H/2-28, `Nidhi banked: ${banked}`, { resolution: RES, fontSize: '15px', color: '#ffd23c' }).setOrigin(0.5));
+      this.uiObjects.push(this.add.text(W/2, H/2-28, `${N.currency} banked: ${banked}`, { resolution: RES, fontSize: '15px', color: '#ffd23c' }).setOrigin(0.5));
     } else {
-      this.uiObjects.push(this.add.text(W/2, H/2-32, `Nidhi gathered: ${this.runGold}`, { resolution: RES, fontSize: '15px', color: '#ffd23c' }).setOrigin(0.5));
+      this.uiObjects.push(this.add.text(W/2, H/2-32, `${N.currency} gathered: ${this.runGold}`, { resolution: RES, fontSize: '15px', color: '#ffd23c' }).setOrigin(0.5));
       this.uiObjects.push(this.add.text(W/2, H/2-10, abandoned ? `Half is forfeit. You keep ${banked}.` : `Half is lost in the fall. You keep ${banked}.`, { resolution: RES, fontSize: '12px', color: '#ff9a80' }).setOrigin(0.5));
     }
-    this.uiObjects.push(this.add.text(W/2, H/2+20, `Treasury: ${session.metaGold} Nidhi`, { resolution: RES, fontSize: '13px', color: '#c8a96e' }).setOrigin(0.5));
+    this.uiObjects.push(this.add.text(W/2, H/2+20, `Treasury: ${session.metaGold} ${N.currency}`, { resolution: RES, fontSize: '13px', color: '#c8a96e' }).setOrigin(0.5));
 
     this.makeButton(W/2, H/2+80, 200, 48, 'Continue to Hub', BTN.primary, () => {
       // clean up run visuals
@@ -3406,11 +3478,11 @@ class LootScene extends Phaser.Scene {
         this.phase = 'convergence';
         this.phaseTimeLeft = PHASE_DEFS.convergence.duration;
         this.convergenceCountdown = CONVERGENCE_INTERVAL;
-        this.showToast('PRALAYA - an elite approaches', '#fffbef');
+        this.showToast(`${PHASE_DEFS.convergence.label} - an elite approaches`, '#fffbef');
         this.spawnElite();
         this.sfx('tejas-bell', { rate: 0.7 });
         this.refreshMusic();
-        this.hint('pralaya', 'Pralaya! An elite Mahish joins the fight - and the best loot drops now.');
+        this.hint('pralaya', `${N.phases.convergence}! An elite ${N.enemies.tank} joins the fight - and the best loot drops now.`);
       } else if (this.phaseTimeLeft <= 0) {
         const idx = (PHASE_SEQUENCE.indexOf(this.phase) + 1) % PHASE_SEQUENCE.length;
         this.phase = PHASE_SEQUENCE[idx];
@@ -3418,8 +3490,8 @@ class LootScene extends Phaser.Scene {
         this.showToast(`${PHASE_DEFS[this.phase].label} begins`, '#' + PHASE_DEFS[this.phase].color.toString(16).padStart(6,'0'));
         this.sfx('phase');
         this.refreshMusic();
-        if (this.phase === 'eclipse') this.hint('grahan', 'Grahan: everyone hits 30% harder - you included. Bosses with a red core are vulnerable now.');
-        if (this.phase === 'surge') this.hint('shakti', 'Shakti: enemies pour in faster, but loot drops richer.');
+        if (this.phase === 'eclipse') this.hint('grahan', `${N.phases.eclipse}: everyone hits 30% harder - you included. Bosses with a red core are vulnerable now.`);
+        if (this.phase === 'surge') this.hint('shakti', `${N.phases.surge}: enemies pour in faster, but loot drops richer.`);
       }
     } else {
       this.phaseTimeLeft -= delta;
@@ -3784,7 +3856,7 @@ class LootScene extends Phaser.Scene {
     this.hpBarFill.fillColor = hpPct > 0.5 ? 0x2fbf71 : (hpPct > 0.25 ? 0xffd23c : 0xff5c5c);
 
     // --- HUD text ---
-    this.hudText.setText(`Sector ${this.sector} · Wave ${Math.min(this.wave,5)}/5   Nidhi: ${this.runGold}`);
+    this.hudText.setText(`Sector ${this.sector} · Wave ${Math.min(this.wave,5)}/5   ${N.currency}: ${this.runGold}`);
     this.weaponText.setText(`${this.player.weapon.name}${this.player.weapon.shots>1 ? ' x'+this.player.weapon.shots : ''}   ${Math.ceil(this.player.hp)}/${Math.ceil(this.player.maxHp)} HP`);
   }
 }
