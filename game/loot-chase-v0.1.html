@@ -582,6 +582,10 @@ const MUSIC = {
   // it - faster and louder - rather than falling silent.
   boss:   { file: 'assets/music/boss.mp3', fallback: 'combat', push: { rate: 1.05, vol: 1.15 } }
 };
+// Switched off 2026-10-02: the founder listened and the tracks, and above all the
+// transitions between them, did not suit the game. The engine, the files and the
+// Settings row all stay; set this to true to hear them again.
+const MUSIC_ON = false;
 const MUSIC_BASE_VOL = 0.5;
 const MUSIC_SEAM = 1.5;   // seconds of fade either side of a track's loop point
 
@@ -1204,8 +1208,7 @@ class LootScene extends Phaser.Scene {
 
   // Runs inside the Begin tap, which is what lets the browser start audio at all.
   begin() {
-    Music.init(this.sound);
-    Music.unlock();
+    if (MUSIC_ON) { Music.init(this.sound); Music.unlock(); }
     this.showHub();
   }
 
@@ -1549,7 +1552,7 @@ class LootScene extends Phaser.Scene {
     };
 
     let y = 164;
-    volRow(y, 'Music', 'music'); y += 40;
+    if (MUSIC_ON) { volRow(y, 'Music', 'music'); y += 40; }
     volRow(y, 'Sound effects', 'sfx'); y += 48;
     toggleRow(y, 'Screen shake', null, 'shake'); y += 42;
     toggleRow(y, 'Reduce flashing', 'softer hit flash, no Tejas flash', 'reduceFlash'); y += 42;

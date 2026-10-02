@@ -337,7 +337,9 @@ The sounds were picked by measurement (length, brightness, ring-out) because **C
 - **Repeated sounds are kept in check.** Each gets ±4% pitch drift, and noisy sounds have a minimum gap (`gap`), so a 3-target volley or a dying swarm reads as one hit.
 - **Getting hit scales with damage.** The hurt sound's volume scales with the share of max HP lost, and slams play it lower.
 
-**Music:** one track per mood (`hub`, `combat`, `boss`), crossfaded over 0.9 s.
+**Music is switched off (2026-10-02).** The founder listened to the build and the music did not suit the game, the transitions least of all. `MUSIC_ON = false` stops it loading or playing and hides its Settings row; the engine, the three files and everything described below stay in place for a second attempt. What that attempt should be is undecided.
+
+**Music as built:** one track per mood (`hub`, `combat`, `boss`), crossfaded over 0.9 s.
 
 | Mood | Track | Status |
 |---|---|---|
@@ -362,7 +364,7 @@ Rules for every pick: **no vocals or mantras** (§1.3, and the rule that cut Kal
 
 Pitch glides rather than steps. Pausing ducks the music to 35%. Because these tracks were not written to loop, the volume dips for 1.5 s either side of the loop point, so the restart is a breath rather than a cut. **All of these values were set without hearing them** and should be tuned by ear. True layered music (stems) belongs with the commissioned-art pass (`design-document.md` P4).
 
-**No one has yet listened to the result.** Claude cannot hear, so the mix, the phase effects and the loop points all wait on the founder's ear. Verified 2026-10-02 with stand-in tracks and an analyser node: crossfade, per-phase volume, filter and rate, the boss fallback, pause ducking, pause-on-hidden and the loop-seam fade all behave as specified.
+The values were set without hearing them, because Claude cannot hear. Verified 2026-10-02 with stand-in tracks and an analyser node: crossfade, per-phase volume, filter and rate, the boss fallback, pause ducking, pause-on-hidden and the loop-seam fade all behave as specified.
 
 ### 2.17 Pause & Settings (built 2026-09-27)
 **Pause (VIRAM, विराम):** a button at the top-right of the HUD whose touch target (56×36) is larger than the drawn button. Esc or P also toggles pause. **Switching apps or tabs pauses the run automatically.** Pausing freezes game logic, timers and tweens. The menu shows the build you are carrying (weapon, trinket and Tejas form, each with what it does), your sector and wave, and the Nidhi from this run, followed by Resume, How to Play, Settings and **Abandon Run**. Abandon opens a confirmation that states the cost before anything happens: it **counts as a death**, and you keep only half of the run's Nidhi, with the exact numbers shown ("62 of 125"). *Keep Fighting* is the primary button.

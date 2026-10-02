@@ -45,7 +45,7 @@ Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the cond
 | L2 | **Title / welcome screen** (= P1) | ⏳ **First design built 2026-10-02** (`requirements.md` §2.21): the view down a stepwell shaft, with DESCEND at the bottom of the well and the upgrades below. **Waiting on the founder's verdict.** If they prefer made art, `docs/art-prompts.md` has prompts for an image model. | A Cosmic Forge title screen with the name, art and a Start that leads into the hub. |
 | L3 | **How to play** | ✅ **Built 2026-09-27**: seven illustrated cards (`requirements.md` §2.12.2). | A help page reachable from the title and the hub. |
 | L4 | **First-run tutorial** (= P3) | ✅ **Built 2026-09-27**: 14 one-time live tips, skippable (§2.12.1). | Wave 1 of a player's first run teaches movement, loot, the satchel and slams live. |
-| L5 | **Audio** | ⏳ **Everything is in** as of 2026-10-02: 37 sound effects, and hub, combat and boss music streamed and coloured by the Cosmic Cycle (`requirements.md` §2.16). **Not yet heard by anyone.** What remains is the founder listening and saying what to change. | Free SFX (hits, slams, pickups, Tejas) plus Indian-flavoured music, with a mute toggle. |
+| L5 | **Audio** | ⏳ 37 sound effects are in. **Music was switched off on 2026-10-02**: the founder heard it and the tracks, and above all the transitions, did not suit the game (`requirements.md` §2.16). The engine and files remain; the approach needs rethinking. The founder has not yet commented on the sound effects. | Free SFX (hits, slams, pickups, Tejas) plus Indian-flavoured music, with a mute toggle. |
 | L6 | **Pause + settings** | ✅ **Built 2026-09-27** (§2.17). | Pause mid-run (essential on mobile), mute, and a "reset save" with a confirmation step. |
 | L7 | **Loading screen** | ✅ **Built 2026-10-02**: one glossary card per load, with a copper-silver-gold progress bar and a Begin button (`requirements.md` §2.19). | A branded loader with a progress bar. |
 | L8 | **Real-device check** (= P6) | Untested on a real phone. | Profiled on a mid-range Android and an iPhone; the frame rate holds with a full arena. |
@@ -54,7 +54,7 @@ Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the cond
 
 **Not needed for the POC:** P2 (look-builder), P4 (commissioned art), P5 (visual-story polish), M8 (narrative), M9 (capstone boss). These wait on the itch.io response, as the "prove it, then invest" rule in `launch-roadmap.md` says.
 
-**Immediate priority: the launch track (§1.2).** Open as of 2026-10-02: the founder's verdict on the sound, the music, the title screen and the new floors (L5, L2); activating the feedback form (L10); the real-device check (L8); the final name (L1); then the itch.io page (L9). M7 is effectively closed for the POC; its remainder is L2 plus the post-launch P4.
+**Immediate priority (2026-10-02): the founder is reviewing the game's flow before any further change.** A slide deck of the whole loop and every mechanic was made for that review; it closes with the gaps found (no stated goal, no ending, an unreadable sector track), three options for sector names, and a split of what to fix before launch against what can wait. Sector names are not yet changed. Still open on the launch track: music (L5), the title screen verdict (L2), activating the feedback form (L10), the real-device check (L8), the final name (L1) and the itch.io page (L9). M7 is effectively closed for the POC; its remainder is L2 plus the post-launch P4.
 
 ---
 
