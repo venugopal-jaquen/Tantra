@@ -13,13 +13,48 @@
 | M4 | Item identity system | ✅ Done | At least one run demonstrates a weapon effect and a trinket effect changing how combat feels |
 | M5 | Visual direction defined | ⚠️ **Redone** | ~~Cut Light~~ rejected 2026-09-24 as too dark/generic. Replaced by **Cosmic Forge** + Indian cultural identity — see `requirements.md` §1.7, §2.10, §2.12 |
 | M6 | **Project infrastructure** (git, deployment, formal spec) | ✅ **Done 2026-09-11** | Repo at github.com/venugopal-jaquen/Tantra with full history; live at venugopal-jaquen.github.io/Tantra |
-| M7 | Visual reskin (apply **Cosmic Forge** + Indian identity to the real game) | ⏳ In progress, **partly superseded** | Warm saffron-amber arena, gold player, dark-ore enemies with amber glow, Sanskrit naming live in-game. The Kenney CC0 sci-fi sprites shipped 2026-09-11 predate this direction and are placeholder only. |
+| M7 | Visual reskin (apply **Cosmic Forge** + Indian identity to the real game) | ⏳ **Mostly done** | Live: warm forge floor with jaali lattice + rangoli, CraftPix character roster under Sanskrit names, Indian item/rarity/currency names. Remaining: the title screen (pinned P1) and commissioned Indian art (pinned P4). |
 | M8 | Narrative depth pass (optional expansion beyond banners) | 🔜 Planned | Only if desired — current light-banner narrative already meets M1-level requirements |
+| M8.5 | First-run tutorial | ✅ **Built 2026-09-27** (live tips, §2.12.1) | Teaches each system live during Wave 1. Deliberately held until mechanics are final — see `requirements.md` §2.12.1 |
 | M9 | Capstone boss + perpetual post-capstone scaling | 🔜 Planned | A fixed deep milestone (e.g. Sector 6) ends the game with a real finale; Sectors continue infinitely after |
 | M10 | Platform packaging (web → Android → Steam) | 🔜 Planned | Matches `docs/launch-roadmap.md` sequencing |
 | M11 | Marketing & launch | 🔜 Planned | Store page live, wishlist campaign running pre-Steam |
 
-**Immediate priority: M7.** M6 closed on 2026-09-11 — the code is in git with history and deployed. The open question now is visual: the game needs the Cosmic Forge palette, the Sanskrit naming layer, and real sprites that can carry an Indian identity. Sprite sourcing is the one genuinely unresolved dependency (`requirements.md` §2.13).
+## 1.1 Pinned backlog
+
+Features the founder has deliberately **parked** — agreed, but not to be built until called for. Whenever a request says "put a pin on" something, it is recorded here in the same change (standing instruction, 2026-09-24). Nothing here is built unprompted.
+
+| # | Pinned | Date | What it is | Why it waits |
+|---|---|---|---|---|
+| P1 | **Title / front page redesign** — ▶ *due, see L2* | 2026-09-24 | A complete redesign of the pre-game screen, which currently reads as a plain menu. Covers the visuals shown *before* the game loads. | Founder wants the in-game visuals settled first, so the front page can be designed to match them rather than guessed ahead of them. |
+| P2 | **Name your character + look-builder loading screen** | 2026-09-24 | The player names Kiran's successor and builds cosmetic looks for a loading/character screen (reference: Destiny 2's character screen). Cosmetic only — no stat effect. | Intended as a social hook: players styling and sharing their character. Needs its own interface and a cosmetics pipeline, which depends on art that does not exist yet (P4). |
+| P3 | **First-run tutorial** (= M8.5) — ✅ *built, see L4* | 2026-09-24 | A live tutorial teaching each system during Wave 1. | Mechanics are still moving — teaching a system that changes means rewriting the tutorial each time. |
+| P4 | **Commission custom Indian art** | 2026-09-24 | Replace the CraftPix European-fantasy roster with commissioned art that carries the Indian identity visually, not just by name. Est. ₹3,000–8,000 (`requirements.md` §2.13). | Only once the itch.io release shows the game has an audience. |
+| P5 | **Full visual-story polish** | 2026-09-24 | A broader art and narrative pass across the whole game. | Explicitly tied to the game reaching "critical mass". |
+| P6 | **Real-device performance check** — ▶ *due, see L8* | 2026-09-24 | Profile on an actual mid-range Android and an iPhone. `RES` caps the canvas at 3× (1200×2100 buffer), untested on budget hardware. | Should happen **before** the itch.io launch, not after — this one is a pre-launch gate, not a someday item. |
+| P7 | **Bhagya chart** | 2026-10-02 | A chart cast at the start of each run: four boons, one tied to each Cosmic Cycle phase (for example, "during Grahan, kills heal"). Shown in full up front so the player plans around it, and switched on one boon at a time at each Extract/Descend screen, which is one more reason to Descend. It is our answer to Asura's procedural skill tree, whose known weakness was that a run's strength depended on the luck of the deal. Named *Bhagya* (fortune): "Kundali" was avoided because astrology is a living practice and the planets are worshipped. | After itch.io (founder, 2026-10-02). It deepens the Cosmic Cycle and needs real players' feedback on the base game first. |
+| P8 | **Boss-kill perks** | 2026-10-02 | The first kill of Bakasura, Nidhi-Raksha and Vritra each unlocks one permanent perk the player can equip, after Asura: Vengeance Edition's "Chakra" system. It rewards skill, where the Vitality and Power upgrades reward accumulated Nidhi. | After itch.io (founder, 2026-10-02). |
+
+## 1.2 Launch track — itch.io POC (added 2026-09-27)
+
+Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the condition P1 and P3 were waiting on ("mechanics final"), so both move from pinned to **due**. What stands between the current build and an itch.io page, in order:
+
+| # | Item | State today | Done when |
+|---|---|---|---|
+| L1 | **Game name** | **Working title: Anantarya** (founder, 2026-10-02: "will give name later"). One constant, `GAME_TITLE`, renames the loader, hub and browser tab; `index.html` carries its own copy. Earlier candidates: "Loot Chase" (generic, pre-pivot) and the repo name "Tantra" (reads as sexual/new-age to a Western audience, and is a religious practice term). One caution on the working title is logged in `requirements.md` §1.7. | A final name is chosen. It still blocks L2's art and L9's store page. |
+| L2 | **Title / welcome screen** (= P1) | ⏳ **First design built 2026-10-02** (`requirements.md` §2.21): the view down a stepwell shaft, with DESCEND at the bottom of the well and the upgrades below. **Waiting on the founder's verdict.** If they prefer made art, `docs/art-prompts.md` has prompts for an image model. | A Cosmic Forge title screen with the name, art and a Start that leads into the hub. |
+| L3 | **How to play** | ✅ **Built 2026-09-27**: seven illustrated cards (`requirements.md` §2.12.2). | A help page reachable from the title and the hub. |
+| L4 | **First-run tutorial** (= P3) | ✅ **Built 2026-09-27**: 14 one-time live tips, skippable (§2.12.1). | Wave 1 of a player's first run teaches movement, loot, the satchel and slams live. |
+| L5 | **Audio** | ⏳ **Everything is in** as of 2026-10-02: 37 sound effects, and hub, combat and boss music streamed and coloured by the Cosmic Cycle (`requirements.md` §2.16). **Not yet heard by anyone.** What remains is the founder listening and saying what to change. | Free SFX (hits, slams, pickups, Tejas) plus Indian-flavoured music, with a mute toggle. |
+| L6 | **Pause + settings** | ✅ **Built 2026-09-27** (§2.17). | Pause mid-run (essential on mobile), mute, and a "reset save" with a confirmation step. |
+| L7 | **Loading screen** | ✅ **Built 2026-10-02**: one glossary card per load, with a copper-silver-gold progress bar and a Begin button (`requirements.md` §2.19). | A branded loader with a progress bar. |
+| L8 | **Real-device check** (= P6) | Untested on a real phone. | Profiled on a mid-range Android and an iPhone; the frame rate holds with a full arena. |
+| L9 | **itch.io page** | Nothing. To carry into it: **self-host the two typefaces and the engine** in the zip (both load from CDNs today); itch.io asks creators to **disclose generative-AI content**, which covers this project's AI-assisted code and any AI-generated music; give the chosen tracks **in-world names** for the credits and store page, as Asura did. | Zipped build, embed size set, mobile-friendly flag, fullscreen button, cover image (630×500), 3–5 screenshots, a short GIF, description, tags, credits. Released **free**: no money changes hands, so the GST/CA question waits. |
+| L10 | **Feedback loop** | ⏳ **Built 2026-10-02** (`requirements.md` §2.22): a dialog on the title screen and after every run that emails the founder through FormSubmit. **The founder must click the activation link** in the email the first message triggers, then pass on the alias it issues. itch.io analytics start with L9. | An in-game "Send feedback" link, and itch.io analytics watched for the first two weeks. |
+
+**Not needed for the POC:** P2 (look-builder), P4 (commissioned art), P5 (visual-story polish), M8 (narrative), M9 (capstone boss). These wait on the itch.io response, as the "prove it, then invest" rule in `launch-roadmap.md` says.
+
+**Immediate priority: the launch track (§1.2).** Open as of 2026-10-02: the founder's verdict on the sound, the music, the title screen and the new floors (L5, L2); activating the feedback form (L10); the real-device check (L8); the final name (L1); then the itch.io page (L9). M7 is effectively closed for the POC; its remainder is L2 plus the post-launch P4.
 
 ---
 
@@ -47,7 +82,9 @@ Correct choice for the design/mechanics-proving phase already completed — zero
 
 Superseded by the 2026-09-24 direction change, kept as history: `concept/visual-style-sheet.html` (Cut Light) and `concept/character-art-spec.html` (abstract cosmic roster — Seeker/Mote/Caster/Monolith/Fissure, now replaced by the Sanskrit naming in `requirements.md` §2.12).
 
-**Not in this repo:** two "Cosmic Forge" style sheets were produced in a claude.ai chat on 2026-09-24 (`Loot chase visual forge` and `Loot chase visual forge v2`, the second with the saffron-amber background and Devanagari UI). They are the current canonical visual reference and should be exported into `concept/` — until then, the newest art direction lives outside version control, which is the exact failure mode §4 and §5 warn about.
+**Current canonical visual reference:** `concept/loot-chase-visual-forge-v2.html` — the Cosmic Forge v2 style sheet from the 2026-09-24 claude.ai chat, imported into the repo 2026-09-24. Renders the saffron-amber background, the full Sanskrit-named roster, and the refinement-ladder loot palette.
+
+The earlier `Loot chase visual forge` v1 (background `#170A00`) was rejected as still too dark and was not imported — v2 supersedes it.
 
 ---
 
@@ -57,13 +94,13 @@ Reference: Peter Yang's Claude Code game-dev tutorial (5 steps: set up the proje
 
 | Step | Our status | Notes |
 |---|---|---|
-| 1. Set up the project | ⚠️ **Gap** | No local project folder or git repo exists yet — everything lives as claude.ai artifacts only |
+| 1. Set up the project | ✅ **Closed 2026-09-11** | Local project folder and git repo exist with full commit history |
 | 2. Find pixel art assets | ⚠️ **Now a real gap** | The procedural-vector divergence (Cut Light) was reversed on 2026-09-24 — abstract shapes cannot carry an Indian cultural identity. Real sprites are now required and unsourced; see `requirements.md` §2.13 for the three costed options |
 | 3. Draft the spec | ✅ Done, informally | Happened conversationally throughout development; this document and the Requirements doc formalize it retroactively |
 | 4. Build the MVP and iterate | ✅ Done, extensively | The largest share of work so far |
-| 5. Ship with GitHub and Vercel | ⚠️ **Biggest gap** | No version control, no deployment. The game currently exists only as ephemeral chat artifacts — no backup, no shareable persistent link, no history if something goes wrong |
+| 5. Ship with GitHub and Vercel | ✅ **Closed 2026-09-11** | github.com/venugopal-jaquen/Tantra, deployed via GitHub Pages at venugopal-jaquen.github.io/Tantra. Backup, history and a shareable playtest link all exist |
 
-**The single highest-priority action from this whole document:** set up a real git repository and a free deployment (GitHub Pages, Vercel, or even itch.io early) *now*, independent of the later commercial-launch planning. This serves a different purpose than launch — it's backup, version history, and a real shareable link for playtesting beyond this chat.
+**Resolved.** The former highest-priority action — get a real git repository and a free deployment — was completed on 2026-09-11. The remaining gap is step 2: real sprites, which the 2026-09-24 direction change turned from a deliberate divergence back into a genuine dependency (`requirements.md` §2.13).
 
 ---
 

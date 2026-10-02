@@ -1,3 +1,11 @@
 .DS_Store
 node_modules/
 *.log
+
+# Raw asset-pack downloads: hundreds of MB of vector sources and full
+# animation sets. Only the selected, optimised sprites belong in git.
+game/assets/incoming/*.zip
+game/assets/incoming/extracted/
+# Music as downloaded. tools/convert-music.py writes the trimmed, levelled copies
+# the game plays into game/assets/music/, and those are what belong in git.
+game/assets/incoming/music/

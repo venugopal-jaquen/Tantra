@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Loot Chase — Cosmic Forge Style v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
+<style>
+  html, body { margin:0; padding:0; background:#3D1200; display:flex; align-items:center; justify-content:center; min-height:100%; }
+</style>
+</head>
+<body>
+<script>
+const W=460, H=1220;
+
+function regPoly(sides, r, rotDeg=0) {
+  const rot = Phaser.Math.DegToRad(rotDeg), pts = [];
+  for(let i=0;i<sides;i++){const a=rot+(i/sides)*Math.PI*2; pts.push(Math.cos(a)*r,Math.sin(a)*r);}
+  return pts;
+}
+
+function glow(scene, x, y, r, col, alpha=0.12) {
+  for(let i=3;i>=1;i--){
+    const g=scene.add.graphics();
+    g.fillStyle(col, alpha*(4-i)/3);
+    g.fillCircle(x,y,r*i*0.6);
+  }
+}
+
+class ForgeV2 extends Phaser.Scene {
+  constructor(){ super('ForgeV2'); }
+
+  create() {
+    // ---- BACKGROUND: saffron-amber cosmic sunrise, NOT black ----
+    const bg = this.add.graphics();
+    // warm layered radial glow from center
+    const layers = [
+      [W/2, H*0.3, 0xE8820A, 0.10, 260],
+      [W/2, H*0.3, 0xC26200, 0.14, 200],
+      [W/2, H*0.3, 0x9B4A00, 0.18, 140],
+      [W/2, H*0.3, 0x6B2E00, 0.22, 90],
+    ];
+    bg.fillStyle(0x3D1200); bg.fillRect(0,0,W,H);
+    layers.forEach(([cx,cy,c,a,r])=>{
+      bg.fillStyle(c,a); bg.fillCircle(cx,cy,r);
+    });
+
+    // subtle hex forge-floor — warmer, more visible than before
+    const hg = this.add.graphics();
+    hg.lineStyle(1, 0x7A3A00, 0.3);
+    const hs=40;
+    for(let row=-1;row<H/hs+2;row++){
+      for(let col=-1;col<W/hs+2;col++){
+        const hx=col*hs*1.732+(row%2)*hs*0.866, hy=row*hs*1.5;
+        const pts=regPoly(6,hs*0.88);
+        for(let i=0;i<6;i++){
+          const j=(i+1)%6;
+          hg.lineBetween(hx+pts[i*2],hy+pts[i*2+1],hx+pts[j*2],hy+pts[j*2+1]);
+        }
+      }
+    }
+
+    const div=(y,a=0.5)=>{const g=this.add.graphics();g.lineStyle(1,0x8B5000,a);g.lineBetween(28,y,W-28,y);};
+    const head=(x,y,t)=>this.add.text(x,y,t,{fontFamily:'Inter',fontSize:'10px',color:'#E8A855',fontStyle:'600'});
+    const sub=(x,y,t)=>this.add.text(x,y,t,{fontFamily:'Inter',fontSize:'8px',color:'#7A4A20'}).setOrigin(0.5);
+
+    // ---- TITLE ----
+    glow(this, W/2, 52, 80, 0xFFD23C, 0.08);
+    this.add.text(W/2, 36, 'LOOT CHASE', {
+      fontFamily:'Syne', fontSize:'36px', color:'#FFD23C', fontStyle:'800',
+      shadow:{color:'#FF6B1A', blur:22, fill:true}
+    }).setOrigin(0.5);
+    this.add.text(W/2, 78, 'COSMIC FORGE — VISUAL DIRECTION v2', {
+      fontFamily:'Inter', fontSize:'10px', color:'#E8A855', fontStyle:'600'
+    }).setOrigin(0.5);
+    this.add.text(W/2, 96, 'Indian identity · saffron warmth · Sanskrit naming', {
+      fontFamily:'Inter', fontSize:'9px', color:'#7A4A20'
+    }).setOrigin(0.5);
+
+    // ---- PALETTE ----
+    div(116);
+    head(28,128,'PALETTE');
+    const sw=[
+      {c:0x3D1200,n:'Cosmic Dusk'},{c:0x6B2E00,n:'Deep Amber'},
+      {c:0xC8A96E,n:'Bronze'},{c:0xFFD23C,n:'Nidhi Gold'},
+      {c:0xFF6B1A,n:'Molten'},{c:0xFFFBEF,n:'Pure Light'},
+    ];
+    sw.forEach((s,i)=>{
+      const x=46+i*68, y=168;
+      this.add.rectangle(x,y,46,36,s.c).setStrokeStyle(1,0x8B5000,0.6);
+      sub(x,y+28,s.n);
+    });
+
+    // ---- COSMIC CYCLE PHASES (renamed) ----
+    div(212);
+    head(28,224,'COSMIC CYCLE — KALACHAKRA PHASES');
+    const phases=[
+      {c:0x4DD0FF,n:'SHANTI',    hin:'शांति',   sub:'stillness · drift'},
+      {c:0xFF8C42,n:'SHAKTI',    hin:'शक्ति',   sub:'power · surge'},
+      {c:0xCC3333,n:'GRAHAN',    hin:'ग्रहण',    sub:'eclipse · danger'},
+      {c:0xFFFBEF,n:'PRALAYA',   hin:'प्रलय',    sub:'dissolution · event'},
+    ];
+    phases.forEach((p,i)=>{
+      const x=58+i*96, y=278;
+      glow(this,x,y,36,p.c,0.08);
+      this.add.rectangle(x,y,82,46,p.c,0.12).setStrokeStyle(2,p.c);
+      this.add.text(x,y-12,p.n,{fontFamily:'JetBrains Mono',fontSize:'10px',
+        color:Phaser.Display.Color.IntegerToColor(p.c).rgba,fontStyle:'500'}).setOrigin(0.5);
+      this.add.text(x,y+2,p.hin,{fontFamily:'Inter',fontSize:'13px',color:Phaser.Display.Color.IntegerToColor(p.c).rgba}).setOrigin(0.5);
+      sub(x,y+18,p.sub);
+    });
+
+    // ---- PLAYER ----
+    div(330);
+    head(28,342,'KIRAN — THE SEEKER  ·  किरण');
+    glow(this,W/2,416,72,0xFFD23C,0.12);
+    glow(this,W/2,416,48,0xFFFBEF,0.08);
+    this.playerSpr = this.add.polygon(W/2,416,regPoly(8,36),0xFFF5D6).setStrokeStyle(3,0xFFD23C);
+    this.add.polygon(W/2,416,regPoly(8,18),0xFFD23C);
+    this.add.text(W/2,470,'Kiran · ray of light · the most refined entity on screen',{
+      fontFamily:'Inter',fontSize:'10px',color:'#E8D4A8'}).setOrigin(0.5);
+    this.add.text(W/2,486,'rim glows with the active Kalachakra phase',{
+      fontFamily:'Inter',fontSize:'9px',color:'#7A4A20'}).setOrigin(0.5);
+
+    this.phaseIdx=0;
+    this.phaseCols=[0x4DD0FF,0xFF8C42,0xCC3333,0xFFFBEF];
+    this.phaseN=['SHANTI','SHAKTI','GRAHAN','PRALAYA'];
+    this.phTag=this.add.text(W/2,416,'SHANTI',{
+      fontFamily:'JetBrains Mono',fontSize:'9px',color:'#4DD0FF'}).setOrigin(0.5).setAlpha(0.8);
+    this.time.addEvent({delay:1300,loop:true,callback:()=>{
+      this.phaseIdx=(this.phaseIdx+1)%4;
+      const c=this.phaseCols[this.phaseIdx];
+      this.playerSpr.setStrokeStyle(3,c);
+      this.phTag.setText(this.phaseN[this.phaseIdx]);
+      this.phTag.setColor(Phaser.Display.Color.IntegerToColor(c).rgba);
+    }});
+
+    // ---- ENEMIES ----
+    div(510);
+    head(28,522,'ENEMIES — COSMIC DARK BEINGS');
+    const EY=610;
+    // Asura
+    glow(this,60,EY,38,0xFF6B1A,0.10);
+    this.add.polygon(60,EY,regPoly(3,24,-90),0x2A0800).setStrokeStyle(2.5,0xFF6B1A);
+    this.add.text(60,EY+36,'Asura',{fontFamily:'Inter',fontSize:'10px',color:'#E8D4A8'}).setOrigin(0.5);
+    this.add.text(60,EY+50,'असुर',{fontFamily:'Inter',fontSize:'12px',color:'#FF6B1A'}).setOrigin(0.5);
+    sub(60,EY+66,'Melee · raw dark ore');
+
+    // Yaksha
+    glow(this,168,EY,38,0xFFB347,0.10);
+    const yakPts=regPoly(4,20,45);
+    const yspr=this.add.polygon(168,EY,yakPts,0x2A0800).setStrokeStyle(2,0xFFB347);
+    yspr.setScale(0.55,1.75);
+    this.add.text(168,EY+36,'Yaksha',{fontFamily:'Inter',fontSize:'10px',color:'#E8D4A8'}).setOrigin(0.5);
+    this.add.text(168,EY+50,'यक्ष',{fontFamily:'Inter',fontSize:'12px',color:'#FFB347'}).setOrigin(0.5);
+    sub(168,EY+66,'Ranged · treasure keeper');
+
+    // Mahish
+    glow(this,276,EY,44,0xFF8C42,0.10);
+    this.add.polygon(276,EY,regPoly(6,28),0x2A0800).setStrokeStyle(3,0xFF8C42);
+    this.add.text(276,EY+36,'Mahish',{fontFamily:'Inter',fontSize:'10px',color:'#E8D4A8'}).setOrigin(0.5);
+    this.add.text(276,EY+50,'महिष',{fontFamily:'Inter',fontSize:'12px',color:'#FF8C42'}).setOrigin(0.5);
+    sub(276,EY+66,'Tank · great force');
+
+    // Bheda
+    glow(this,384,EY,38,0xFFD23C,0.10);
+    const bPts=regPoly(6,22); bPts[0]*=0.22; bPts[1]*=0.22;
+    this.add.polygon(384,EY,bPts,0x2A0800).setStrokeStyle(2,0xFFD23C);
+    const cg=this.add.graphics(); cg.lineStyle(1.5,0xFFD23C,0.8);
+    cg.lineBetween(384+22*0.22,EY,384,EY+12);
+    this.add.text(384,EY+36,'Bheda',{fontFamily:'Inter',fontSize:'10px',color:'#E8D4A8'}).setOrigin(0.5);
+    this.add.text(384,EY+50,'भेद',{fontFamily:'Inter',fontSize:'12px',color:'#FFD23C'}).setOrigin(0.5);
+    sub(384,EY+66,'Splitter · fractures on death');
+
+    // ---- BOSSES ----
+    div(700);
+    head(28,712,'BOSSES — GUARDIANS OF THE KALACHAKRA');
+    const BY=808;
+
+    // Dwarapal
+    glow(this,70,BY,60,0x4DD0FF,0.09);
+    this.add.polygon(70,BY,regPoly(8,44),0x2A0800).setStrokeStyle(3,0xC8A96E);
+    this.add.polygon(70,BY,regPoly(8,28),0x0D0500,0.7).setStrokeStyle(1,0x3A1F00);
+    this.add.circle(70,BY,11,0x4DD0FF);
+    this.add.text(70,BY+58,'Dwarapal',{fontFamily:'Syne',fontSize:'11px',color:'#E8D4A8',fontStyle:'700'}).setOrigin(0.5);
+    this.add.text(70,BY+74,'द्वारपाल',{fontFamily:'Inter',fontSize:'11px',color:'#C8A96E'}).setOrigin(0.5);
+    sub(70,BY+90,'Gate Guardian');
+
+    // Nidhi-Raksha
+    glow(this,230,BY,70,0xFFD23C,0.10);
+    this.add.polygon(230,BY,regPoly(8,40),0x2A0800).setStrokeStyle(3.5,0xFF8C42);
+    this.add.polygon(230,BY,regPoly(4,14,22),0xFF6B1A,0.7);
+    for(let i=0;i<3;i++){
+      const a=(i/3)*Math.PI*2-Math.PI/2;
+      const ax=230+Math.cos(a)*56, ay=BY+Math.sin(a)*56;
+      glow(this,ax,ay,16,0xFFD23C,0.15);
+      this.add.polygon(ax,ay,regPoly(3,11),0xFFD23C).setStrokeStyle(1,0xFFFBEF);
+    }
+    this.add.text(230,BY+68,'Nidhi-Raksha',{fontFamily:'Syne',fontSize:'11px',color:'#E8D4A8',fontStyle:'700'}).setOrigin(0.5);
+    this.add.text(230,BY+84,'निधि-रक्षा',{fontFamily:'Inter',fontSize:'11px',color:'#FFD23C'}).setOrigin(0.5);
+    sub(230,BY+100,'Treasure Guardian');
+
+    // Kalachakra (Mega Boss)
+    glow(this,390,BY,80,0xFFFBEF,0.10);
+    const rr=[44,28,48,22,42,32,46,20,38,28,50,24];
+    const rwPts=[]; for(let i=0;i<rr.length;i++){const a=(i/rr.length)*Math.PI*2;rwPts.push(Math.cos(a)*rr[i],Math.sin(a)*rr[i]);}
+    this.add.polygon(390,BY,rwPts,0x2A0800).setStrokeStyle(3,0xFFFBEF);
+    this.add.polygon(390,BY,regPoly(4,14,20),0xFFFBEF,0.9);
+    glow(this,390+54,BY-14,12,0xFFD23C,0.2);
+    this.add.circle(390+54,BY-14,5,0xFFD23C);
+    glow(this,390-44,BY+36,12,0xFFD23C,0.2);
+    this.add.circle(390-44,BY+36,5,0xFFD23C);
+    this.add.text(390,BY+68,'Kalachakra',{fontFamily:'Syne',fontSize:'11px',color:'#FFF5D6',fontStyle:'700'}).setOrigin(0.5);
+    this.add.text(390,BY+84,'कालचक्र',{fontFamily:'Inter',fontSize:'11px',color:'#FFFBeF'}).setOrigin(0.5);
+    sub(390,BY+100,'Wheel of Time · Mega Boss');
+
+    // ---- LOOT GEMS ----
+    div(930);
+    head(28,942,'NIDHI — ASCENDING REFINEMENT  ·  निधि');
+    const rarities=[
+      {c:0xC8A96E,n:'Common', hin:'सामान्य', glow:0x8A6A40},
+      {c:0xFFD23C,n:'Rare',   hin:'दुर्लभ',  glow:0xFFD23C},
+      {c:0xFFFBEF,n:'Epic',   hin:'महान्',   glow:0xFFFBEF},
+      {c:0xAEB4C2,n:'???',    hin:'अज्ञात',  glow:0xAEB4C2},
+    ];
+    rarities.forEach((r,i)=>{
+      const x=64+i*96, y=998;
+      glow(this,x,y,30,r.glow,0.12);
+      this.add.rectangle(x,y,22,22,r.c).setAngle(45).setStrokeStyle(1.5,0x3D1200);
+      this.add.text(x,y+22,r.n,{fontFamily:'Inter',fontSize:'10px',color:'#E8D4A8'}).setOrigin(0.5);
+      this.add.text(x,y+34,r.hin,{fontFamily:'Inter',fontSize:'11px',color:Phaser.Display.Color.IntegerToColor(r.glow).rgba}).setOrigin(0.5);
+    });
+
+    // ---- TYPOGRAPHY SAMPLE ----
+    div(1056);
+    head(28,1068,'TYPOGRAPHY IN USE');
+    this.add.text(28,1086,'LOOT CHASE',{fontFamily:'Syne',fontSize:'28px',color:'#FFD23C',fontStyle:'800',
+      shadow:{color:'#FF6B1A',blur:12,fill:true}});
+    this.add.text(28,1124,'KALACHAKRA FALLS',{fontFamily:'Syne',fontSize:'16px',color:'#FFF5D6',fontStyle:'700'});
+    this.add.text(28,1150,'Equipped: Rare Vampiric Blade  ·  SHAKTI phase',{fontFamily:'Inter',fontSize:'12px',color:'#E8D4A8'});
+    this.add.text(28,1170,'Sector 2 · Wave 4/5',{fontFamily:'Inter',fontSize:'12px',color:'#C8A96E'});
+    this.add.text(28,1192,'निधि  318g   HP 87/120',{fontFamily:'JetBrains Mono',fontSize:'13px',color:'#FFD23C'});
+  }
+}
+
+new Phaser.Game({
+  type:Phaser.AUTO, width:W, height:H,
+  backgroundColor:'#3D1200',
+  scene:ForgeV2,
+  parent:document.body
+});
+</script>
+</body>
+</html>
