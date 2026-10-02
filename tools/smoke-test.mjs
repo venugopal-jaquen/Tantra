@@ -130,6 +130,24 @@ try {
     return { moved: Math.round(moved), speed: Math.round(moved / secs), arrived: Math.round(s.player.y), target: s.pointerTarget };`);
   check('a tap is walked to at walking speed, not jumped to', walk.speed > 150 && walk.speed < 250 && walk.arrived === 150 && walk.target === null, JSON.stringify(walk));
 
+  // The satchel pauses the fight, says what each item does, and swaps on a tap.
+  const satchel = await page(`const s = game.scene.keys.LootScene;
+    for (const r of ['rare', 'epic', 'common']) { s.spawnLootPickup(s.player.x, s.player.y, r); await new Promise(r2 => setTimeout(r2, 150)); }
+    const stored = s.inventory.length, hp = s.player.hp;
+    s.satchelTab.emit('pointerdown');
+    const open = { state: s.state, frozen: s.time.paused, texts: s.overlay.filter(o => o.type === 'Text').map(o => o.text) };
+    const wasWeapon = s.player.weapon.name, wasTrinket = s.player.trinket && s.player.trinket.name, first = s.inventory[0];
+    s.overlay.find(o => o.type === 'Rectangle' && o.input && o.width === 322).emit('pointerdown');
+    const swapped = first.type === 'weapon' ? s.player.weapon === first && s.inventory.some(i => i.name === wasWeapon)
+                                              : s.player.trinket === first;
+    await new Promise(r => setTimeout(r, 400));
+    const safe = s.player.hp === hp || s.player.hp > hp;
+    s.resumeGame();
+    return { stored, open, swapped, stillStored: s.inventory.length, safe, after: s.state };`);
+  await page(`game.scene.keys.LootScene.pauseGame('satchel');`); await sleep(250); await shot('3-satchel'); await page(`game.scene.keys.LootScene.resumeGame();`);
+  check('the satchel pauses the fight and swaps on a tap', satchel.open.state === 'paused' && satchel.open.frozen && satchel.stored >= 1 && satchel.swapped
+    && satchel.safe && satchel.after === 'playing' && satchel.open.texts.some(t => /damage|health|block|speed|reflected/.test(t)), JSON.stringify(satchel.open.texts).slice(0, 220));
+
   // Each sector's floor, with a boss and a slam zone on it to judge legibility.
   await page(`const s = game.scene.keys.LootScene; s.player.iframes = 1e9; s.dismissHint(); const e = s.spawnGatekeeper(); e.slamTimer = 1e9; s.beginSlam(e); s.spawnLootPickup(120, 420, 'epic'); s.spawnLootPickup(280, 500, 'rare');`);
   await sleep(450); await shot('3-floor-sector-1');

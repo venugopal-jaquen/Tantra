@@ -1548,15 +1548,16 @@ class LootScene extends Phaser.Scene {
     if (this.pauseHit.input) this.pauseHit.input.enabled = on;
   }
 
-  pauseGame() {
+  // menu: 'pause' for the pause menu, 'satchel' to choose between items.
+  pauseGame(menu = 'pause') {
     if (this.state !== 'playing') return;
     this.state = 'paused';
     this.pointerTarget = null;
     this.time.paused = true;
     this.tweens.pauseAll();
-    this.sfx('ui-open');
+    this.sfx(menu === 'satchel' ? 'satchel' : 'ui-open');
     this.refreshMusic();
-    this.showPauseMenu();
+    if (menu === 'satchel') this.showSatchel(); else this.showPauseMenu();
   }
 
   resumeGame() {
@@ -1799,7 +1800,7 @@ class LootScene extends Phaser.Scene {
           label(cx - 50, cy - 76, 'attack range', '#4dd0ff', 8);
         } },
       { title: `LOOT · ${N.satchel.toUpperCase()}`,
-        body: `Walk over a drop to equip it - no menus. The metal is the quality: ${metalList()}. Violet ??? is unidentified - a gamble that usually pays. What you replace goes to the ${N.satchel} on the right edge: tap it to swap back.`,
+        body: `Walk over a drop to equip it - no menus. The metal is the quality: ${metalList()}. Violet ??? is unidentified - a gamble that usually pays. What you replace goes to the ${N.satchel} on the right edge: tap it, and the fight pauses while you swap.`,
         draw: (cx, cy) => {
           ['common', 'rare', 'epic'].map(r => [r, N.metals[r]]).forEach(([r, n], i) => {
             img('icon_chain', cx - 118 + i * 58, cy - 18, 34, RARITY[r].color);
@@ -2725,7 +2726,6 @@ class LootScene extends Phaser.Scene {
     // whatever you were holding. Run-scoped by design - carrying loot between runs
     // would undermine the Extract/Descend decision (2.5).
     this.inventory = [];
-    this.invOpen = false;
 
     this.tejas = 0;          // 0-100
     this.tejasActive = 0;    // ms of the active form remaining
@@ -2931,10 +2931,11 @@ class LootScene extends Phaser.Scene {
   }
 
   // ---------- SATCHEL (run inventory) ----------
-  // Deliberately does NOT pause: 2.7 says pickups never interrupt play, and a
-  // pause-to-swap would turn every drop into a menu trip. The panel is translucent
-  // and hugs the right edge so the arena stays readable while it is open - swapping
-  // mid-fight is meant to cost you something.
+  // Opening it PAUSES the fight (2026-10-03). It used not to: the first version held that
+  // loot never interrupts play, and that swapping under fire was an interesting risk. On a
+  // phone it was neither - small rows and small print while dodging is a test of
+  // eyesight - and every game this one is measured against pauses for a build decision.
+  // Picking loot up off the floor still does not pause; only choosing between items does.
   buildSatchelUI() {
     const b = this.arenaBounds;
     const tabW = 26, tabH = 84;
@@ -2945,63 +2946,61 @@ class LootScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     this.satchelTabIcon = this.add.text(tx, ty - 12, '◀', { resolution: RES, fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
     this.satchelTabCount = this.add.text(tx, ty + 8, '0', { resolution: RES, fontSize: '13px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(0.5);
-    this.satchelTab.on('pointerdown', () => this.toggleSatchel());
-
-    this.satchelItems = [];
-    this.satchelPanel = null;
-  }
-
-  toggleSatchel() {
-    this.invOpen = !this.invOpen;
-    this.sfx('satchel');
-    this.satchelTabIcon.setText(this.invOpen ? '▶' : '◀');
-    this.refreshSatchel();
-  }
-
-  clearSatchelPanel() {
-    if (this.satchelPanel) { this.satchelPanel.destroy(); this.satchelPanel = null; }
-    (this.satchelItems || []).forEach(o => o.destroy());
-    this.satchelItems = [];
+    this.satchelTab.on('pointerdown', () => this.pauseGame('satchel'));
   }
 
   refreshSatchel() {
-    if (!this.satchelTab) return;
-    this.satchelTabCount.setText(String(this.inventory.length));
-    this.clearSatchelPanel();
-    if (!this.invOpen) return;
+    if (this.satchelTab) this.satchelTabCount.setText(String(this.inventory.length));
+  }
 
-    const b = this.arenaBounds;
-    // Height follows the actual contents, not INV_MAX - an empty satchel should not
-    // black out a third of the arena you are still fighting in.
-    const rows = Math.max(1, this.inventory.length);
-    const pw = 150, ph = Math.min(b.height - 20, 30 + rows * 34 + 12);
-    const px = b.right - pw / 2 - 28, py = b.centerY;
-
-    this.satchelPanel = this.add.rectangle(px, py, pw, ph, FORGE.deep, 0.93)
-      .setStrokeStyle(1, FORGE.bronze, 0.85);
-
-    const top = py - ph / 2;
-    this.satchelItems.push(this.add.text(px, top + 14, N.satchel.toUpperCase(), { resolution: RES, fontSize: '10px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
-
-    if (this.inventory.length === 0) {
-      this.satchelItems.push(this.add.text(px, top + 44, 'nothing swapped out yet', {
-        resolution: RES, fontSize: '9px', color: '#8a7360', align: 'center', wordWrap: { width: pw - 20 }
-      }).setOrigin(0.5));
-      return;
+  // What an item does, with its numbers. The same line serves equipped and stored items,
+  // so a copper and a gold version of one item can be told apart before choosing.
+  itemLine(item) {
+    if (item.type === 'weapon') {
+      const def = WEAPON_EFFECTS[item.effect] || WEAPON_EFFECTS.none;
+      return `${def.desc} · ${Math.round(item.dmg)} damage${item.shots > 1 ? `, ${item.shots} targets` : ''}`;
     }
+    const def = TRINKET_EFFECTS[item.effect];
+    const number = {
+      vitality: `+${Math.round(item.hpBonus)} max health`,
+      aegis:    `one block every ${Math.round(item.rechargeMs / 1000)}s`,
+      thorns:   `${Math.round(item.reflectPct * 100)}% reflected`,
+      swift:    `+${item.speedBonus} speed`,
+      regen:    `${item.regenPerSec} health a second`
+    }[item.effect];
+    return number ? `${def.desc} · ${number}` : def.desc;
+  }
 
-    this.inventory.forEach((item, i) => {
-      const iy = top + 38 + i * 34;
-      const row = this.add.rectangle(px, iy, pw - 14, 30, FORGE.panel, 0.9)
-        .setStrokeStyle(1, FORGE.bronze, 0.4)
-        .setInteractive({ useHandCursor: true });
-      const icon = this.add.image(px - pw/2 + 20, iy, `icon_${item.effect || 'none'}`)
-        .setDisplaySize(18, 18).setTint(RARITY[item.rarity].color);
-      const name = this.add.text(px - pw/2 + 34, iy - 6, item.name, { resolution: RES, fontSize: '8px', color: '#fffbef' });
-      const slot = this.add.text(px - pw/2 + 34, iy + 4, `${item.type} · tap to equip`, { resolution: RES, fontSize: '7px', color: '#8a7360' });
-      row.on('pointerdown', () => this.equipFromSatchel(i));
-      this.satchelItems.push(row, icon, name, slot);
-    });
+  showSatchel() {
+    this.openOverlay(0.8);
+    const cx = W / 2, left = cx - 161;
+    this.ov(this.add.rectangle(cx, 362, 350, 600, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold, 0.8));
+    this.ovText(cx, 92, N.satchel.toUpperCase(), { fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
+    this.ovText(cx, 115, 'the fight is paused', { fontSize: '10px', color: '#c8a96e' }).setOrigin(0.5);
+
+    const heading = (y, str) => this.ovText(left, y, str, { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
+    const row = (y, item, onTap) => {
+      const bg = this.ov(this.add.rectangle(cx, y, 322, 38, onTap ? FORGE.panel : 0x2a0f04, 1)
+        .setStrokeStyle(1, onTap ? FORGE.bronze : 0x6b4a2e, onTap ? 0.8 : 0.5));
+      if (onTap) { bg.setInteractive({ useHandCursor: true }); bg.on('pointerdown', onTap); }
+      this.ov(this.add.image(left + 22, y, `icon_${item.effect || 'none'}`).setDisplaySize(24, 24).setTint(RARITY[item.rarity].color), 102);
+      this.ovText(left + 44, y - 16, item.name, { fontSize: '12px', color: '#fffbef', fontStyle: 'bold' });
+      this.ovText(left + 44, y + 1, this.itemLine(item), { fontSize: '10px', color: '#c8a96e' });
+      this.ovText(left + 316, y - 15, item.type, { fontSize: '8px', color: '#8a7360' }).setOrigin(1, 0);
+    };
+
+    heading(134, 'EQUIPPED');
+    row(168, this.player.weapon);
+    if (this.player.trinket) row(210, this.player.trinket);
+    else this.ovText(cx, 210, 'No trinket yet - they drop from enemies', { fontSize: '10px', color: '#8a7360' }).setOrigin(0.5);
+
+    heading(238, this.inventory.length ? 'STORED · tap one to equip it' : 'STORED');
+    if (!this.inventory.length) {
+      this.ovText(cx, 300, 'Nothing stored yet.\nWhatever you replace lands here.', { fontSize: '11px', color: '#8a7360', align: 'center', lineSpacing: 4 }).setOrigin(0.5);
+    }
+    this.inventory.forEach((item, i) => row(272 + i * 40, item, () => this.equipFromSatchel(i)));
+
+    this.ovButton(cx, 620, 220, 42, 'BACK TO THE FIGHT', 0x7a3a0a, () => this.resumeGame(), { sound: null, stroke: FORGE.gold, size: 14 });
   }
 
   // Swap: the equipped item of the same slot goes back into the satchel, so nothing
@@ -3013,6 +3012,7 @@ class LootScene extends Phaser.Scene {
     this.applyLoot(item, false);
     this.sfx('equip');
     this.refreshSatchel();
+    if (this.state === 'paused') this.showSatchel();     // redraw with the swap made
   }
 
   stashItem(item) {
@@ -3022,11 +3022,10 @@ class LootScene extends Phaser.Scene {
     // using ages ago is a kinder failure than being unable to pick anything up.
     if (this.inventory.length > INV_MAX) this.inventory.shift();
     this.refreshSatchel();
-    this.hint('satchel', `Your old item went into the ${N.satchel} - the tab on the right edge. Tap it to swap back any time.`);
+    this.hint('satchel', `Your old item went into the ${N.satchel} - the tab on the right edge. Tap it to swap back; the fight pauses while you choose.`);
   }
 
   destroySatchelUI() {
-    this.clearSatchelPanel();
     [this.satchelTab, this.satchelTabIcon, this.satchelTabCount].forEach(o => o && o.destroy());
     this.satchelTab = this.satchelTabIcon = this.satchelTabCount = null;
   }

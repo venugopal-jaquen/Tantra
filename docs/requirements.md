@@ -117,12 +117,14 @@ Kept so a reversal is never mistaken for drift or an error.
 - **Each weapon effect has its own attack visual** (2026-09-24): Venom drips beads, Vampiric draws a thick crimson pull, Chain arcs jagged, Executioner swings a widening gold wedge, and the plain weapon stays a clean thin bolt. Previously every weapon drew the same cyan line, so a Venom Blade and an Executioner felt identical to use.
 
 ### 2.7.1 Satchel (run inventory)
-A collapsible panel on the right edge of the arena, opened by a tab that shows a live item count.
+A tab on the right edge of the arena shows a live item count. Tapping it pauses the fight and opens the satchel screen.
 
 - A pickup no longer destroys what you were holding — **the outgoing item is stashed**, and tapping a stashed item swaps it back, returning the current one to the satchel. Nothing is ever lost to a swap.
 - Capacity **8**; past that the oldest falls out. Losing something you stopped using long ago is a kinder failure than being unable to pick anything up.
 - **Run-scoped.** Carrying loot between runs would undermine the Extract/Descend decision (§2.5).
-- **Does not pause.** §2.7 says pickups never interrupt play, and a pause-to-swap would turn every drop into a menu trip. The panel is translucent, hugs the right edge, and sizes to its contents — swapping mid-fight is meant to cost you something.
+- **Opening it pauses the fight (reversed 2026-10-03).** The first version did not pause: §2.7 says pickups never interrupt play, and swapping under fire was meant to cost something. The founder rejected it after playing on a phone: "I don't want to be killed while switching weapons". The original reasoning confused two things. Picking loot up should not interrupt play, and still does not. Choosing between items is a build decision, and Vampire Survivors, Brotato and 10 Minutes Till Dawn all stop the clock for those.
+- **The screen says what each item does.** Every row carries the item's name, its effect and its numbers (damage and targets for a weapon, the bonus for a trinket), for both the equipped pair and the stored items. Before, rows showed a name only, so a swap was a guess.
+- Tapping a stored item equips it and the screen stays open, so several swaps can be compared. BACK TO THE FIGHT, Esc or P resumes.
 
 ### 2.7.2 Powers Codex
 A **POWERS** screen on the hub lists every weapon and trinket effect with its icon, description and unlock Sector. Effects the player has not yet reached the depth for are shown dimmed as *"Locked — reaches you in Sector N"*, and the hub button carries a live count (*"3 still locked — descend to find them"*).

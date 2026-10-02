@@ -74,6 +74,8 @@ After first playing the merged build, the founder paused changes to settle three
 
 What this game has that they lack: bosses with real rules, the Cosmic Cycle, and Extract or Descend. Its big decisions are good and rare; its small decisions are missing. Candidate fixes, in rising cost: Nidhi as drops to collect; a standing-still attack bonus; level-up picks (where the pinned Bhagya chart, P7, could live).
 
+**Founder's verdict after playing them (2026-10-03):** Brotato is the favourite, "for being close to what we have built"; 10 Minutes Till Dawn is "really intriguing and engaging". They asked whether this game should show a level-up screen like Vampire Survivors' pick-of-three. Recommendation given, not yet approved or built: follow Brotato, not Vampire Survivors. Offer a pick of one from three boons **between waves**, on a paused card screen, so the choice arrives at a natural break instead of interrupting a dodge, and a run of 15 waves gives about a dozen picks. No experience bar is needed. The pinned Bhagya chart (P7) is the natural home for the boon list.
+
 Games for the founder to play first: Vampire Survivors and 10 Minutes Till Dawn (both free in a browser on itch.io), HoloCure (free download on itch.io), Brotato and Archero (free on phones). Each states its goal as a number on screen: survive 30 minutes, survive 10 minutes, survive 20 waves.
 
 **3. Does the Indian identity help or harm onboarding and retention?** The founder is re-evaluating. The names are now switchable in one line so the question can be tested instead of argued (`requirements.md` §2.12).
