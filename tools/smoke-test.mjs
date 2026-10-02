@@ -121,6 +121,15 @@ try {
   check('first tip shows during the first run', !!run.tip, run.tip || 'none');
   check('HUD line clears the HP bar', run.hudBottom <= run.hpBarTop + 1, `text bottom ${run.hudBottom}, bar top ${run.hpBarTop}`);
 
+  // A tap far away must be WALKED to at the same speed the keys give, never jumped to.
+  const walk = await page(`const s = game.scene.keys.LootScene; s.player.iframes = 1e9; s.spawnQueue = []; s.enemies.slice().forEach(e => { e.x = 60; e.y = 640; });
+    s.player.x = 200; s.player.y = 600; s.setMoveTarget(200, 150); const t0 = performance.now();
+    await new Promise(r => setTimeout(r, 500));
+    const moved = 600 - s.player.y, secs = (performance.now() - t0) / 1000;
+    await new Promise(r => setTimeout(r, 2200));
+    return { moved: Math.round(moved), speed: Math.round(moved / secs), arrived: Math.round(s.player.y), target: s.pointerTarget };`);
+  check('a tap is walked to at walking speed, not jumped to', walk.speed > 150 && walk.speed < 250 && walk.arrived === 150 && walk.target === null, JSON.stringify(walk));
+
   // Each sector's floor, with a boss and a slam zone on it to judge legibility.
   await page(`const s = game.scene.keys.LootScene; s.player.iframes = 1e9; s.dismissHint(); const e = s.spawnGatekeeper(); e.slamTimer = 1e9; s.beginSlam(e); s.spawnLootPickup(120, 420, 'epic'); s.spawnLootPickup(280, 500, 'rare');`);
   await sleep(450); await shot('3-floor-sector-1');

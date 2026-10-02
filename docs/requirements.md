@@ -56,7 +56,9 @@ Kept so a reversal is never mistaken for drift or an error.
 ## 2. Low-Level Requirements (by system)
 
 ### 2.1 Movement & Collision
-- Dual input: drag/touch (tight lerp-follow) and WASD/arrow keys.
+- Dual input: touch or mouse, and WASD/arrow keys. **Both move Kiran at the same speed** (200 px/s, plus Vega Paduka).
+- **Touch: tap to walk there, hold and drag to steer.** Lifting the finger does not cancel the walk; arriving, or pressing a movement key, does. A small ring marks where the tap landed.
+- **Fixed 2026-10-03: touch movement was a teleport.** It closed 45% of the gap to the finger every frame, so a tap anywhere in the arena was reached in about a tenth of a second, against 1.7 to 2.8 seconds on the keys. The founder found it on a phone: "this feels like a cheat code". No bolt, slam or swarm could catch a touch player. See §2.14 for what this did to the difficulty figures.
 - Player is physically blocked by all enemy colliders — no walking through enemies.
 - Player position is clamped to the arena bounds at all times.
 
@@ -333,6 +335,8 @@ The founder reported that by Sector 3 a well-upgraded player lost under 5% HP wh
 | Grinder (14/14) | 14% | 67% | 219% | 3.0 (old build: 5–6) |
 
 HP lost can exceed 100% because heals are spent along the way. Across 30+ bot runs: zero runtime errors, zero leaked objects. Final feel still needs human playtesting — the bot measures *direction*, not fun.
+
+**Caveat on everything above (2026-10-03).** The founder's report that started this section ("by Sector 3 not even losing 5% of my hp") was made on a phone, where touch movement was a teleport (§2.1). The playtest bot was never able to teleport: it steers by small steps. So the gap between the founder and the bot that these figures were read against was largely the bug, not skill, and **the game was made harder to challenge a player who could not be hit**. With the bug fixed, the bot's figures are the better guide to what a real player now faces: a fresh player loses most of their health in Sector 1 and rarely clears Sector 2. The scaling very likely needs to come back down. Not retuned yet: the founder should play the fixed build first.
 
 ### 2.15 Tejas — supercharge (2026-09-24)
 **Tejas** (तेजस्, radiance) is a meter that fills slowly on its own (1.1%/s) and faster per kill — Asura +3.5, Rakshasa +4.5, Mahish +7, Raktabija +2.5, elites +10. When it is full, tapping the TEJAS button (bottom-left) or pressing Space/E unleashes a 6-second form. Farming boss-summoned Asura to charge it before committing to a boss is a deliberate strategy.

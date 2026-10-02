@@ -1305,10 +1305,12 @@ class LootScene extends Phaser.Scene {
     // Tapping a button (satchel tab, Tejas) must not ALSO walk Kiran to that spot.
     this.input.on('pointerdown', (p, over) => {
       this.pointerOnUI = !!(over && over.length);
-      if (this.state === 'playing' && !this.pointerOnUI) this.pointerTarget = { x: p.worldX, y: p.worldY };
+      if (this.state === 'playing' && !this.pointerOnUI) { this.setMoveTarget(p.worldX, p.worldY); this.tapMark(); }
     });
-    this.input.on('pointermove', p => { if (this.state === 'playing' && p.isDown && !this.pointerOnUI) this.pointerTarget = { x: p.worldX, y: p.worldY }; });
-    this.input.on('pointerup', () => { this.pointerTarget = null; this.pointerOnUI = false; });
+    this.input.on('pointermove', p => { if (this.state === 'playing' && p.isDown && !this.pointerOnUI) this.setMoveTarget(p.worldX, p.worldY); });
+    // Lifting the finger does NOT cancel the walk: a tap means "go there". The target is
+    // dropped on arrival, or as soon as a movement key is pressed.
+    this.input.on('pointerup', () => { this.pointerOnUI = false; });
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys('W,A,S,D');
@@ -1491,6 +1493,21 @@ class LootScene extends Phaser.Scene {
     const rate = (opts.rate || 1) * (1 + (Math.random() - 0.5) * 0.08);
     try { this.sound.play(file, { volume: Math.min(1, def.vol * (opts.vol || 1) * settings.sfx), rate }); }
     catch (e) { /* audio not unlocked yet - skip rather than throw mid-frame */ }
+  }
+
+  // Where the player has asked to walk to. Kept inside the arena, so the walk can always
+  // arrive (a tap on the HUD would otherwise leave Kiran pushing at the wall forever).
+  setMoveTarget(x, y) {
+    const b = this.arenaBounds;
+    this.pointerTarget = { x: Phaser.Math.Clamp(x, b.x + 15, b.right - 15), y: Phaser.Math.Clamp(y, b.y + 15, b.bottom - 15) };
+  }
+
+  // A small ring where the tap landed, so "I'm walking there" is visible.
+  tapMark() {
+    const t = this.pointerTarget;
+    if (!t) return;
+    const ring = this.add.circle(t.x, t.y, 9, 0x000000, 0).setStrokeStyle(2, FORGE.gold, 0.8).setDepth(Z.fx);
+    this.tweens.add({ targets: ring, scale: 0.4, alpha: 0, duration: 420, onComplete: () => ring.destroy() });
   }
 
   shake(duration, intensity) { if (settings.shake) this.cameras.main.shake(duration, intensity); }
@@ -1768,7 +1785,7 @@ class LootScene extends Phaser.Scene {
           label(cx + 60, cy + 54, 'the well fills as you win', '#9fe8d8', 9);
         } },
       { title: 'MOVE · FIGHT',
-        body: (touch ? `Drag anywhere to move - ${N.player} follows your finger.` : 'Move with WASD or the arrow keys (or click and drag).') +
+        body: (touch ? `Tap a spot and ${N.player} walks there; hold and drag to steer.` : 'Move with WASD or the arrow keys (or click and drag).') +
               ` Attacks are automatic: ${N.player} strikes the nearest enemy in range. Your whole job is where you stand.`,
         draw: (cx, cy) => {
           const gr = g();
@@ -2811,7 +2828,7 @@ class LootScene extends Phaser.Scene {
     this.showPauseButton(true);
     this.playMusic('combat');
     this.time.delayedCall(900, () => this.hint('move', this.sys.game.device.input.touch
-      ? 'Drag anywhere to move. You attack on your own - just stay in range.'
+      ? 'Tap or drag to walk there. You attack on your own - just stay in range.'
       : 'Move with WASD or the arrow keys. You attack on your own - just stay in range.'));
   }
 
@@ -3667,17 +3684,22 @@ class LootScene extends Phaser.Scene {
     const prevX = this.player.x, prevY = this.player.y;
     const swiftBonus = (this.player.trinket && this.player.trinket.effect === 'swift') ? this.player.trinket.speedBonus : 0;
     const moveSpeed = this.player.speed + swiftBonus;
+    let dx = 0, dy = 0;
+    if (this.cursors.left.isDown || this.wasd.A.isDown) dx -= 1;
+    if (this.cursors.right.isDown || this.wasd.D.isDown) dx += 1;
+    if (this.cursors.up.isDown || this.wasd.W.isDown) dy -= 1;
+    if (this.cursors.down.isDown || this.wasd.S.isDown) dy += 1;
+    if (dx || dy) this.pointerTarget = null;            // the keys take over from a tap
     if (this.pointerTarget) {
-      // tight follow: snaps toward touch point fast, no drifty acceleration. Swift trinket makes this snappier too.
-      const lerpFactor = Math.min(0.9, 0.45 * (moveSpeed / this.player.speed));
-      this.player.x = Phaser.Math.Linear(this.player.x, this.pointerTarget.x, lerpFactor);
-      this.player.y = Phaser.Math.Linear(this.player.y, this.pointerTarget.y, lerpFactor);
+      // Walk toward the finger at exactly the speed the keys give. This used to close 45%
+      // of the gap every frame - anywhere in the arena in about a tenth of a second. That
+      // was a teleport: no bolt, slam or swarm could ever catch a touch player, and every
+      // difficulty figure in 2.14 was tuned against it.
+      const tx = this.pointerTarget.x - this.player.x, ty = this.pointerTarget.y - this.player.y;
+      const gap = Math.hypot(tx, ty), step = moveSpeed * dt;
+      if (gap <= step) { this.player.x = this.pointerTarget.x; this.player.y = this.pointerTarget.y; this.pointerTarget = null; }
+      else { this.player.x += tx / gap * step; this.player.y += ty / gap * step; }
     } else {
-      let dx = 0, dy = 0;
-      if (this.cursors.left.isDown || this.wasd.A.isDown) dx -= 1;
-      if (this.cursors.right.isDown || this.wasd.D.isDown) dx += 1;
-      if (this.cursors.up.isDown || this.wasd.W.isDown) dy -= 1;
-      if (this.cursors.down.isDown || this.wasd.S.isDown) dy += 1;
       const len = Math.hypot(dx,dy);
       if (len > 0) { dx /= len; dy /= len; }
       this.player.x += dx * moveSpeed * dt;
