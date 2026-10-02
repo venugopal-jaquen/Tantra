@@ -45,6 +45,7 @@ Kept so a reversal is never mistaken for drift or an error.
 | 2026-10-02 | **Falling keeps half the run's Nidhi.** §2.5. | Death banked everything, exactly like Extract, so Descend carried no risk and the Extract/Descend choice was a fake one. The founder approved 50%. |
 | 2026-10-02 | **Typography: Yatra One + Baloo 2.** §2.18. | The founder asked for type that feels Indian. The game had been rendering in the engine's default monospace. |
 | 2026-10-02 | **Asura (2017) reviewed as a reference game.** | Outcome of a separate research session. *Adopted:* a glossary-card loading screen (§2.19). *Pinned for after itch.io:* the Bhagya chart and boss-kill perks (`design-document.md` P7, P8). *Unchanged:* the live-tip tutorial (Asura shipped a separate tutorial, players disliked it, and it was replaced with learn-as-you-play, which is what §2.12.1 already does) and the antagonists-only naming rule (stricter than Asura's, and it stays). The lesson worth keeping: Asura turned cultural ideas into mechanics instead of using them only as names. |
+| 2026-10-02 | **The game gets a goal and an ending.** §2.23. | The founder's diagnosis after playing: nothing states what the player is trying to do, and nothing ends, so there is no compelling reason to stay. They chose "slay Vritra" as the end of a run plus a well that fills across runs. Seven worlds was discussed and left for later. |
 | 2026-10-02 | **Sectors renamed for the stepwell; every name made switchable.** §2.12. | The founder found "The Fractured Approach" boring and vague, and chose names that say what each level is: Prangan, Jal-Kund, Nidhi-Kosh, Patal. In the same request they asked that all names be changeable in one step, because they are **re-evaluating whether so Indian a game helps or harms onboarding and retention**. That question is open; nothing about the identity has been reversed. |
 | 2026-10-02 | **The stepwell becomes the game's place.** §2.10. | The founder still found the arena background generic after the jaali-and-rangoli floor. A lattice is a pattern, not a place. The game is now one descent down a stepwell: the title looks down the shaft, every arena is framed by its stairs, and each sector has its own painted floor. |
 
@@ -80,6 +81,7 @@ Kept so a reversal is never mistaken for drift or an error.
 ### 2.5 Progression Structure
 - A **Sector** = 5 waves. Wave 3 spawns a **Gatekeeper** (semi-boss). Wave 6 (i.e., past wave 5) spawns a **Sector Boss**.
 - On Sector Boss defeat: present **Extract** (bank gold, end run) or **Descend** (Sector+1, harder, same shape) as an explicit, non-blocking-to-return choice screen.
+- **A run ends at Sector 3 (2026-10-02).** Vritra's death wins it (§2.23); the sectors beyond are an optional endless descent.
 - **Falling keeps half (2026-10-02).** Extract banks all of the run's Nidhi. Dying, or abandoning from the pause menu, banks `DEATH_KEEP` = 50%, rounded down. The choice screen says so ("Fall, and half is lost"), and the run summary shows what was gathered and what was kept. Before this, death banked everything, which made Descend free.
 - Every Sector boss encounter must leave the game state clean on either choice (no leftover UI — this was a real shipped bug, now fixed, and should stay covered by manual regression testing).
 
@@ -216,6 +218,8 @@ They replace The Fractured Approach, The Churning Depths, The Convergence Core a
 
 - **To rename the whole game:** change `NAME_PACK` (one line), or edit a pack.
 - **To compare without editing:** add `?names=plain` to the address.
+- A pack also holds the word for a sector (`stage`, currently "Level" in all three), so "Level 2 of 3" can change with the rest.
+- `hybrid` (2026-10-02) is a second **draft**, made after the founder said the names felt overtly Sanskrit and hard to pronounce. It keeps Sanskrit only where it is short and easy to say (Kiran, Asura, Rakshasa, Mahish, Vritra, Nidhi, Tejas, the four phases, Katar, Patal) and uses English for the rest (Bloodseed, Gatekeeper, Hoard Guardian, Copper/Silver/Gold, Storm Chakram, The Drowned Steps). Preview with `?names=hybrid`. The founder has not chosen between the three.
 - `sanskrit` is the game as designed. `plain` is a **draft** in plain English (Goblin, Hexer, Brute; Calm, Surge, Eclipse; Copper, Silver, Gold; The Courtyard, The Drowned Steps, The Gold Vault), kept so the Sanskrit's cost to new players can be judged by trying both. Its wording has not been reviewed.
 - Internal keys never change, so saves survive a switch.
 - The smoke test loads the plain pack, reads about 200 on-screen texts across every screen, and fails if any Sanskrit word or Devanagari character appears.
@@ -442,6 +446,31 @@ Launch track L10, the basic version the founder asked for: a text box whose cont
 - The dialog is plain DOM, because a canvas has no text box. While it is open the game's keyboard handling is switched off; otherwise W, A, S, D, E, P and Space, which the game claims, could not be typed.
 - To grow later: a proper backend, categories, screenshots.
 
+### 2.23 The goal and the ending (2026-10-02)
+Before this the game stated no goal and never ended: Vritra fell in Sector 3 and play simply continued.
+
+**The goal, in one sentence, on the title screen:** "Vritra has drunk the well dry. Descend three levels and take the water back." The fiction was already in the game (Vritra is the serpent who hoarded the world's waters; the game is a descent down a well) and had never been used.
+
+**A run now has an end.** Sector 3 is the bottom (`FINAL_SECTOR`). Killing Vritra there wins the run and opens the victory screen, *The Waters Return*. From it the player surfaces and banks everything, or goes on into Patal, the endless depths, under the usual rule that a fall keeps half.
+
+**The player is told how far the goal is, everywhere:**
+
+| Where | What it says |
+|---|---|
+| HUD and pause menu | "Level 2 of 3" in place of a bare sector number |
+| Banner at the start of each level | "Vritra waits two levels below" |
+| The choice after a level | "Prangan is cleared. Vritra waits two levels below." |
+| The summary after a fall | "You fell in Jal-Kund, level 2 of 3. Vritra waits one level below." If he was on screen: "Vritra had 34% health left." |
+| How to Play | A new first card, The Goal |
+
+The near miss on the summary is deliberate: it is the strongest reason to try again.
+
+**The well fills across runs.** Every boss beaten returns water: 1 measure for a level's boss, 3 for Vritra (`WATER`), so a complete descent returns 5. The well holds 35 (`WELL_FULL`), seven complete descents. Water is saved the moment it is won, so **a run that is lost afterwards still counted**. The title screen shows it twice: as a line ("The well is 34% full") and as a pool of water rising in the stepwell shaft, which is dry and molten at first. When the well fills, the victory screen becomes *The Well Is Full* and says the game is finished. Play can continue.
+
+Player-facing text now says **level** where it said sector (the word lives in the name pack as `stage`); upgrade cards say *Rank* so the two do not collide. Code and these documents still say sector.
+
+Not decided: whether the seven complete descents should differ from one another (the "seven worlds" idea, `design-document.md` §1.3), and what a win unlocks beyond water.
+
 ### 2.20 Automated checks
 - **`tools/playtest-bot.js`** plays complete runs with game logic only (about 80x real time) and records per-sector balance figures, errors and leaked objects (§2.14).
-- **`tools/smoke-test.mjs`** (2026-10-02) loads the game in a private, muted, headless Chrome with a throwaway profile; clicks through the loading screen; checks the fonts, the first tip, the HUD, the abandon prompt, the death and extract payouts and the sector-banner cleanup; checks that all three music tracks load and that each sector paints its own floor; measures every text on the how-to, settings, Powers and title screens against its panel; opens the feedback dialog, types the game's own keys into it and confirms the message is posted (to a stub, so nothing is sent); runs three bot profiles; and saves screenshots. `node tools/smoke-test.mjs`. It needs Chrome or Edge and Node 22+, and no packages. It exists so testing never plays sound on, or takes over, the machine someone is working on.
+- **`tools/smoke-test.mjs`** (2026-10-02) loads the game in a private, muted, headless Chrome with a throwaway profile; clicks through the loading screen; checks the fonts, the first tip, the HUD, the abandon prompt, the death and extract payouts and the sector-banner cleanup; checks that all three music tracks load and that each sector paints its own floor; measures every text on the how-to, settings, Powers and title screens against its panel; checks the goal on the title screen, "Level 1 of 3" and the near-miss line, kills the final boss and confirms the win, the water and the full payout; checks that all name packs have the same entries and that the plain pack shows no Sanskrit; opens the feedback dialog, types the game's own keys into it and confirms the message is posted (to a stub, so nothing is sent); runs three bot profiles; and saves screenshots. `node tools/smoke-test.mjs`. It needs Chrome or Edge and Node 22+, and no packages. It exists so testing never plays sound on, or takes over, the machine someone is working on.

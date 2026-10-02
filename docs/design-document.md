@@ -54,22 +54,16 @@ Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the cond
 
 **Not needed for the POC:** P2 (look-builder), P4 (commissioned art), P5 (visual-story polish), M8 (narrative), M9 (capstone boss). These wait on the itch.io response, as the "prove it, then invest" rule in `launch-roadmap.md` says.
 
-**Immediate priority (2026-10-02): the founder is settling the open design questions in §1.3 before any further change.** A slide deck of the whole loop and every mechanic was made for that review; it closes with the gaps found (no stated goal, no ending, an unreadable sector track), three options for sector names, and a split of what to fix before launch against what can wait. Sector names are not yet changed. Still open on the launch track: music (L5), the title screen verdict (L2), activating the feedback form (L10), the real-device check (L8), the final name (L1) and the itch.io page (L9). M7 is effectively closed for the POC; its remainder is L2 plus the post-launch P4.
+**Immediate priority (2026-10-02): the goal and ending are built; the founder is playing the reference games before deciding the rest of §1.3 (gameplay depth, the names, seven worlds).** A slide deck of the whole loop and every mechanic was made for that review; it closes with the gaps found (no stated goal, no ending, an unreadable sector track), three options for sector names, and a split of what to fix before launch against what can wait. Sector names are not yet changed. Still open on the launch track: music (L5), the title screen verdict (L2), activating the feedback form (L10), the real-device check (L8), the final name (L1) and the itch.io page (L9). M7 is effectively closed for the POC; its remainder is L2 plus the post-launch P4.
 
 ## 1.3 Open design questions (2026-10-02)
 
 After first playing the merged build, the founder paused changes to settle three things. Nothing below is decided or built.
 
-**1. The game states no goal and has no ending.** This, more than rough edges, is what makes it feel unpolished: nothing gives a player a reason to stay. Options discussed:
+**1. The goal and the ending: decided and built (2026-10-02).** The founder chose A + B: a run ends when Vritra is slain at the bottom of level 3, and every boss beaten returns water to a well that fills across runs (`requirements.md` §2.23). Still open from that discussion:
 
-| Option | What it is | For | Against |
-|---|---|---|---|
-| A. Slay Vritra | A run has a fixed end: descend three levels and kill Vritra, who has drunk the well dry. Victory screen; the endless descent (Patal) unlocks afterwards for those who want more | One sentence states the goal; the fiction is already in the game; it is how Hades works | Needs a reason to play after the first win |
-| B. Fill the well | A meter across runs: every Vritra kill returns water, and the title screen's well visibly fills. A true ending when it is full | Every run counts, even a failed one; progress shows on the first screen | A bar alone is a grind |
-| C. Seven worlds | Seven sectors named for the seven lower worlds, one seal each | Room to grow | Four more sectors of content first |
-| D. Endless score chase | How deep can you go | No new content | No ending at all; weakest for new players |
-
-Recommended to the founder: A now, with B's meter as the reason to win more than once. Also: say the goal on the title screen, show "level 2 of 3" during a run, and on death say how close the player came.
+- **Seven worlds.** The founder wants seven worlds eventually and suggested four more sectors. The alternative offered was seven tiers of the same three-level descent, each win opening a harder one, which needs almost no new art. Left for later; the well was sized at seven complete descents so that either reading fits.
+- What a win unlocks besides water.
 
 **2. The moment-to-moment play feels plain.** Compared with the genre's hits (2026-10-02): moving while the character attacks on its own is exactly what Vampire Survivors and Brotato do, so the base is sound. What they add and this game lacks:
 
