@@ -133,6 +133,8 @@ A **POWERS** screen on the hub lists every weapon and trinket effect with its ic
 
 The purpose is retention, not reference: a concrete count of unseen powers is a far better reason to press Descend than any amount of copy about replayability. It also satisfies §1.2.1 (mastery over grind) by making the system legible rather than hiding it.
 
+A fourth tab, **BOONS** (2026-10-03), lists all 18 boons, one page per metal (§2.24).
+
 ### 2.8 Meta-Progression (Hub)
 - Persistent-per-session currency ("Hoard Gold") purchases Vitality (max HP) and Power (weapon damage) upgrades between runs.
 - Best Sector Reached is tracked and displayed as a bragging-rights stat.
@@ -515,10 +517,19 @@ The answer to "the play feels plain" (`design-document.md` §1.3): the game's bi
 
 Names live in the name packs (`boons`, §2.12): the Sanskrit pack uses short everyday words with English glosses; the plain and hybrid packs use the English names. Icons are drawn at boot like the loot icons and tinted by metal.
 
-**Balance (playtest bot, 2026-10-03, random picks, target level 3, two batches pooled).** Fresh player, 16 runs each: **9 of 16 reached level 3 with boons, 1 of 16 without**; health lost on level 1 averaged 52% against 68%. Single runs swing widely (0% to 182% on level 1), so only pooled figures mean anything. Mid upgrades (6/6), 8 runs each: **4 of 8 slew Vritra with boons, 0 of 8 without**. Boons roughly cancel the difficulty that was tuned against the touch-teleport bug (§2.14). **No retune yet**: the founder plays the build first, and the retune happens once, with boons in.
+**Balance (playtest bot, 2026-10-03, random picks, target level 3, two batches pooled).** Fresh player, 16 runs each: **9 of 16 reached level 3 with boons, 1 of 16 without**; health lost on level 1 averaged 52% against 68%. Single runs swing widely (0% to 182% on level 1), so only pooled figures mean anything. Mid upgrades (6/6), 8 runs each: **4 of 8 slew Vritra with boons, 0 of 8 without**. Boons roughly cancel the difficulty that was tuned against the touch-teleport bug (§2.14). A later check of 16 fresh runs without boons, on the build before boons and on this one, gave the same picture on both (85 to 95% of health lost on level 1, one untouched run in 16), so boons changed nothing for a player who skips them. **No retune yet**: the founder plays the build first, and the retune happens once, with boons in.
 
-Not built: a boons tab in the Powers codex; any visual cue on Kiran while Hold Your Ground or Read the Slam is active.
+**Boons tab in Powers** (§2.7.2). A fourth tab lists all 18, one short page per metal (six each), with the same rows as the other tabs: icon, name, gloss and conditions ("can be taken twice", "Visha Katar only", "once Tejas has woken"), and the effect. Nothing here is locked: boons are not gated by depth.
+
+**Tells on Kiran.** A boon that only works some of the time has to show when it is working.
+
+| Boon | While it is live |
+|---|---|
+| Hold Your Ground | A gold ring, gently pulsing, planted outside the phase ring at Kiran's feet. It appears after 0.2 s of standing still and goes the moment Kiran moves. The phase ring keeps its own colour |
+| Read the Slam | A gold arc around Kiran that drains over the 4 seconds, plus the toast when it triggers |
+
+Last Stand has no tell of its own: the health bar turning red already says it.
 
 ### 2.20 Automated checks
 - **`tools/playtest-bot.js`** plays complete runs with game logic only (about 80x real time) and records per-sector balance figures, errors and leaked objects (§2.14).
-- **`tools/smoke-test.mjs`** (2026-10-02) loads the game in a private, muted, headless Chrome with a throwaway profile; clicks through the loading screen; checks the fonts, the first tip, the HUD, the abandon prompt, the death and extract payouts and the sector-banner cleanup; checks that all three music tracks load and that each sector paints its own floor; measures every text on the how-to, settings, Powers and title screens against its panel; checks the goal on the title screen, "Level 1 of 3" and the near-miss line, kills the final boss and confirms the win, the water and the full payout; checks that all name packs have the same entries and that the plain pack shows no Sanskrit (every boon card included); clears a wave and checks the boon pick (three cards, the fight frozen, a stray tap ignored, one reroll, the next wave), the numbers a set of boons promise, and Read the Slam on a live slam; opens the feedback dialog, types the game's own keys into it and confirms the message is posted (to a stub, so nothing is sent); runs four bot profiles, one without boons; and saves screenshots. `node tools/smoke-test.mjs`. It needs Chrome or Edge and Node 22+, and no packages. It exists so testing never plays sound on, or takes over, the machine someone is working on.
+- **`tools/smoke-test.mjs`** (2026-10-02) loads the game in a private, muted, headless Chrome with a throwaway profile; clicks through the loading screen; checks the fonts, the first tip, the HUD, the abandon prompt, the death and extract payouts and the sector-banner cleanup; checks that all three music tracks load and that each sector paints its own floor; measures every text on the how-to, settings, Powers and title screens against its panel; checks the goal on the title screen, "Level 1 of 3" and the near-miss line, kills the final boss and confirms the win, the water and the full payout; checks that all name packs have the same entries and that the plain pack shows no Sanskrit (every boon card included); clears a wave and checks the boon pick (three cards, the fight frozen, a stray tap ignored, one reroll, the next wave), the numbers a set of boons promise, and Read the Slam on a live slam; opens the feedback dialog, types the game's own keys into it and confirms the message is posted (to a stub, so nothing is sent); checks the gold ring and arc that show on Kiran while Hold Your Ground and Read the Slam are live, and that the Boons tab lists six boons per metal clear of the Back button; runs four bot profiles, one without boons; and saves screenshots. `node tools/smoke-test.mjs`. It needs Chrome or Edge and Node 22+, and no packages. It exists so testing never plays sound on, or takes over, the machine someone is working on.

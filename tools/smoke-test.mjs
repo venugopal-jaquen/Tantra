@@ -194,11 +194,17 @@ try {
     const touched = !!(e.slam && e.slam.touched), hp = p.hp;
     p.x = s.arenaBounds.x + 20; p.y = s.arenaBounds.bottom - 20;
     await new Promise(r => setTimeout(r, 1100));
-    const out = { touched, buff: Math.round(s.slamBuffMs), mult: +s.dmgMult().toFixed(2), unhurt: p.hp >= hp };
+    const out = { touched, buff: Math.round(s.slamBuffMs), mult: +s.dmgMult().toFixed(2), unhurt: p.hp >= hp, arc: s.boonFx.commandBuffer.length > 0 };
+    // Hold Your Ground: the gold ring shows only while it is live.
+    s.boons = { ground: 1 }; s.slamBuffMs = 0; await new Promise(r => setTimeout(r, 450));
+    out.planted = s.boonFx.commandBuffer.length > 0 && +s.dmgMult().toFixed(2) === 1.35;
+    s.setMoveTarget(p.x + 150, p.y - 150); await new Promise(r => setTimeout(r, 200));
+    out.walking = s.boonFx.commandBuffer.length === 0 && s.dmgMult() === 1; s.pointerTarget = null;
     s.boons = {}; s.killEnemy(e); await new Promise(r => setTimeout(r, 700));
     if (s.state === 'boon') s.pickBoon(null); s.spawnQueue = [];
     return out;`);
   check('reading a slam makes the next hits harder', read.touched && read.buff > 2500 && read.mult === 1.5 && read.unhurt, JSON.stringify(read));
+  check('timed boons show on Kiran while they are live', read.arc && read.planted && read.walking, JSON.stringify(read));
 
   // Each sector's floor, with a boss and a slam zone on it to judge legibility.
   await page(`const s = game.scene.keys.LootScene; s.player.iframes = 1e9; s.dismissHint(); const e = s.spawnGatekeeper(); e.slamTimer = 1e9; s.beginSlam(e); s.spawnLootPickup(120, 420, 'epic'); s.spawnLootPickup(280, 500, 'rare');`);
@@ -272,6 +278,9 @@ try {
       const body = tx.reduce((a, b) => (b.height > a.height ? b : a)); if (body.y + body.height > 548) bad.push('how-to ' + pg + ' body runs into the page dots'); }
     s.showSettings(() => s.closeOverlay()); s.overlay.filter(o => o.type === 'Text').forEach(t => edge(t, 28, 372, 'settings')); s.closeOverlay();
     for (const tab of ['weapons', 'trinkets', 'tejas']) { s.showCodex(tab); s.uiObjects.filter(o => o.type === 'Text').forEach(t => edge(t, s.arenaBounds.x, s.arenaBounds.right, 'powers/' + tab)); }
+    for (const m of ['common', 'rare', 'epic']) { s.showCodex('boons', m); const tx = s.uiObjects.filter(o => o.type === 'Text'); tx.forEach(t => edge(t, s.arenaBounds.x, s.arenaBounds.right, 'powers/boons/' + m));
+      if (tx.filter(t => Object.values(BOONS).some(d => d.desc === t.text)).length !== 6) bad.push('powers/boons/' + m + ' does not list six boons');
+      const low = Math.max(...tx.filter(t => t.y < 600).map(t => t.y + t.height)); if (low > 622) bad.push('powers/boons/' + m + ' runs into the Back button'); }
     s.showHub(); s.uiObjects.filter(o => o.type === 'Text').forEach(t => edge(t, 0, 400, 'hub'));
     return bad;`);
   check('no text spills its panel', spill.length === 0, spill.join('; '));
@@ -329,6 +338,7 @@ try {
     seen.push(document.getElementById('loader').textContent);
     grab(s.uiObjects);
     for (const tab of ['weapons', 'trinkets', 'tejas']) { s.showCodex(tab); grab(s.uiObjects); }
+    for (const m of ['common', 'rare', 'epic']) { s.showCodex('boons', m); grab(s.uiObjects); }
     s.showHub(); for (let pg = 0; pg < 9; pg++) { s.showHowTo(pg, () => s.closeOverlay()); grab(s.overlay); } s.closeOverlay();
     session.tejasUnlocked = true; s.startRun(); s.player.iframes = 1e9; grab(s.banner || []);
     for (const t of ['melee', 'ranged', 'tank', 'splitter']) s.spawnEnemyOfType(t, 100, 300, 1, false);

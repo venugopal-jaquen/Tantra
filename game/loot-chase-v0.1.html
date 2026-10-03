@@ -453,7 +453,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.1 (2026-10-02)';
+const BUILD = '0.1 (2026-10-03)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -2957,7 +2957,7 @@ class LootScene extends Phaser.Scene {
 
   // Tabbed so it scales: three short pages instead of one tall list that overflowed its
   // border on narrow screens. Every line is word-wrapped to the panel width.
-  showCodex(tab = 'weapons') {
+  showCodex(tab = 'weapons', metal = 'common') {
     this.clearUI();
     this.state = 'hub';
     const reached = session.bestSector || 1;
@@ -2969,10 +2969,10 @@ class LootScene extends Phaser.Scene {
     this.uiObjects.push(this.add.text(W/2, 30, 'POWERS', { resolution: RES, fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
     this.uiObjects.push(this.add.text(W/2, 56, `found in the depths · deepest ${N.stage.toLowerCase()} ${reached}`, { resolution: RES, fontSize: '11px', color: '#c8a96e' }).setOrigin(0.5));
 
-    const tabs = [['weapons', 'WEAPONS'], ['trinkets', 'TRINKETS'], ['tejas', N.supercharge.toUpperCase()]];
+    const tabs = [['weapons', 'WEAPONS'], ['trinkets', 'TRINKETS'], ['tejas', N.supercharge.toUpperCase()], ['boons', 'BOONS']];
     tabs.forEach(([key, label], i) => {
-      const tx = b.centerX + (i - 1) * 110, active = key === tab;
-      const btn = this.add.rectangle(tx, b.y + 24, 100, 30, active ? 0x7a3a0a : 0x3a1a08, 1)
+      const tx = b.centerX + (i - 1.5) * 84, active = key === tab;
+      const btn = this.add.rectangle(tx, b.y + 24, 78, 30, active ? 0x7a3a0a : 0x3a1a08, 1)
         .setStrokeStyle(1, active ? FORGE.gold : FORGE.bronze, active ? 1 : 0.5)
         .setInteractive({ useHandCursor: true });
       btn.on('pointerdown', () => { this.sfx('ui-page'); this.showCodex(key); });
@@ -2981,10 +2981,10 @@ class LootScene extends Phaser.Scene {
       this.uiObjects.push(btn, t);
     });
 
-    const row = (y, iconKey, tint, title, gloss, body, unlocked) => {
+    const row = (y, texture, tint, title, gloss, body, unlocked) => {
       const dim = !unlocked;
       this.uiObjects.push(
-        this.add.image(48, y, `icon_${iconKey}`).setDisplaySize(28, 28).setTint(dim ? 0x5a4535 : tint),
+        this.add.image(48, y, texture).setDisplaySize(28, 28).setTint(dim ? 0x5a4535 : tint),
         this.add.text(textX, y - 17, title, { resolution: RES, fontSize: '13px', fontStyle: 'bold',
           color: dim ? '#7a6656' : '#fffbef', wordWrap: { width: wrap } }),
         this.add.text(textX, y - 1, gloss, { resolution: RES, fontSize: '10px', fontStyle: 'italic',
@@ -3002,13 +3002,39 @@ class LootScene extends Phaser.Scene {
       for (const [key, def] of Object.entries(table)) {
         if (key === 'none') continue;                     // the starting Katar is not a discovery
         const unlocked = def.minSector <= reached;
-        row(y, key, tint, def.label, def.meaning,
+        row(y, 'icon_' + key, tint, def.label, def.meaning,
             unlocked ? def.desc : `Locked — reaches you on ${N.stage.toLowerCase()} ${def.minSector}`, unlocked);
         y += step;
       }
       this.uiObjects.push(this.add.text(b.centerX, y + 6,
         `${metalList()}. Finer metal, stronger effect. About 1 drop in 4 is unidentified: riskier, better odds.`,
         { resolution: RES, fontSize: '10px', color: '#8a7360', align: 'center', wordWrap: { width: b.width - 40 } }).setOrigin(0.5, 0));
+    } else if (tab === 'boons') {
+      // One short page per metal, so the rows keep the size they have on the other tabs.
+      ['common', 'rare', 'epic'].forEach((m, i) => {
+        const mx = b.centerX + (i - 1) * 104, active = m === metal, col = RARITY[m].color;
+        const chip = this.add.rectangle(mx, b.y + 58, 96, 24, active ? 0x5c2a05 : 0x2a0f04, 1)
+          .setStrokeStyle(1.5, col, active ? 1 : 0.45).setInteractive({ useHandCursor: true });
+        chip.on('pointerdown', () => { this.sfx('ui-page'); this.showCodex('boons', m); });
+        this.uiObjects.push(chip, this.add.text(mx, b.y + 58, N.metals[m].toUpperCase(), { resolution: RES, fontSize: '10px', fontStyle: 'bold',
+          color: '#' + col.toString(16).padStart(6, '0') }).setOrigin(0.5).setAlpha(active ? 1 : 0.6));
+      });
+      const about = { common: 'These add to your stats, and each can be taken three times.',
+                      rare: 'These change how you fight.',
+                      epic: 'These build on what you carry, and are offered only when they apply.' }[metal];
+      this.uiObjects.push(this.add.text(b.centerX, b.y + 90, `You pick one of three after every wave. ${about}`,
+        { resolution: RES, fontSize: '10px', color: '#e8a868', align: 'center', wordWrap: { width: b.width - 40 } }).setOrigin(0.5));
+      y = b.y + 128;
+      for (const [key, def] of Object.entries(BOONS)) {
+        if (def.metal !== metal) continue;
+        const notes = [N.boons[key][1]];
+        if (def.max === 2) notes.push('can be taken twice');
+        if (def.not) notes.push(`not with ${N.boons[def.not][0]}`);
+        if (def.weapon) notes.push(`${WEAPON_EFFECTS[def.weapon].label} only`);
+        if (def.tejas) notes.push(`once ${N.supercharge} has woken`);
+        row(y, 'boon_' + key, RARITY[metal].color, N.boons[key][0], notes.filter(Boolean).join(' · '), def.desc, true);
+        y += 62;
+      }
     } else {
       const on = session.tejasUnlocked;
       this.uiObjects.push(this.add.text(b.centerX, y - 22,
@@ -3018,7 +3044,7 @@ class LootScene extends Phaser.Scene {
           wordWrap: { width: b.width - 40 } }).setOrigin(0.5, 0.5));
       y += 24;
       for (const [key, f] of Object.entries(TEJAS_FORMS)) {
-        row(y, key, f.colour, f.name, `${f.meaning} · with ${WEAPON_EFFECTS[key].label}`, f.desc, on);
+        row(y, 'icon_' + key, f.colour, f.name, `${f.meaning} · with ${WEAPON_EFFECTS[key].label}`, f.desc, on);
         y += step - 4;
       }
     }
@@ -3090,6 +3116,7 @@ class LootScene extends Phaser.Scene {
     // leaves the silhouette clean. This is the Cosmic Cycle phase tell.
     this.playerRing = this.add.ellipse(this.player.x, this.player.y + 16, 34, 13, 0xffffff, 0)
       .setStrokeStyle(2, PHASE_DEFS.drift.color, 0.9);
+    this.boonFx = this.add.graphics();   // tells for Hold Your Ground and Read the Slam
 
     // HP bar
     const barX = 14, barY = 24, barW = W - 28, barH = 8;
@@ -3865,6 +3892,7 @@ class LootScene extends Phaser.Scene {
   // ---------- END OF RUN ----------
   endRun(victory, abandoned) {
     this.state = 'summary';
+    if (this.boonFx) this.boonFx.clear();
     this.clearHints();
     this.clearBanner();
     this.showPauseButton(false);
@@ -3906,6 +3934,7 @@ class LootScene extends Phaser.Scene {
       // clean up run visuals
       if (this.playerSprite) { this.playerSprite.destroy(); this.playerSprite = null; }
       if (this.playerRing) this.playerRing.destroy();
+      if (this.boonFx) { this.boonFx.destroy(); this.boonFx = null; }
       if (this.hpBarBg) this.hpBarBg.destroy();
       if (this.hpBarFill) this.hpBarFill.destroy();
       if (this.bloodBar) this.bloodBar.destroy();
@@ -4066,6 +4095,21 @@ class LootScene extends Phaser.Scene {
     this.playerRing.setPosition(this.player.x, this.player.y + 16);
     // Ring carries the live phase colour, so the player reads Cycle timing off their own feet.
     this.playerRing.setStrokeStyle(2, PHASE_DEFS[this.phase].color, 0.9);
+
+    // Boon tells (2.24). A boon that only works some of the time has to say when it is
+    // working: a gold ring planted outside the phase ring while Hold Your Ground is live,
+    // and a gold arc around Kiran that drains for as long as Read the Slam lasts.
+    this.boonFx.clear();
+    if (this.boonRank('ground') && this.stillMs >= 200) {
+      this.boonFx.lineStyle(2, FORGE.gold, 0.65 + 0.3 * Math.sin(time / 160));
+      this.boonFx.strokeEllipse(this.player.x, this.player.y + 16, 52, 21);
+    }
+    if (this.slamBuffMs > 0) {
+      this.boonFx.lineStyle(3, FORGE.gold, 0.95);
+      this.boonFx.beginPath();
+      this.boonFx.arc(this.player.x, this.player.y - 2, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.slamBuffMs / BOONS.readslam.ms);
+      this.boonFx.strokePath();
+    }
 
     // Facing follows actual movement while moving, and falls back to the nearest
     // enemy when standing still - so a stationary player still looks engaged.
