@@ -206,6 +206,13 @@ const NAME_PACKS = {
                 swift: ['Vega Paduka', 'swift sandals'], regen: ['Sanjeevani', 'healing herb'] },
     forms:    { none: ['Agni', 'fire'], venom: ['Visha', 'poison'], vampiric: ['Rakta', 'blood'],
                 chain: ['Vidyut', 'lightning'], executioner: ['Prahar', 'the blow'] },
+    // Boons (2.24): [name, gloss]. Short, everyday words; nothing revered.
+    boons:    { keen: ['Dhaar', 'the keen edge'], quick: ['Chapal', 'quick hands'], reach: ['Vistar', 'long reach'],
+                feet: ['Laghu', 'light feet'], iron: ['Loha', 'iron body'], hide: ['Kathor', 'thick hide'],
+                ground: ['Achal', 'unmoving'], run: ['Gati', 'strike on the run'], second: ['Yugal', 'a second target'],
+                readslam: ['Sajag', 'read the slam'], laststand: ['Veer', 'the last stand'], greed: ['Lobh', 'greed'],
+                rot: ['Prasar', 'the poison spreads'], bloodshield: ['Rakta Kavach', 'blood shield'], fork: ['Shakha', 'forked lightning'],
+                cleancut: ['Nirnay', 'the clean cut'], kindling: ['Chingari', 'the spark'], hunger: ['Bhookh', 'eclipse hunger'] },
     // Levels of the stepwell, top to bottom: [name, the line under it]. `deeper` covers
     // every sector past the last one listed.
     sectors: [['Prangan', '\u092A\u094D\u0930\u093E\u0902\u0917\u0923 \u00B7 the sunlit court'],
@@ -286,6 +293,11 @@ const NAME_PACKS = {
     trinkets: { vitality: ['Life Gem', ''], aegis: ['Aegis', ''], thorns: ['Thorn Band', ''],
                 swift: ['Swift Sandals', ''], regen: ['Healing Herb', ''] },
     forms:    { none: ['Fire', ''], venom: ['Poison', ''], vampiric: ['Blood', ''], chain: ['Lightning', ''], executioner: ['Execution', ''] },
+    boons:    { keen: ['Keen Edge', ''], quick: ['Quick Hands', ''], reach: ['Long Reach', ''], feet: ['Light Feet', ''],
+                iron: ['Iron Body', ''], hide: ['Thick Hide', ''], ground: ['Hold Your Ground', ''], run: ['Strike on the Run', ''],
+                second: ['Second Target', ''], readslam: ['Read the Slam', ''], laststand: ['Last Stand', ''], greed: ['Greed', ''],
+                rot: ['Spreading Rot', ''], bloodshield: ['Blood Shield', ''], fork: ['Forked Lightning', ''], cleancut: ['Clean Cut', ''],
+                kindling: ['Kindling', ''], hunger: ['Eclipse Hunger', ''] },
     sectors: [['The Courtyard', 'sunlit stone at the top of the well'],
               ['The Drowned Steps', 'the flooded level'],
               ['The Gold Vault', 'the hoard at the bottom']],
@@ -321,6 +333,11 @@ const NAME_PACKS = {
     trinkets: { vitality: ['Life Gem', ''], aegis: ['Aegis', ''], thorns: ['Thorn Band', ''],
                 swift: ['Swift Sandals', ''], regen: ['Healing Herb', ''] },
     forms:    { none: ['Fire', ''], venom: ['Poison', ''], vampiric: ['Blood', ''], chain: ['Lightning', ''], executioner: ['Execution', ''] },
+    boons:    { keen: ['Keen Edge', ''], quick: ['Quick Hands', ''], reach: ['Long Reach', ''], feet: ['Light Feet', ''],
+                iron: ['Iron Body', ''], hide: ['Thick Hide', ''], ground: ['Hold Your Ground', ''], run: ['Strike on the Run', ''],
+                second: ['Second Target', ''], readslam: ['Read the Slam', ''], laststand: ['Last Stand', ''], greed: ['Greed', ''],
+                rot: ['Spreading Rot', ''], bloodshield: ['Blood Shield', ''], fork: ['Forked Lightning', ''], cleancut: ['Clean Cut', ''],
+                kindling: ['Kindling', ''], hunger: ['Eclipse Hunger', ''] },
     sectors: [['The Courtyard', 'sunlit stone at the top of the well'],
               ['The Drowned Steps', 'the flooded level'],
               ['The Gold Vault', 'the hoard at the bottom']],
@@ -436,7 +453,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.1 (2026-10-02)';
+const BUILD = '0.1 (2026-10-03)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -925,6 +942,36 @@ const TRINKET_EFFECTS = {
   swift:    { label: N.trinkets.swift[0], meaning: N.trinkets.swift[1], minSector: 2, desc: 'Movement speed boost' },
   regen:    { label: N.trinkets.regen[0], meaning: N.trinkets.regen[1], minSector: 3, desc: 'Heals over time' }
 };
+// BOONS (requirements 2.24). One pick from three after every cleared wave before a boss.
+// They belong to Kiran, not to the weapon, so a swap keeps them, and they last until the
+// run ends. The metal follows the loot ladder: copper boons add stats and stack, silver
+// ones change how you fight, gold ones deepen what you carry and are offered only when
+// they apply. `n` is the number the description quotes - keep the two in step.
+const BOONS = {
+  keen:        { metal: 'common', max: 3, n: 0.15, desc: '+15% damage' },
+  quick:       { metal: 'common', max: 3, n: 0.12, desc: 'Attacks 12% faster' },
+  reach:       { metal: 'common', max: 3, n: 20,   desc: '+20 attack range' },
+  feet:        { metal: 'common', max: 3, n: 20,   desc: '+20 move speed' },
+  iron:        { metal: 'common', max: 3, n: 20,   desc: '+20 max health, and heals 20 now' },
+  hide:        { metal: 'common', max: 3, n: 0.08, desc: 'Take 8% less damage' },
+  ground:      { metal: 'rare', max: 1, n: 0.35, not: 'run', desc: '+35% damage while you stand still' },
+  run:         { metal: 'rare', max: 1, n: 0.25, not: 'ground', desc: 'Attacks 25% faster while you move' },
+  second:      { metal: 'rare', max: 2, desc: 'Every attack hits one more enemy' },
+  readslam:    { metal: 'rare', max: 1, n: 0.5, ms: 4000, desc: "Step out of a slam's red zone and you hit 50% harder for 4 seconds" },
+  laststand:   { metal: 'rare', max: 1, n: 0.4, below: 0.3, speed: 30, desc: 'Below 30% health: +40% damage and +30 speed' },
+  greed:       { metal: 'rare', max: 1, n: 0.25, hurt: 0.10, desc: `+25% ${N.currency}, but enemies hit 10% harder` },
+  rot:         { metal: 'epic', max: 1, weapon: 'venom', desc: 'A poisoned enemy that dies passes its poison to the nearest enemy' },
+  bloodshield: { metal: 'epic', max: 1, weapon: 'vampiric', n: 25, desc: 'Healing past full health becomes a shield, up to 25' },
+  fork:        { metal: 'epic', max: 1, weapon: 'chain', desc: 'Each chain jumps to two enemies, not one' },
+  cleancut:    { metal: 'epic', max: 1, weapon: 'executioner', n: 0.35, desc: 'Its bonus starts at 35% health, not 25%' },
+  kindling:    { metal: 'epic', max: 1, tejas: true, n: 0.3, desc: `${N.supercharge} fills 30% faster` },
+  hunger:      { metal: 'epic', max: 1, n: 3, desc: `During ${N.phases.eclipse}, every kill heals 3` }
+};
+// Odds of each metal per card, by level (deeper levels use the last row): silver and
+// gold grow with depth, one more reason to Descend.
+const BOON_ODDS = { 1: { common: 65, rare: 28, epic: 7 }, 2: { common: 50, rare: 35, epic: 15 }, 3: { common: 40, rare: 35, epic: 25 } };
+const BOON_REROLLS = 1;   // free rerolls per level
+
 function pickWeaponEffect(sector) {
   const pool = Object.keys(WEAPON_EFFECTS).filter(k => WEAPON_EFFECTS[k].minSector <= sector);
   return Phaser.Utils.Array.GetRandom(pool);
@@ -1318,6 +1365,7 @@ class LootScene extends Phaser.Scene {
 
     this.buildPauseButton();
     const escape = () => {
+      if (this.state === 'boon') return;   // a boon must be chosen
       if (this.state === 'playing') this.pauseGame();
       else if (this.state === 'paused') this.resumeGame();
       else if (this.overlay && this.overlay.length) this.closeOverlay();
@@ -1368,7 +1416,7 @@ class LootScene extends Phaser.Scene {
     if (!session.tejasUnlocked || this.tejasActive > 0 || e.isBoss) return;
     let g = TEJAS.perKill[e.type] || 3;
     if (e.isElite) g += TEJAS.eliteBonus;
-    this.tejas = Math.min(100, this.tejas + g);
+    this.tejas = Math.min(100, this.tejas + g * this.tejasRate());
   }
 
   activateTejas() {
@@ -1402,7 +1450,7 @@ class LootScene extends Phaser.Scene {
       this.tejas = Math.max(0, 100 * this.tejasActive / TEJAS.duration);   // drains while it runs
       if (this.tejasActive <= 0) { this.tejas = 0; this.endTejas(); }
     } else {
-      this.tejas = Math.min(100, this.tejas + TEJAS.passivePerSec * dt);
+      this.tejas = Math.min(100, this.tejas + TEJAS.passivePerSec * dt * this.tejasRate());
     }
     this.drawTejasMeter();
   }
@@ -1436,7 +1484,7 @@ class LootScene extends Phaser.Scene {
 
   tejasPulse() {
     const f = this.tejasForm(), px = this.player.x, py = this.player.y;
-    const base = this.player.weapon.dmg * PHASE_DEFS[this.phase].playerDmgMult * f.dmgMult;
+    const base = this.player.weapon.dmg * PHASE_DEFS[this.phase].playerDmgMult * f.dmgMult * this.dmgMult();
     const near = this.enemies.filter(e => Math.hypot(e.x - px, e.y - py) <= f.radius);
 
     if (f.kind === 'chain') {
@@ -1475,7 +1523,7 @@ class LootScene extends Phaser.Scene {
       this.damageEnemy(e, base);
       if (f.kind === 'aura') this.impactBurst(e.x, e.y, f.colour);
     });
-    if (f.heal && dealt > 0) this.player.hp = Math.min(this.player.maxHp, this.player.hp + dealt * f.heal);
+    if (f.heal && dealt > 0) this.healPlayer(dealt * f.heal, true);
   }
 
   // ---------- AUDIO ----------
@@ -1526,8 +1574,167 @@ class LootScene extends Phaser.Scene {
   // Tells the music what the Cosmic Cycle is doing: the phase colours whatever track is
   // playing while a run is live, and pausing ducks it rather than cutting it.
   refreshMusic() {
-    const inRun = this.state === 'playing' || this.state === 'paused';
-    Music.colour(inRun ? this.phase : null, this.state === 'paused');
+    const inRun = this.state === 'playing' || this.state === 'paused' || this.state === 'boon';
+    Music.colour(inRun ? this.phase : null, this.state === 'paused' || this.state === 'boon');
+  }
+
+  // ---------- BOONS (requirements 2.24) ----------
+  // Brotato's rhythm rather than Vampire Survivors': the pick comes in the break between
+  // waves, so it never interrupts a dodge, and no experience bar is needed.
+  boonRank(key) { return (this.boons && this.boons[key]) || 0; }
+
+  // A weapon boon sleeps while another kind of weapon is equipped and wakes when it comes
+  // back, which is what makes keeping a weapon in the satchel worth it.
+  boonLive(key) {
+    const w = BOONS[key].weapon;
+    return w && this.player.weapon.effect !== w ? 0 : this.boonRank(key);
+  }
+
+  lastStand() { return this.boonRank('laststand') > 0 && this.player.hp < this.player.maxHp * BOONS.laststand.below; }
+
+  // Boon bonuses add together rather than multiply, so a stacked build grows steadily
+  // instead of exploding.
+  dmgMult() {
+    let m = 1 + this.boonRank('keen') * BOONS.keen.n;
+    if (this.boonRank('ground') && this.stillMs >= 200) m += BOONS.ground.n;
+    if (this.lastStand()) m += BOONS.laststand.n;
+    if (this.slamBuffMs > 0) m += BOONS.readslam.n;
+    return m;
+  }
+
+  attackRate() { return 1 + this.boonRank('quick') * BOONS.quick.n + (this.boonRank('run') && this.moving ? BOONS.run.n : 0); }
+  attackRange() { return this.player.weapon.range + this.boonRank('reach') * BOONS.reach.n; }
+  attackShots() { return (this.player.weapon.shots || 1) + this.boonRank('second'); }
+  executeLine() { return this.boonLive('cleancut') ? BOONS.cleancut.n : 0.25; }
+  tejasRate() { return 1 + (this.boonRank('kindling') ? BOONS.kindling.n : 0); }
+
+  addGold(n) { this.runGold += Math.round(n * (this.boonRank('greed') ? 1 + BOONS.greed.n : 1)); }
+
+  // fromBlood: vampiric healing, whose overflow Blood Shield keeps as a shield.
+  healPlayer(amount, fromBlood) {
+    const room = this.player.maxHp - this.player.hp;
+    this.player.hp = Math.min(this.player.maxHp, this.player.hp + amount);
+    if (fromBlood && amount > room && this.boonLive('bloodshield')) {
+      this.player.bloodShield = Math.min(BOONS.bloodshield.n, (this.player.bloodShield || 0) + amount - room);
+    }
+  }
+
+  // Spreading Rot: the poison a dying enemy carried jumps to the nearest one.
+  spreadPoison(from) {
+    let to = null, best = 140;
+    for (const e of this.enemies) {
+      const d = Math.hypot(e.x - from.x, e.y - from.y);
+      if (d < best && !e.shieldOn) { best = d; to = e; }
+    }
+    if (!to) return;
+    to.poison = { dmgPerTick: from.poison.dmgPerTick, ticksLeft: 4, tickTimer: 500 };
+    if (this.attackFx) this.drawWeaponBeam(from.x, from.y, to.x, to.y, 'venom');
+    this.impactBurst(to.x, to.y, 0x7fdd3c);
+  }
+
+  // Three different boons, each card rolling its metal by depth. A metal with nothing
+  // left to offer falls back to any boon that still applies.
+  drawBoons() {
+    const odds = BOON_ODDS[Math.min(this.sector, 3)];
+    const fits = key => {
+      const b = BOONS[key];
+      return this.boonRank(key) < b.max && !(b.not && this.boonRank(b.not))
+        && !(b.weapon && this.player.weapon.effect !== b.weapon) && !(b.tejas && !session.tejasUnlocked);
+    };
+    const offer = [];
+    for (let i = 0; i < 3; i++) {
+      const pool = Object.keys(BOONS).filter(k => fits(k) && !offer.includes(k));
+      if (!pool.length) break;
+      const roll = Phaser.Math.Between(1, 100);
+      const metal = roll <= odds.common ? 'common' : roll <= odds.common + odds.rare ? 'rare' : 'epic';
+      const ofMetal = pool.filter(k => BOONS[k].metal === metal);
+      offer.push(Phaser.Utils.Array.GetRandom(ofMetal.length ? ofMetal : pool));
+    }
+    return offer;
+  }
+
+  offerBoons() {
+    if (this.state !== 'playing') return;
+    this.state = 'boon';
+    this.pointerTarget = null;
+    this.time.paused = true;
+    this.tweens.pauseAll();
+    this.refreshMusic();
+    this.boonOffer = this.drawBoons();
+    this.sfx('ui-open');
+    this.showBoonScreen();
+  }
+
+  boonNote(key) {
+    const b = BOONS[key], parts = [];
+    if (N.boons[key][1]) parts.push(N.boons[key][1]);
+    if (b.max > 1) parts.push(`rank ${this.boonRank(key) + 1} of ${b.max}`);
+    if (b.weapon) parts.push(`${WEAPON_EFFECTS[b.weapon].label} only`);
+    return parts.join(' · ');
+  }
+
+  // The boons taken so far as a row of icons, with the rank when it stacks.
+  drawBoonRow(x, y, size) {
+    const keys = Object.keys(this.boons || {});
+    keys.forEach((key, i) => {
+      const bx = x + i * (size + 3);
+      this.ov(this.add.image(bx, y, 'boon_' + key).setDisplaySize(size, size).setTint(RARITY[BOONS[key].metal].color), 102);
+      if (this.boons[key] > 1) this.ovText(bx + size / 2 - 1, y + size / 2 - 2, String(this.boons[key]),
+        { fontSize: '9px', color: '#fffbef', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 2.5 }).setOrigin(0.5);
+    });
+    return keys.length;
+  }
+
+  showBoonScreen() {
+    this.openOverlay(0.8);
+    const cx = W / 2, left = cx - 161, opened = performance.now();
+    this.ov(this.add.rectangle(cx, 372, 350, 560, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold, 0.8));
+    this.ovText(cx, 112, `${stageLabel(this.sector).toUpperCase()} · WAVE ${this.wave} CLEARED`, { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
+    this.ovText(cx, 136, 'CHOOSE A BOON', { fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
+    this.ovText(cx, 161, 'the fight is paused · boons last until the run ends', { fontSize: '10px', color: '#c8a96e' }).setOrigin(0.5);
+
+    this.boonOffer.forEach((key, i) => {
+      const b = BOONS[key], y = 230 + i * 98, col = RARITY[b.metal].color;
+      const card = this.ov(this.add.rectangle(cx, y, 322, 88, FORGE.panel, 1).setStrokeStyle(2, col, 0.9)
+        .setInteractive({ useHandCursor: true }));
+      // A tap that was meant for walking must not choose a card the instant it appears.
+      card.on('pointerdown', () => { if (performance.now() - opened > 350) this.pickBoon(key); });
+      this.ov(this.add.image(left + 26, y, 'boon_' + key).setDisplaySize(34, 34).setTint(col), 102);
+      this.ovText(left + 54, y - 37, N.boons[key][0], { fontSize: '15px', color: '#fffbef', fontStyle: 'bold' });
+      this.ovText(left + 314, y - 34, N.metals[b.metal].toUpperCase(), { fontSize: '9px', color: '#' + col.toString(16).padStart(6, '0'), fontStyle: 'bold' }).setOrigin(1, 0);
+      this.ovText(left + 54, y - 14, b.desc, { fontSize: '12px', color: '#f0dcc0', lineSpacing: 1, wordWrap: { width: 252 } });
+      this.ovText(left + 54, y + 24, this.boonNote(key), { fontSize: '10px', color: '#c8a96e' });
+    });
+
+    const rr = this.rerollsLeft, stage = N.stage.toUpperCase();
+    this.ovButton(cx, 532, 236, 36, rr > 0 ? `REROLL · ${rr} LEFT THIS ${stage}` : `NO REROLL LEFT THIS ${stage}`,
+      rr > 0 ? 0x3a1a08 : 0x2a0f04, () => this.rerollBoons(), { sound: rr > 0 ? 'ui-page' : 'ui-error', color: rr > 0 ? '#ffd23c' : '#8a7360', size: 12 });
+    this.ovText(left, 568, 'YOUR BOONS', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
+    if (!this.drawBoonRow(left + 9, 598, 17)) this.ovText(left, 588, 'None yet. One comes after every wave.', { fontSize: '10px', color: '#8a7360' });
+  }
+
+  rerollBoons() {
+    if (this.state !== 'boon' || this.rerollsLeft <= 0) return;
+    this.rerollsLeft--;
+    this.boonOffer = this.drawBoons();
+    this.showBoonScreen();
+  }
+
+  // key null skips the pick: only the playtest bot does that, to measure a run without boons.
+  pickBoon(key) {
+    if (this.state !== 'boon') return;
+    if (key) {
+      this.boons[key] = this.boonRank(key) + 1;
+      if (key === 'iron') { this.player.maxHp += BOONS.iron.n; this.player.hp = Math.min(this.player.maxHp, this.player.hp + BOONS.iron.n); }
+      this.sfx(LOOT_SFX[BOONS[key].metal]);
+    }
+    this.closeOverlay();
+    this.state = 'playing';
+    this.time.paused = false;
+    this.tweens.resumeAll();
+    this.refreshMusic();
+    if (key) this.showToast(N.boons[key][0].toUpperCase(), '#' + RARITY[BOONS[key].metal].color.toString(16).padStart(6, '0'));
+    this.nextWave();
   }
 
   // ---------- PAUSE ----------
@@ -1604,13 +1811,15 @@ class LootScene extends Phaser.Scene {
     const f = this.tejasForm();
     if (session.tejasUnlocked) row(314, w.effect || 'none', f.colour, `${N.supercharge}: ${f.name}`, f.desc);
     else row(314, 'mystery', 0x5a4535, `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}`);
-    this.ovText(cx, 364, `${stageLabel(this.sector)} · Wave ${Math.min(this.wave, 5)}/5 · ${this.runGold} ${N.currency} this run`,
+    this.ovText(left, 350, 'YOUR BOONS', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
+    if (!this.drawBoonRow(left + 16, 374, 18)) this.ovText(left, 367, 'None yet. One comes after every wave.', { fontSize: '10px', color: '#8a7360' });
+    this.ovText(cx, 400, `${stageLabel(this.sector)} · Wave ${Math.min(this.wave, 5)}/5 · ${this.runGold} ${N.currency} this run`,
       { fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
 
-    this.ovButton(cx, 410, 240, 44, 'RESUME', 0x7a3a0a, () => this.resumeGame(), { sound: null, stroke: FORGE.gold, size: 16 });
-    this.ovButton(cx, 462, 240, 38, 'HOW TO PLAY', 0x3a1a08, () => this.showHowTo(0, () => this.showPauseMenu()));
-    this.ovButton(cx, 508, 240, 38, 'SETTINGS', 0x3a1a08, () => this.showSettings(() => this.showPauseMenu()));
-    this.ovButton(cx, 566, 240, 38, 'ABANDON RUN', 0x3a0f08, () => this.showAbandonConfirm(),
+    this.ovButton(cx, 440, 240, 44, 'RESUME', 0x7a3a0a, () => this.resumeGame(), { sound: null, stroke: FORGE.gold, size: 16 });
+    this.ovButton(cx, 488, 240, 38, 'HOW TO PLAY', 0x3a1a08, () => this.showHowTo(0, () => this.showPauseMenu()));
+    this.ovButton(cx, 531, 240, 38, 'SETTINGS', 0x3a1a08, () => this.showSettings(() => this.showPauseMenu()));
+    this.ovButton(cx, 583, 240, 38, 'ABANDON RUN', 0x3a0f08, () => this.showAbandonConfirm(),
       { sound: 'ui-error', color: '#ff9a80' });
   }
 
@@ -1812,6 +2021,17 @@ class LootScene extends Phaser.Scene {
           label(cx + 128, cy - 10, '<', '#ffd23c', 10); label(cx + 128, cy + 8, '2', '#fffbef', 11);
           label(cx + 128, cy + 48, N.satchel.toLowerCase(), '#c8a96e', 8);
           label(cx - 60, cy + 50, 'finer metal = stronger item', '#8a7360', 9);
+        } },
+      { title: 'BOONS',
+        body: `After every wave the fight pauses and you choose one of three boons. Copper boons add to your stats and stack up to three times. Silver ones change how you fight. Gold ones build on the weapon you carry. Boons last until the run ends, and each ${N.stage.toLowerCase()} gives you one free reroll.`,
+        draw: (cx, cy) => {
+          [['keen', 'common'], ['ground', 'rare'], ['fork', 'epic']].forEach(([k, m], i) => {
+            const y = cy - 52 + i * 52, col = RARITY[m].color;
+            this.ov(this.add.rectangle(cx, y, 252, 44, FORGE.panel, 1).setStrokeStyle(1.5, col, 0.9), 102);
+            img('boon_' + k, cx - 102, y, 28, col);
+            this.ovText(cx - 80, y - 16, N.boons[k][0], { fontSize: '12px', color: '#fffbef', fontStyle: 'bold' });
+            this.ovText(cx - 80, y + 2, BOONS[k].desc, { fontSize: '9px', color: '#c8a96e' });
+          });
         } },
       { title: 'THE COSMIC CYCLE',
         body: `The bar at the top loops through three phases. ${PHASE_DEFS.drift.label} is calm. ${PHASE_DEFS.surge.label} floods the arena but pays richer loot. In ${PHASE_DEFS.eclipse.label} everyone hits 30% harder - you included. Every 90 seconds, ${PHASE_DEFS.convergence.label} brings an elite and the best drops. The ring at your feet always shows the phase.`,
@@ -2074,6 +2294,7 @@ class LootScene extends Phaser.Scene {
       if (e.slamTimer <= 0) this.beginSlam(e);
     } else {
       e.slam.t += delta;
+      if (!e.slam.touched && this.inSlam(e.slam, this.player.x, this.player.y)) e.slam.touched = true;   // for Read the Slam
       this.drawSlamTelegraph(e);
       if (e.slam.t >= e.slam.dur && this.resolveSlam(e)) return true;
     }
@@ -2161,26 +2382,28 @@ class LootScene extends Phaser.Scene {
     if (e.telegraphGfx) { e.telegraphGfx.destroy(); e.telegraphGfx = null; }
     e.slamTimer = e.slamCooldown + Phaser.Math.Between(-250, 350);
 
-    const px = this.player.x, py = this.player.y;
-    let hit = false;
-    if (s.type === 'circle') {
-      this.shockwave(s.x, s.y, s.r, 0xff6a3d);
-      hit = Math.hypot(px - s.x, py - s.y) <= s.r;
-    } else if (s.type === 'line') {
+    if (s.type === 'circle') this.shockwave(s.x, s.y, s.r, 0xff6a3d);
+    else if (s.type === 'line') this.lineImpact(s);
+    else s.blobs.forEach(bl => this.shockwave(bl.x, bl.y, bl.r, 0xff6a3d));
+    const hit = this.inSlam(s, this.player.x, this.player.y);   // one hit per slam, not per blob
+    this.shake(230, SLAM[s.type].shake);
+    this.sfx('slam-land', { rate: e.isMega ? 0.8 : 1 });
+    if (!hit && s.touched && this.boonRank('readslam')) {
+      this.slamBuffMs = BOONS.readslam.ms;
+      this.showToast(`${N.boons.readslam[0].toUpperCase()} - 50% HARDER`, '#ffd23c');
+    }
+    return hit ? this.damagePlayer(this.slamDamage(SLAM[s.type].pct), e, 'slam') : false;
+  }
+
+  inSlam(s, px, py) {
+    if (s.type === 'circle') return Math.hypot(px - s.x, py - s.y) <= s.r;
+    if (s.type === 'line') {
       const dx = px - s.x, dy = py - s.y;
       const along = dx * Math.cos(s.a) + dy * Math.sin(s.a);
       const across = -dx * Math.sin(s.a) + dy * Math.cos(s.a);
-      hit = along >= 0 && along <= s.len && Math.abs(across) <= s.w / 2;
-      this.lineImpact(s);
-    } else {
-      s.blobs.forEach(bl => {
-        this.shockwave(bl.x, bl.y, bl.r, 0xff6a3d);
-        if (Math.hypot(px - bl.x, py - bl.y) <= bl.r) hit = true;   // one hit per slam, not per blob
-      });
+      return along >= 0 && along <= s.len && Math.abs(across) <= s.w / 2;
     }
-    this.shake(230, SLAM[s.type].shake);
-    this.sfx('slam-land', { rate: e.isMega ? 0.8 : 1 });
-    return hit ? this.damagePlayer(this.slamDamage(SLAM[s.type].pct), e, 'slam') : false;
+    return s.blobs.some(bl => Math.hypot(px - bl.x, py - bl.y) <= bl.r);
   }
 
   // Flat part scales with depth and sector; the percentage part scales with the
@@ -2533,6 +2756,92 @@ class LootScene extends Phaser.Scene {
       g.fillCircle(C, C, 3);
     });
 
+    // --- boons (2.24) ---
+    const boon = (key, draw) => {
+      g.clear();
+      g.fillStyle(ink, 1); g.lineStyle(3, ink, 1);
+      draw(g);
+      g.generateTexture('boon_' + key, S, S);
+    };
+    boon('keen', g => {                     // a blade with a glint
+      g.fillTriangle(C - 2, 4, C - 8, 24, C + 4, 24);
+      g.fillRect(C - 9, 24, 14, 3);
+      g.lineStyle(2, ink, 1); g.lineBetween(C + 8, 5, C + 8, 13); g.lineBetween(C + 4, 9, C + 12, 9);
+    });
+    boon('quick', g => {                    // chevrons, pressing on
+      for (const dx of [-6, 4]) { g.beginPath(); g.moveTo(C + dx - 4, 8); g.lineTo(C + dx + 4, C); g.lineTo(C + dx - 4, 24); g.strokePath(); }
+    });
+    boon('reach', g => {                    // a long arrow from a point
+      g.fillCircle(6, C, 3.5); g.lineBetween(9, C, 24, C);
+      g.fillTriangle(29, C, 22, C - 6, 22, C + 6);
+    });
+    boon('feet', g => {                     // a footprint
+      g.fillEllipse(C, 21, 11, 15);
+      [[-6, 10], [-2, 8], [2, 8], [6, 10]].forEach(([dx, y]) => g.fillCircle(C + dx, y, 2.2));
+    });
+    boon('iron', g => {                     // a breastplate
+      g.beginPath(); g.moveTo(C - 11, 6); g.lineTo(C + 11, 6); g.lineTo(C + 9, 23); g.lineTo(C, 28); g.lineTo(C - 9, 23); g.closePath(); g.strokePath();
+      g.fillRect(C - 1.5, 8, 3, 17);
+    });
+    boon('hide', g => {                     // overlapping scales
+      for (const [x, y] of [[C - 6, 11], [C + 6, 11], [C, 21]]) g.strokeCircle(x, y, 6.5);
+    });
+    boon('ground', g => {                   // a stake driven into the ground
+      g.fillTriangle(C - 5, 5, C + 5, 5, C, 22);
+      g.fillRect(C - 12, 23, 24, 3);
+      g.lineStyle(2, ink, 1); g.lineBetween(C - 10, 29, C - 6, 26); g.lineBetween(C + 10, 29, C + 6, 26);
+    });
+    boon('run', g => {                      // an arrow with speed lines
+      g.lineBetween(13, C, 24, C); g.fillTriangle(30, C, 23, C - 6, 23, C + 6);
+      g.lineStyle(2, ink, 1); g.lineBetween(4, C - 6, 11, C - 6); g.lineBetween(2, C, 9, C); g.lineBetween(4, C + 6, 11, C + 6);
+    });
+    boon('second', g => {                   // one strike, two targets
+      g.fillCircle(C, 26, 3.5);
+      g.lineStyle(2.5, ink, 1); g.lineBetween(C, 24, C - 8, 11); g.lineBetween(C, 24, C + 8, 11);
+      g.strokeCircle(C - 9, 7, 4.5); g.strokeCircle(C + 9, 7, 4.5);
+    });
+    boon('readslam', g => {                 // stepping out of the ring
+      g.lineStyle(2.5, ink, 1); g.strokeCircle(C - 4, C + 4, 10);
+      g.fillCircle(C - 4, C + 4, 3);
+      g.lineBetween(C + 2, C - 2, C + 10, C - 10);
+      g.fillTriangle(C + 14, C - 14, C + 5, C - 12, C + 12, C - 5);
+    });
+    boon('laststand', g => {                // a warning sign
+      g.lineStyle(2.5, ink, 1); g.strokeTriangle(C, 4, C - 13, 27, C + 13, 27);
+      g.fillRect(C - 1.5, 11, 3, 9); g.fillCircle(C, 23, 1.8);
+    });
+    boon('greed', g => {                    // a stack of coins
+      for (const y of [24, 17, 10]) g.fillEllipse(C, y, 20, 6);
+    });
+    boon('rot', g => {                      // a drop that spreads
+      g.fillTriangle(C - 3, 5, C - 10, 17, C + 4, 17);
+      g.fillCircle(C - 3, 19, 7);
+      g.fillCircle(C + 9, 11, 3); g.fillCircle(C + 11, 22, 2.5);
+    });
+    boon('bloodshield', g => {              // a shield holding a drop
+      g.lineStyle(2.5, ink, 1);
+      g.beginPath(); g.moveTo(C, 3); g.lineTo(C + 11, 9); g.lineTo(C + 9, 21); g.lineTo(C, 29); g.lineTo(C - 9, 21); g.lineTo(C - 11, 9); g.closePath(); g.strokePath();
+      g.fillTriangle(C, 10, C - 4, 17, C + 4, 17); g.fillCircle(C, 18, 4);
+    });
+    boon('fork', g => {                     // a bolt that splits
+      g.lineStyle(2.5, ink, 1);
+      g.beginPath(); g.moveTo(C + 2, 3); g.lineTo(C - 4, 13); g.lineTo(C + 3, 15); g.lineTo(C - 2, 22); g.strokePath();
+      g.lineBetween(C - 2, 22, C - 9, 29); g.lineBetween(C - 2, 22, C + 6, 29);
+    });
+    boon('cleancut', g => {                 // a clean diagonal cut
+      g.fillTriangle(5, 27, 5, 9, 23, 27);
+      g.fillTriangle(9, 5, 27, 5, 27, 23);
+    });
+    boon('kindling', g => {                 // a flame
+      g.fillCircle(C, 21, 7);
+      g.fillTriangle(C - 7, 20, C + 7, 20, C + 2, 3);
+      g.fillTriangle(C - 7, 21, C - 1, 18, C - 8, 9);
+    });
+    boon('hunger', g => {                   // the eclipse
+      g.lineStyle(2, ink, 1); g.strokeCircle(C, C, 12);
+      g.fillCircle(C + 4, C - 3, 8);
+    });
+
     g.destroy();
   }
 
@@ -2648,7 +2957,7 @@ class LootScene extends Phaser.Scene {
 
   // Tabbed so it scales: three short pages instead of one tall list that overflowed its
   // border on narrow screens. Every line is word-wrapped to the panel width.
-  showCodex(tab = 'weapons') {
+  showCodex(tab = 'weapons', metal = 'common') {
     this.clearUI();
     this.state = 'hub';
     const reached = session.bestSector || 1;
@@ -2660,10 +2969,10 @@ class LootScene extends Phaser.Scene {
     this.uiObjects.push(this.add.text(W/2, 30, 'POWERS', { resolution: RES, fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
     this.uiObjects.push(this.add.text(W/2, 56, `found in the depths · deepest ${N.stage.toLowerCase()} ${reached}`, { resolution: RES, fontSize: '11px', color: '#c8a96e' }).setOrigin(0.5));
 
-    const tabs = [['weapons', 'WEAPONS'], ['trinkets', 'TRINKETS'], ['tejas', N.supercharge.toUpperCase()]];
+    const tabs = [['weapons', 'WEAPONS'], ['trinkets', 'TRINKETS'], ['tejas', N.supercharge.toUpperCase()], ['boons', 'BOONS']];
     tabs.forEach(([key, label], i) => {
-      const tx = b.centerX + (i - 1) * 110, active = key === tab;
-      const btn = this.add.rectangle(tx, b.y + 24, 100, 30, active ? 0x7a3a0a : 0x3a1a08, 1)
+      const tx = b.centerX + (i - 1.5) * 84, active = key === tab;
+      const btn = this.add.rectangle(tx, b.y + 24, 78, 30, active ? 0x7a3a0a : 0x3a1a08, 1)
         .setStrokeStyle(1, active ? FORGE.gold : FORGE.bronze, active ? 1 : 0.5)
         .setInteractive({ useHandCursor: true });
       btn.on('pointerdown', () => { this.sfx('ui-page'); this.showCodex(key); });
@@ -2672,10 +2981,10 @@ class LootScene extends Phaser.Scene {
       this.uiObjects.push(btn, t);
     });
 
-    const row = (y, iconKey, tint, title, gloss, body, unlocked) => {
+    const row = (y, texture, tint, title, gloss, body, unlocked) => {
       const dim = !unlocked;
       this.uiObjects.push(
-        this.add.image(48, y, `icon_${iconKey}`).setDisplaySize(28, 28).setTint(dim ? 0x5a4535 : tint),
+        this.add.image(48, y, texture).setDisplaySize(28, 28).setTint(dim ? 0x5a4535 : tint),
         this.add.text(textX, y - 17, title, { resolution: RES, fontSize: '13px', fontStyle: 'bold',
           color: dim ? '#7a6656' : '#fffbef', wordWrap: { width: wrap } }),
         this.add.text(textX, y - 1, gloss, { resolution: RES, fontSize: '10px', fontStyle: 'italic',
@@ -2693,13 +3002,39 @@ class LootScene extends Phaser.Scene {
       for (const [key, def] of Object.entries(table)) {
         if (key === 'none') continue;                     // the starting Katar is not a discovery
         const unlocked = def.minSector <= reached;
-        row(y, key, tint, def.label, def.meaning,
+        row(y, 'icon_' + key, tint, def.label, def.meaning,
             unlocked ? def.desc : `Locked — reaches you on ${N.stage.toLowerCase()} ${def.minSector}`, unlocked);
         y += step;
       }
       this.uiObjects.push(this.add.text(b.centerX, y + 6,
         `${metalList()}. Finer metal, stronger effect. About 1 drop in 4 is unidentified: riskier, better odds.`,
         { resolution: RES, fontSize: '10px', color: '#8a7360', align: 'center', wordWrap: { width: b.width - 40 } }).setOrigin(0.5, 0));
+    } else if (tab === 'boons') {
+      // One short page per metal, so the rows keep the size they have on the other tabs.
+      ['common', 'rare', 'epic'].forEach((m, i) => {
+        const mx = b.centerX + (i - 1) * 104, active = m === metal, col = RARITY[m].color;
+        const chip = this.add.rectangle(mx, b.y + 58, 96, 24, active ? 0x5c2a05 : 0x2a0f04, 1)
+          .setStrokeStyle(1.5, col, active ? 1 : 0.45).setInteractive({ useHandCursor: true });
+        chip.on('pointerdown', () => { this.sfx('ui-page'); this.showCodex('boons', m); });
+        this.uiObjects.push(chip, this.add.text(mx, b.y + 58, N.metals[m].toUpperCase(), { resolution: RES, fontSize: '10px', fontStyle: 'bold',
+          color: '#' + col.toString(16).padStart(6, '0') }).setOrigin(0.5).setAlpha(active ? 1 : 0.6));
+      });
+      const about = { common: 'These add to your stats, and each can be taken three times.',
+                      rare: 'These change how you fight.',
+                      epic: 'These build on what you carry, and are offered only when they apply.' }[metal];
+      this.uiObjects.push(this.add.text(b.centerX, b.y + 90, `You pick one of three after every wave. ${about}`,
+        { resolution: RES, fontSize: '10px', color: '#e8a868', align: 'center', wordWrap: { width: b.width - 40 } }).setOrigin(0.5));
+      y = b.y + 128;
+      for (const [key, def] of Object.entries(BOONS)) {
+        if (def.metal !== metal) continue;
+        const notes = [N.boons[key][1]];
+        if (def.max === 2) notes.push('can be taken twice');
+        if (def.not) notes.push(`not with ${N.boons[def.not][0]}`);
+        if (def.weapon) notes.push(`${WEAPON_EFFECTS[def.weapon].label} only`);
+        if (def.tejas) notes.push(`once ${N.supercharge} has woken`);
+        row(y, 'boon_' + key, RARITY[metal].color, N.boons[key][0], notes.filter(Boolean).join(' · '), def.desc, true);
+        y += 62;
+      }
     } else {
       const on = session.tejasUnlocked;
       this.uiObjects.push(this.add.text(b.centerX, y - 22,
@@ -2709,7 +3044,7 @@ class LootScene extends Phaser.Scene {
           wordWrap: { width: b.width - 40 } }).setOrigin(0.5, 0.5));
       y += 24;
       for (const [key, f] of Object.entries(TEJAS_FORMS)) {
-        row(y, key, f.colour, f.name, `${f.meaning} · with ${WEAPON_EFFECTS[key].label}`, f.desc, on);
+        row(y, 'icon_' + key, f.colour, f.name, `${f.meaning} · with ${WEAPON_EFFECTS[key].label}`, f.desc, on);
         y += step - 4;
       }
     }
@@ -2720,12 +3055,22 @@ class LootScene extends Phaser.Scene {
   // ---------- RUN SETUP ----------
   startRun() {
     this.clearUI();
+    this.closeOverlay();
+    this.time.paused = false;   // a run never starts frozen, whatever screen came before
+    this.tweens.resumeAll();
     this.state = 'playing';
 
     // Satchel: items swapped out during this run, so a pickup no longer destroys
     // whatever you were holding. Run-scoped by design - carrying loot between runs
     // would undermine the Extract/Descend decision (2.5).
     this.inventory = [];
+
+    // Boons (2.24): one after each wave, kept until the run ends.
+    this.boons = {};
+    this.rerollsLeft = BOON_REROLLS;
+    this.slamBuffMs = 0;   // Read the Slam
+    this.stillMs = 0;      // Hold Your Ground
+    this.moving = false;   // Strike on the Run
 
     this.tejas = 0;          // 0-100
     this.tejasActive = 0;    // ms of the active form remaining
@@ -2760,7 +3105,8 @@ class LootScene extends Phaser.Scene {
       // it the starting Dagger fell through to the trinket branch and equipped itself
       // into the wrong slot. Every dropped item already carries one.
       weapon: { type: 'weapon', name: WEAPON_EFFECTS.none.label, rarity: 'common', shots: 1, effect: 'none', dmg: 10 * (1 + session.powerLevel * 0.08), range: 130, atkSpeed: 500 },
-      trinket: null
+      trinket: null,
+      bloodShield: 0       // Blood Shield boon: soaks damage before health
     };
     this.playerFacing = 'front';
     this.playerSprite = this.add.image(this.player.x, this.player.y, `${CHARS.player}-front`).setDisplaySize(44, 44);
@@ -2770,12 +3116,14 @@ class LootScene extends Phaser.Scene {
     // leaves the silhouette clean. This is the Cosmic Cycle phase tell.
     this.playerRing = this.add.ellipse(this.player.x, this.player.y + 16, 34, 13, 0xffffff, 0)
       .setStrokeStyle(2, PHASE_DEFS.drift.color, 0.9);
+    this.boonFx = this.add.graphics();   // tells for Hold Your Ground and Read the Slam
 
     // HP bar
     const barX = 14, barY = 24, barW = W - 28, barH = 8;
     this.hpBarBg = this.add.rectangle(barX, barY, barW, barH, 0x2a0f04).setOrigin(0,0.5).setStrokeStyle(1, 0x6b4a2e);
     this.hpBarFill = this.add.rectangle(barX, barY, barW, barH, 0x2fbf71).setOrigin(0,0.5);
     this.hpBarW = barW;
+    this.bloodBar = this.add.rectangle(barX, barY, 0, barH - 4, 0xffb0b0).setOrigin(0, 0.5);   // Blood Shield
 
     // Phase bar - big, prominent, drains as the current phase runs out. This replaces the old tiny dial.
     const pbarX = 14, pbarY = 42, pbarW = W - 28, pbarH = 14;
@@ -2907,6 +3255,7 @@ class LootScene extends Phaser.Scene {
       this.time.delayedCall(1600, () => this.showToast(`${N.supercharge.toUpperCase()} AWAKENS - kill to charge, then unleash`, '#ffd23c'));
     }
     this.wave = 0;
+    this.rerollsLeft = BOON_REROLLS;
     this.progressNodes.forEach(node => { node.fillColor = 0x2a0f04; });
     this.state = 'playing';
     this.setFloor(this.sector, true);
@@ -3272,6 +3621,14 @@ class LootScene extends Phaser.Scene {
       this.impactBurst(this.player.x, this.player.y, 0x9fd8ff);
       return false;
     }
+    amount *= (1 - this.boonRank('hide') * BOONS.hide.n) * (this.boonRank('greed') ? 1 + BOONS.greed.hurt : 1);
+    if (this.player.bloodShield > 0) {
+      const soak = Math.min(this.player.bloodShield, amount);
+      this.player.bloodShield -= soak;
+      amount -= soak;
+      this.impactBurst(this.player.x, this.player.y, 0xff8080);
+      if (amount <= 0) { if (kind !== 'slam') this.player.iframes = IFRAMES_MS; return false; }
+    }
     this.player.hp -= amount;
     if (kind !== 'slam') this.player.iframes = IFRAMES_MS;
     // The existing hit flicker now lasts exactly as long as the invulnerability, so the
@@ -3304,8 +3661,10 @@ class LootScene extends Phaser.Scene {
     if (enemy.telegraphGfx) { enemy.telegraphGfx.destroy(); enemy.telegraphGfx = null; }
     this.enemies.splice(this.enemies.indexOf(enemy), 1);
 
-    this.runGold += enemy.goldDrop;
+    this.addGold(enemy.goldDrop);
     this.gainTejas(enemy);
+    if (this.boonRank('hunger') && this.phase === 'eclipse') this.healPlayer(BOONS.hunger.n);
+    if (enemy.poison && this.boonLive('rot')) this.spreadPoison(enemy);
     if (enemy.isMega) { this.sfx('boss-fall'); this.sfx('toll', { rate: 0.8 }); }
     else if (enemy.isSectorBoss) this.sfx('boss-fall');
     else if (enemy.isBoss) { this.sfx('gate-open'); this.sfx('boom', { vol: 0.6 }); }
@@ -3478,10 +3837,12 @@ class LootScene extends Phaser.Scene {
     }
   }
 
+  // Every wave cleared before a boss ends in a boon pick (2.24); choosing one starts the
+  // next wave. A short beat first, so the last kill is seen to land.
   afterWaveClear() {
-    this.runGold += 15 + this.depth * 4;
+    this.addGold(15 + this.depth * 4);
     this.sfx('wave-clear');
-    this.time.delayedCall(400, () => { if (this.state === 'playing') this.nextWave(); });
+    this.time.delayedCall(450, () => { if (this.state === 'playing') this.offerBoons(); });
   }
 
   showSectorClearChoice(isMega) {
@@ -3531,6 +3892,7 @@ class LootScene extends Phaser.Scene {
   // ---------- END OF RUN ----------
   endRun(victory, abandoned) {
     this.state = 'summary';
+    if (this.boonFx) this.boonFx.clear();
     this.clearHints();
     this.clearBanner();
     this.showPauseButton(false);
@@ -3572,8 +3934,10 @@ class LootScene extends Phaser.Scene {
       // clean up run visuals
       if (this.playerSprite) { this.playerSprite.destroy(); this.playerSprite = null; }
       if (this.playerRing) this.playerRing.destroy();
+      if (this.boonFx) { this.boonFx.destroy(); this.boonFx = null; }
       if (this.hpBarBg) this.hpBarBg.destroy();
       if (this.hpBarFill) this.hpBarFill.destroy();
+      if (this.bloodBar) this.bloodBar.destroy();
       if (this.phaseTint) this.phaseTint.destroy();
       if (this.phaseBarBg) this.phaseBarBg.destroy();
       if (this.phaseBarFill) this.phaseBarFill.destroy();
@@ -3682,13 +4046,16 @@ class LootScene extends Phaser.Scene {
     // Captured before any movement so facing can be derived from where we actually went.
     const prevX = this.player.x, prevY = this.player.y;
     const swiftBonus = (this.player.trinket && this.player.trinket.effect === 'swift') ? this.player.trinket.speedBonus : 0;
-    const moveSpeed = this.player.speed + swiftBonus;
+    const moveSpeed = this.player.speed + swiftBonus + this.boonRank('feet') * BOONS.feet.n + (this.lastStand() ? BOONS.laststand.speed : 0);
     let dx = 0, dy = 0;
     if (this.cursors.left.isDown || this.wasd.A.isDown) dx -= 1;
     if (this.cursors.right.isDown || this.wasd.D.isDown) dx += 1;
     if (this.cursors.up.isDown || this.wasd.W.isDown) dy -= 1;
     if (this.cursors.down.isDown || this.wasd.S.isDown) dy += 1;
     if (dx || dy) this.pointerTarget = null;            // the keys take over from a tap
+    // By intent, not by position: being shoved by an enemy is still standing your ground.
+    this.moving = !!(dx || dy || this.pointerTarget);
+    this.stillMs = this.moving ? 0 : this.stillMs + delta;
     if (this.pointerTarget) {
       // Walk toward the finger at exactly the speed the keys give. This used to close 45%
       // of the gap every frame - anywhere in the arena in about a tenth of a second. That
@@ -3729,6 +4096,21 @@ class LootScene extends Phaser.Scene {
     // Ring carries the live phase colour, so the player reads Cycle timing off their own feet.
     this.playerRing.setStrokeStyle(2, PHASE_DEFS[this.phase].color, 0.9);
 
+    // Boon tells (2.24). A boon that only works some of the time has to say when it is
+    // working: a gold ring planted outside the phase ring while Hold Your Ground is live,
+    // and a gold arc around Kiran that drains for as long as Read the Slam lasts.
+    this.boonFx.clear();
+    if (this.boonRank('ground') && this.stillMs >= 200) {
+      this.boonFx.lineStyle(2, FORGE.gold, 0.65 + 0.3 * Math.sin(time / 160));
+      this.boonFx.strokeEllipse(this.player.x, this.player.y + 16, 52, 21);
+    }
+    if (this.slamBuffMs > 0) {
+      this.boonFx.lineStyle(3, FORGE.gold, 0.95);
+      this.boonFx.beginPath();
+      this.boonFx.arc(this.player.x, this.player.y - 2, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.slamBuffMs / BOONS.readslam.ms);
+      this.boonFx.strokePath();
+    }
+
     // Facing follows actual movement while moving, and falls back to the nearest
     // enemy when standing still - so a stationary player still looks engaged.
     const mdx = this.player.x - prevX, mdy = this.player.y - prevY;
@@ -3752,6 +4134,7 @@ class LootScene extends Phaser.Scene {
     if (this.starfield) this.starfield.tilePositionY -= 0.28 * (delta / 16.67);
 
     if (this.player.iframes > 0) this.player.iframes -= delta;
+    if (this.slamBuffMs > 0) this.slamBuffMs -= delta;
     if (this.player.flashTimer > 0) {
       this.player.flashTimer -= delta;
       this.playerSprite.setAlpha(Math.sin(time/40) > 0 ? 1 : 0.4);
@@ -3834,6 +4217,7 @@ class LootScene extends Phaser.Scene {
           enemy.poison.ticksLeft--;
           enemy.poison.tickTimer = 500;
           if (this.damageEnemy(enemy, enemy.poison.dmgPerTick)) continue;
+          if (enemy.poison.ticksLeft <= 0) enemy.poison = null;   // worn off: nothing left to spread
         }
       }
 
@@ -3915,11 +4299,12 @@ class LootScene extends Phaser.Scene {
     // --- auto attack (fires at up to `shots` nearest enemies in range - spread weapons hit multiple) ---
     this.atkTimer -= delta;
     if (this.atkTimer <= 0 && this.enemies.length > 0) {
+      const range = this.attackRange();
       const inRange = this.enemies
         .map(e => ({ e, d: Math.hypot(e.x-this.player.x, e.y-this.player.y) }))
-        .filter(o => o.d <= this.player.weapon.range)
+        .filter(o => o.d <= range)
         .sort((a,b) => a.d - b.d)
-        .slice(0, this.player.weapon.shots || 1);
+        .slice(0, this.attackShots());
       // Every other volley, an in-range boss is guaranteed a shot even when summons are
       // nearer - but ONLY while it is actually vulnerable (weak phase, or no phase gate).
       // Focusing an off-phase boss wasted half of a new player's damage on 12%-effective
@@ -3929,14 +4314,14 @@ class LootScene extends Phaser.Scene {
       this.bossFocus = !this.bossFocus;
       if (this.bossFocus) {
         const boss = this.enemies.find(e => e.isBoss && !e.shieldOn && this.weakScale(e) === 1 &&
-          Math.hypot(e.x - this.player.x, e.y - this.player.y) <= this.player.weapon.range);
+          Math.hypot(e.x - this.player.x, e.y - this.player.y) <= range);
         if (boss && !inRange.some(o => o.e === boss)) {
           inRange[inRange.length - 1] = { e: boss, d: 0 };
         }
       }
 
       if (inRange.length) {
-        this.atkTimer = this.player.weapon.atkSpeed;
+        this.atkTimer = this.player.weapon.atkSpeed / this.attackRate();
         this.attackFx.clear();
         const wfx = this.player.weapon.effect;
         this.sfx(inRange.every(o => o.e.shieldOn) ? 'hit-blocked'
@@ -3952,30 +4337,34 @@ class LootScene extends Phaser.Scene {
             return;
           }
           this.impactBurst(e.x, e.y, beamColour);
-          let dmg = this.player.weapon.dmg * PHASE_DEFS[this.phase].playerDmgMult;
-          if (wfx === 'executioner' && e.hp/e.maxHp <= 0.25) dmg *= this.player.weapon.executeBonusMult;
-          if (wfx === 'venom') e.poison = { dmgPerTick: this.player.weapon.poisonDmg, ticksLeft: 4, tickTimer: 500 };
+          let dmg = this.player.weapon.dmg * PHASE_DEFS[this.phase].playerDmgMult * this.dmgMult();
+          if (wfx === 'executioner' && e.hp/e.maxHp <= this.executeLine()) dmg *= this.player.weapon.executeBonusMult;
+          if (wfx === 'venom') e.poison = { dmgPerTick: this.player.weapon.poisonDmg * this.dmgMult(), ticksLeft: 4, tickTimer: 500 };
           if (wfx === 'vampiric') {
             // Heal off what actually lands, so an off-phase boss is not a free fountain.
-            this.player.hp = Math.min(this.player.maxHp,
-              this.player.hp + dmg * this.weakScale(e) * this.player.weapon.lifestealPct);
+            this.healPlayer(dmg * this.weakScale(e) * this.player.weapon.lifestealPct, true);
           }
           this.damageEnemy(e, dmg);
         });
-        // Chain: after primary hits land, jump to one nearby enemy not already hit
+        // Chain: after primary hits land, jump to a nearby enemy not already hit (two with
+        // Forked Lightning).
         if (this.player.weapon.effect === 'chain') {
-          const primaryIds = new Set(inRange.map(o => o.e.id));
+          const primaryIds = new Set(inRange.map(o => o.e.id)), jumps = this.boonLive('fork') ? 2 : 1;
+          const chainDmg = this.player.weapon.dmg * PHASE_DEFS[this.phase].playerDmgMult * this.player.weapon.chainPct * this.dmgMult();
           inRange.forEach(({e: primary}) => {
-            let secondary = null, sd = 90;
-            for (const cand of this.enemies) {
-              if (primaryIds.has(cand.id) || cand.shieldOn) continue;
-              const d = Math.hypot(cand.x-primary.x, cand.y-primary.y);
-              if (d <= sd) { secondary = cand; sd = d; }
-            }
-            if (secondary) {
+            const done = new Set();
+            for (let j = 0; j < jumps; j++) {
+              let secondary = null, sd = 90;
+              for (const cand of this.enemies) {
+                if (primaryIds.has(cand.id) || done.has(cand.id) || cand.shieldOn) continue;
+                const d = Math.hypot(cand.x-primary.x, cand.y-primary.y);
+                if (d <= sd) { secondary = cand; sd = d; }
+              }
+              if (!secondary) break;
+              done.add(secondary.id);
               this.drawWeaponBeam(primary.x, primary.y, secondary.x, secondary.y, 'chain');
               this.impactBurst(secondary.x, secondary.y, 0x4dd0ff);
-              this.damageEnemy(secondary, this.player.weapon.dmg * PHASE_DEFS[this.phase].playerDmgMult * this.player.weapon.chainPct);
+              this.damageEnemy(secondary, chainDmg);
             }
           });
         }
@@ -4017,10 +4406,12 @@ class LootScene extends Phaser.Scene {
     const hpPct = Math.max(0, this.player.hp/this.player.maxHp);
     this.hpBarFill.width = this.hpBarW * hpPct;
     this.hpBarFill.fillColor = hpPct > 0.5 ? 0x2fbf71 : (hpPct > 0.25 ? 0xffd23c : 0xff5c5c);
+    const shield = this.player.bloodShield || 0;
+    this.bloodBar.width = this.hpBarW * Math.min(1, shield / this.player.maxHp);
 
     // --- HUD text ---
     this.hudText.setText(`${stageLabel(this.sector)} · Wave ${Math.min(this.wave,5)}/5   ${N.currency}: ${this.runGold}`);
-    this.weaponText.setText(`${this.player.weapon.name}${this.player.weapon.shots>1 ? ' x'+this.player.weapon.shots : ''}   ${Math.ceil(this.player.hp)}/${Math.ceil(this.player.maxHp)} HP`);
+    this.weaponText.setText(`${this.player.weapon.name}${this.player.weapon.shots>1 ? ' x'+this.player.weapon.shots : ''}   ${Math.ceil(this.player.hp)}/${Math.ceil(this.player.maxHp)} HP${shield > 0 ? ` +${Math.ceil(shield)} shield` : ''}`);
   }
 }
 

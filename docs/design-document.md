@@ -43,7 +43,7 @@ Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the cond
 |---|---|---|---|
 | L1 | **Game name** | **Working title: Anantarya** (founder, 2026-10-02: "will give name later"). One constant, `GAME_TITLE`, renames the loader, hub and browser tab; `index.html` carries its own copy. Earlier candidates: "Loot Chase" (generic, pre-pivot) and the repo name "Tantra" (reads as sexual/new-age to a Western audience, and is a religious practice term). One caution on the working title is logged in `requirements.md` §1.7. | A final name is chosen. It still blocks L2's art and L9's store page. |
 | L2 | **Title / welcome screen** (= P1) | ⏳ **First design built 2026-10-02** (`requirements.md` §2.21): the view down a stepwell shaft, with DESCEND at the bottom of the well and the upgrades below. **Waiting on the founder's verdict.** If they prefer made art, `docs/art-prompts.md` has prompts for an image model. | A Cosmic Forge title screen with the name, art and a Start that leads into the hub. |
-| L3 | **How to play** | ✅ **Built 2026-09-27**: seven illustrated cards (`requirements.md` §2.12.2). | A help page reachable from the title and the hub. |
+| L3 | **How to play** | ✅ **Built 2026-09-27**: illustrated cards (`requirements.md` §2.12.2), nine since The Goal and Boons were added. | A help page reachable from the title and the hub. |
 | L4 | **First-run tutorial** (= P3) | ✅ **Built 2026-09-27**: 14 one-time live tips, skippable (§2.12.1). | Wave 1 of a player's first run teaches movement, loot, the satchel and slams live. |
 | L5 | **Audio** | ⏳ 37 sound effects are in. **Music was switched off on 2026-10-02**: the founder heard it and the tracks, and above all the transitions, did not suit the game (`requirements.md` §2.16). The engine and files remain; the approach needs rethinking. The founder has not yet commented on the sound effects. | Free SFX (hits, slams, pickups, Tejas) plus Indian-flavoured music, with a mute toggle. |
 | L6 | **Pause + settings** | ✅ **Built 2026-09-27** (§2.17). | Pause mid-run (essential on mobile), mute, and a "reset save" with a confirmation step. |
@@ -74,7 +74,48 @@ After first playing the merged build, the founder paused changes to settle three
 
 What this game has that they lack: bosses with real rules, the Cosmic Cycle, and Extract or Descend. Its big decisions are good and rare; its small decisions are missing. Candidate fixes, in rising cost: Nidhi as drops to collect; a standing-still attack bonus; level-up picks (where the pinned Bhagya chart, P7, could live).
 
-**Founder's verdict after playing them (2026-10-03):** Brotato is the favourite, "for being close to what we have built"; 10 Minutes Till Dawn is "really intriguing and engaging". They asked whether this game should show a level-up screen like Vampire Survivors' pick-of-three. Recommendation given, not yet approved or built: follow Brotato, not Vampire Survivors. Offer a pick of one from three boons **between waves**, on a paused card screen, so the choice arrives at a natural break instead of interrupting a dodge, and a run of 15 waves gives about a dozen picks. No experience bar is needed. The pinned Bhagya chart (P7) is the natural home for the boon list.
+**Founder's verdict after playing them (2026-10-03):** Brotato is the favourite, "for being close to what we have built"; 10 Minutes Till Dawn is "really intriguing and engaging". They asked whether this game should show a level-up screen like Vampire Survivors' pick-of-three. Recommendation: follow Brotato, not Vampire Survivors. Offer a pick of one from three boons **between waves**, on a paused card screen, so the choice arrives at a natural break instead of interrupting a dodge. No experience bar is needed.
+
+**Decided and built (2026-10-03).** The founder approved the draft below as written: "Build all 18", a pick after every wave, one reroll per level. Specification and balance figures: `requirements.md` §2.24. The draft is kept as it was proposed.
+
+#### Proposal: boons between waves (draft, 2026-10-03)
+
+**When.** After every cleared wave before a boss: waves 1 to 5 of each level, the Gatekeeper's wave included. That is 5 picks a level and 15 in a full descent, about one every 20 to 30 seconds of fighting. Not after a boss: the Extract or Descend screen already sits there.
+
+**The screen.** The fight freezes, as for the satchel. Three cards stacked down the screen, as in Vampire Survivors: icon, name, metal, one line on what it does, and "rank 2 of 3" when it stacks. Tap one and the next wave starts. One free reroll per level.
+
+**Rules.**
+- Boons belong to Kiran, not to the weapon, so swapping weapons keeps them. They last the run: Extract or death clears them.
+- Metal ladder, as for loot. Copper boons are stats and stack up to three times. Silver boons change how you fight. Gold boons deepen what you carry, after 10 Minutes Till Dawn's upgrade trees, and are offered only when they apply.
+- Level 1 offers mostly copper. Silver and gold grow with depth, which gives one more reason to Descend.
+- The pause menu shows the run's boons as a row of icons, so the build stays visible.
+- Bosses, Extract or Descend and the Cosmic Cycle are unchanged. The Bhagya chart (P7) stays pinned; "Eclipse Hunger" below is the only boon tied to the Cycle.
+- Names: the plain-English names below go in the `plain` pack; Sanskrit and hybrid names are drafted when it is built.
+
+| # | Metal | Boon | What it does |
+|---|---|---|---|
+| 1 | Copper | Keen Edge | +15% damage |
+| 2 | Copper | Quick Hands | Attacks 12% faster |
+| 3 | Copper | Long Reach | +20 attack range (130 to start) |
+| 4 | Copper | Light Feet | +20 move speed (200 to start) |
+| 5 | Copper | Iron Body | +20 max health, and heals 20 now |
+| 6 | Copper | Thick Hide | Take 8% less damage |
+| 7 | Silver | Hold Your Ground | +35% damage while standing still (Archero's idea) |
+| 8 | Silver | Strike on the Run | Attacks 25% faster while moving. Never offered alongside 7: pick a style |
+| 9 | Silver | Second Target | Every attack hits one more enemy (twice at most) |
+| 10 | Silver | Read the Slam | Step out of a slam's red zone and the next 4 seconds hit 50% harder |
+| 11 | Silver | Last Stand | Below 30% health: +40% damage and +30 speed |
+| 12 | Silver | Greed | +25% Nidhi for the run, but enemies hit 10% harder |
+| 13 | Gold | Spreading Rot | Venom weapon: a poisoned enemy that dies passes its poison on |
+| 14 | Gold | Blood Shield | Vampiric weapon: healing past full health becomes a shield, up to 25 |
+| 15 | Gold | Forked Lightning | Chain weapon: each chain jumps to two enemies, not one |
+| 16 | Gold | Clean Cut | Executioner weapon: the bonus starts at 35% health, not 25% |
+| 17 | Gold | Kindling | Tejas fills 30% faster (from level 2, once Tejas has woken) |
+| 18 | Gold | Eclipse Hunger | During Grahan (Eclipse), every kill heals 3 |
+
+Gold boons 13 to 16 go quiet while another kind of weapon is equipped and wake again when it is swapped back, which makes the satchel matter.
+
+**Difficulty.** Fifteen boons make Kiran far stronger by level 3. The difficulty already needs revisiting now that touch movement no longer teleports (`requirements.md` §2.14). Retune once, with boons in, instead of twice. The playtest bot picks a boon at random so its runs stay comparable.
 
 Games for the founder to play first: Vampire Survivors and 10 Minutes Till Dawn (both free in a browser on itch.io), HoloCure (free download on itch.io), Brotato and Archero (free on phones). Each states its goal as a number on screen: survive 30 minutes, survive 10 minutes, survive 20 waves.
 

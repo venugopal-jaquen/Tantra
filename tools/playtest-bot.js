@@ -7,7 +7,9 @@
  *
  * It plays like a competent-but-not-perfect human: kites enemies while staying inside
  * weapon range, sidesteps slam telegraphs, grabs loot that is not crowded, fires Tejas
- * as soon as it is full, and always chooses Descend until its target sector.
+ * as soon as it is full, and always chooses Descend until its target sector. After each
+ * wave it takes a boon at random from the three offered, or none if the profile says
+ * boons: false (to compare a build with and without them).
  *
  * Usage (browser console, with the game open):
  *   const s = document.createElement('script'); s.src = '../tools/playtest-bot.js';
@@ -91,7 +93,8 @@
         vx += (p.x - e.x) / d * k; vy += (p.y - e.y) / d * k;
       }
     }
-    if (nearest && !danger && nd > s.player.weapon.range * 0.8) {
+    const range = s.attackRange ? s.attackRange() : s.player.weapon.range;
+    if (nearest && !danger && nd > range * 0.8) {
       vx += (nearest.x - p.x) / nd * 1.2; vy += (nearest.y - p.y) / nd * 1.2;
     }
 
@@ -121,6 +124,7 @@
     const s = S();
     // Never start on top of a run that is still alive (paused, mid-fight, or waiting on
     // the sector-clear choice): its HUD would be orphaned and show up as a phantom leak.
+    if (s.state === 'boon') s.pickBoon(null);
     if (s.overlay && s.overlay.length) s.closeOverlay();
     if (s.state === 'paused') s.resumeGame();
     if (s.state === 'playing' || s.state === 'sectorChoice') s.endRun(false);
@@ -134,15 +138,16 @@
     // instrument (on the instance, removed at the end of the run)
     const od = s.damagePlayer.bind(s);
     s.damagePlayer = (a, src, kind) => {
-      const r = cur.sectors[cur.sectors.length - 1];
-      const blocked = s.player.shieldCharge > 0 || (kind !== 'slam' && s.player.iframes > 0);
-      if (!blocked) {
-        r.dmg += a; r[(kind || 'melee') + 'Hits']++;
-        const who = kind === 'slam' ? 'SLAM:' + (src && src.char) : (src ? (src.isBoss ? 'BOSS-CONTACT:' + src.char : src.char || src.type) : 'rakshasa-bolt');
-        r.dmgBy[who] = (r.dmgBy[who] || 0) + a;
-      }
+      const r = cur.sectors[cur.sectors.length - 1], before = s.player.hp;
       cur.lastHit = { kind, by: src ? (src.char || src.type) : 'projectile', amount: Math.round(a) };
-      return od(a, src, kind);
+      const died = od(a, src, kind);
+      const lost = before - s.player.hp;     // what actually landed, after shields and boons
+      if (lost > 0) {
+        r.dmg += lost; r[(kind || 'melee') + 'Hits']++;
+        const who = kind === 'slam' ? 'SLAM:' + (src && src.char) : (src ? (src.isBoss ? 'BOSS-CONTACT:' + src.char : src.char || src.type) : 'rakshasa-bolt');
+        r.dmgBy[who] = (r.dmgBy[who] || 0) + lost;
+      }
+      return died;
     };
     const ok = s.killEnemy.bind(s);
     s.killEnemy = e => { cur.sectors[cur.sectors.length - 1].kills++; return ok(e); };
@@ -157,6 +162,7 @@
     delete s.damagePlayer; delete s.killEnemy; delete s.activateTejas;
     cur.result = outcome;
     cur.finalSector = s.sector;
+    cur.boons = s.boons ? Object.values(s.boons).reduce((a, b) => a + b, 0) : 0;
     cur.gameMin = +(cur.frames * DT / 60000).toFixed(1);
     if (s.state === 'summary') press('Continue to Hub');
     // Let transient FX (damage numbers ~700ms, bursts, slashes) finish and self-destroy
@@ -182,6 +188,8 @@
       r.minHpPct = Math.min(r.minHpPct, Math.round(100 * s.player.hp / s.player.maxHp));
       if (s.enemies.some(e => e.isBoss)) r.bossSecs += DT / 1000;
       if (s.enemies.length === 0 && s.spawnQueue.length === 0) r.idleSecs += DT / 1000;
+    } else if (s.state === 'boon') {
+      s.pickBoon(cur.profile.boons === false ? null : s.boonOffer[Math.floor(Math.random() * s.boonOffer.length)]);
     } else if (s.state === 'sectorChoice') {
       if (s.sector < cur.profile.target) { s.descend(); cur.sectors.push(sectorRec(s)); }
       else { s.endRun(true); endRun('extracted at target'); return; }
@@ -218,7 +226,7 @@
       loadSession();
       S().silent = false; S().autoPause = true;
       return { errors: [...new Set(errors)], runs: results.map(r => ({
-        profile: r.profile.name, result: r.result, finalSector: r.finalSector, gameMin: r.gameMin, leak: r.leak,
+        profile: r.profile.name, result: r.result, finalSector: r.finalSector, gameMin: r.gameMin, leak: r.leak, boons: r.boons,
         sectors: r.sectors.map(x => ({
           S: x.sector, min: +(x.secs / 60).toFixed(1), maxHp: x.maxHp,
           hpLostPct: Math.round(100 * x.dmg / x.maxHp), minHpPct: x.minHpPct, kills: x.kills,
