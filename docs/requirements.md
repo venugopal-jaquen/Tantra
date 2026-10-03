@@ -45,6 +45,9 @@ Kept so a reversal is never mistaken for drift or an error.
 | 2026-10-02 | **Falling keeps half the run's Nidhi.** §2.5. | Death banked everything, exactly like Extract, so Descend carried no risk and the Extract/Descend choice was a fake one. The founder approved 50%. |
 | 2026-10-02 | **Typography: Yatra One + Baloo 2.** §2.18. | The founder asked for type that feels Indian. The game had been rendering in the engine's default monospace. |
 | 2026-10-02 | **Asura (2017) reviewed as a reference game.** | Outcome of a separate research session. *Adopted:* a glossary-card loading screen (§2.19). *Pinned for after itch.io:* the Bhagya chart and boss-kill perks (`design-document.md` P7, P8). *Unchanged:* the live-tip tutorial (Asura shipped a separate tutorial, players disliked it, and it was replaced with learn-as-you-play, which is what §2.12.1 already does) and the antagonists-only naming rule (stricter than Asura's, and it stays). The lesson worth keeping: Asura turned cultural ideas into mechanics instead of using them only as names. |
+| 2026-10-03 | **Wave shapes, a bigger opening, and tribute.** §2.25, §2.26. | The founder's first playtest of boons on a phone: "the initial runs look a bit too easy with no variability", and a reminder that patient players who kill more creeps before the boss should earn more drops and better benefits. They reached level 3 with the well 6% full. Every run had opened with four Asura, five Asura, then the Gatekeeper, and patience paid only a flat item roll. |
+| 2026-10-03 | **Sound effects restored on iPhone.** §2.16. | The founder: "When I said remove the music, I just said remove the background music. I liked the gameplay sounds and effects." They had gone silent on the phone as a side effect of the music being switched off. |
+| 2026-10-03 | **The well on the loading screen.** §2.19. | The founder asked for an infographic of how full the well is, which also says what happens once it is full. |
 | 2026-10-03 | **Boons between waves.** §2.24. | The founder found the moment-to-moment play plain ("just moving around randomly shooting the nearest creep"), played the genre's hits, liked Brotato best, and asked whether the game should show a pick-of-three screen like Vampire Survivors'. They approved all 18 boons, a pick after every wave and one reroll per level. |
 | 2026-10-03 | **The satchel pauses the fight.** §2.7.1. | Reversed at the founder's request: "I don't want to be killed while switching weapons." |
 | 2026-10-02 | **The game gets a goal and an ending.** §2.23. | The founder's diagnosis after playing: nothing states what the player is trying to do, and nothing ends, so there is no compelling reason to stay. They chose "slay Vritra" as the end of a run plus a well that fills across runs. Seven worlds was discussed and left for later. |
@@ -92,7 +95,7 @@ Kept so a reversal is never mistaken for drift or an error.
 ### 2.6 Bosses
 - **Every boss attacks (2026-09-24).** Previously a shielded boss was completely inert, slams did a flat 22–28 that never scaled, and boss contact damage was 0 — standing next to a boss was safe indefinitely. Now every boss:
   - hits on contact, with a **30 px reach** past its own edge (collision holds Kiran at exactly body-contact distance, and a rooted boss never steps back into him, so a pure contact check almost never fired);
-  - **summons two Asura** on a timer, capped at 4 alive per boss — pressure, and Tejas charge (§2.15);
+  - **summons two Asura** on a timer — pressure, Tejas charge (§2.15), and tribute (§2.26). At most 4 of a boss's summons stand at once, rising with tribute to 7; each summons comes 8% sooner than the last, down to 3.5 s;
   - cycles a **telegraphed slam kit**. Telegraphs paint on the floor under the characters: a faint zone shows where it will land and a bright fill grows toward the edge — when the fill reaches the edge, it lands. Impacts throw a shockwave, stone chips and camera shake.
 
   | Slam | Shape | Wind-up | % of max HP |
@@ -327,7 +330,7 @@ which point this roster is replaced rather than extended.
 The founder reported that by Sector 3 a well-upgraded player lost under 5% HP while tanking hits. Causes: enemy damage grew linearly (`8 + 1.4 × depth`), bosses did flat damage, and meta upgrades cost only `50 × (level + 1)`, so HP outgrew the game.
 
 - **Sector multipliers** on enemy damage (`1.22^(sector-1)`) and HP (`1.26^(sector-1)`). Sector 1 is untouched.
-- **More enemies deeper:** `3 + wave + (sector − 1)` per wave. HP scaling alone made Sector 5 feel like Sector 1 with bigger numbers.
+- **More enemies deeper:** `4 + wave + (sector − 1)` per wave, plus one more on level 1 (it was `3 + …` until 2026-10-03, §2.25). HP scaling alone made Sector 5 feel like Sector 1 with bigger numbers.
 - **Exponential upgrade cost:** `50 × 1.45^level` (Vitality), `60 × 1.45^level` (Power). Levels plateau around 8–12 instead of outpacing every sector.
 - **Boss slams scale with the player's max HP** (§2.6) — the direct counter to HP stacking.
 - **Sector-clear heal:** beating a sector boss restores 35% of max HP. HP otherwise carries over, and players were arriving at Sector 2 on 19–45% HP. Nobody presses Descend on 20% HP, and that decision is §1.6's success test.
@@ -400,6 +403,8 @@ Pitch glides rather than steps. Pausing ducks the music to 35%. Because these tr
 
 The values were set without hearing them, because Claude cannot hear. Verified 2026-10-02 with stand-in tracks and an analyser node: crossfade, per-phase volume, filter and rate, the boss fallback, pause ducking, pause-on-hidden and the loop-seam fade all behave as specified.
 
+**Sound effects on an iPhone (2026-10-03).** The founder reported that the gameplay sounds had gone when the music was switched off, and asked for them back: only the background music was meant to go. Cause: an iPhone whose ring switch is on silent mutes everything played through Web Audio, which is every effect in the game, unless the page is also playing an HTML `<audio>` element. The music's `<audio>` elements had been doing that by accident. Fix (`Unmute`): inside the Begin tap the audio session is declared as playback (Safari 16.4 and later), and on iOS a silent half-second loop plays in an `<audio>` element as the stand-in, paused while the page is hidden. Not verified on a real iPhone from here; the smoke test checks that the effects play with music off and that the loop is valid audio.
+
 ### 2.17 Pause & Settings (built 2026-09-27)
 **Pause (VIRAM, विराम):** a button at the top-right of the HUD whose touch target (56×36) is larger than the drawn button. Esc or P also toggles pause. **Switching apps or tabs pauses the run automatically.** Pausing freezes game logic, timers and tweens. The menu shows the build you are carrying (weapon, trinket and Tejas form, each with what it does, and the boons taken this run as a row of icons), your sector and wave, and the Nidhi from this run, followed by Resume, How to Play, Settings and **Abandon Run**. Abandon opens a confirmation that states the cost before anything happens: it **counts as a death**, and you keep only half of the run's Nidhi, with the exact numbers shown ("62 of 125"). *Keep Fighting* is the primary button.
 
@@ -437,6 +442,17 @@ Launch track L7. Each load shows **one glossary card**: the word large in Devana
 - **It ends on a Begin button for a technical reason:** browsers refuse to play sound until the player has tapped something, and this tap is what unlocks audio. It also lets a player finish reading the card.
 - If the engine cannot be downloaded, the bar is replaced by a plain message instead of hanging.
 - The loader's design came from the Asura review (§1.7); Asura's own loading screens could not be seen, so this is original.
+
+**The well (2026-10-03).** Under the glossary card sits a small infographic of the goal: a stepwell shaft in cross-section with the water drawn at its current level, read straight from the save so it shows before the engine loads. The shaft has seven steps because seven complete descents fill the well, so one step is one descent. Beside it, four lines:
+
+| Line | New save | In progress | Full |
+|---|---|---|---|
+| Headline | The well is dry | The well is 6% full | The well is full |
+| Count | Vritra has drunk it dry | 2 of 35 measures of water returned | 35 of 35 measures of water returned |
+| What fills it | A level's boss returns 1 · Vritra returns 3 · 7 full descents fill it | the same | Every drop Vritra took is back |
+| What a full well means | Fill it and the game is won. Patal, the endless depths, stays open after. | the same | You have finished the game. Patal, the endless depths, stays open. |
+
+The last line states what exists today and nothing more: a full well ends the game (§2.23) and unlocks nothing else. What a win should unlock is still undecided. The loader is checked to fit a sideways phone and a small phone with its tallest glossary card showing.
 
 ### 2.21 Title screen (2026-10-02)
 Launch track L2, first design. **One screen, not two:** the title, the way into a run and the two upgrades share it, because a title in front of a separate hub would put three taps between a player and a fight. It replaces the plain menu that was drawn over the arena.
@@ -530,6 +546,42 @@ Names live in the name packs (`boons`, §2.12): the Sanskrit pack uses short eve
 
 Last Stand has no tell of its own: the health bar turning red already says it.
 
+### 2.25 Wave shapes and the opening (2026-10-03)
+Every run opened the same way: four Asura, five Asura, the Gatekeeper, and no other enemy type before wave 4. The founder, who reached level 3 on the first build with boons, called the opening too easy and too alike.
+
+**Shapes.** Each ordinary wave (not the Gatekeeper's, not a boss) draws a shape, never the same one twice running (`WAVE_SHAPES`). A toast names it as it starts.
+
+| Shape | What arrives | From |
+|---|---|---|
+| Mixed | The usual count, types rolled from the pool below | wave 1 |
+| Swarm | 1.7× the count, all Asura at 55% health and 60% Nidhi, arriving fast | wave 1 |
+| Pincer | One more than the count, alternating between two opposite walls | wave 1 |
+| Archers | About 45% Rakshasa, the rest Asura | wave 2 |
+| Brute | One Mahish (two from level 2) and its guard of Asura | wave 2 |
+| Brood | About 55% Raktabija, the rest Asura | wave 4 |
+
+**A bigger opening.** The count is `4 + wave + (sector − 1)`, and level 1 gets one more, so its waves run 6 to 10 enemies where they ran 4 to 8. Deeper levels gain one per wave: only the opening was called too easy. In the type pool Rakshasa and Mahish arrive from wave 2 (was 3) and Raktabija from wave 3 (was 4). The Gatekeeper brings three escorts, not two.
+
+**A first-ever run is exempt for its first two waves** (no level has been reached yet on this save): four plain Asura, then five, as before, so the tutorial tips have room.
+
+**Playtest bot, fresh player with random boons, 14 runs each, target level 3.** Level 1 kills rose from 46 to 62 and health lost there from 57% to 76%; runs reaching level 3 went from 6 to 9 of 14. With mid upgrades, 3 of 8 slew Vritra on both builds. So the opening is busier and costs more, and the later levels are about where they were. A first version added two enemies per wave on every level; it cut the mid profile's Vritra kills from 3 of 8 to none and was tapered.
+
+### 2.26 Tribute: the reward for patience (2026-10-03)
+The founder's rule since 2026-09-24: a player patient enough to kill more creeps before killing the boss should come out ahead. Until now that paid Tejas charge and a flat 18% item roll per kill, grew with nothing, and was explained nowhere.
+
+- **Counting.** While a boss lives, every enemy *it summoned* that the player kills adds 1 to that boss's tribute. Anchors, escorts and wave enemies do not count. The count rides on the boss's name: "Bakasura · tribute 3/5", turning gold at 5.
+- **Paid when the boss falls** (`TRIBUTE`):
+
+| Tribute | Reward |
+|---|---|
+| 5 | One more gold item in the boss's drop |
+| 10 | A boon pick. For a level's boss it comes before the Extract or Descend screen; for the Gatekeeper it follows the pick its wave already ends in |
+| 15 | That pick offers gold boons on every card. Where fewer than three gold boons apply, silver fills the rest |
+
+- **The gamble.** Each summons comes 8% sooner than the last (9, 8 or 7 s at first, down to 3.5 s), and the number of summons allowed to stand at once rises from 4 by one for every 5 tribute, to 7. The longer the wait, the thicker the crowd.
+- **Told to the player:** a toast at each threshold ("TRIBUTE 5 - AN EXTRA ITEM WHEN IT FALLS"), a one-time tip the first time a boss summons, and a line on the Bosses card in How to Play. The tribute pick's screen is headed "TRIBUTE OF 12 PAID · earned by patience".
+- Ordinary waves cannot be farmed: they are a fixed count. Tribute is the only place patience pays.
+
 ### 2.20 Automated checks
 - **`tools/playtest-bot.js`** plays complete runs with game logic only (about 80x real time) and records per-sector balance figures, errors and leaked objects (§2.14).
-- **`tools/smoke-test.mjs`** (2026-10-02) loads the game in a private, muted, headless Chrome with a throwaway profile; clicks through the loading screen; checks the fonts, the first tip, the HUD, the abandon prompt, the death and extract payouts and the sector-banner cleanup; checks that all three music tracks load and that each sector paints its own floor; measures every text on the how-to, settings, Powers and title screens against its panel; checks the goal on the title screen, "Level 1 of 3" and the near-miss line, kills the final boss and confirms the win, the water and the full payout; checks that all name packs have the same entries and that the plain pack shows no Sanskrit (every boon card included); clears a wave and checks the boon pick (three cards, the fight frozen, a stray tap ignored, one reroll, the next wave), the numbers a set of boons promise, and Read the Slam on a live slam; opens the feedback dialog, types the game's own keys into it and confirms the message is posted (to a stub, so nothing is sent); checks the gold ring and arc that show on Kiran while Hold Your Ground and Read the Slam are live, and that the Boons tab lists six boons per metal clear of the Back button; runs four bot profiles, one without boons; and saves screenshots. `node tools/smoke-test.mjs`. It needs Chrome or Edge and Node 22+, and no packages. It exists so testing never plays sound on, or takes over, the machine someone is working on.
+- **`tools/smoke-test.mjs`** (2026-10-02) loads the game in a private, muted, headless Chrome with a throwaway profile; clicks through the loading screen; checks the fonts, the first tip, the HUD, the abandon prompt, the death and extract payouts and the sector-banner cleanup; checks that all three music tracks load and that each sector paints its own floor; measures every text on the how-to, settings, Powers and title screens against its panel; checks the goal on the title screen, "Level 1 of 3" and the near-miss line, kills the final boss and confirms the win, the water and the full payout; checks that all name packs have the same entries and that the plain pack shows no Sanskrit (every boon card included); clears a wave and checks the boon pick (three cards, the fight frozen, a stray tap ignored, one reroll, the next wave), the numbers a set of boons promise, and Read the Slam on a live slam; opens the feedback dialog, types the game's own keys into it and confirms the message is posted (to a stub, so nothing is sent); checks the gold ring and arc that show on Kiran while Hold Your Ground and Read the Slam are live, and that the Boons tab lists six boons per metal clear of the Back button; builds 300 waves and checks the six shapes, the no-repeat rule and the gentle first-ever opening; makes a boss summon and checks the tribute count, the extra item, the second pick and the pick before the choice screen; checks the well on the loading screen for a new save and for a save with water; runs four bot profiles, one without boons; and saves screenshots. `node tools/smoke-test.mjs`. It needs Chrome or Edge and Node 22+, and no packages. It exists so testing never plays sound on, or takes over, the machine someone is working on.
