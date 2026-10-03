@@ -43,7 +43,7 @@ Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the cond
 |---|---|---|---|
 | L1 | **Game name** | **Working title: Anantarya** (founder, 2026-10-02: "will give name later"). One constant, `GAME_TITLE`, renames the loader, hub and browser tab; `index.html` carries its own copy. Earlier candidates: "Loot Chase" (generic, pre-pivot) and the repo name "Tantra" (reads as sexual/new-age to a Western audience, and is a religious practice term). One caution on the working title is logged in `requirements.md` §1.7. | A final name is chosen. It still blocks L2's art and L9's store page. |
 | L2 | **Title / welcome screen** (= P1) | ⏳ **First design built 2026-10-02** (`requirements.md` §2.21): the view down a stepwell shaft, with DESCEND at the bottom of the well and the upgrades below. **Waiting on the founder's verdict.** If they prefer made art, `docs/art-prompts.md` has prompts for an image model. | A Cosmic Forge title screen with the name, art and a Start that leads into the hub. |
-| L3 | **How to play** | ✅ **Built 2026-09-27**: seven illustrated cards (`requirements.md` §2.12.2). | A help page reachable from the title and the hub. |
+| L3 | **How to play** | ✅ **Built 2026-09-27**: illustrated cards (`requirements.md` §2.12.2), nine since The Goal and Boons were added. | A help page reachable from the title and the hub. |
 | L4 | **First-run tutorial** (= P3) | ✅ **Built 2026-09-27**: 14 one-time live tips, skippable (§2.12.1). | Wave 1 of a player's first run teaches movement, loot, the satchel and slams live. |
 | L5 | **Audio** | ⏳ 37 sound effects are in. **Music was switched off on 2026-10-02**: the founder heard it and the tracks, and above all the transitions, did not suit the game (`requirements.md` §2.16). The engine and files remain; the approach needs rethinking. The founder has not yet commented on the sound effects. | Free SFX (hits, slams, pickups, Tejas) plus Indian-flavoured music, with a mute toggle. |
 | L6 | **Pause + settings** | ✅ **Built 2026-09-27** (§2.17). | Pause mid-run (essential on mobile), mute, and a "reset save" with a confirmation step. |
@@ -74,9 +74,11 @@ After first playing the merged build, the founder paused changes to settle three
 
 What this game has that they lack: bosses with real rules, the Cosmic Cycle, and Extract or Descend. Its big decisions are good and rare; its small decisions are missing. Candidate fixes, in rising cost: Nidhi as drops to collect; a standing-still attack bonus; level-up picks (where the pinned Bhagya chart, P7, could live).
 
-**Founder's verdict after playing them (2026-10-03):** Brotato is the favourite, "for being close to what we have built"; 10 Minutes Till Dawn is "really intriguing and engaging". They asked whether this game should show a level-up screen like Vampire Survivors' pick-of-three. Recommendation: follow Brotato, not Vampire Survivors. Offer a pick of one from three boons **between waves**, on a paused card screen, so the choice arrives at a natural break instead of interrupting a dodge. No experience bar is needed. The founder said to proceed (2026-10-03); the draft below awaits their approval before any code.
+**Founder's verdict after playing them (2026-10-03):** Brotato is the favourite, "for being close to what we have built"; 10 Minutes Till Dawn is "really intriguing and engaging". They asked whether this game should show a level-up screen like Vampire Survivors' pick-of-three. Recommendation: follow Brotato, not Vampire Survivors. Offer a pick of one from three boons **between waves**, on a paused card screen, so the choice arrives at a natural break instead of interrupting a dodge. No experience bar is needed.
 
-#### Proposal: boons between waves (draft, 2026-10-03, not approved)
+**Decided and built (2026-10-03).** The founder approved the draft below as written: "Build all 18", a pick after every wave, one reroll per level. Specification and balance figures: `requirements.md` §2.24. The draft is kept as it was proposed.
+
+#### Proposal: boons between waves (draft, 2026-10-03)
 
 **When.** After every cleared wave before a boss: waves 1 to 5 of each level, the Gatekeeper's wave included. That is 5 picks a level and 15 in a full descent, about one every 20 to 30 seconds of fighting. Not after a boss: the Extract or Descend screen already sits there.
 

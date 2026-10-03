@@ -45,6 +45,8 @@ Kept so a reversal is never mistaken for drift or an error.
 | 2026-10-02 | **Falling keeps half the run's Nidhi.** §2.5. | Death banked everything, exactly like Extract, so Descend carried no risk and the Extract/Descend choice was a fake one. The founder approved 50%. |
 | 2026-10-02 | **Typography: Yatra One + Baloo 2.** §2.18. | The founder asked for type that feels Indian. The game had been rendering in the engine's default monospace. |
 | 2026-10-02 | **Asura (2017) reviewed as a reference game.** | Outcome of a separate research session. *Adopted:* a glossary-card loading screen (§2.19). *Pinned for after itch.io:* the Bhagya chart and boss-kill perks (`design-document.md` P7, P8). *Unchanged:* the live-tip tutorial (Asura shipped a separate tutorial, players disliked it, and it was replaced with learn-as-you-play, which is what §2.12.1 already does) and the antagonists-only naming rule (stricter than Asura's, and it stays). The lesson worth keeping: Asura turned cultural ideas into mechanics instead of using them only as names. |
+| 2026-10-03 | **Boons between waves.** §2.24. | The founder found the moment-to-moment play plain ("just moving around randomly shooting the nearest creep"), played the genre's hits, liked Brotato best, and asked whether the game should show a pick-of-three screen like Vampire Survivors'. They approved all 18 boons, a pick after every wave and one reroll per level. |
+| 2026-10-03 | **The satchel pauses the fight.** §2.7.1. | Reversed at the founder's request: "I don't want to be killed while switching weapons." |
 | 2026-10-02 | **The game gets a goal and an ending.** §2.23. | The founder's diagnosis after playing: nothing states what the player is trying to do, and nothing ends, so there is no compelling reason to stay. They chose "slay Vritra" as the end of a run plus a well that fills across runs. Seven worlds was discussed and left for later. |
 | 2026-10-02 | **Sectors renamed for the stepwell; every name made switchable.** §2.12. | The founder found "The Fractured Approach" boring and vague, and chose names that say what each level is: Prangan, Jal-Kund, Nidhi-Kosh, Patal. In the same request they asked that all names be changeable in one step, because they are **re-evaluating whether so Indian a game helps or harms onboarding and retention**. That question is open; nothing about the identity has been reversed. |
 | 2026-10-02 | **The stepwell becomes the game's place.** §2.10. | The founder still found the arena background generic after the jaali-and-rangoli floor. A lattice is a pattern, not a place. The game is now one descent down a stepwell: the title looks down the shaft, every arena is framed by its stairs, and each sector has its own painted floor. |
@@ -292,7 +294,7 @@ Modelled on Hades and Archero, not Brotato: Brotato's "figure it out" onboarding
 - Seen tips live in `session.hintsSeen`, so "Reset save" re-arms them. Settings has a **Tutorial tips** on/off switch and a **show tips again** button.
 
 ### 2.12.2 How to Play (built 2026-09-27)
-Seven illustrated cards, reachable from the hub and the pause menu: Move · Fight, Loot · Satchel, The Cosmic Cycle, Bosses, Slams, Tejas, and Extract or Descend. The illustrations reuse the real sprites, icons and telegraph shapes, so what the card shows is exactly what the player will see. Players swipe, or use the arrows. The copy switches between touch and keyboard wording.
+Nine illustrated cards, reachable from the hub and the pause menu: The Goal (added 2026-10-02), Move · Fight, Loot · Satchel, Boons (added 2026-10-03), The Cosmic Cycle, Bosses, Slams, Tejas, and Extract or Descend. The illustrations reuse the real sprites, icons and telegraph shapes, so what the card shows is exactly what the player will see. Players swipe, or use the arrows. The copy switches between touch and keyboard wording.
 
 ### 2.13 Sprite Sourcing (open)
 
@@ -397,7 +399,7 @@ Pitch glides rather than steps. Pausing ducks the music to 35%. Because these tr
 The values were set without hearing them, because Claude cannot hear. Verified 2026-10-02 with stand-in tracks and an analyser node: crossfade, per-phase volume, filter and rate, the boss fallback, pause ducking, pause-on-hidden and the loop-seam fade all behave as specified.
 
 ### 2.17 Pause & Settings (built 2026-09-27)
-**Pause (VIRAM, विराम):** a button at the top-right of the HUD whose touch target (56×36) is larger than the drawn button. Esc or P also toggles pause. **Switching apps or tabs pauses the run automatically.** Pausing freezes game logic, timers and tweens. The menu shows the build you are carrying (weapon, trinket and Tejas form, each with what it does), your sector and wave, and the Nidhi from this run, followed by Resume, How to Play, Settings and **Abandon Run**. Abandon opens a confirmation that states the cost before anything happens: it **counts as a death**, and you keep only half of the run's Nidhi, with the exact numbers shown ("62 of 125"). *Keep Fighting* is the primary button.
+**Pause (VIRAM, विराम):** a button at the top-right of the HUD whose touch target (56×36) is larger than the drawn button. Esc or P also toggles pause. **Switching apps or tabs pauses the run automatically.** Pausing freezes game logic, timers and tweens. The menu shows the build you are carrying (weapon, trinket and Tejas form, each with what it does, and the boons taken this run as a row of icons), your sector and wave, and the Nidhi from this run, followed by Resume, How to Play, Settings and **Abandon Run**. Abandon opens a confirmation that states the cost before anything happens: it **counts as a death**, and you keep only half of the run's Nidhi, with the exact numbers shown ("62 of 125"). *Keep Fighting* is the primary button.
 
 **Settings** (stored apart from the save, key `loot-chase-settings-v1`, so "Reset save" keeps your volume):
 
@@ -477,6 +479,46 @@ Player-facing text now says **level** where it said sector (the word lives in th
 
 Not decided: whether the seven complete descents should differ from one another (the "seven worlds" idea, `design-document.md` §1.3), and what a win unlocks beyond water.
 
+### 2.24 Boons between waves (2026-10-03)
+The answer to "the play feels plain" (`design-document.md` §1.3): the game's big decisions (Extract or Descend, the Cosmic Cycle, boss rules) were good but rare, and the small ones were missing. Loot equipped itself, and nothing grew inside a run.
+
+**When.** Every wave cleared before a boss ends in a pick: waves 1 to 5 of each level, the Gatekeeper's wave included. That is 5 picks a level and 15 in a full descent. Bosses are followed by the Extract or Descend screen instead. The pick comes 0.45 s after the last kill, so the kill is seen to land.
+
+**The screen.** The fight freezes, as for the satchel and pause. Three cards, stacked: icon, name, metal, what it does, and a note (the gloss, "rank 2 of 3" when it stacks, or the weapon it needs). Tapping a card takes it and starts the next wave. Taps in the first 0.35 s after the cards appear are ignored, so a tap meant for walking cannot choose one. Esc does nothing here: a boon must be chosen. **One free reroll per level** (`BOON_REROLLS`). The screen ends with the boons taken so far.
+
+**Rules.**
+- Boons belong to Kiran, not to the weapon, so a swap keeps them. They last the run; Extract or death clears them.
+- **Metal ladder, as for loot.** Copper boons are stats and stack three times. Silver change how you fight. Gold deepen what you carry and are offered only when they apply: a weapon boon only while that kind of weapon is equipped, Kindling only once Tejas has woken.
+- **Odds by level** (`BOON_ODDS`), per card: level 1 copper 65%, silver 28%, gold 7%; level 2 50/35/15; level 3 and below 40/35/25. A metal with nothing left to offer falls back to any boon that applies. The three cards are always different.
+- Bonuses add rather than multiply, so a stacked build grows steadily. Damage boons apply to every hit Kiran deals: the weapon, its chain, its poison and the Tejas forms.
+
+| Boon | Metal | Effect |
+|---|---|---|
+| Keen Edge (*Dhaar*) | Copper, ×3 | +15% damage |
+| Quick Hands (*Chapal*) | Copper, ×3 | Attacks 12% faster |
+| Long Reach (*Vistar*) | Copper, ×3 | +20 attack range |
+| Light Feet (*Laghu*) | Copper, ×3 | +20 move speed |
+| Iron Body (*Loha*) | Copper, ×3 | +20 max health, and heals 20 now |
+| Thick Hide (*Kathor*) | Copper, ×3 | Take 8% less damage |
+| Hold Your Ground (*Achal*) | Silver | +35% damage after 0.2 s of standing still. Judged by intent: being shoved by an enemy still counts as standing |
+| Strike on the Run (*Gati*) | Silver | Attacks 25% faster while moving. Taking either of these two removes the other from the pool |
+| Second Target (*Yugal*) | Silver, ×2 | Each attack hits one more enemy |
+| Read the Slam (*Sajag*) | Silver | Be inside a slam's red zone at any point of its warning, be out when it lands, and hit 50% harder for 4 s |
+| Last Stand (*Veer*) | Silver | Below 30% health: +40% damage, +30 speed |
+| Greed (*Lobh*) | Silver | +25% Nidhi from kills and waves, but every hit taken is 10% bigger |
+| Spreading Rot (*Prasar*) | Gold, venom | A poisoned enemy that dies passes its poison (4 fresh ticks) to the nearest enemy within 140 |
+| Blood Shield (*Rakta Kavach*) | Gold, vampiric | Healing past full health becomes a shield, up to 25, shown as a pale band on the health bar. It soaks damage before health |
+| Forked Lightning (*Shakha*) | Gold, chain | Each chain jumps to two enemies, not one |
+| Clean Cut (*Nirnay*) | Gold, executioner | The executioner's bonus starts at 35% health, not 25% |
+| Kindling (*Chingari*) | Gold | Tejas fills 30% faster |
+| Eclipse Hunger (*Bhookh*) | Gold | During Grahan, every kill heals 3 |
+
+Names live in the name packs (`boons`, §2.12): the Sanskrit pack uses short everyday words with English glosses; the plain and hybrid packs use the English names. Icons are drawn at boot like the loot icons and tinted by metal.
+
+**Balance (playtest bot, 2026-10-03, random picks, target level 3, two batches pooled).** Fresh player, 16 runs each: **9 of 16 reached level 3 with boons, 1 of 16 without**; health lost on level 1 averaged 52% against 68%. Single runs swing widely (0% to 182% on level 1), so only pooled figures mean anything. Mid upgrades (6/6), 8 runs each: **4 of 8 slew Vritra with boons, 0 of 8 without**. Boons roughly cancel the difficulty that was tuned against the touch-teleport bug (§2.14). **No retune yet**: the founder plays the build first, and the retune happens once, with boons in.
+
+Not built: a boons tab in the Powers codex; any visual cue on Kiran while Hold Your Ground or Read the Slam is active.
+
 ### 2.20 Automated checks
 - **`tools/playtest-bot.js`** plays complete runs with game logic only (about 80x real time) and records per-sector balance figures, errors and leaked objects (§2.14).
-- **`tools/smoke-test.mjs`** (2026-10-02) loads the game in a private, muted, headless Chrome with a throwaway profile; clicks through the loading screen; checks the fonts, the first tip, the HUD, the abandon prompt, the death and extract payouts and the sector-banner cleanup; checks that all three music tracks load and that each sector paints its own floor; measures every text on the how-to, settings, Powers and title screens against its panel; checks the goal on the title screen, "Level 1 of 3" and the near-miss line, kills the final boss and confirms the win, the water and the full payout; checks that all name packs have the same entries and that the plain pack shows no Sanskrit; opens the feedback dialog, types the game's own keys into it and confirms the message is posted (to a stub, so nothing is sent); runs three bot profiles; and saves screenshots. `node tools/smoke-test.mjs`. It needs Chrome or Edge and Node 22+, and no packages. It exists so testing never plays sound on, or takes over, the machine someone is working on.
+- **`tools/smoke-test.mjs`** (2026-10-02) loads the game in a private, muted, headless Chrome with a throwaway profile; clicks through the loading screen; checks the fonts, the first tip, the HUD, the abandon prompt, the death and extract payouts and the sector-banner cleanup; checks that all three music tracks load and that each sector paints its own floor; measures every text on the how-to, settings, Powers and title screens against its panel; checks the goal on the title screen, "Level 1 of 3" and the near-miss line, kills the final boss and confirms the win, the water and the full payout; checks that all name packs have the same entries and that the plain pack shows no Sanskrit (every boon card included); clears a wave and checks the boon pick (three cards, the fight frozen, a stray tap ignored, one reroll, the next wave), the numbers a set of boons promise, and Read the Slam on a live slam; opens the feedback dialog, types the game's own keys into it and confirms the message is posted (to a stub, so nothing is sent); runs four bot profiles, one without boons; and saves screenshots. `node tools/smoke-test.mjs`. It needs Chrome or Edge and Node 22+, and no packages. It exists so testing never plays sound on, or takes over, the machine someone is working on.
