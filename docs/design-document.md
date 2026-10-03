@@ -74,7 +74,46 @@ After first playing the merged build, the founder paused changes to settle three
 
 What this game has that they lack: bosses with real rules, the Cosmic Cycle, and Extract or Descend. Its big decisions are good and rare; its small decisions are missing. Candidate fixes, in rising cost: Nidhi as drops to collect; a standing-still attack bonus; level-up picks (where the pinned Bhagya chart, P7, could live).
 
-**Founder's verdict after playing them (2026-10-03):** Brotato is the favourite, "for being close to what we have built"; 10 Minutes Till Dawn is "really intriguing and engaging". They asked whether this game should show a level-up screen like Vampire Survivors' pick-of-three. Recommendation given, not yet approved or built: follow Brotato, not Vampire Survivors. Offer a pick of one from three boons **between waves**, on a paused card screen, so the choice arrives at a natural break instead of interrupting a dodge, and a run of 15 waves gives about a dozen picks. No experience bar is needed. The pinned Bhagya chart (P7) is the natural home for the boon list.
+**Founder's verdict after playing them (2026-10-03):** Brotato is the favourite, "for being close to what we have built"; 10 Minutes Till Dawn is "really intriguing and engaging". They asked whether this game should show a level-up screen like Vampire Survivors' pick-of-three. Recommendation: follow Brotato, not Vampire Survivors. Offer a pick of one from three boons **between waves**, on a paused card screen, so the choice arrives at a natural break instead of interrupting a dodge. No experience bar is needed. The founder said to proceed (2026-10-03); the draft below awaits their approval before any code.
+
+#### Proposal: boons between waves (draft, 2026-10-03, not approved)
+
+**When.** After every cleared wave before a boss: waves 1 to 5 of each level, the Gatekeeper's wave included. That is 5 picks a level and 15 in a full descent, about one every 20 to 30 seconds of fighting. Not after a boss: the Extract or Descend screen already sits there.
+
+**The screen.** The fight freezes, as for the satchel. Three cards stacked down the screen, as in Vampire Survivors: icon, name, metal, one line on what it does, and "rank 2 of 3" when it stacks. Tap one and the next wave starts. One free reroll per level.
+
+**Rules.**
+- Boons belong to Kiran, not to the weapon, so swapping weapons keeps them. They last the run: Extract or death clears them.
+- Metal ladder, as for loot. Copper boons are stats and stack up to three times. Silver boons change how you fight. Gold boons deepen what you carry, after 10 Minutes Till Dawn's upgrade trees, and are offered only when they apply.
+- Level 1 offers mostly copper. Silver and gold grow with depth, which gives one more reason to Descend.
+- The pause menu shows the run's boons as a row of icons, so the build stays visible.
+- Bosses, Extract or Descend and the Cosmic Cycle are unchanged. The Bhagya chart (P7) stays pinned; "Eclipse Hunger" below is the only boon tied to the Cycle.
+- Names: the plain-English names below go in the `plain` pack; Sanskrit and hybrid names are drafted when it is built.
+
+| # | Metal | Boon | What it does |
+|---|---|---|---|
+| 1 | Copper | Keen Edge | +15% damage |
+| 2 | Copper | Quick Hands | Attacks 12% faster |
+| 3 | Copper | Long Reach | +20 attack range (130 to start) |
+| 4 | Copper | Light Feet | +20 move speed (200 to start) |
+| 5 | Copper | Iron Body | +20 max health, and heals 20 now |
+| 6 | Copper | Thick Hide | Take 8% less damage |
+| 7 | Silver | Hold Your Ground | +35% damage while standing still (Archero's idea) |
+| 8 | Silver | Strike on the Run | Attacks 25% faster while moving. Never offered alongside 7: pick a style |
+| 9 | Silver | Second Target | Every attack hits one more enemy (twice at most) |
+| 10 | Silver | Read the Slam | Step out of a slam's red zone and the next 4 seconds hit 50% harder |
+| 11 | Silver | Last Stand | Below 30% health: +40% damage and +30 speed |
+| 12 | Silver | Greed | +25% Nidhi for the run, but enemies hit 10% harder |
+| 13 | Gold | Spreading Rot | Venom weapon: a poisoned enemy that dies passes its poison on |
+| 14 | Gold | Blood Shield | Vampiric weapon: healing past full health becomes a shield, up to 25 |
+| 15 | Gold | Forked Lightning | Chain weapon: each chain jumps to two enemies, not one |
+| 16 | Gold | Clean Cut | Executioner weapon: the bonus starts at 35% health, not 25% |
+| 17 | Gold | Kindling | Tejas fills 30% faster (from level 2, once Tejas has woken) |
+| 18 | Gold | Eclipse Hunger | During Grahan (Eclipse), every kill heals 3 |
+
+Gold boons 13 to 16 go quiet while another kind of weapon is equipped and wake again when it is swapped back, which makes the satchel matter.
+
+**Difficulty.** Fifteen boons make Kiran far stronger by level 3. The difficulty already needs revisiting now that touch movement no longer teleports (`requirements.md` §2.14). Retune once, with boons in, instead of twice. The playtest bot picks a boon at random so its runs stay comparable.
 
 Games for the founder to play first: Vampire Survivors and 10 Minutes Till Dawn (both free in a browser on itch.io), HoloCure (free download on itch.io), Brotato and Archero (free on phones). Each states its goal as a number on screen: survive 30 minutes, survive 10 minutes, survive 20 waves.
 
