@@ -56,7 +56,9 @@ Kept so a reversal is never mistaken for drift or an error.
 ## 2. Low-Level Requirements (by system)
 
 ### 2.1 Movement & Collision
-- Dual input: drag/touch (tight lerp-follow) and WASD/arrow keys.
+- Dual input: touch or mouse, and WASD/arrow keys. **Both move Kiran at the same speed** (200 px/s, plus Vega Paduka).
+- **Touch: tap to walk there, hold and drag to steer.** Lifting the finger does not cancel the walk; arriving, or pressing a movement key, does. A small ring marks where the tap landed.
+- **Fixed 2026-10-03: touch movement was a teleport.** It closed 45% of the gap to the finger every frame, so a tap anywhere in the arena was reached in about a tenth of a second, against 1.7 to 2.8 seconds on the keys. The founder found it on a phone: "this feels like a cheat code". No bolt, slam or swarm could catch a touch player. See §2.14 for what this did to the difficulty figures.
 - Player is physically blocked by all enemy colliders — no walking through enemies.
 - Player position is clamped to the arena bounds at all times.
 
@@ -115,12 +117,14 @@ Kept so a reversal is never mistaken for drift or an error.
 - **Each weapon effect has its own attack visual** (2026-09-24): Venom drips beads, Vampiric draws a thick crimson pull, Chain arcs jagged, Executioner swings a widening gold wedge, and the plain weapon stays a clean thin bolt. Previously every weapon drew the same cyan line, so a Venom Blade and an Executioner felt identical to use.
 
 ### 2.7.1 Satchel (run inventory)
-A collapsible panel on the right edge of the arena, opened by a tab that shows a live item count.
+A tab on the right edge of the arena shows a live item count. Tapping it pauses the fight and opens the satchel screen.
 
 - A pickup no longer destroys what you were holding — **the outgoing item is stashed**, and tapping a stashed item swaps it back, returning the current one to the satchel. Nothing is ever lost to a swap.
 - Capacity **8**; past that the oldest falls out. Losing something you stopped using long ago is a kinder failure than being unable to pick anything up.
 - **Run-scoped.** Carrying loot between runs would undermine the Extract/Descend decision (§2.5).
-- **Does not pause.** §2.7 says pickups never interrupt play, and a pause-to-swap would turn every drop into a menu trip. The panel is translucent, hugs the right edge, and sizes to its contents — swapping mid-fight is meant to cost you something.
+- **Opening it pauses the fight (reversed 2026-10-03).** The first version did not pause: §2.7 says pickups never interrupt play, and swapping under fire was meant to cost something. The founder rejected it after playing on a phone: "I don't want to be killed while switching weapons". The original reasoning confused two things. Picking loot up should not interrupt play, and still does not. Choosing between items is a build decision, and Vampire Survivors, Brotato and 10 Minutes Till Dawn all stop the clock for those.
+- **The screen says what each item does.** Every row carries the item's name, its effect and its numbers (damage and targets for a weapon, the bonus for a trinket), for both the equipped pair and the stored items. Before, rows showed a name only, so a swap was a guess.
+- Tapping a stored item equips it and the screen stays open, so several swaps can be compared. BACK TO THE FIGHT, Esc or P resumes.
 
 ### 2.7.2 Powers Codex
 A **POWERS** screen on the hub lists every weapon and trinket effect with its icon, description and unlock Sector. Effects the player has not yet reached the depth for are shown dimmed as *"Locked — reaches you in Sector N"*, and the hub button carries a live count (*"3 still locked — descend to find them"*).
@@ -333,6 +337,8 @@ The founder reported that by Sector 3 a well-upgraded player lost under 5% HP wh
 | Grinder (14/14) | 14% | 67% | 219% | 3.0 (old build: 5–6) |
 
 HP lost can exceed 100% because heals are spent along the way. Across 30+ bot runs: zero runtime errors, zero leaked objects. Final feel still needs human playtesting — the bot measures *direction*, not fun.
+
+**Caveat on everything above (2026-10-03).** The founder's report that started this section ("by Sector 3 not even losing 5% of my hp") was made on a phone, where touch movement was a teleport (§2.1). The playtest bot was never able to teleport: it steers by small steps. So the gap between the founder and the bot that these figures were read against was largely the bug, not skill, and **the game was made harder to challenge a player who could not be hit**. With the bug fixed, the bot's figures are the better guide to what a real player now faces: a fresh player loses most of their health in Sector 1 and rarely clears Sector 2. The scaling very likely needs to come back down. Not retuned yet: the founder should play the fixed build first.
 
 ### 2.15 Tejas — supercharge (2026-09-24)
 **Tejas** (तेजस्, radiance) is a meter that fills slowly on its own (1.1%/s) and faster per kill — Asura +3.5, Rakshasa +4.5, Mahish +7, Raktabija +2.5, elites +10. When it is full, tapping the TEJAS button (bottom-left) or pressing Space/E unleashes a 6-second form. Farming boss-summoned Asura to charge it before committing to a boss is a deliberate strategy.
