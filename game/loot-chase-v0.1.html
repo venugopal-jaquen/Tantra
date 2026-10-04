@@ -74,6 +74,22 @@
   .card-role { margin: 0; font-size: .95em; line-height: 1.4; color: #f0dcc0; min-height: 4.2em; }
   .card-hint { margin-top: .5em; font-size: .68em; letter-spacing: .06em; color: #8a7360; }
 
+  /* How full the well is (requirements 2.19): the goal, on screen before the game loads. */
+  .well {
+    width: 21em; max-width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 1em;
+    padding: .55em 1em; text-align: left; background: rgba(42,8,0,.6);
+    border: 1px solid rgba(200,169,110,.45); border-radius: .9em;
+  }
+  .well-art { flex: none; width: 5.2em; height: 6.2em; }
+  .well-wall { fill: #1c0803; stroke: var(--bronze); stroke-width: 1.6; stroke-linejoin: round; }
+  .well-water { fill: #1f8f80; }
+  .well-surface { stroke: #bff5ea; stroke-width: 1.6; }
+  .well-kind { font-size: .7em; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--flame); }
+  .well-line { font-family: "Yatra One", "Baloo 2", serif; font-size: 1.35em; line-height: 1.2; color: var(--gold); }
+  .well-sub { font-size: .85em; line-height: 1.3; color: #9fe8d8; }
+  .well-legend { font-size: .72em; line-height: 1.3; color: var(--bronze); }
+  .well-after { margin-top: .3em; font-size: .78em; line-height: 1.3; color: #f0dcc0; }
+
   .ldr-foot { width: 21em; max-width: 100%; min-height: 3.4em; display: flex; flex-direction: column; align-items: center; gap: .45em; }
   .bar { width: 100%; height: .85em; box-sizing: border-box; border-radius: .5em; background: #2a0f04; border: 1px solid #6b4a2e; overflow: hidden; }
   /* Copper, then silver, then gold - the rarity ladder. The gradient is pinned to the
@@ -146,6 +162,21 @@
     <div class="card-rule">&#9670;</div>
     <p class="card-role" id="ldr-role"></p>
     <div class="card-hint">tap the card for another word</div>
+  </div>
+  <div class="well" id="ldr-well">
+    <svg class="well-art" viewBox="0 0 64 78" aria-hidden="true">
+      <defs><clipPath id="well-clip"><path id="well-shape"></path></clipPath></defs>
+      <path class="well-wall" id="well-wall"></path>
+      <rect class="well-water" id="well-water" x="0" width="64" y="74" height="0" clip-path="url(#well-clip)"></rect>
+      <line class="well-surface" id="well-surface" x1="0" x2="64" y1="74" y2="74" clip-path="url(#well-clip)"></line>
+    </svg>
+    <div>
+      <div class="well-kind">The well</div>
+      <div class="well-line" id="ldr-well-line"></div>
+      <div class="well-sub" id="ldr-well-sub"></div>
+      <div class="well-legend" id="ldr-well-legend"></div>
+      <div class="well-after" id="ldr-well-after"></div>
+    </div>
   </div>
   <div class="ldr-foot">
     <div class="bar"><div class="bar-fill" id="ldr-fill"></div></div>
@@ -365,6 +396,12 @@ const NAME_PACK = 'sanskrit';
 const N = NAME_PACKS[new URLSearchParams(location.search).get('names')] || NAME_PACKS[NAME_PACK];
 const GLOSSARY = N.cards;
 
+// The save, and the well it fills (requirements 2.23). They live up here, ahead of the
+// engine, because the loading screen draws the well straight from the save.
+const SAVE_KEY = 'loot-chase-session-v1';
+const WATER = { boss: 1, final: 3 };          // measures of water returned per boss beaten
+const WELL_FULL = 35;                         // measures to fill the well: seven complete descents
+
 
 // The loading screen. Plain DOM rather than Phaser, so it is on screen before the engine
 // has even downloaded. It ends on a Begin button for a real reason: browsers refuse to
@@ -377,6 +414,30 @@ const Loader = (() => {
 
   $('ldr-title').textContent = GAME_TITLE;
   document.title = GAME_TITLE;
+
+  // The well: how full it is, what fills it, and what a full well means. The shaft has
+  // seven steps because seven complete descents fill it, so one step is one descent.
+  (() => {
+    let water = 0;
+    try { water = (JSON.parse(localStorage.getItem(SAVE_KEY)) || {}).water || 0; } catch (e) { /* no save yet */ }
+    const f = Math.max(0, Math.min(1, water / WELL_FULL)), pc = Math.round(f * 100);
+    const boss = N.enemies.megaboss, deep = N.deeper[0], steps = Math.round(WELL_FULL / (WATER.boss * 2 + WATER.final));
+    const top = 4, stepH = 70 / steps, left = [];
+    for (let k = 0; k < steps; k++) { const half = 30 - k * 3.2; left.push([32 - half, top + k * stepH], [32 - half, top + (k + 1) * stepH]); }
+    const d = 'M' + left.concat(left.slice().reverse().map(([x, y]) => [64 - x, y])).map(pt => pt.map(v => +v.toFixed(1)).join(' ')).join(' L');
+    $('well-shape').setAttribute('d', d + 'Z');
+    $('well-wall').setAttribute('d', d);                       // open at the top, as a well is
+    const level = top + 70 * (1 - f);
+    $('well-water').setAttribute('y', level); $('well-water').setAttribute('height', 74 - level);
+    $('well-surface').setAttribute('y1', level); $('well-surface').setAttribute('y2', level);
+    $('well-surface').style.display = f > 0 ? '' : 'none';
+    $('ldr-well-line').textContent = pc <= 0 ? 'The well is dry' : pc >= 100 ? 'The well is full' : `The well is ${pc}% full`;
+    $('ldr-well-sub').textContent = water <= 0 ? `${boss} has drunk it dry` : `${Math.min(water, WELL_FULL)} of ${WELL_FULL} measures of water returned`;
+    $('ldr-well-legend').textContent = f >= 1 ? `Every drop ${boss} took is back`
+      : `A level's boss returns ${WATER.boss} \u00B7 ${boss} returns ${WATER.final} \u00B7 ${steps} full descents fill it`;
+    $('ldr-well-after').textContent = f >= 1 ? `You have finished the game. ${deep}, the endless depths, stays open.`
+      : `Fill it and the game is won. ${deep}, the endless depths, stays open after.`;
+  })();
 
   const show = () => {
     const n = GLOSSARY.length, g = GLOSSARY[((i % n) + n) % n], card = $('ldr-card');
@@ -453,7 +514,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.1 (2026-10-03)';
+const BUILD = '0.2 (2026-10-03)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -571,8 +632,7 @@ const SECTOR_CLEAR_HEAL = 0.35;
 // level and slay the final boss, who has drunk the well dry - and across runs every boss
 // beaten returns water to the well, which fills on the title screen.
 const FINAL_SECTOR = MEGA_BOSS_SECTOR;        // the level whose boss ends the run
-const WATER = { boss: 1, final: 3 };          // measures of water returned per boss beaten
-const WELL_FULL = 35;                         // measures to fill the well: seven complete descents
+// WATER and WELL_FULL are defined with the loading screen, which draws the well.
 
 // Share of a run's Nidhi you keep when you fall, or abandon. Extracting keeps all of it.
 // Death used to bank everything, exactly like Extract - which made Descend free and the
@@ -616,8 +676,7 @@ const TEJAS_FORMS = {
 };
 
 // Persists across page reloads via localStorage (falls back to in-memory if unavailable, e.g. private browsing)
-const SAVE_KEY = 'loot-chase-session-v1';
-const session = {
+const session = {                    // SAVE_KEY is defined with the loading screen
   metaGold: 0,
   vitalityLevel: 0,   // +10% max HP per level
   powerLevel: 0,       // +8% weapon dmg per level
@@ -747,6 +806,39 @@ const MUSIC_PHASE = {
   surge:       { vol: 1.0,  cutoff: 22000, rate: 1.0 },    // Shakti: full and open
   eclipse:     { vol: 0.9,  cutoff: 800,   rate: 0.97 },   // Grahan: muffled, sunk
   convergence: { vol: 1.25, cutoff: 22000, rate: 1.03 }    // Pralaya: louder, driven
+};
+
+// SOUND EFFECTS ON iOS (requirements 2.16). An iPhone with its ring switch on silent mutes
+// everything played through Web Audio - which is every sound effect in this game - unless
+// the page is also playing an HTML <audio> element. While the background music was on, its
+// <audio> elements did that by accident, so switching the music off (2026-10-02) silenced
+// the effects on the founder's phone as well. The effects no longer lean on the music:
+// the audio session is declared as playback where the browser allows it (Safari 16.4+),
+// and a silent loop stands in for the music on older iOS. Started inside the Begin tap,
+// like all audio. `force` is for the smoke test, which does not run on iOS.
+const Unmute = {
+  el: null,
+  isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
+  start(sound, force) {
+    const ctx = sound && sound.context;
+    if (ctx && ctx.state === 'suspended' && ctx.resume) { const p = ctx.resume(); if (p && p.catch) p.catch(() => {}); }
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* not supported: the loop below covers it */ }
+    if (this.el || !(this.isIOS || force)) return;
+    // Half a second of silence as an 8-bit WAV, built here rather than shipped as a file.
+    const rate = 8000, n = rate / 2, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+    const str = (at, text) => { for (let i = 0; i < text.length; i++) v.setUint8(at + i, text.charCodeAt(i)); };
+    str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate, true);
+    v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, 'data'); v.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+    this.el = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+    this.el.loop = true;
+    this.el.setAttribute('playsinline', '');
+    this.el.setAttribute('x-webkit-airplay', 'deny');
+    this.visible();
+  },
+  hidden() { if (this.el) this.el.pause(); },
+  visible() { if (this.el) { const p = this.el.play(); if (p && p.catch) p.catch(() => {}); } }
 };
 
 const Music = {
@@ -971,6 +1063,28 @@ const BOONS = {
 // gold grow with depth, one more reason to Descend.
 const BOON_ODDS = { 1: { common: 65, rare: 28, epic: 7 }, 2: { common: 50, rare: 35, epic: 15 }, 3: { common: 40, rare: 35, epic: 25 } };
 const BOON_REROLLS = 1;   // free rerolls per level
+
+// WAVE SHAPES (requirements 2.25). Every run used to open the same way - four Asura, then
+// five, then the Gatekeeper - and nothing but Asura appeared before wave 4. Each ordinary
+// wave now draws a shape, never the same one twice running, so two runs do not open alike.
+// `from` is the depth (waves since the top) at which a shape may first appear.
+// Enemies in a wave = WAVE_BASE + wave + (sector - 1), plus WAVE_OPENING on level 1 only: the
+// opening was what felt too easy, and the deeper levels were not. (The base was 3 until 2026-10-03.)
+const WAVE_BASE = 4, WAVE_OPENING = 1;
+const WAVE_SHAPES = {
+  mixed:     { weight: 26, from: 1, gap: 380 },
+  swarm:     { weight: 20, from: 1, gap: 170, toast: () => `A SWARM OF ${N.enemies.melee.toUpperCase()}` },
+  pincer:    { weight: 20, from: 1, gap: 210, toast: () => 'FROM BOTH SIDES' },
+  archers:   { weight: 14, from: 2, gap: 320, toast: () => `${N.enemies.ranged.toUpperCase()} VOLLEY` },
+  brute:     { weight: 14, from: 2, gap: 380, toast: () => `${N.enemies.tank.toUpperCase()} AND GUARD` },
+  splitters: { weight: 12, from: 4, gap: 340, toast: () => `${N.enemies.splitter.toUpperCase()} BROOD` }
+};
+
+// TRIBUTE (requirements 2.26). While a boss lives, every enemy it summoned that you kill
+// adds to its tribute, paid when the boss falls: an extra item, then a boon pick, then a
+// gold one. The price of waiting: each summons comes sooner than the last (`quicken`,
+// down to `fastest` ms), and more of them may stand at once.
+const TRIBUTE = { item: 5, boon: 10, gold: 15, quicken: 0.92, fastest: 3500 };
 
 function pickWeaponEffect(sector) {
   const pool = Object.keys(WEAPON_EFFECTS).filter(k => WEAPON_EFFECTS[k].minSector <= sector);
@@ -1273,12 +1387,12 @@ const ENEMY_TYPES = {
 // weighted pool of types unlocked per wave - depth ramps up as you go deeper
 function pickEnemyType(wave) {
   const pool = [['melee', 100]];
-  // Rakshasa bolts were the #1 killer of new players in Sector 1 (playtest-bot: up to 98%
-  // of max HP in one sector). They now arrive a wave later and at half weight until depth
-  // 5, so Sector 1 teaches them rather than ends runs. Sector 2+ (depth 6+) is unchanged.
-  if (wave >= 3) pool.push(['ranged', wave >= 5 ? 40 : 20]);
-  if (wave >= 3) pool.push(['tank', 30]);
-  if (wave >= 4) pool.push(['splitter', 30]);
+  // Rakshasa stay at half weight until depth 5: their bolts were the worst killer of the
+  // playtest bot on level 1. Since 2026-10-03 every type arrives a wave earlier - the
+  // founder found the opening too easy and too alike from run to run (requirements 2.25).
+  if (wave >= 2) pool.push(['ranged', wave >= 5 ? 40 : 20]);
+  if (wave >= 2) pool.push(['tank', 30]);
+  if (wave >= 3) pool.push(['splitter', 30]);
   const total = pool.reduce((s,p) => s+p[1], 0);
   let r = Phaser.Math.Between(0, total-1);
   for (const [type, weight] of pool) {
@@ -1375,8 +1489,8 @@ class LootScene extends Phaser.Scene {
     // Switching apps or tabs mid-fight pauses the run, so nobody comes back to a death
     // they never saw. The playtest bot turns this off (it runs in a hidden pane).
     this.autoPause = true;
-    this.game.events.on('hidden', () => { if (this.autoPause) this.pauseGame(); Music.hidden(); });
-    this.game.events.on('visible', () => Music.visible());
+    this.game.events.on('hidden', () => { if (this.autoPause) this.pauseGame(); Music.hidden(); Unmute.hidden(); });
+    this.game.events.on('visible', () => { Music.visible(); Unmute.visible(); });
 
     // Everything is built; the loading screen swaps its bar for a Begin button and the
     // hub appears when it is pressed.
@@ -1386,6 +1500,7 @@ class LootScene extends Phaser.Scene {
 
   // Runs inside the Begin tap, which is what lets the browser start audio at all.
   begin() {
+    Unmute.start(this.sound);    // sound effects must work whether or not the music is on
     if (MUSIC_ON) { Music.init(this.sound); Music.unlock(); }
     this.showHub();
   }
@@ -1634,7 +1749,7 @@ class LootScene extends Phaser.Scene {
 
   // Three different boons, each card rolling its metal by depth. A metal with nothing
   // left to offer falls back to any boon that still applies.
-  drawBoons() {
+  drawBoons(allGold) {
     const odds = BOON_ODDS[Math.min(this.sector, 3)];
     const fits = key => {
       const b = BOONS[key];
@@ -1647,20 +1762,27 @@ class LootScene extends Phaser.Scene {
       if (!pool.length) break;
       const roll = Phaser.Math.Between(1, 100);
       const metal = roll <= odds.common ? 'common' : roll <= odds.common + odds.rare ? 'rare' : 'epic';
-      const ofMetal = pool.filter(k => BOONS[k].metal === metal);
-      offer.push(Phaser.Utils.Array.GetRandom(ofMetal.length ? ofMetal : pool));
+      // A tribute of 15 asks for gold on every card; when the gold that applies runs out,
+      // silver stands in before anything else does.
+      const wanted = allGold ? ['epic', 'rare'] : [metal];
+      const ofMetal = wanted.map(m => pool.filter(k => BOONS[k].metal === m)).find(list => list.length);
+      offer.push(Phaser.Utils.Array.GetRandom(ofMetal || pool));
     }
     return offer;
   }
 
-  offerBoons() {
+  // opts.tribute: this pick is a boss's tribute being paid (2.26), not the end of a wave.
+  // opts.then: what follows the pick; by default the next wave.
+  offerBoons(opts = {}) {
     if (this.state !== 'playing') return;
     this.state = 'boon';
     this.pointerTarget = null;
     this.time.paused = true;
     this.tweens.pauseAll();
     this.refreshMusic();
-    this.boonOffer = this.drawBoons();
+    this.boonThen = opts.then || null;
+    this.boonTribute = opts.tribute || 0;
+    this.boonOffer = this.drawBoons(this.boonTribute >= TRIBUTE.gold);
     this.sfx('ui-open');
     this.showBoonScreen();
   }
@@ -1689,9 +1811,12 @@ class LootScene extends Phaser.Scene {
     this.openOverlay(0.8);
     const cx = W / 2, left = cx - 161, opened = performance.now();
     this.ov(this.add.rectangle(cx, 372, 350, 560, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold, 0.8));
-    this.ovText(cx, 112, `${stageLabel(this.sector).toUpperCase()} · WAVE ${this.wave} CLEARED`, { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
+    const tb = this.boonTribute;
+    this.ovText(cx, 112, tb ? `TRIBUTE OF ${tb} PAID` : `${stageLabel(this.sector).toUpperCase()} · WAVE ${this.wave} CLEARED`,
+      { fontSize: '10px', color: tb ? '#ffd23c' : '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
     this.ovText(cx, 136, 'CHOOSE A BOON', { fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
-    this.ovText(cx, 161, 'the fight is paused · boons last until the run ends', { fontSize: '10px', color: '#c8a96e' }).setOrigin(0.5);
+    this.ovText(cx, 161, tb ? 'earned by patience · boons last until the run ends' : 'the fight is paused · boons last until the run ends',
+      { fontSize: '10px', color: '#c8a96e' }).setOrigin(0.5);
 
     this.boonOffer.forEach((key, i) => {
       const b = BOONS[key], y = 230 + i * 98, col = RARITY[b.metal].color;
@@ -1716,7 +1841,7 @@ class LootScene extends Phaser.Scene {
   rerollBoons() {
     if (this.state !== 'boon' || this.rerollsLeft <= 0) return;
     this.rerollsLeft--;
-    this.boonOffer = this.drawBoons();
+    this.boonOffer = this.drawBoons(this.boonTribute >= TRIBUTE.gold);
     this.showBoonScreen();
   }
 
@@ -1734,7 +1859,27 @@ class LootScene extends Phaser.Scene {
     this.tweens.resumeAll();
     this.refreshMusic();
     if (key) this.showToast(N.boons[key][0].toUpperCase(), '#' + RARITY[BOONS[key].metal].color.toString(16).padStart(6, '0'));
-    this.nextWave();
+    const then = this.boonThen;
+    this.boonThen = null;
+    if (this.pendingTribute) {                   // the Gatekeeper's tribute, paid after its wave's own pick
+      const tribute = this.pendingTribute;
+      this.pendingTribute = 0;
+      return this.offerBoons({ tribute, then });
+    }
+    if (then) then(); else this.nextWave();
+  }
+
+  // ---------- TRIBUTE (requirements 2.26) ----------
+  addTribute(boss) {
+    const t = boss.tribute = (boss.tribute || 0) + 1;
+    const next = [TRIBUTE.item, TRIBUTE.boon, TRIBUTE.gold].find(n => n > t);
+    if (boss.nameLabel) boss.nameLabel.setText(`${boss.baseName} · tribute ${t}${next ? '/' + next : ''}`)
+      .setColor(t >= TRIBUTE.item ? '#ffd23c' : '#fffbef');
+    const earned = { [TRIBUTE.item]: 'AN EXTRA ITEM', [TRIBUTE.boon]: 'A BOON', [TRIBUTE.gold]: `A ${N.metals.epic.toUpperCase()} BOON` }[t];
+    if (earned) {
+      this.showToast(`TRIBUTE ${t} - ${earned} WHEN IT FALLS`, '#ffd23c');
+      this.sfx(LOOT_SFX[t >= TRIBUTE.gold ? 'epic' : 'rare']);
+    }
   }
 
   // ---------- PAUSE ----------
@@ -2053,7 +2198,7 @@ class LootScene extends Phaser.Scene {
           label(cx - 60, cy + 62, 'phase ring', '#c8a96e', 8);
         } },
       { title: 'BOSSES',
-        body: `Every boss has a glowing core. It takes full damage only while the phase bar matches the core's colour - survive until then. A shielded boss can't be hurt at all: kill the gold-glowing ${N.enemies.melee} anchoring the shield to break it.`,
+        body: `Every boss has a glowing core. It takes full damage only while the phase bar matches the core's colour - survive until then. A shielded boss can't be hurt at all: kill the gold-glowing ${N.enemies.melee} anchoring the shield to break it. Bosses summon ${N.enemies.melee}: each one you kill first is tribute. ${TRIBUTE.item} earns an item, ${TRIBUTE.boon} a boon, ${TRIBUTE.gold} a ${N.metalGloss.epic || N.metals.epic.toLowerCase()} boon - but the summons speed up.`,
         draw: (cx, cy) => {
           const gr = g(); gr.setDepth(101.5);
           gr.fillStyle(PHASE_DEFS.surge.color, 0.35); gr.fillEllipse(cx - 70, cy + 32, 72, 26);
@@ -2271,12 +2416,16 @@ class LootScene extends Phaser.Scene {
     // Tejas charge for a player patient enough to farm it before committing.
     e.summonTimer -= delta;
     if (e.summonTimer <= 0) {
+      // The price of waiting for tribute (2.26): every summons comes sooner than the last.
+      e.summonEvery = Math.max(TRIBUTE.fastest, e.summonEvery * TRIBUTE.quicken);
       e.summonTimer = e.summonEvery;
       // Capped per boss: uncapped summons crowded the arena so the auto-attack (which
       // targets the nearest enemy) almost never reached the boss - one test fight ran
-      // 3.4 minutes.
+      // 3.4 minutes. The cap grows with tribute, so the patient player earns the crowd.
       const alive = this.enemies.filter(m => m.summonedBy === e.id).length;
-      if (this.enemies.length < 14 && alive < 4) {
+      const cap = Math.min(7, 4 + Math.floor((e.tribute || 0) / 5));
+      this.hint('tribute', `Bosses summon ${N.enemies.melee}. Each one you kill before the boss falls is tribute: ${TRIBUTE.item} earns an extra item, ${TRIBUTE.boon} a boon. But the summons speed up.`);
+      if (this.enemies.length < 16 && alive < cap) {
         const b = this.arenaBounds;
         for (let i = 0; i < 2; i++) {
           const a = Math.random() * Math.PI * 2;
@@ -3069,6 +3218,11 @@ class LootScene extends Phaser.Scene {
     this.boons = {};
     this.rerollsLeft = BOON_REROLLS;
     this.slamBuffMs = 0;   // Read the Slam
+    this.pendingTribute = 0;   // a Gatekeeper's tribute waiting to be paid (2.26)
+    this.boonThen = null;
+    this.boonTribute = 0;
+    this.lastShape = null;     // the last wave's shape (2.25)
+    this.spawnGap = 380;
     this.stillMs = 0;      // Hold Your Ground
     this.moving = false;   // Strike on the Run
 
@@ -3231,17 +3385,55 @@ class LootScene extends Phaser.Scene {
     if (this.wave === GATEKEEPER_WAVE) {
       this.spawnGatekeeper();
       this.sfx('boom', { vol: 0.7 });
-      for (let i = 0; i < 2; i++) this.spawnQueue.push(i); // a little escort pressure alongside the boss
+      for (let i = 0; i < 3; i++) this.spawnQueue.push({}); // a little escort pressure alongside the boss
+      this.spawnGap = 380;
       this.spawnTimer = 700;
       this.showToast(`${N.enemies.gatekeeper.toUpperCase()} BARS THE WAY`, '#fffbef');
       return;
     }
 
+    this.buildWave();
+  }
+
+  // Fills the spawn queue for an ordinary wave (requirements 2.25). `force` names a shape;
+  // only the tests pass it.
+  buildWave(force) {
+    // A first-ever run opens as it always did - two small waves of plain Asura - so the
+    // tutorial tips have room. Everyone after that gets the full opening.
+    const gentle = !force && !session.bestSector && this.sector === 1 && this.wave <= 2;
     // Deeper sectors field more enemies, not just tougher ones - HP scaling alone made
     // Sector 5 feel like Sector 1 with bigger numbers.
-    const count = 3 + this.wave + (this.sector - 1);
-    for (let i = 0; i < count; i++) this.spawnQueue.push(i);
+    const base = (gentle ? 3 : WAVE_BASE + (this.sector === 1 ? WAVE_OPENING : 0)) + this.wave + (this.sector - 1);
+    let shape = force || 'mixed';
+    if (!force && !gentle) {
+      const pool = Object.entries(WAVE_SHAPES).filter(([k, d]) => d.from <= this.depth && (k === 'mixed' || k !== this.lastShape));
+      let r = Phaser.Math.Between(0, pool.reduce((sum, [, d]) => sum + d.weight, 0) - 1);
+      shape = pool.find(([, d]) => (r -= d.weight) < 0)[0];
+    }
+    this.lastShape = shape;
+
+    const q = [], add = (n, entry) => { for (let i = 0; i < n; i++) q.push(Object.assign({}, entry)); };
+    if (shape === 'swarm') add(Math.round(base * 1.7), { type: 'melee', weak: true });       // many, each worth less
+    else if (shape === 'pincer') {                                                           // two opposite walls at once
+      const [a, b] = Phaser.Math.Between(0, 1) ? [0, 1] : [2, 3];
+      for (let i = 0; i <= base; i++) q.push({ edge: i % 2 ? a : b });
+    } else if (shape === 'archers') {
+      const n = Math.max(2, Math.round(base * 0.45));
+      add(base - n, { type: 'melee' }); add(n, { type: 'ranged' });
+    } else if (shape === 'brute') {
+      const n = this.sector >= 2 ? 2 : 1;
+      add(n, { type: 'tank' }); add(Math.max(2, base - 2 * n), { type: 'melee' });
+    } else if (shape === 'splitters') {
+      const n = Math.round(base * 0.55);
+      add(n, { type: 'splitter' }); add(base - n, { type: 'melee' });
+    } else add(base, gentle ? { type: 'melee' } : {});
+    if (shape === 'archers' || shape === 'splitters') Phaser.Utils.Array.Shuffle(q);
+
+    this.spawnQueue = q;
+    this.spawnGap = WAVE_SHAPES[shape].gap;
     this.spawnTimer = 0;
+    if (WAVE_SHAPES[shape].toast) this.showToast(WAVE_SHAPES[shape].toast(), '#ffb38a');
+    return shape;
   }
 
   descend() {
@@ -3402,6 +3594,7 @@ class LootScene extends Phaser.Scene {
     const name = CHAR_LABELS[role] || '';
     if (!name) return;
     const label = enemy.isElite ? name.toUpperCase() : name;
+    enemy.baseName = label;
     enemy.nameLabel = this.add.text(enemy.x, 0, label, {
       resolution: RES,
       fontSize: big ? '11px' : '8px',
@@ -3544,9 +3737,12 @@ class LootScene extends Phaser.Scene {
     this.spawnShieldAdds(boss);
   }
 
-  spawnEnemy() {
-    const type = pickEnemyType(this.depth);
-    const edge = Phaser.Math.Between(0,3);
+  // entry: what the wave's shape asked for - a type, a wall to enter by, a weaker body.
+  // Anything it leaves out is rolled as before.
+  spawnEnemy(entry) {
+    const want = entry && typeof entry === 'object' ? entry : {};
+    const type = want.type || pickEnemyType(this.depth);
+    const edge = want.edge !== undefined ? want.edge : Phaser.Math.Between(0,3);
     const b = this.arenaBounds;
     let x,y;
     if (edge===0) { x = Phaser.Math.Between(b.x, b.right); y = b.y; }
@@ -3554,7 +3750,9 @@ class LootScene extends Phaser.Scene {
     else if (edge===2) { x = b.x; y = Phaser.Math.Between(b.y, b.bottom); }
     else { x = b.right; y = Phaser.Math.Between(b.y, b.bottom); }
 
-    this.spawnEnemyOfType(type, x, y, this.depth, false);
+    const e = this.spawnEnemyOfType(type, x, y, this.depth, false);
+    if (want.weak) { e.hp = e.maxHp = e.maxHp * 0.55; e.speed *= 1.12; e.goldDrop = Math.max(1, Math.round(e.goldDrop * 0.6)); }
+    return e;
   }
 
   spawnEnemyOfType(type, x, y, wave, isSplit, isElite) {
@@ -3663,6 +3861,10 @@ class LootScene extends Phaser.Scene {
 
     this.addGold(enemy.goldDrop);
     this.gainTejas(enemy);
+    if (enemy.summonedBy) {                      // tribute counts only while its boss still stands
+      const boss = this.enemies.find(e => e.id === enemy.summonedBy);
+      if (boss) this.addTribute(boss);
+    }
     if (this.boonRank('hunger') && this.phase === 'eclipse') this.healPlayer(BOONS.hunger.n);
     if (enemy.poison && this.boonLive('rot')) this.spreadPoison(enemy);
     if (enemy.isMega) { this.sfx('boss-fall'); this.sfx('toll', { rate: 0.8 }); }
@@ -3721,13 +3923,20 @@ class LootScene extends Phaser.Scene {
       }
       this.spawnLootPickup(enemy.x, enemy.y, 'epic');
       this.spawnLootPickup(enemy.x + 24, enemy.y, 'epic');
+      const tribute = enemy.tribute || 0;
+      if (tribute >= TRIBUTE.item) this.spawnLootPickup(enemy.x - 24, enemy.y, 'epic');
       this.showToast(`${N.enemies[enemy.isMega ? 'megaboss' : 'sectorboss'].toUpperCase()} FALLS`, '#2fbf71');
       const water = enemy.isMega ? WATER.final : WATER.boss;
       this.runWater += water;
       session.water = Math.min(WELL_FULL, (session.water || 0) + water);
       if (enemy.isMega) { this.bossSlain = true; session.wins = (session.wins || 0) + 1; }
       saveSession();
-      this.time.delayedCall(1000, () => { if (this.state === 'playing') this.showSectorClearChoice(enemy.isMega); });
+      this.time.delayedCall(1000, () => {
+        if (this.state !== 'playing') return;
+        const choice = () => this.showSectorClearChoice(enemy.isMega);
+        // Tribute of 10 or more is paid as a boon pick before the choice screen.
+        if (tribute >= TRIBUTE.boon) this.offerBoons({ tribute, then: choice }); else choice();
+      });
       return;
     }
 
@@ -3735,6 +3944,9 @@ class LootScene extends Phaser.Scene {
 
     if (enemy.isBoss) {
       this.spawnLootPickup(enemy.x, enemy.y, 'epic');
+      if ((enemy.tribute || 0) >= TRIBUTE.item) this.spawnLootPickup(enemy.x + 24, enemy.y, 'epic');
+      // The Gatekeeper's wave already ends in a pick; its tribute pays a second one after it.
+      if ((enemy.tribute || 0) >= TRIBUTE.boon) this.pendingTribute = enemy.tribute;
       this.showToast('THE GATE OPENS', '#2fbf71');
     } else if (enemy.isElite) {
       this.spawnLootPickup(enemy.x, enemy.y, 'epic');
@@ -4146,9 +4358,8 @@ class LootScene extends Phaser.Scene {
     if (this.spawnQueue.length > 0) {
       this.spawnTimer -= delta;
       if (this.spawnTimer <= 0) {
-        this.spawnQueue.pop();
-        this.spawnEnemy();
-        this.spawnTimer = 380 * PHASE_DEFS[this.phase].spawnRateMult;
+        this.spawnEnemy(this.spawnQueue.shift());
+        this.spawnTimer = (this.spawnGap || 380) * PHASE_DEFS[this.phase].spawnRateMult;
       }
     }
 
@@ -4247,8 +4458,10 @@ class LootScene extends Phaser.Scene {
         const topBar = enemy.shieldBarFill ? 27 : (enemy.isBoss ? 18 : 13);
         // Clamped below the progress track: bosses spawn near the top of the arena and
         // their label would otherwise sit on top of the sector rail.
-        const floor = (this.trackY || this.arenaBounds.y) + 14;
-        enemy.nameLabel.setPosition(enemy.x, Math.max(floor, enemy.y - enemy.radius - topBar - 8));
+        const floor = (this.trackY || this.arenaBounds.y) + 14, ab = this.arenaBounds, half = enemy.nameLabel.width / 2 + 2;
+        // Kept inside the arena: a boss's label grows once it carries a tribute count.
+        enemy.nameLabel.setPosition(half * 2 >= ab.width ? ab.centerX : Phaser.Math.Clamp(enemy.x, ab.x + half, ab.right - half),
+                                    Math.max(floor, enemy.y - enemy.radius - topBar - 8));
       }
       if (enemy.shieldBarFill) {
         const sy = enemy.y - enemy.radius - 27;

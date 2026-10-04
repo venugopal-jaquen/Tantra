@@ -89,14 +89,22 @@ try {
   const fonts = await page(`return [...document.fonts].filter(f => f.status === 'loaded').map(f => f.family).filter((f, i, a) => a.indexOf(f) === i);`);
   check('both typefaces loaded', fonts.includes('Yatra One') && fonts.includes('Baloo 2'), fonts.join(', '));
   check('a glossary card is showing', !!(await page(`return document.getElementById('ldr-dev').textContent && document.getElementById('ldr-role').textContent;`)));
+  const well0 = await page(`const t = id => document.getElementById(id).textContent;
+    return { line: t('ldr-well-line'), sub: t('ldr-well-sub'), legend: t('ldr-well-legend'), after: t('ldr-well-after'),
+             water: +document.getElementById('well-water').getAttribute('height'), wall: document.getElementById('well-wall').getAttribute('d').length };`);
+  check('the loading screen shows the well, dry on a new save', well0.line === 'The well is dry' && /drunk it dry/.test(well0.sub) && /7 full descents/.test(well0.legend)
+    && /game is won/.test(well0.after) && well0.water === 0 && well0.wall > 50, JSON.stringify(well0));
   await sleep(500); await shot('1-loader');
 
   // The loader must also fit a phone held sideways, and a small phone.
   for (const [w, h, name] of [[740, 360, 'sideways'], [320, 568, 'small phone']]) {
     await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 2, mobile: false });
     await sleep(350);
-    const fit = await page(`const r = [...document.getElementById('loader').children].map(c => c.getBoundingClientRect());
-      return { top: Math.round(Math.min(...r.map(b => b.top))), bottom: Math.round(Math.max(...r.map(b => b.bottom))), left: Math.round(Math.min(...r.map(b => b.left))), right: Math.round(Math.max(...r.map(b => b.right))), vw: innerWidth, vh: innerHeight };`);
+    const fit = await page(`const box = () => { const r = [...document.getElementById('loader').children].map(c => c.getBoundingClientRect());
+        return { top: Math.round(Math.min(...r.map(b => b.top))), bottom: Math.round(Math.max(...r.map(b => b.bottom))), left: Math.round(Math.min(...r.map(b => b.left))), right: Math.round(Math.max(...r.map(b => b.right))) }; };
+      let worst = box();
+      for (let i = 0; i < GLOSSARY.length; i++) { document.getElementById('ldr-card').click(); const b = box(); if (b.bottom - b.top > worst.bottom - worst.top) worst = b; }
+      return Object.assign(worst, { cards: GLOSSARY.length, vw: innerWidth, vh: innerHeight });`);
     check(`loader fits a ${name} screen (${w}x${h})`, fit.top >= 0 && fit.bottom <= fit.vh && fit.left >= 0 && fit.right <= fit.vw, JSON.stringify(fit));
     await shot('1-loader-' + name.replace(' ', '-'));
   }
@@ -110,6 +118,13 @@ try {
   check('Begin opens the title screen', hub.state === 'hub', JSON.stringify(hub));
   await sleep(1300);
   const music = await page(`return { on: MUSIC_ON, started: Music.inited, tracks: Object.fromEntries(Object.entries(Music.tracks).map(([k, t]) => [k, t.dead ? 'missing' : (t.el.duration ? Math.round(t.el.duration) + 's' : 'loading')])) };`);
+  const fxSound = await page(`const s = game.scene.keys.LootScene, was = settings.sfx;
+    settings.sfx = 0.8; s.sfx('ui-click'); const playing = game.sound.getAllPlaying().length; settings.sfx = was;
+    Unmute.start(game.sound, true); await new Promise(r => setTimeout(r, 400));
+    const el = Unmute.el, out = { loaded: Object.keys(SFX).length, playing, context: game.sound.context.state, session: !!navigator.audioSession,
+      loop: !!el && !el.paused && el.loop && el.duration > 0.4 && !el.error };
+    Unmute.hidden(); out.pausedWhenHidden = el.paused; return out;`);
+  check('sound effects play with the music off, and the iOS stand-in loop is valid', fxSound.playing >= 1 && fxSound.context === 'running' && fxSound.loop && fxSound.pausedWhenHidden, JSON.stringify(fxSound));
   if (music.on) check('all three music tracks load', Object.values(music.tracks).length === 3 && Object.values(music.tracks).every(v => v !== 'missing'), JSON.stringify(music.tracks));
   else check('music is switched off and loads nothing', music.started === false && Object.keys(music.tracks).length === 0, JSON.stringify(music));
   await shot('2-title');
@@ -140,8 +155,9 @@ try {
     s.overlay.find(o => o.type === 'Rectangle' && o.input && o.width === 322).emit('pointerdown');
     const swapped = first.type === 'weapon' ? s.player.weapon === first && s.inventory.some(i => i.name === wasWeapon)
                                               : s.player.trinket === first;
+    const hpAfterSwap = s.player.hp;
     await new Promise(r => setTimeout(r, 400));
-    const safe = s.player.hp === hp || s.player.hp > hp;
+    const safe = s.player.hp >= hpAfterSwap;
     s.resumeGame();
     return { stored, open, swapped, stillStored: s.inventory.length, safe, after: s.state };`);
   await page(`game.scene.keys.LootScene.pauseGame('satchel');`); await sleep(250); await shot('3-satchel'); await page(`game.scene.keys.LootScene.resumeGame();`);
@@ -188,6 +204,7 @@ try {
 
   // Read the Slam: stand in a ring, step out before it lands, hit harder.
   const read = await page(`const s = game.scene.keys.LootScene, p = s.player; s.boons = { readslam: 1 }; s.slamBuffMs = 0; p.iframes = 1e9;
+    s.pickups.forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); }); s.pickups = [];   // loose loot could swap a trinket and change health mid-check
     const e = s.spawnGatekeeper(); e.slamTimer = 1e9; e.slamTypes = ['circle']; e.speed = 0;
     p.x = e.x; p.y = e.y + e.radius + 20; s.beginSlam(e);
     await new Promise(r => setTimeout(r, 250));
@@ -205,6 +222,49 @@ try {
     return out;`);
   check('reading a slam makes the next hits harder', read.touched && read.buff > 2500 && read.mult === 1.5 && read.unhurt, JSON.stringify(read));
   check('timed boons show on Kiran while they are live', read.arc && read.planted && read.walking, JSON.stringify(read));
+
+  // Wave shapes: a first-ever run opens gently; after that waves vary and never repeat a shape.
+  const waves = await page(`const s = game.scene.keys.LootScene, out = { shapes: {}, repeat: false };
+    const keep = { wave: s.wave, depth: s.depth, best: session.bestSector, last: s.lastShape };
+    s.showToast = () => {};                                   // 300 waves are built here: no toasts
+    session.bestSector = 0; s.sector = 1; s.wave = 1; s.depth = 1; s.buildWave();
+    out.gentle = { n: s.spawnQueue.length, plain: s.spawnQueue.every(e => e.type === 'melee' && !e.weak) };
+    session.bestSector = 1; const early = new Set(); for (let i = 0; i < 80; i++) early.add(s.buildWave());
+    out.early = [...early].sort().join(','); out.opening = s.spawnQueue.length >= 6;
+    s.wave = 4; s.depth = 4; let prev = null;
+    for (let i = 0; i < 200; i++) { const sh = s.buildWave(); out.shapes[sh] = (out.shapes[sh] || 0) + 1; if (sh === prev && sh !== 'mixed') out.repeat = true; prev = sh; }
+    const q = sh => { s.buildWave(sh); return s.spawnQueue.slice(); };
+    out.swarm = q('swarm').length; out.swarmWeak = q('swarm').every(e => e.weak && e.type === 'melee');
+    out.pincer = [...new Set(q('pincer').map(e => e.edge))].sort().join('');
+    out.archers = q('archers').filter(e => e.type === 'ranged').length; out.brute = q('brute').filter(e => e.type === 'tank').length;
+    out.split = q('splitters').filter(e => e.type === 'splitter').length; out.mixed = q('mixed').length;
+    delete s.showToast;
+    Object.assign(s, { wave: keep.wave, depth: keep.depth, lastShape: keep.last, spawnQueue: [], spawnGap: 380 }); session.bestSector = keep.best;
+    return out;`);
+  check('waves take different shapes, and a first run opens gently', waves.gentle.n === 4 && waves.gentle.plain && waves.early === 'mixed,pincer,swarm' && waves.opening
+    && Object.keys(waves.shapes).length === 6 && !waves.repeat && waves.swarm === 15 && waves.swarmWeak && (waves.pincer === '01' || waves.pincer === '23')
+    && waves.archers === 4 && waves.brute === 1 && waves.split === 5 && waves.mixed === 9, JSON.stringify(waves));
+
+  // Tribute: summoned enemies killed before the boss falls are counted on the boss and paid out.
+  const trib = await page(`const s = game.scene.keys.LootScene, p = s.player; p.iframes = 1e9; s.boons = {}; s.dismissHint();
+    const e = s.spawnGatekeeper(); e.slamTimer = 1e9; e.speed = 0; e.summonTimer = 0; const every0 = e.summonEvery;
+    await new Promise(r => setTimeout(r, 250));
+    const summoned = s.enemies.filter(m => m.summonedBy === e.id);
+    const out = { summoned: summoned.length, quicker: e.summonEvery < every0 };
+    e.summonTimer = 1e9; summoned.forEach(m => s.killEnemy(m)); out.count = e.tribute; out.label = e.nameLabel.text;
+    const loot0 = s.pickups.length; e.tribute = 15; s.killEnemy(e);
+    out.items = s.pickups.length - loot0; out.pending = s.pendingTribute;
+    await new Promise(r => setTimeout(r, 800));
+    out.first = { state: s.state, tribute: s.boonTribute };
+    s.pickBoon(s.boonOffer[0]);
+    out.second = { state: s.state, tribute: s.boonTribute, head: s.overlay.filter(o => o.type === 'Text')[0].text, metals: s.boonOffer.map(k => BOONS[k].metal) };
+    const wave = s.wave; s.pickBoon(s.boonOffer[0]); s.spawnQueue = [];
+    out.after = { state: s.state, advanced: s.wave === wave + 1, pending: s.pendingTribute };
+    s.boons = {}; return out;`);
+  check('summoned enemies killed before a boss falls count as tribute', trib.summoned === 2 && trib.quicker && trib.count === 2 && /tribute 2\/5/.test(trib.label), JSON.stringify(trib));
+  check('tribute pays an extra item and a second, better boon pick', trib.items === 2 && trib.pending === 15 && trib.first.state === 'boon' && trib.first.tribute === 0
+    && trib.second.state === 'boon' && trib.second.tribute === 15 && /TRIBUTE OF 15 PAID/.test(trib.second.head) && trib.second.metals.every(m => m !== 'common')
+    && trib.after.state === 'playing' && trib.after.advanced && trib.after.pending === 0, JSON.stringify(trib));
 
   // Each sector's floor, with a boss and a slam zone on it to judge legibility.
   await page(`const s = game.scene.keys.LootScene; s.player.iframes = 1e9; s.dismissHint(); const e = s.spawnGatekeeper(); e.slamTimer = 1e9; s.beginSlam(e); s.spawnLootPickup(120, 420, 'epic'); s.spawnLootPickup(280, 500, 'rare');`);
@@ -253,6 +313,13 @@ try {
   const fell = await page(`const s = game.scene.keys.LootScene; s.sector = 2; s.runGold = 100; s.endRun(false); return ${texts};`);
   check('falling says how close you came', /You fell in Jal-Kund, level 2 of 3/.test(fell) && /Vritra waits one level below/.test(fell), fell);
   await sleep(250); await shot('5c-fell');
+  const paid = await page(`const s = game.scene.keys.LootScene; ${press};
+    s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; s.wave = 6;
+    const b = s.spawnSectorBoss(); b.tribute = 10; const loot0 = s.pickups.length; s.killEnemy(b); const items = s.pickups.length - loot0;
+    await new Promise(r => setTimeout(r, 1400));
+    const out = { items, state: s.state, tribute: s.boonTribute }; s.pickBoon(s.boonOffer[0]); out.then = s.state;
+    s.endRun(false); session.water = 0; saveSession(); return out;`);
+  check("a level boss's tribute is paid before the choice screen", paid.items === 3 && paid.state === 'boon' && paid.tribute === 10 && paid.then === 'sectorChoice', JSON.stringify(paid));
   const won = await page(`const s = game.scene.keys.LootScene; ${press};
     s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; s.sector = 3; s.wave = 6; s.runGold = 300; s.setFloor(3);
     s.killEnemy(s.spawnSectorBoss());
@@ -332,6 +399,9 @@ try {
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
   await shot('9-plain-loader');
+  const well1 = await page(`const t = id => document.getElementById(id).textContent;
+    return { line: t('ldr-well-line'), sub: t('ldr-well-sub'), after: t('ldr-well-after'), water: +document.getElementById('well-water').getAttribute('height') };`);
+  check('the loading screen shows the water already returned', well1.line === 'The well is 9% full' && /^3 of 35/.test(well1.sub) && well1.water > 0 && /The Bottomless Well/.test(well1.after), JSON.stringify(well1));
   const plain = await page(`settings.sfx = 0; settings.tips = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));
     const s = game.scene.keys.LootScene, seen = [];
     const grab = list => list.filter(o => o && o.type === 'Text' && o.text).forEach(o => seen.push(o.text));

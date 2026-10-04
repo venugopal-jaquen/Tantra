@@ -124,7 +124,7 @@
     const s = S();
     // Never start on top of a run that is still alive (paused, mid-fight, or waiting on
     // the sector-clear choice): its HUD would be orphaned and show up as a phantom leak.
-    if (s.state === 'boon') s.pickBoon(null);
+    while (s.state === 'boon') s.pickBoon(null);   // a tribute pick can follow a wave's pick
     if (s.overlay && s.overlay.length) s.closeOverlay();
     if (s.state === 'paused') s.resumeGame();
     if (s.state === 'playing' || s.state === 'sectorChoice') s.endRun(false);
