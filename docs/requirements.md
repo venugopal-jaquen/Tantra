@@ -45,6 +45,7 @@ Kept so a reversal is never mistaken for drift or an error.
 | 2026-10-02 | **Falling keeps half the run's Nidhi.** §2.5. | Death banked everything, exactly like Extract, so Descend carried no risk and the Extract/Descend choice was a fake one. The founder approved 50%. |
 | 2026-10-02 | **Typography: Yatra One + Baloo 2.** §2.18. | The founder asked for type that feels Indian. The game had been rendering in the engine's default monospace. |
 | 2026-10-02 | **Asura (2017) reviewed as a reference game.** | Outcome of a separate research session. *Adopted:* a glossary-card loading screen (§2.19). *Pinned for after itch.io:* the Bhagya chart and boss-kill perks (`design-document.md` P7, P8). *Unchanged:* the live-tip tutorial (Asura shipped a separate tutorial, players disliked it, and it was replaced with learn-as-you-play, which is what §2.12.1 already does) and the antagonists-only naming rule (stricter than Asura's, and it stays). The lesson worth keeping: Asura turned cultural ideas into mechanics instead of using them only as names. |
+| 2026-10-04 | **A second set of floors, switchable.** §2.10. | The founder on the level backgrounds: "Current ones look too repetitive and low quality. Make something more sophisticated and worthwhile. It should look customized for this game." A new set was painted and offered beside the old one; the choice is theirs. |
 | 2026-10-03 | **Wave shapes, a bigger opening, and tribute.** §2.25, §2.26. | The founder's first playtest of boons on a phone: "the initial runs look a bit too easy with no variability", and a reminder that patient players who kill more creeps before the boss should earn more drops and better benefits. They reached level 3 with the well 6% full. Every run had opened with four Asura, five Asura, then the Gatekeeper, and patience paid only a flat item roll. |
 | 2026-10-03 | **Sound effects restored on iPhone.** §2.16. | The founder: "When I said remove the music, I just said remove the background music. I liked the gameplay sounds and effects." They had gone silent on the phone as a side effect of the music being switched off. |
 | 2026-10-03 | **The well on the loading screen.** §2.19. | The founder asked for an infographic of how full the well is, which also says what happens once it is full. |
@@ -180,6 +181,26 @@ Target feeling, stated by the founder: **"rich and rewarding — treasure, wealt
 - **Canonical reference:** `concept/loot-chase-visual-forge-v2.html`. Measured palette: background `#3D1200`, gold `#FFD23C`, cream `#FFFBEF`, dark ore `#2A0800`, forge orange `#FF8C42` / `#FF6B1A`, bronze `#C8A96E`, and cyan `#4DD0FF` as the single cool accent (Shanti).
 - **Superseded:** `concept/visual-style-sheet.html` ("Cut Light") and `concept/character-art-spec.html` (abstract cosmic roster) both predate this direction and are retained only as history.
 - **Open:** abstract polygon shapes were rejected as unable to carry an Indian-themed identity. Real sprites are required; sourcing is unresolved (see §2.12).
+
+**Floor sets (2026-10-04).** The founder found the painted floors of 2026-10-02 "too repetitive and low quality" and asked for options that look made for this game. The floors are now grouped in sets (`FLOOR_SETS`), one line picks the set the game uses (`FLOOR_SET`), and `?floors=<name>` previews another without changing anything, the same way `?names=` previews a name pack.
+
+| Set | What it is | Status |
+|---|---|---|
+| `classic` | The line-drawn floors of 2026-10-02 and the saw-tooth stair frame | Default until the founder chooses |
+| `carved` | Weathered stone shaded pixel by pixel, carving lit by one sun, and a scene per level. The stairs round the arena are drawn as stairs: three courses of dressed stone, lit risers on two sides, shadowed on the other two | Offered 2026-10-04 |
+
+The `carved` scenes, each tied to the story:
+
+| Level | Scene |
+|---|---|
+| 1 Prangan | A court paved in irregular sandstone round a carved sun (Kiran means "ray of light"). The near corner lies in the wall's shade, and two arched jaali windows throw patterned sunlight across it. Marigold petals are strewn about; pots of marigolds stand on the steps |
+| 2 Jal-Kund | The landing itself is flooded. Four drowned steps descend to a deep pool, each darker; a net of light plays on the water; lotus, fish and floating clay lamps drift in the shallows; and a long serpentine shadow lies in the deep, a first hint of Vritra |
+| 3 Nidhi-Kosh | Vritra's coil is cast in bronze and laid into the floor round the whole vault, head at the top where the boss stands, eyes of ruby. His hoard is heaped in the four corners. Under a gold-rimmed grate at the centre the stolen water still glows |
+
+- **Lights.** A set may place a few soft additive lights over a floor (`lights`): the floating lamps flicker, the grate's glow and the hoard's gleam breathe, the serpent's eyes pulse. They are clipped to the arena and pause with the game.
+- **Legibility was checked** with all four enemy types, a boss, three loot drops and a slam telegraph on each floor. Loose coins on level 3 are kept within 44 px of the walls: scattered in the open they read as pickups.
+- **Cost.** Each floor is painted once, about 0.3 to 0.6 s on a desktop. Level 1 is painted while the loading screen is up; the next level's is painted while the Extract or Descend screen is showing, so the descent does not stutter.
+- Two further routes were offered and not taken yet: images from an image model (`docs/art-prompts.md` carries prompts for these same scenes) and commissioned art (pinned, P4).
 
 ### 2.11 Non-Functional
 - Runs in-browser via Phaser 3 (CDN-loaded), no build step, portrait-oriented canvas (mobile-first).

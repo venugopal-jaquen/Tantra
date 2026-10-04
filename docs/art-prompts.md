@@ -97,6 +97,47 @@ cracks spreading outward as if heat rises from below, brighter at the centre and
 fading to dark at the walls. Flat, no objects, no coins lying about. Portrait 3:5.
 ```
 
+### The same floors as scenes (2026-10-04)
+
+The game now has a second, hand-painted set of floors (`?floors=carved`) built round three
+scenes. If you would rather have an image model paint them, these prompts describe the
+same scenes. Keep the 3:5 proportion and the calm middle.
+
+Level 1, the sunlit court:
+
+```
+[style block] Top-down orthographic view of a sandstone courtyard at the top of an Indian
+stepwell. Irregular weathered paving slabs. In the centre a large carved sun medallion
+with long and short faceted rays, a beaded ring and a small lotus at its heart. The
+upper-left corner lies in soft shadow, and inside the shadow two tall arched patches of
+dappled sunlight fall across the floor, cast through a pierced stone jaali screen.
+Scattered marigold petals. Carved fan motifs in the four corners. No objects standing on
+the floor. Portrait 3:5.
+```
+
+Level 2, the flooded steps:
+
+```
+[style block, but allow deep teal-green water as the main colour] Top-down orthographic
+view of a flooded stepwell landing. A dry stone rim, then four concentric rectangular
+steps descending under clear green water, each step darker, to a deep pool in the middle.
+A bright net of rippling light on the water. Lotus pads with pink flowers, small koi and
+six floating clay oil lamps with warm glows, all near the edges. In the deep centre, the
+faint dark shadow of a huge serpent under the water. Portrait 3:5.
+```
+
+Level 3, the serpent's vault:
+
+```
+[style block] Top-down orthographic view of a treasure vault floor. Dark warm stone in
+lozenge slabs with thin glowing gold joints. A giant bronze serpent relief with gold
+scales is inlaid in the floor, coiled once around the whole perimeter, its head at the
+top centre with two small ruby eyes. Heaps of gold coins and cut gems in the four
+corners only. In the centre a round gold-rimmed iron grate with glowing turquoise water
+visible beneath it. The middle of the floor between the grate and the serpent stays
+plain. Portrait 3:5.
+```
+
 ## 3. Store cover (itch.io)
 
 Landscape, **630 × 500** (make it 1260 × 1000). Leave the upper-left third calm for the
