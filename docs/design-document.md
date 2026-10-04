@@ -27,13 +27,15 @@ Features the founder has deliberately **parked** — agreed, but not to be built
 | # | Pinned | Date | What it is | Why it waits |
 |---|---|---|---|---|
 | P1 | **Title / front page redesign** — ▶ *due, see L2* | 2026-09-24 | A complete redesign of the pre-game screen, which currently reads as a plain menu. Covers the visuals shown *before* the game loads. | Founder wants the in-game visuals settled first, so the front page can be designed to match them rather than guessed ahead of them. |
-| P2 | **Name your character + look-builder loading screen** | 2026-09-24 | The player names Kiran's successor and builds cosmetic looks for a loading/character screen (reference: Destiny 2's character screen). Cosmetic only — no stat effect. | Intended as a social hook: players styling and sharing their character. Needs its own interface and a cosmetics pipeline, which depends on art that does not exist yet (P4). |
+| P2 | **Name your character + look-builder loading screen** — ▶ *profile screen started 2026-10-04 (`requirements.md` §2.28); naming and looks still pinned* | 2026-09-24 | The player names Kiran's successor and builds cosmetic looks for a loading/character screen (reference: Destiny 2's character screen). Cosmetic only — no stat effect. | Intended as a social hook: players styling and sharing their character. Needs its own interface and a cosmetics pipeline, which depends on art that does not exist yet (P4). |
 | P3 | **First-run tutorial** (= M8.5) — ✅ *built, see L4* | 2026-09-24 | A live tutorial teaching each system during Wave 1. | Mechanics are still moving — teaching a system that changes means rewriting the tutorial each time. |
 | P4 | **Commission custom Indian art** | 2026-09-24 | Replace the CraftPix European-fantasy roster with commissioned art that carries the Indian identity visually, not just by name. Est. ₹3,000–8,000 (`requirements.md` §2.13). | Only once the itch.io release shows the game has an audience. |
 | P5 | **Full visual-story polish** | 2026-09-24 | A broader art and narrative pass across the whole game. | Explicitly tied to the game reaching "critical mass". |
 | P6 | **Real-device performance check** — ▶ *due, see L8* | 2026-09-24 | Profile on an actual mid-range Android and an iPhone. `RES` caps the canvas at 3× (1200×2100 buffer), untested on budget hardware. | Should happen **before** the itch.io launch, not after — this one is a pre-launch gate, not a someday item. |
 | P7 | **Bhagya chart** | 2026-10-02 | A chart cast at the start of each run: four boons, one tied to each Cosmic Cycle phase (for example, "during Grahan, kills heal"). Shown in full up front so the player plans around it, and switched on one boon at a time at each Extract/Descend screen, which is one more reason to Descend. It is our answer to Asura's procedural skill tree, whose known weakness was that a run's strength depended on the luck of the deal. Named *Bhagya* (fortune): "Kundali" was avoided because astrology is a living practice and the planets are worshipped. | After itch.io (founder, 2026-10-02). It deepens the Cosmic Cycle and needs real players' feedback on the base game first. |
-| P8 | **Boss-kill perks** | 2026-10-02 | The first kill of Bakasura, Nidhi-Raksha and Vritra each unlocks one permanent perk the player can equip, after Asura: Vengeance Edition's "Chakra" system. It rewards skill, where the Vitality and Power upgrades reward accumulated Nidhi. | After itch.io (founder, 2026-10-02). |
+| P8 | **Boss-kill perks** — ✅ *built 2026-10-05, widened to eight perks (`requirements.md` §2.30)* | 2026-10-02 | The first kill of Bakasura, Nidhi-Raksha and Vritra each unlocks one permanent perk the player can equip, after Asura: Vengeance Edition's "Chakra" system. It rewards skill, where the Vitality and Power upgrades reward accumulated Nidhi. | After itch.io (founder, 2026-10-02). Brought forward by the founder on 2026-10-05 as the rewards for the seven depths. |
+| P9 | **Daily descent** — 🔔 *remind the founder once the itch.io page is live* | 2026-10-05 | One run a day that is the same for everyone: the same waves, shapes, drops and boon offers, from a seed made of the date. One attempt counts, and the result (depth, level reached, time, Nidhi) is shown as a line to copy and share. It gives a reason to open the game tomorrow and something to compare with a friend, and needs no account and no server until a shared leaderboard is wanted. Needs first: a seeded random source in place of the engine's (every roll in a run), and a decision on which depth the daily is played at. | "We will develop it post launch on itch.io (remind me)." It is the fourth of the four retention options offered on 2026-10-04; depths (the spine) and perks (the rewards) were built first. |
+| P10 | **Buy music** — 🔔 *remind the founder once the itch.io page is live* | 2026-10-05 | Licensed music bought for the game, in place of free tracks. What went wrong with the first attempt, in the founder's words: "Transitions weren't continuous plus the style for some tracks were not good." So the brief is one continuous piece, or stems that layer, in place of separate tracks swapped at the hub, a fight and a boss; and a style chosen by ear before anything is wired in. The engine for it is still in the game, switched off (`MUSIC_ON`). | "Freeware is still not good enough ... We can think about buying music post launch on itch.io (remind me)." Music stays off until then; the sound effects stay. |
 
 ## 1.2 Launch track — itch.io POC (added 2026-09-27)
 
@@ -43,9 +45,9 @@ Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the cond
 |---|---|---|---|
 | L1 | **Game name** | **Working title: Anantarya** (founder, 2026-10-02: "will give name later"). One constant, `GAME_TITLE`, renames the loader, hub and browser tab; `index.html` carries its own copy. Earlier candidates: "Loot Chase" (generic, pre-pivot) and the repo name "Tantra" (reads as sexual/new-age to a Western audience, and is a religious practice term). One caution on the working title is logged in `requirements.md` §1.7. | A final name is chosen. It still blocks L2's art and L9's store page. |
 | L2 | **Title / welcome screen** (= P1) | ⏳ **First design built 2026-10-02** (`requirements.md` §2.21): the view down a stepwell shaft, with DESCEND at the bottom of the well and the upgrades below. **Waiting on the founder's verdict.** If they prefer made art, `docs/art-prompts.md` has prompts for an image model. | A Cosmic Forge title screen with the name, art and a Start that leads into the hub. |
-| L3 | **How to play** | ✅ **Built 2026-09-27**: illustrated cards (`requirements.md` §2.12.2), nine since The Goal and Boons were added. | A help page reachable from the title and the hub. |
+| L3 | **How to play** | ✅ **Built 2026-09-27**: illustrated cards (`requirements.md` §2.12.2), ten since The Goal, Boons and Depths · Perks were added. | A help page reachable from the title and the hub. |
 | L4 | **First-run tutorial** (= P3) | ✅ **Built 2026-09-27**: 14 one-time live tips, skippable (§2.12.1). | Wave 1 of a player's first run teaches movement, loot, the satchel and slams live. |
-| L5 | **Audio** | ⏳ 37 sound effects are in. **Music was switched off on 2026-10-02**: the founder heard it and the tracks, and above all the transitions, did not suit the game (`requirements.md` §2.16). The engine and files remain; the approach needs rethinking. **The founder likes the sound effects** (2026-10-03: "I liked the gameplay sounds and effects"); they had gone silent on an iPhone when the music was switched off and were restored the same day (`requirements.md` §2.16). | Free SFX (hits, slams, pickups, Tejas) plus Indian-flavoured music, with a mute toggle. |
+| L5 | **Audio** | ⏳ 37 sound effects are in. **Music was switched off on 2026-10-02**: the founder heard it and the tracks, and above all the transitions, did not suit the game (`requirements.md` §2.16). The engine and files remain; the approach needs rethinking. **The founder likes the sound effects** (2026-10-03: "I liked the gameplay sounds and effects"); they had gone silent on an iPhone when the music was switched off and were restored the same day (`requirements.md` §2.16). **2026-10-05: music stays off for the launch.** The founder judged free tracks not good enough and will consider buying music after the itch.io launch (P10). The POC ships with sound effects only. | Free SFX (hits, slams, pickups, Tejas) plus Indian-flavoured music, with a mute toggle. |
 | L6 | **Pause + settings** | ✅ **Built 2026-09-27** (§2.17). | Pause mid-run (essential on mobile), mute, and a "reset save" with a confirmation step. |
 | L7 | **Loading screen** | ✅ **Built 2026-10-02**: one glossary card per load, with a copper-silver-gold progress bar and a Begin button (`requirements.md` §2.19). Since 2026-10-03 it also shows how full the well is and what a full well means. | A branded loader with a progress bar. |
 | L8 | **Real-device check** (= P6) | Untested on a real phone. | Profiled on a mid-range Android and an iPhone; the frame rate holds with a full arena. |
@@ -62,8 +64,8 @@ After first playing the merged build, the founder paused changes to settle three
 
 **1. The goal and the ending: decided and built (2026-10-02).** The founder chose A + B: a run ends when Vritra is slain at the bottom of level 3, and every boss beaten returns water to a well that fills across runs (`requirements.md` §2.23). Still open from that discussion:
 
-- **Seven worlds.** The founder wants seven worlds eventually and suggested four more sectors. The alternative offered was seven tiers of the same three-level descent, each win opening a harder one, which needs almost no new art. Left for later; the well was sized at seven complete descents so that either reading fits.
-- What a win unlocks besides water.
+- **Seven worlds: settled 2026-10-05 as seven depths.** The founder had wanted seven worlds and suggested four more sectors; the alternative offered was seven tiers of the same three-level descent, each win opening a harder one, which needs almost no new art. They chose the tiers ("B as the spine"), built as depths of the well (`requirements.md` §2.30).
+- **What a win unlocks besides water: settled 2026-10-05.** The next depth, and a perk.
 
 **2. The moment-to-moment play feels plain.** Compared with the genre's hits (2026-10-02): moving while the character attacks on its own is exactly what Vampire Survivors and Brotato do, so the base is sound. What they add and this game lacks:
 
@@ -122,6 +124,67 @@ Games for the founder to play first: Vampire Survivors and 10 Minutes Till Dawn 
 **First phone playtest of boons (2026-10-03).** The founder reached level 3 with the well 6% full and reported "the initial runs look a bit too easy with no variability". They also asked whether rewarding patient play (more creeps killed before the boss, more drops and better benefits) was built: only partly. All three proposals were approved and built the same day: wave shapes and a bigger opening (`requirements.md` §2.25) and tribute (§2.26). Still open after it: what a full well should unlock beyond ending the game, and a difficulty pass on levels 2 and 3 once the founder has played this build.
 
 **3. Does the Indian identity help or harm onboarding and retention?** The founder is re-evaluating. The names are now switchable in one line so the question can be tested instead of argued (`requirements.md` §2.12).
+
+## 1.4 Testing round and assessment (2026-10-04)
+
+Asked for by the founder after the profile, power, boon-button, hybrid-name and glass changes: a detailed test, A/B runs, and "straight answers about adoptability, gamer retention, and advertising potential" from a new player's point of view.
+
+**Automated checks.** `tools/smoke-test.mjs`: 51 of 51, run repeatedly. One check proved flaky (a fixed wait where a headless page can stall) and now waits on the event.
+
+**A/B runs.** The playtest bot, target level 3. The bot is a far weaker player than the founder, so the columns compare builds; they are not a forecast of how a person fares.
+
+| Run | New character, 16 runs: health lost on level 1 · reached level 3 · slew Vritra | Upgrades 6/6, 12 runs: the same three |
+|---|---|---|
+| A. Build 0.1 (boons, uniform waves), hybrid names | 53% · 8 · 1 | 23% · 10 · 5 |
+| B. Build 0.2 (wave shapes, tribute) | 83% · 8 · 1 | 21% · 10 · 3 |
+| C. Build 0.3 (this one), hybrid names | 99% · 7 · 0 | 28% · 9 · 6 |
+| D. Build 0.3, Sanskrit names | 50% · 6 · 0 | 27% · 11 · 2 |
+| E. Build 0.3, boons spent only between levels | 117% · 3 · 1 | |
+| E. Build 0.3, boons never spent | 109% · 1 · 0 | |
+
+What the runs say:
+
+1. **Names do not change difficulty.** C and D are the same code under two name packs. The gap between them (99% against 50% on level 1) is the size of the noise in 16 bot runs, and a reminder not to read a single batch.
+2. **The three builds are about equally hard overall.** Level 1 costs a new character more since the wave update (0.2); the share reaching level 3 has not moved. The founder's impression that the hybrid session was harder than the latest build cannot come from the names. It is either an older build served from the phone's cache for that address, or run-to-run swing, which is large now that waves take different shapes. A strong player may also find the newer builds easier past level 1: more enemies mean more item rolls, Nidhi and tribute, which the bot is too weak to turn into an advantage.
+3. **Unspent boons are costly.** Spending them only between levels cuts the share reaching level 3 from about 7 in 16 to 3 in 16. Hence the reminder added to the + button (`requirements.md` §2.24).
+4. **Cost of the glass.** The frosted backdrop took about 140 ms to make in software rendering on the test machine; with a graphics card it is a few milliseconds. The bot skips it.
+
+**Assessment, as a new player would meet the game.** Opinion, argued from the screens, the genre and the figures above; no real new player has been watched yet.
+
+*Will a new player get in? Mostly yes.*
+- For: it runs in a browser tab with nothing to install, plays with one thumb, states its goal on the first two screens, and the first two waves are gentle.
+- Against: too many systems arrive in the first three minutes (phases, boss cores, shield anchors, satchel, boons, tribute, Tejas, power, extract or descend). The riskiest is the first boss: about a minute in, the Gatekeeper takes 12% damage unless the phase bar matches the colour at his feet, and a player who misses that one tip meets a boss that will not die.
+- Against: the first download is about 3.5 MB (engine, 37 sound files, sprites) with the engine and fonts fetched from other servers; no music; small text.
+
+*Will they come back? Not for long, yet.*
+- For: runs are short (three to six minutes), and Extract or Descend, tribute and boon builds now make two runs differ.
+- Against: there is little to earn across runs. Two upgrades, a well that fills in about seven wins, five weapons, five trinkets, 18 boons. A good player sees everything in an evening, as the founder did, and after Vritra nothing new appears. No reason to return tomorrow is built: no unlocks from wins, no harder tier, no daily or shared element.
+
+*Will it advertise? Weakly, as it stands.*
+- For: the setting is distinctive in a crowded genre, and the title shaft, the flooded level and the serpent's vault now make screenshots worth stopping for.
+- Against: the cast does not match the place. The hero, the green goblins and a horned Viking are stock sprites with no animation frames, standing in an Indian stepwell.
+- Against: fights are 6 to 15 enemies and thin beams. The genre sells on screens full of enemies and numbers; a five-second clip of this game does not yet show that.
+- Against: the name "Anantarya" is hard to say, spell and search for.
+
+*What would move each most.*
+
+| Aim | Change |
+|---|---|
+| Getting in | Teach the first boss's rule in the fight itself (a marker on the phase bar while he is vulnerable, a visible "resisted" on hits that are not), and hold tribute, power and the satchel tips back until level 2 |
+| Coming back | Something earned by winning: the pinned boss-kill perks (P8), a harder tier after the first win, new enemies or a fourth weapon family |
+| Advertising | Hero and enemies that belong to the setting (P4), walk and attack frames, bigger late waves, music, and a name people can repeat |
+
+**What was chosen (2026-10-05).** The founder agreed with all three aims and picked from the options offered for each.
+
+| Aim | Chosen | Built |
+|---|---|---|
+| Getting in | All four: the state drawn on the boss, a countdown, a first Gatekeeper who arrives open, and a softer penalty on level 1 (the founder set it at 30% of a hit getting through, where 50% was proposed) | `requirements.md` §2.6 |
+| Coming back | Seven depths as the spine, perks as the rewards. The daily descent is pinned (P9) | §2.30 |
+| Advertising | Motion in code and a drawn Vritra now. The founder will make the characters themselves with image tools, and is not ready to commission an artist (`docs/character-art-guide.md`). Music waits until after launch (P10) | §2.31 |
+
+Holding the tribute, power and satchel tips back until level 2 was proposed under "getting in" and not chosen; it is not built.
+
+**Not yet measured:** how much harder each depth is. The automated checks confirm that each depth's rule takes effect; a bot comparison across depths 1, 2, 4 and 7 was started and stopped for time (over 25 minutes for 84 runs), and is still owed. Depths 2 to 7 are therefore untuned.
 
 ---
 
