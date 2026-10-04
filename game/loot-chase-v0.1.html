@@ -2394,7 +2394,13 @@ class LootScene extends Phaser.Scene {
     this.refreshBoonButton(true);
     this.sfx('loot-rajat', { vol: 0.7 });
     this.hint('boon', (this.sys.game.device.input.touch ? 'A boon is ready. Tap the + button' : 'A boon is ready. Press + (or tap the + button)') +
-      ' whenever you like: the fight waits while you choose.');
+      ' whenever you like: the fight waits while you choose.', true);   // ahead of other tips: the button has just appeared
+    // Unspent boons are power left on the table: in bot runs, a player who only spends them
+    // between levels reaches level 3 half as often. So a second one waiting earns a nudge -
+    // a line of text, after the wave's own banner has gone, never a pause.
+    if (this.boonQueue.length >= 2) this.time.delayedCall(1700, () => {
+      if (this.state === 'playing' && this.boonQueue.length >= 2) this.showToast(`${this.boonQueue.length} BOONS WAITING - TAP +`, '#ffd23c');
+    });
   }
 
   buildBoonButton() {
@@ -2599,7 +2605,7 @@ class LootScene extends Phaser.Scene {
     this.ov(this.add.image(cx, 226, `${CHARS.player}-front`).setDisplaySize(132, 132), 102);
 
     // Tapping a slot says what is in it.
-    const detail = this.ovText(cx, 322, '', { fontSize: '11px', color: '#f0dcc0', align: 'center', wordWrap: { width: 300 } }).setOrigin(0.5, 0);
+    const detail = this.ovText(cx, 320, '', { fontSize: '11px', color: '#f0dcc0', align: 'center', wordWrap: { width: 300 } }).setOrigin(0.5, 0);
     const slot = (x, y, size, texture, tint, corner, title, body, dim) => {
       this.glass(this.ov(this.add.graphics()), x, y, size, size, { fill: FORGE.panel, alpha: 0.6, stroke: dim ? 0x6b4a2e : tint, strokeAlpha: 0.95, radius: 9, sheen: 0.08 });
       this.ov(this.add.image(x, y - (size > 40 ? 2 : 0), texture).setDisplaySize(size * 0.6, size * 0.6).setTint(dim ? 0x5a4535 : tint), 102);
@@ -2610,11 +2616,11 @@ class LootScene extends Phaser.Scene {
     // Left: what is equipped, each with the power it adds.
     const col = left + 26, f = this.tejasForm ? TEJAS_FORMS[w.effect || 'none'] || TEJAS_FORMS.none : null;
     this.ovText(col, 146, 'GEAR', { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
-    slot(col, 182, 50, `icon_${w.effect || 'none'}`, RARITY[w.rarity].color, '+' + parts.weapon, w.name + (w.shots > 1 ? `  x${w.shots}` : ''), (WEAPON_EFFECTS[w.effect] || WEAPON_EFFECTS.none).desc);
-    if (t) slot(col, 240, 50, `icon_${t.effect}`, RARITY[t.rarity].color, '+' + parts.trinket, t.name, TRINKET_EFFECTS[t.effect].desc);
-    else slot(col, 240, 50, 'icon_mystery', 0x6b4a2e, '', 'No trinket', live ? 'Trinkets drop from enemies: walk over one.' : 'Trinkets are found during a run.', true);
-    if (session.tejasUnlocked) slot(col, 298, 50, `icon_${w.effect || 'none'}`, f.colour, '+' + parts.tejas, `${N.supercharge}: ${f.name}`, f.desc);
-    else slot(col, 298, 50, 'icon_mystery', 0x6b4a2e, '', `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}.`, true);
+    slot(col, 178, 48, `icon_${w.effect || 'none'}`, RARITY[w.rarity].color, '+' + parts.weapon, w.name + (w.shots > 1 ? `  x${w.shots}` : ''), (WEAPON_EFFECTS[w.effect] || WEAPON_EFFECTS.none).desc);
+    if (t) slot(col, 232, 48, `icon_${t.effect}`, RARITY[t.rarity].color, '+' + parts.trinket, t.name, TRINKET_EFFECTS[t.effect].desc);
+    else slot(col, 232, 48, 'icon_mystery', 0x6b4a2e, '', 'No trinket', live ? 'Trinkets drop from enemies: walk over one.' : 'Trinkets are found during a run.', true);
+    if (session.tejasUnlocked) slot(col, 286, 48, `icon_${w.effect || 'none'}`, f.colour, '+' + parts.tejas, `${N.supercharge}: ${f.name}`, f.desc);
+    else slot(col, 286, 48, 'icon_mystery', 0x6b4a2e, '', `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}.`, true);
 
     // Right: the boons of this run.
     this.ovText(right - 46, 146, 'BOONS', { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
@@ -2635,15 +2641,15 @@ class LootScene extends Phaser.Scene {
       ['boon_quick', 0xffd23c, 'Attack speed', (Math.round(st.perSecond * 100) / 100).toFixed(2) + ' a second'],
       ['boon_feet', 0x5fe08a, 'Move speed', String(Math.round(st.move))]
     ];
-    this.ovText(left, 362, 'STATS', { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' });
+    this.ovText(left, 372, 'STATS', { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' });
     rows.forEach(([icon, tint, label, value], i) => {
-      const y = 388 + i * 25;
-      if (i) { const ln = this.ov(this.add.graphics(), 101); ln.lineStyle(1, 0xffffff, 0.08); ln.lineBetween(left, y - 12.5, right, y - 12.5); }
+      const y = 398 + i * 24;
+      if (i) { const ln = this.ov(this.add.graphics(), 101); ln.lineStyle(1, 0xffffff, 0.08); ln.lineBetween(left, y - 12, right, y - 12); }
       this.ov(this.add.image(left + 9, y, icon).setDisplaySize(16, 16).setTint(tint), 102);
       this.ovText(left + 26, y, label, { fontSize: '12px', color: '#f0dcc0' }).setOrigin(0, 0.5);
       this.ovText(right, y, value, { fontSize: '13px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(1, 0.5);
     });
-    this.ovText(cx, 512, `range ${Math.round(st.range)}  ·  damage taken ${st.taken}%`, { fontSize: '10px', color: '#8a7360' }).setOrigin(0.5);
+    this.ovText(cx, 514, `range ${Math.round(st.range)}  ·  damage taken ${st.taken}%`, { fontSize: '10px', color: '#8a7360' }).setOrigin(0.5);
 
     // Where the power comes from: one bar, a colour to each source.
     const src = [['Base', parts.base, 0x8a7360], ['Upgrades', parts.upgrades, 0xfffbef], ['Weapon', parts.weapon, 0xff8c42],
@@ -2818,7 +2824,7 @@ class LootScene extends Phaser.Scene {
 
   frost(slot, depth) {
     const rt = this.frostRT && this.frostRT[slot], small = this.frostSmall;
-    if (!rt) return null;
+    if (!rt || this.silent) return null;      // the playtest bot runs silent and never looks at a panel
     try {
       rt.setVisible(false);
       this.children.depthSort();

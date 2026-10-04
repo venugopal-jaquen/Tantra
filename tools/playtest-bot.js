@@ -9,7 +9,8 @@
  * weapon range, sidesteps slam telegraphs, grabs loot that is not crowded, fires Tejas
  * as soon as it is full, and always chooses Descend until its target sector. After each
  * wave it takes a boon at random from the three offered, or none if the profile says
- * boons: false (to compare a build with and without them).
+ * boons: false (to compare a build with and without them), or only between levels if it
+ * says boons: 'late' (a player who ignores the + button while fighting).
  *
  * Usage (browser console, with the game open):
  *   const s = document.createElement('script'); s.src = '../tools/playtest-bot.js';
@@ -180,9 +181,10 @@
       steer();
       if (s.tejasBtn && s.tejas >= 100 && s.tejasActive <= 0) s.activateTejas();
       // Boons wait on the + button now; the bot spends each one as soon as it is earned.
-      if (s.boonQueue && s.boonQueue.length) {
+      if (s.boonQueue && s.boonQueue.length && cur.profile.boons === false) { s.boonQueue.length = 0; s.refreshBoonButton(); }
+      else if (s.boonQueue && s.boonQueue.length && cur.profile.boons !== 'late') {
         s.openBoons();
-        while (s.state === 'boon') s.pickBoon(cur.profile.boons === false ? null : s.boonOffer[Math.floor(Math.random() * s.boonOffer.length)]);
+        while (s.state === 'boon') s.pickBoon(s.boonOffer[Math.floor(Math.random() * s.boonOffer.length)]);
       }
     }
     t += DT; g().headlessStep(t, DT); cur.frames++;
@@ -196,6 +198,10 @@
     } else if (s.state === 'boon') {
       s.pickBoon(cur.profile.boons === false ? null : s.boonOffer[Math.floor(Math.random() * s.boonOffer.length)]);
     } else if (s.state === 'sectorChoice') {
+      if (s.boonQueue && s.boonQueue.length) {            // a player who only spends boons between levels
+        s.openBoons();
+        while (s.state === 'boon') s.pickBoon(s.boonOffer[Math.floor(Math.random() * s.boonOffer.length)]);
+      }
       if (s.sector < cur.profile.target) { s.descend(); cur.sectors.push(sectorRec(s)); }
       else { s.endRun(true); endRun('extracted at target'); return; }
     } else if (s.state === 'summary') {
