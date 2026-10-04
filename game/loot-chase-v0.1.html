@@ -40,6 +40,9 @@
     color: var(--cream); text-align: center;
     background:
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cg fill='none' stroke='%23e8a868' stroke-opacity='.13'%3E%3Crect x='13' y='13' width='22' height='22'/%3E%3Cpath d='M24 9 39 24 24 39 9 24Z M24 0V9 M24 39V48 M0 24H9 M39 24H48 M0 -8 8 0 0 8 -8 0Z M48 -8 56 0 48 8 40 0Z M0 40 8 48 0 56 -8 48Z M48 40 56 48 48 56 40 48Z'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(circle at 16% 24%, rgba(255,150,40,.4), transparent 34%),
+      radial-gradient(circle at 88% 64%, rgba(40,170,150,.26), transparent 36%),
+      radial-gradient(circle at 30% 92%, rgba(255,90,30,.3), transparent 34%),
       radial-gradient(ellipse at 50% 36%, #7a2c06 0%, #3d1200 55%, #2a0800 100%);
     transition: opacity .45s ease;
   }
@@ -56,9 +59,11 @@
 
   .card {
     width: 21em; max-width: 100%; box-sizing: border-box; padding: 1em 1.2em .8em;
-    background: linear-gradient(#4a1a04, #331003);
-    border: .09em solid var(--gold); border-radius: .9em;
-    box-shadow: 0 .6em 2.4em rgba(0,0,0,.45), inset 0 0 0 .25em var(--deep), inset 0 0 0 .31em rgba(200,169,110,.45);
+    /* Glass: the colours behind show through, blurred. */
+    background: linear-gradient(rgba(110,44,10,.5), rgba(48,14,2,.6));
+    -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+    border: 1px solid rgba(255,220,160,.42); border-radius: 1.1em;
+    box-shadow: 0 .6em 2.4em rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.22), inset 0 0 0 1px rgba(255,255,255,.05);
     cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
   }
   .card:focus-visible { outline: .12em solid var(--cream); outline-offset: .2em; }
@@ -77,8 +82,10 @@
   /* How full the well is (requirements 2.19): the goal, on screen before the game loads. */
   .well {
     width: 21em; max-width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 1em;
-    padding: .55em 1em; text-align: left; background: rgba(42,8,0,.6);
-    border: 1px solid rgba(200,169,110,.45); border-radius: .9em;
+    padding: .55em 1em; text-align: left; background: linear-gradient(rgba(70,24,6,.42), rgba(34,8,0,.55));
+    -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+    border: 1px solid rgba(255,220,160,.3); border-radius: 1.1em;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
   }
   .well-art { flex: none; width: 5.2em; height: 6.2em; }
   .well-wall { fill: #1c0803; stroke: var(--bronze); stroke-width: 1.6; stroke-linejoin: round; }
@@ -118,13 +125,15 @@
   /* ---------- Feedback dialog (requirements 2.21) ---------- */
   #feedback {
     position: fixed; inset: 0; z-index: 20; box-sizing: border-box; padding: 16px;
-    display: grid; place-items: center; background: rgba(18,4,0,.84); color: var(--cream);
+    display: grid; place-items: center; background: rgba(18,4,0,.5); color: var(--cream);
+    -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
   }
   #feedback[hidden] { display: none; }
   .fb-box {
     width: min(380px, 100%); box-sizing: border-box; padding: 18px 18px 16px; text-align: left;
-    background: linear-gradient(#4a1a04, #331003); border: 1.5px solid var(--gold); border-radius: 14px;
-    box-shadow: 0 10px 40px rgba(0,0,0,.5);
+    background: linear-gradient(rgba(96,36,8,.62), rgba(44,12,2,.72)); border: 1px solid rgba(255,220,160,.45); border-radius: 18px;
+    -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+    box-shadow: 0 10px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.22);
   }
   .fb-title { font-family: "Yatra One", "Baloo 2", serif; font-weight: 400; font-size: 26px; line-height: 1.1; color: var(--gold); margin: 0 0 4px; }
   .fb-sub { margin: 0 0 12px; font-size: 14px; line-height: 1.35; color: #f0dcc0; }
@@ -212,12 +221,12 @@ const GAME_TITLE = 'Anantarya';
 // else in this file spells a name out; it asks the pack (`N`).
 //
 // To change how the whole game is named, change NAME_PACK below - one line. To compare
-// packs without editing anything, add ?names=plain (or ?names=sanskrit) to the address.
+// packs without editing anything, add ?names=plain or ?names=sanskrit to the address.
 //
 //   sanskrit - the game's identity since 2026-09-24: Sanskrit names, English glosses.
 //   plain    - a draft in plain English, kept so the founder can judge whether the
 //              Sanskrit helps or costs players. Its wording has not been reviewed.
-//   hybrid   - a draft that keeps Sanskrit only where it is short and easy to say.
+//   hybrid   - the default since 2026-10-04: English, with five short Sanskrit words kept.
 //
 // Internal keys (melee, drift, common, venom...) are never shown and never change, so
 // saves survive a switch of pack.
@@ -308,7 +317,10 @@ const NAME_PACKS = {
       { kind: 'Power',       dev: 'तेजस्',         name: 'Tejas',          meaning: 'radiance',
         role: 'Your supercharge. It fills as you fight; unleash it for six seconds of power shaped by your weapon. Awakens on level 2.' },
       { kind: 'Menu',        dev: 'विराम',         name: 'Viram',          meaning: 'pause',
-        role: 'The pause menu. It also tells you what your weapon and trinket actually do.' }
+        role: 'The pause menu. It also tells you what your weapon and trinket actually do.' },
+      { kind: 'Boons',       dev: '', name: 'The + button', meaning: '', role: 'Every wave you clear earns a boon. Tap + whenever you like: the fight waits while you pick one of three.' },
+      { kind: 'Bosses',      dev: '', name: 'Tribute',      meaning: '', role: 'Kill what a boss summons before you kill the boss. 5 earns an extra item, 10 a boon, 15 a gold boon.' },
+      { kind: 'You',         dev: '', name: 'Power',        meaning: '', role: 'One number for how strong you are. Your weapon, your trinket and every boon add to it. Tap it to see your profile.' }
     ]
   },
   plain: {
@@ -345,21 +357,26 @@ const NAME_PACKS = {
       { kind: 'Phase',    dev: '', name: 'Convergence',    meaning: '', role: 'Every 90 seconds an elite arrives, and the best loot of the cycle drops.' },
       { kind: 'Treasure', dev: '', name: 'Gold',           meaning: '', role: 'What you gather in the depths. Extract to bank all of it. Fall, and you keep half.' },
       { kind: 'Loot',     dev: '', name: 'Copper, Silver, Gold', meaning: '', role: 'The metal is the quality. Gold items are more than twice as strong as copper.' },
-      { kind: 'Power',    dev: '', name: 'Radiance',       meaning: '', role: 'Your supercharge. It fills as you fight; unleash it for six seconds of power shaped by your weapon.' }
+      { kind: 'Power',    dev: '', name: 'Radiance',       meaning: '', role: 'Your supercharge. It fills as you fight; unleash it for six seconds of power shaped by your weapon.' },
+      { kind: 'Boons',       dev: '', name: 'The + button', meaning: '', role: 'Every wave you clear earns a boon. Tap + whenever you like: the fight waits while you pick one of three.' },
+      { kind: 'Bosses',      dev: '', name: 'Tribute',      meaning: '', role: 'Kill what a boss summons before you kill the boss. 5 earns an extra item, 10 a boon, 15 a gold boon.' },
+      { kind: 'You',         dev: '', name: 'Power',        meaning: '', role: 'One number for how strong you are. Your weapon, your trinket and every boon add to it. Tap it to see your profile.' }
     ]
   },
-  // A middle path: Sanskrit only where it is short and easy to say, English everywhere
-  // else. Drafted 2026-10-02 after the founder said the names felt overtly Sanskrit and
-  // hard to pronounce. Not reviewed.
+  // The default since 2026-10-04. The founder played all three and liked this one "much
+  // better than the Sanskrit version", then asked for it to lean further West. So English
+  // carries everything a player must understand at a glance - the phases, the enemy
+  // types, the weapons - and five short Sanskrit words stay as the game's own: Kiran,
+  // Asura, Vritra, Nidhi and Tejas. No Devanagari on the loading screen.
   hybrid: {
     player: 'Kiran', currency: 'Nidhi', satchel: 'Satchel', supercharge: 'Tejas', stage: 'Level',
     pause: 'Paused', pauseSub: '',
-    enemies: { melee: 'Asura', ranged: 'Rakshasa', tank: 'Mahish', splitter: 'Bloodseed',
+    enemies: { melee: 'Asura', ranged: 'Hexer', tank: 'Brute', splitter: 'Bloodseed',
                gatekeeper: 'Gatekeeper', sectorboss: 'Hoard Guardian', megaboss: 'Vritra' },
-    phases:  { drift: 'Shanti', surge: 'Shakti', eclipse: 'Grahan', convergence: 'Pralaya' },
+    phases:  { drift: 'Calm', surge: 'Surge', eclipse: 'Eclipse', convergence: 'Convergence' },
     metals:  { common: 'Copper', rare: 'Silver', epic: 'Gold' },
     metalGloss: { common: '', rare: '', epic: '' },
-    weapons:  { none: ['Katar', 'push-dagger'], venom: ['Poison Katar', ''], vampiric: ['Blood Talwar', ''],
+    weapons:  { none: ['Dagger', ''], venom: ['Venom Dagger', ''], vampiric: ['Blood Sword', ''],
                 chain: ['Storm Chakram', ''], executioner: ["Slayer's Axe", ''] },
     trinkets: { vitality: ['Life Gem', ''], aegis: ['Aegis', ''], thorns: ['Thorn Band', ''],
                 swift: ['Swift Sandals', ''], regen: ['Healing Herb', ''] },
@@ -372,27 +389,29 @@ const NAME_PACKS = {
     sectors: [['The Courtyard', 'sunlit stone at the top of the well'],
               ['The Drowned Steps', 'the flooded level'],
               ['The Gold Vault', 'the hoard at the bottom']],
-    deeper: ['Patal', 'the world below'],
+    deeper: ['The Abyss', 'deeper than any map remembers'],
     cards: [
-      { kind: 'You',      dev: '\u0915\u093F\u0930\u0923',  name: 'Kiran',    meaning: 'ray of light', role: 'That is you. You strike on your own - your whole job is choosing where to stand.' },
-      { kind: 'Enemy',    dev: '\u0905\u0938\u0941\u0930',  name: 'Asura',    meaning: 'power-seeking rivals of the devas', role: 'The rank and file. They rush straight at you and hit on contact.' },
-      { kind: 'Enemy',    dev: '\u0930\u093E\u0915\u094D\u0937\u0938', name: 'Rakshasa', meaning: 'shape-shifting sorcerers', role: 'They keep their distance and throw bolts. Keep moving sideways.' },
-      { kind: 'Enemy',    dev: '\u092E\u0939\u093F\u0937',  name: 'Mahish',   meaning: 'the buffalo demon', role: "Slow, heavy, and hits like a cart. Don't let it corner you." },
-      { kind: 'Enemy',    dev: '', name: 'Bloodseed',      meaning: '', role: 'Every drop of its blood rises as a new demon. Kill one, and two smaller ones spring up.' },
-      { kind: 'Boss',     dev: '', name: 'Gatekeeper',     meaning: '', role: 'Bars the way on wave 3. Strike while the phase bar matches the glow at his feet.' },
-      { kind: 'Boss',     dev: '', name: 'Hoard Guardian', meaning: '', role: 'Hides behind a shield. Kill the gold-glowing anchors to break it.' },
-      { kind: 'The hoarder', dev: '\u0935\u0943\u0924\u094D\u0930', name: 'Vritra', meaning: "the serpent who hoarded the world's waters", role: 'Waits at the bottom of the well. Slay him and the water returns.' },
-      { kind: 'Phase',    dev: '\u0936\u093E\u0902\u0924\u093F', name: 'Shanti',  meaning: 'peace', role: 'The calm stretch of the Cosmic Cycle. Catch your breath and pick your fights.' },
-      { kind: 'Phase',    dev: '\u0936\u0915\u094D\u0924\u093F', name: 'Shakti',  meaning: 'power', role: 'Enemies pour in faster - and loot drops richer.' },
-      { kind: 'Phase',    dev: '\u0917\u094D\u0930\u0939\u0923', name: 'Grahan',  meaning: 'eclipse', role: 'Everyone hits 30% harder. You included.' },
-      { kind: 'Phase',    dev: '\u092A\u094D\u0930\u0932\u092F', name: 'Pralaya', meaning: 'dissolution', role: 'Every 90 seconds an elite arrives, and the best loot of the cycle drops.' },
-      { kind: 'Treasure', dev: '\u0928\u093F\u0927\u093F',  name: 'Nidhi',    meaning: 'treasure', role: 'What you gather in the depths. Extract to bank all of it. Fall, and you keep half.' },
-      { kind: 'Loot',     dev: '', name: 'Copper, Silver, Gold', meaning: '', role: 'The metal is the quality. Gold items are more than twice as strong as copper.' },
-      { kind: 'Power',    dev: '\u0924\u0947\u091C\u0938\u094D', name: 'Tejas',   meaning: 'radiance', role: 'Your supercharge. It fills as you fight; unleash it for six seconds of power shaped by your weapon.' }
+      { kind: 'You',        dev: '', name: 'Kiran',          meaning: 'ray of light', role: 'That is you. You strike on your own - your whole job is choosing where to stand.' },
+      { kind: 'Enemy',      dev: '', name: 'Asura',          meaning: 'demons of Indian myth', role: 'The rank and file. They rush straight at you and hit on contact.' },
+      { kind: 'Enemy',      dev: '', name: 'Hexer',          meaning: '', role: 'Keeps its distance and throws bolts. Keep moving sideways.' },
+      { kind: 'Enemy',      dev: '', name: 'Brute',          meaning: '', role: "Slow, heavy, and hits like a cart. Don't let it corner you." },
+      { kind: 'Enemy',      dev: '', name: 'Bloodseed',      meaning: '', role: 'Kill one, and two smaller ones spring up.' },
+      { kind: 'Boss',       dev: '', name: 'Gatekeeper',     meaning: '', role: 'Bars the way on wave 3. Strike while the phase bar matches the glow at his feet.' },
+      { kind: 'Boss',       dev: '', name: 'Hoard Guardian', meaning: '', role: 'Hides behind a shield. Kill the gold-glowing anchors to break it.' },
+      { kind: 'Final boss', dev: '', name: 'Vritra',         meaning: "the serpent who drank the world's waters", role: 'Waits at the bottom of the well. Slay him and the water returns.' },
+      { kind: 'Phase',      dev: '', name: 'Surge',          meaning: '', role: 'Enemies pour in faster - and loot drops richer.' },
+      { kind: 'Phase',      dev: '', name: 'Eclipse',        meaning: '', role: 'Everyone hits 30% harder. You included.' },
+      { kind: 'Phase',      dev: '', name: 'Convergence',    meaning: '', role: 'Every 90 seconds an elite arrives, and the best loot of the cycle drops.' },
+      { kind: 'Treasure',   dev: '', name: 'Nidhi',          meaning: 'treasure', role: 'What you gather in the depths. Extract to bank all of it. Fall, and you keep half.' },
+      { kind: 'Loot',       dev: '', name: 'Copper, Silver, Gold', meaning: '', role: 'The metal is the quality. Gold items are more than twice as strong as copper.' },
+      { kind: 'Supercharge', dev: '', name: 'Tejas',         meaning: 'radiance', role: 'It fills as you fight. Unleash it for six seconds of power shaped by your weapon.' },
+      { kind: 'Boons',      dev: '', name: 'The + button',   meaning: '', role: 'Every wave you clear earns a boon. Tap + whenever you like: the fight waits while you pick one of three.' },
+      { kind: 'Bosses',     dev: '', name: 'Tribute',        meaning: '', role: 'Kill what a boss summons before you kill the boss. 5 earns an extra item, 10 a boon, 15 a gold boon.' },
+      { kind: 'You',        dev: '', name: 'Power',          meaning: '', role: 'One number for how strong you are. Your weapon, your trinket and every boon add to it. Tap it to see your profile.' }
     ]
   }
 };
-const NAME_PACK = 'sanskrit';
+const NAME_PACK = 'hybrid';
 const N = NAME_PACKS[new URLSearchParams(location.search).get('names')] || NAME_PACKS[NAME_PACK];
 const GLOSSARY = N.cards;
 
@@ -514,7 +533,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.2 (2026-10-03)';
+const BUILD = '0.3 (2026-10-04)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -1085,6 +1104,13 @@ const WAVE_SHAPES = {
 // gold one. The price of waiting: each summons comes sooner than the last (`quicken`,
 // down to `fastest` ms), and more of them may stand at once.
 const TRIBUTE = { item: 5, boon: 10, gold: 15, quicken: 0.92, fastest: 3500 };
+
+// POWER (requirements 2.28). One number for how strong Kiran is, the way Destiny shows
+// one: everything carried adds a fixed, visible amount, so equipping an item or taking a
+// boon moves it by a figure the player can learn. It is a gear score, not a formula for
+// damage - the stats on the profile screen give the real numbers.
+const POWER = { base: 100, upgrade: 8, weapon: { common: 20, rare: 45, epic: 80 }, shot: 15, effect: 15,
+                trinket: { common: 15, rare: 30, epic: 50 }, boon: { common: 10, rare: 25, epic: 40 }, tejas: 30 };
 
 function pickWeaponEffect(sector) {
   const pool = Object.keys(WEAPON_EFFECTS).filter(k => WEAPON_EFFECTS[k].minSector <= sector);
@@ -2015,6 +2041,7 @@ class LootScene extends Phaser.Scene {
     // area is exactly 0..W, 0..H. Every coordinate below stays in world units.
     this.cameras.main.setZoom(RES).centerOn(W/2, H/2);
     this.makeLootIcons();
+    this.initFrost();
 
     // Below every layer. At the default depth 0 it covered the floor, the phase tint AND
     // every slam telegraph - which silently made boss attacks invisible.
@@ -2041,6 +2068,9 @@ class LootScene extends Phaser.Scene {
     this.add.rectangle(W/2, HUD_H/2, W, HUD_H, FORGE.panel);
     this.hudText = this.add.text(14, 2, '', { resolution: RES, fontSize: '13px', color: '#fffbef' });
     this.weaponText = this.add.text(14, 60, '', { resolution: RES, fontSize: '11px', color: '#c8a96e' });
+    // Power (2.28), at the right of the same line. Tapping it opens the profile.
+    this.powerText = this.add.text(W - 14, 59, '', { resolution: RES, fontSize: '12px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(1, 0);
+    this.add.zone(W - 52, 66, 104, 24).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.pauseGame('profile'));
 
     // input for movement (only acts while playing)
     this.pointerTarget = null;
@@ -2060,12 +2090,14 @@ class LootScene extends Phaser.Scene {
 
     this.buildPauseButton();
     const escape = () => {
-      if (this.state === 'boon') return;   // a boon must be chosen
+      if (this.state === 'boon') return this.closeBoons();   // the picks keep
       if (this.state === 'playing') this.pauseGame();
       else if (this.state === 'paused') this.resumeGame();
       else if (this.overlay && this.overlay.length) this.closeOverlay();
     };
     this.input.keyboard.on('keydown-ESC', escape);
+    // Dota's habit: + spends a waiting boon. (= is the same key without Shift.)
+    this.input.keyboard.on('keydown', e => { if (e.key === '+' || e.key === '=' || e.key === 'b' || e.key === 'B') this.openBoons(); });
     this.input.keyboard.on('keydown-P', escape);
     // Switching apps or tabs mid-fight pauses the run, so nobody comes back to a death
     // they never saw. The playtest bot turns this off (it runs in a hidden pane).
@@ -2094,7 +2126,7 @@ class LootScene extends Phaser.Scene {
     const b = this.arenaBounds;
     this.tejasPos = { x: b.x + 36, y: b.bottom - 36 };
     const { x, y } = this.tejasPos;
-    this.tejasBtn = this.add.circle(x, y, 25, FORGE.deep, 0.9)
+    this.tejasBtn = this.add.circle(x, y, 25, FORGE.deep, 0.62)
       .setStrokeStyle(2, FORGE.bronze, 0.8).setInteractive({ useHandCursor: true }).setDepth(20);
     this.tejasArc = this.add.graphics().setDepth(21);
     this.tejasLabel = this.add.text(x, y - 4, N.supercharge.toUpperCase(), { resolution: RES, fontSize: '8px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(0.5).setDepth(22);
@@ -2171,7 +2203,7 @@ class LootScene extends Phaser.Scene {
       g.lineStyle(2, FORGE.gold, 0.35 + 0.5 * pulse); g.strokeCircle(x, y, 30 + pulse * 4);
       this.tejasLabel.setColor('#ffd23c'); this.tejasPct.setText('READY').setColor('#ffd23c');
     } else {
-      this.tejasBtn.setFillStyle(FORGE.deep, 0.9);
+      this.tejasBtn.setFillStyle(FORGE.deep, 0.62);
       this.tejasLabel.setColor(this.tejasActive > 0 ? '#fffbef' : '#c8a96e');
       this.tejasPct.setText(this.tejasActive > 0 ? f.name : `${Math.floor(p * 100)}%`)
         .setColor(this.tejasActive > 0 ? '#fffbef' : '#8a7360');
@@ -2352,20 +2384,75 @@ class LootScene extends Phaser.Scene {
     return offer;
   }
 
-  // opts.tribute: this pick is a boss's tribute being paid (2.26), not the end of a wave.
-  // opts.then: what follows the pick; by default the next wave.
-  offerBoons(opts = {}) {
-    if (this.state !== 'playing') return;
+  // Boons wait for the player (2026-10-04). A cleared wave no longer stops the fight: it
+  // adds a boon to a queue and lights the + button, and the next wave comes on. The
+  // player opens the picks when they choose to - Dota's "level up when you like" - and
+  // only then does the fight pause. The founder: "the number of pauses when boon
+  // selection is needed just turned me off from the game."
+  queueBoon(tribute = 0) {
+    this.boonQueue.push({ tribute, offer: null });
+    this.refreshBoonButton(true);
+    this.sfx('loot-rajat', { vol: 0.7 });
+    this.hint('boon', (this.sys.game.device.input.touch ? 'A boon is ready. Tap the + button' : 'A boon is ready. Press + (or tap the + button)') +
+      ' whenever you like: the fight waits while you choose.');
+  }
+
+  buildBoonButton() {
+    this.destroyBoonButton();
+    const b = this.arenaBounds, x = b.right - 25, y = b.centerY + 86;
+    this.boonUI = {
+      ring:  this.add.circle(x, y, 21, 0x000000, 0).setStrokeStyle(2, FORGE.gold, 0.9).setDepth(20),
+      btn:   this.add.circle(x, y, 20, FORGE.gold, 0.92).setStrokeStyle(1.5, 0xfffbef, 0.9).setDepth(21),
+      plus:  this.add.text(x, y - 1, '+', { resolution: RES, fontSize: '26px', color: '#2a0800', fontStyle: 'bold', display: false }).setOrigin(0.5).setDepth(22),
+      badge: this.add.circle(x + 15, y - 15, 9, 0xc4331f, 1).setStrokeStyle(1.5, 0xfffbef, 0.9).setDepth(23),
+      count: this.add.text(x + 15, y - 15, '', { resolution: RES, fontSize: '10px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(0.5).setDepth(24)
+    };
+    this.boonUI.btn.setInteractive(new Phaser.Geom.Circle(20, 20, 26), Phaser.Geom.Circle.Contains);
+    this.boonUI.btn.input.cursor = 'pointer';
+    this.boonUI.btn.on('pointerdown', () => this.openBoons());
+    this.tweens.add({ targets: this.boonUI.ring, scale: 1.55, alpha: 0, duration: 1100, repeat: -1, ease: 'Cubic.easeOut' });
+    this.refreshBoonButton();
+  }
+
+  refreshBoonButton(pop) {
+    if (!this.boonUI) return;
+    const n = this.boonQueue.length;
+    Object.values(this.boonUI).forEach(o => o.setVisible(n > 0));
+    this.boonUI.btn.input.enabled = n > 0;
+    this.boonUI.count.setText(String(n));
+    if (pop && n > 0) {
+      this.boonUI.btn.setScale(1.5); this.boonUI.plus.setScale(1.5);
+      this.tweens.add({ targets: [this.boonUI.btn, this.boonUI.plus], scale: 1, duration: 320, ease: 'Back.easeOut' });
+    }
+    if (this.choiceBoonTxt && this.choiceBoonTxt.active) this.choiceBoonTxt.setText(n ? `Choose your boon${n > 1 ? 's' : ''} first (${n})` : 'Boons chosen');
+  }
+
+  destroyBoonButton() {
+    if (!this.boonUI) return;
+    Object.values(this.boonUI).forEach(o => { this.tweens.killTweensOf(o); o.destroy(); });
+    this.boonUI = null;
+  }
+
+  // Opens the waiting picks. From a fight it pauses the fight; from the choice screen
+  // after a level it simply lies over it.
+  openBoons() {
+    if (!this.boonQueue || !this.boonQueue.length || (this.state !== 'playing' && this.state !== 'sectorChoice')) return;
+    this.boonReturn = this.state;
+    if (this.state === 'playing') { this.pointerTarget = null; this.time.paused = true; this.tweens.pauseAll(); }
     this.state = 'boon';
-    this.pointerTarget = null;
-    this.time.paused = true;
-    this.tweens.pauseAll();
     this.refreshMusic();
-    this.boonThen = opts.then || null;
-    this.boonTribute = opts.tribute || 0;
-    this.boonOffer = this.drawBoons(this.boonTribute >= TRIBUTE.gold);
     this.sfx('ui-open');
     this.showBoonScreen();
+  }
+
+  // Leaves the picks, chosen or not: whatever is still in the queue keeps.
+  closeBoons() {
+    if (this.state !== 'boon') return;
+    this.closeOverlay();
+    this.state = this.boonReturn || 'playing';
+    if (this.state === 'playing') { this.time.paused = false; this.tweens.resumeAll(); }
+    this.refreshMusic();
+    this.refreshBoonButton();
   }
 
   boonNote(key) {
@@ -2389,20 +2476,24 @@ class LootScene extends Phaser.Scene {
   }
 
   showBoonScreen() {
+    const pick = this.boonQueue[0], waiting = this.boonQueue.length - 1;
+    // The offer is drawn once and kept, so closing and reopening is not a free reroll.
+    if (!pick.offer) pick.offer = this.drawBoons(pick.tribute >= TRIBUTE.gold);
+    this.boonOffer = pick.offer;
+    this.boonTribute = pick.tribute;
     this.openOverlay(0.8);
-    const cx = W / 2, left = cx - 161, opened = performance.now();
-    this.ov(this.add.rectangle(cx, 372, 350, 560, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold, 0.8));
-    const tb = this.boonTribute;
-    this.ovText(cx, 112, tb ? `TRIBUTE OF ${tb} PAID` : `${stageLabel(this.sector).toUpperCase()} · WAVE ${this.wave} CLEARED`,
-      { fontSize: '10px', color: tb ? '#ffd23c' : '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
+    const cx = W / 2, left = cx - 161, opened = performance.now(), tb = pick.tribute;
+    this.ovPanel(cx, 372, 350, 560);
+    this.ovText(cx, 112, (tb ? `TRIBUTE OF ${tb} PAID` : 'A BOON IS READY') + (waiting > 0 ? `  ·  ${waiting} MORE WAITING` : ''),
+      { fontSize: '10px', color: tb ? '#ffd23c' : '#c8a96e', fontStyle: 'bold' }).setOrigin(0.5);
     this.ovText(cx, 136, 'CHOOSE A BOON', { fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
-    this.ovText(cx, 161, tb ? 'earned by patience · boons last until the run ends' : 'the fight is paused · boons last until the run ends',
+    this.ovText(cx, 161, (tb ? 'earned by patience' : 'the fight is paused') + ' · boons last until the run ends',
       { fontSize: '10px', color: '#c8a96e' }).setOrigin(0.5);
 
     this.boonOffer.forEach((key, i) => {
       const b = BOONS[key], y = 230 + i * 98, col = RARITY[b.metal].color;
-      const card = this.ov(this.add.rectangle(cx, y, 322, 88, FORGE.panel, 1).setStrokeStyle(2, col, 0.9)
-        .setInteractive({ useHandCursor: true }));
+      this.glass(this.ov(this.add.graphics()), cx, y, 322, 88, { fill: FORGE.panel, alpha: 0.62, stroke: col, strokeAlpha: 0.95, radius: 12, sheen: 0.07 });
+      const card = this.ov(this.add.rectangle(cx, y, 322, 88, 0xffffff, 0).setInteractive({ useHandCursor: true }));
       // A tap that was meant for walking must not choose a card the instant it appears.
       card.on('pointerdown', () => { if (performance.now() - opened > 350) this.pickBoon(key); });
       this.ov(this.add.image(left + 26, y, 'boon_' + key).setDisplaySize(34, 34).setTint(col), 102);
@@ -2412,42 +2503,161 @@ class LootScene extends Phaser.Scene {
       this.ovText(left + 54, y + 24, this.boonNote(key), { fontSize: '10px', color: '#c8a96e' });
     });
 
-    const rr = this.rerollsLeft, stage = N.stage.toUpperCase();
-    this.ovButton(cx, 532, 236, 36, rr > 0 ? `REROLL · ${rr} LEFT THIS ${stage}` : `NO REROLL LEFT THIS ${stage}`,
+    const rr = this.rerollsLeft;
+    this.ovButton(cx - 82, 532, 156, 36, rr > 0 ? `REROLL · ${rr} LEFT` : 'NO REROLL LEFT',
       rr > 0 ? 0x3a1a08 : 0x2a0f04, () => this.rerollBoons(), { sound: rr > 0 ? 'ui-page' : 'ui-error', color: rr > 0 ? '#ffd23c' : '#8a7360', size: 12 });
+    this.ovButton(cx + 82, 532, 156, 36, 'CHOOSE LATER', 0x3a1a08, () => this.closeBoons(), { sound: 'ui-close', size: 12 });
     this.ovText(left, 568, 'YOUR BOONS', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
-    if (!this.drawBoonRow(left + 9, 598, 17)) this.ovText(left, 588, 'None yet. One comes after every wave.', { fontSize: '10px', color: '#8a7360' });
+    if (!this.drawBoonRow(left + 9, 598, 17)) this.ovText(left, 588, 'None yet. Every wave you clear earns one.', { fontSize: '10px', color: '#8a7360' });
   }
 
   rerollBoons() {
     if (this.state !== 'boon' || this.rerollsLeft <= 0) return;
     this.rerollsLeft--;
-    this.boonOffer = this.drawBoons(this.boonTribute >= TRIBUTE.gold);
+    this.boonQueue[0].offer = null;
     this.showBoonScreen();
   }
 
-  // key null skips the pick: only the playtest bot does that, to measure a run without boons.
+  // key null drops the pick unspent: only the playtest bot does that, to measure a run
+  // without boons.
   pickBoon(key) {
-    if (this.state !== 'boon') return;
+    if (this.state !== 'boon' || !this.boonQueue.length) return;
     if (key) {
       this.boons[key] = this.boonRank(key) + 1;
       if (key === 'iron') { this.player.maxHp += BOONS.iron.n; this.player.hp = Math.min(this.player.maxHp, this.player.hp + BOONS.iron.n); }
       this.sfx(LOOT_SFX[BOONS[key].metal]);
     }
-    this.closeOverlay();
-    this.state = 'playing';
-    this.time.paused = false;
-    this.tweens.resumeAll();
-    this.refreshMusic();
-    if (key) this.showToast(N.boons[key][0].toUpperCase(), '#' + RARITY[BOONS[key].metal].color.toString(16).padStart(6, '0'));
-    const then = this.boonThen;
-    this.boonThen = null;
-    if (this.pendingTribute) {                   // the Gatekeeper's tribute, paid after its wave's own pick
-      const tribute = this.pendingTribute;
-      this.pendingTribute = 0;
-      return this.offerBoons({ tribute, then });
-    }
-    if (then) then(); else this.nextWave();
+    this.boonQueue.shift();
+    if (this.boonQueue.length) return this.showBoonScreen();           // the next one, straight away
+    this.closeBoons();
+    if (key && this.state === 'playing') this.showToast(N.boons[key][0].toUpperCase(), '#' + RARITY[BOONS[key].metal].color.toString(16).padStart(6, '0'));
+  }
+
+  // ---------- POWER, STATS AND THE PROFILE (requirements 2.28) ----------
+  // What Kiran carries: the live run when there is one, otherwise what a new run starts with.
+  loadout() {
+    const live = !!this.player && ['playing', 'paused', 'boon', 'sectorChoice'].includes(this.state);
+    const hp0 = 100 * (1 + session.vitalityLevel * 0.10);
+    const p = live ? this.player : { maxHp: hp0, hp: hp0, speed: 200, bloodShield: 0, trinket: null,
+      weapon: { type: 'weapon', name: WEAPON_EFFECTS.none.label, rarity: 'common', shots: 1, effect: 'none', dmg: 10 * (1 + session.powerLevel * 0.08), range: 130, atkSpeed: 500 } };
+    return { live, p, boons: live ? (this.boons || {}) : {} };
+  }
+
+  powerParts() {
+    const { p, boons } = this.loadout(), w = p.weapon, t = p.trinket;
+    const parts = {
+      base: POWER.base,
+      upgrades: (session.vitalityLevel + session.powerLevel) * POWER.upgrade,
+      weapon: POWER.weapon[w.rarity] + ((w.shots || 1) - 1) * POWER.shot + (w.effect && w.effect !== 'none' ? POWER.effect : 0),
+      trinket: t ? POWER.trinket[t.rarity] : 0,
+      // A weapon boon that is asleep adds nothing until its weapon is back in hand.
+      boons: Object.keys(boons).reduce((sum, k) => sum + (BOONS[k].weapon && BOONS[k].weapon !== w.effect ? 0 : boons[k] * POWER.boon[BOONS[k].metal]), 0),
+      tejas: session.tejasUnlocked ? POWER.tejas : 0
+    };
+    parts.total = parts.base + parts.upgrades + parts.weapon + parts.trinket + parts.boons + parts.tejas;
+    return parts;
+  }
+
+  // The numbers themselves. Bonuses that come and go (standing still, a read slam, the
+  // last stand) are left out: these are what Kiran has all the time.
+  stats() {
+    const { p, boons } = this.loadout(), w = p.weapon, t = p.trinket, rank = k => boons[k] || 0;
+    return {
+      hp: Math.ceil(p.hp), maxHp: Math.ceil(p.maxHp),
+      shield: Math.round(p.bloodShield || 0),
+      block: t && t.effect === 'aegis' ? Math.round(t.rechargeMs / 1000) : 0,
+      damage: w.dmg * (1 + rank('keen') * BOONS.keen.n),
+      perSecond: 1000 / w.atkSpeed * (1 + rank('quick') * BOONS.quick.n),
+      move: p.speed + (t && t.effect === 'swift' ? t.speedBonus : 0) + rank('feet') * BOONS.feet.n,
+      targets: (w.shots || 1) + rank('second'),
+      range: w.range + rank('reach') * BOONS.reach.n,
+      taken: Math.round(100 * (1 - rank('hide') * BOONS.hide.n) * (rank('greed') ? 1 + BOONS.greed.hurt : 1))
+    };
+  }
+
+  showProfile(onBack) {
+    this.openOverlay(0.8);
+    this.ensureSoftGlow();
+    const cx = W / 2, left = cx - 156, right = cx + 156, parts = this.powerParts(), st = this.stats(), { live, p, boons } = this.loadout();
+    const w = p.weapon, t = p.trinket, hex = c => '#' + c.toString(16).padStart(6, '0');
+    this.ovPanel(cx, 362, 350, 600);
+
+    // Who, and where.
+    this.ovText(left, 76, N.player.toUpperCase(), { fontSize: '25px', color: '#ffd23c', fontStyle: 'bold' });
+    this.ovText(left + 1, 108, live ? `${stageLabel(this.sector)} · wave ${Math.min(this.wave, 5)} of 5` : 'at the top of the well',
+      { fontSize: '10px', color: '#c8a96e' });
+    // Power, the way Destiny sets it: small label, large number.
+    this.ovText(right, 74, 'POWER', { fontSize: '9px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(1, 0);
+    const num = this.ovText(right, 82, String(parts.total), { fontSize: '36px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(1, 0);
+    const dia = this.ov(this.add.graphics(), 102), dx = right - num.width - 13, dy = 106;
+    dia.fillStyle(FORGE.gold, 1); dia.fillPoints([{ x: dx, y: dy - 7 }, { x: dx + 7, y: dy }, { x: dx, y: dy + 7 }, { x: dx - 7, y: dy }], true);
+
+    // Kiran, lit from behind.
+    this.ov(this.add.image(cx, 232, 'softglow').setDisplaySize(230, 230).setTint(0xffa040).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD), 101);
+    this.ov(this.add.ellipse(cx, 290, 100, 26, 0x000000, 0.3), 101);
+    this.ov(this.add.ellipse(cx, 288, 92, 24, 0, 0).setStrokeStyle(2, live ? PHASE_DEFS[this.phase].color : FORGE.gold, 0.85), 101);
+    this.ov(this.add.image(cx, 226, `${CHARS.player}-front`).setDisplaySize(132, 132), 102);
+
+    // Tapping a slot says what is in it.
+    const detail = this.ovText(cx, 322, '', { fontSize: '11px', color: '#f0dcc0', align: 'center', wordWrap: { width: 300 } }).setOrigin(0.5, 0);
+    const slot = (x, y, size, texture, tint, corner, title, body, dim) => {
+      this.glass(this.ov(this.add.graphics()), x, y, size, size, { fill: FORGE.panel, alpha: 0.6, stroke: dim ? 0x6b4a2e : tint, strokeAlpha: 0.95, radius: 9, sheen: 0.08 });
+      this.ov(this.add.image(x, y - (size > 40 ? 2 : 0), texture).setDisplaySize(size * 0.6, size * 0.6).setTint(dim ? 0x5a4535 : tint), 102);
+      if (corner) this.ovText(x + size / 2 - 3, y + size / 2 - 2, corner, { fontSize: '9px', color: '#fffbef', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 2.5 }).setOrigin(1, 1);
+      const hit = this.ov(this.add.zone(x, y, size + 6, size + 6).setInteractive({ useHandCursor: true }), 103);
+      hit.on('pointerdown', () => { this.sfx('ui-page'); detail.setText(`${title}\n${body}`); });
+    };
+    // Left: what is equipped, each with the power it adds.
+    const col = left + 26, f = this.tejasForm ? TEJAS_FORMS[w.effect || 'none'] || TEJAS_FORMS.none : null;
+    this.ovText(col, 146, 'GEAR', { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
+    slot(col, 182, 50, `icon_${w.effect || 'none'}`, RARITY[w.rarity].color, '+' + parts.weapon, w.name + (w.shots > 1 ? `  x${w.shots}` : ''), (WEAPON_EFFECTS[w.effect] || WEAPON_EFFECTS.none).desc);
+    if (t) slot(col, 240, 50, `icon_${t.effect}`, RARITY[t.rarity].color, '+' + parts.trinket, t.name, TRINKET_EFFECTS[t.effect].desc);
+    else slot(col, 240, 50, 'icon_mystery', 0x6b4a2e, '', 'No trinket', live ? 'Trinkets drop from enemies: walk over one.' : 'Trinkets are found during a run.', true);
+    if (session.tejasUnlocked) slot(col, 298, 50, `icon_${w.effect || 'none'}`, f.colour, '+' + parts.tejas, `${N.supercharge}: ${f.name}`, f.desc);
+    else slot(col, 298, 50, 'icon_mystery', 0x6b4a2e, '', `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}.`, true);
+
+    // Right: the boons of this run.
+    this.ovText(right - 46, 146, 'BOONS', { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
+    const keys = Object.keys(boons);
+    keys.slice(0, 15).forEach((key, i) => {
+      const b = BOONS[key], asleep = b.weapon && b.weapon !== w.effect;
+      slot(right - 78 + (i % 3) * 32, 172 + Math.floor(i / 3) * 32, 28, 'boon_' + key, RARITY[b.metal].color, boons[key] > 1 ? String(boons[key]) : '',
+        N.boons[key][0] + (b.max > 1 ? `  ·  rank ${boons[key]} of ${b.max}` : '') + (asleep ? '  ·  asleep' : ''), b.desc, asleep);
+    });
+    if (!keys.length) this.ovText(right - 46, 190, live ? 'none yet:\nclear a wave,\nthen tap +' : 'earned\nduring a run', { fontSize: '10px', color: '#8a7360', align: 'center', lineSpacing: 2 }).setOrigin(0.5, 0);
+    detail.setText(live ? 'Tap anything you carry to see what it does.' : 'This is what you start a run with. Tap a slot to see what it does.');
+
+    // The numbers.
+    const rows = [
+      ['icon_vitality', 0xff6b6b, 'Health', `${st.hp} / ${st.maxHp}`],
+      ['icon_aegis', 0x9fd8ff, 'Shield', st.shield || st.block ? [st.shield ? String(st.shield) : '', st.block ? `blocks a hit every ${st.block}s` : ''].filter(Boolean).join('  +  ') : '0'],
+      ['boon_keen', 0xff8c42, 'Attack damage', (Math.round(st.damage * 10) / 10) + (st.targets > 1 ? `  x ${st.targets} targets` : '')],
+      ['boon_quick', 0xffd23c, 'Attack speed', (Math.round(st.perSecond * 100) / 100).toFixed(2) + ' a second'],
+      ['boon_feet', 0x5fe08a, 'Move speed', String(Math.round(st.move))]
+    ];
+    this.ovText(left, 362, 'STATS', { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' });
+    rows.forEach(([icon, tint, label, value], i) => {
+      const y = 388 + i * 25;
+      if (i) { const ln = this.ov(this.add.graphics(), 101); ln.lineStyle(1, 0xffffff, 0.08); ln.lineBetween(left, y - 12.5, right, y - 12.5); }
+      this.ov(this.add.image(left + 9, y, icon).setDisplaySize(16, 16).setTint(tint), 102);
+      this.ovText(left + 26, y, label, { fontSize: '12px', color: '#f0dcc0' }).setOrigin(0, 0.5);
+      this.ovText(right, y, value, { fontSize: '13px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(1, 0.5);
+    });
+    this.ovText(cx, 512, `range ${Math.round(st.range)}  ·  damage taken ${st.taken}%`, { fontSize: '10px', color: '#8a7360' }).setOrigin(0.5);
+
+    // Where the power comes from: one bar, a colour to each source.
+    const src = [['Base', parts.base, 0x8a7360], ['Upgrades', parts.upgrades, 0xfffbef], ['Weapon', parts.weapon, 0xff8c42],
+                 ['Trinket', parts.trinket, 0x4dd0ff], ['Boons', parts.boons, 0xffd23c], [N.supercharge, parts.tejas, 0xc77dff]].filter(e => e[1] > 0);
+    const bar = this.ov(this.add.graphics(), 102), bw = right - left;
+    let bx = left;
+    src.forEach(([, v, c]) => { const sw = bw * v / parts.total; bar.fillStyle(c, 0.9); bar.fillRect(bx, 532, Math.max(1, sw - 1.5), 8); bx += sw; });
+    src.forEach(([name, v, c], i) => {
+      const lx = left + (i % 3) * (bw / 3), ly = 552 + Math.floor(i / 3) * 15;
+      const dot = this.ov(this.add.graphics(), 102); dot.fillStyle(c, 1); dot.fillCircle(lx + 4, ly, 3.2);
+      this.ovText(lx + 12, ly, `${name} ${v}`, { fontSize: '10px', color: '#c8a96e' }).setOrigin(0, 0.5);
+    });
+
+    this.ovButton(cx, 628, 200, 40, 'BACK', 0x5c2a05, () => onBack(), { stroke: FORGE.gold });
   }
 
   // ---------- TRIBUTE (requirements 2.26) ----------
@@ -2490,7 +2700,9 @@ class LootScene extends Phaser.Scene {
     this.tweens.pauseAll();
     this.sfx(menu === 'satchel' ? 'satchel' : 'ui-open');
     this.refreshMusic();
-    if (menu === 'satchel') this.showSatchel(); else this.showPauseMenu();
+    if (menu === 'satchel') this.showSatchel();
+    else if (menu === 'profile') this.showProfile(() => this.resumeGame());
+    else this.showPauseMenu();
   }
 
   resumeGame() {
@@ -2516,7 +2728,7 @@ class LootScene extends Phaser.Scene {
   showPauseMenu() {
     this.openOverlay(0.78);
     const cx = W / 2;
-    this.ov(this.add.rectangle(cx, 372, 336, 486, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold, 0.8));
+    this.ovPanel(cx, 372, 336, 486);
     this.ovText(cx, N.pauseSub ? 156 : 166, N.pause.toUpperCase(), { fontSize: '26px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
     if (N.pauseSub) this.ovText(cx, 181, N.pauseSub, { fontSize: '11px', color: '#c8a96e' }).setOrigin(0.5);
 
@@ -2543,7 +2755,8 @@ class LootScene extends Phaser.Scene {
       { fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
 
     this.ovButton(cx, 440, 240, 44, 'RESUME', 0x7a3a0a, () => this.resumeGame(), { sound: null, stroke: FORGE.gold, size: 16 });
-    this.ovButton(cx, 488, 240, 38, 'HOW TO PLAY', 0x3a1a08, () => this.showHowTo(0, () => this.showPauseMenu()));
+    this.ovButton(cx - 62, 488, 116, 38, 'PROFILE', 0x3a1a08, () => this.showProfile(() => this.showPauseMenu()), { stroke: FORGE.gold });
+    this.ovButton(cx + 62, 488, 116, 38, 'HOW TO PLAY', 0x3a1a08, () => this.showHowTo(0, () => this.showPauseMenu()), { size: 12 });
     this.ovButton(cx, 531, 240, 38, 'SETTINGS', 0x3a1a08, () => this.showSettings(() => this.showPauseMenu()));
     this.ovButton(cx, 583, 240, 38, 'ABANDON RUN', 0x3a0f08, () => this.showAbandonConfirm(),
       { sound: 'ui-error', color: '#ff9a80' });
@@ -2554,7 +2767,7 @@ class LootScene extends Phaser.Scene {
   showAbandonConfirm() {
     this.openOverlay(0.84);
     const cx = W / 2, kept = Math.floor(this.runGold * DEATH_KEEP);
-    this.ov(this.add.rectangle(cx, 362, 324, 300, FORGE.deep, 0.98).setStrokeStyle(2, 0xff5c5c, 0.9));
+    this.ovPanel(cx, 362, 324, 300, { stroke: 0xff5c5c, strokeAlpha: 0.9 });
     this.ovText(cx, 252, 'ABANDON THIS RUN?', { fontSize: '21px', color: '#ff9a80', fontStyle: 'bold' }).setOrigin(0.5);
     this.ovText(cx, 296, 'Abandoning counts as a death.', { fontSize: '14px', color: '#fffbef', fontStyle: 'bold', display: false }).setOrigin(0.5);
     this.ovText(cx, 338, `You keep only half of this run's ${N.currency}:\n${kept} of ${this.runGold}. The rest is lost.`,
@@ -2570,21 +2783,104 @@ class LootScene extends Phaser.Scene {
   openOverlay(dim = 0.72) {
     this.closeOverlay();
     this.overlay = [];
-    this.ov(this.add.rectangle(W / 2, H / 2, W, H, 0x120400, dim).setInteractive(), 100);
+    const frost = this.frost('overlay', 99.5);
+    // The blocker swallows taps. Over a frosted backdrop it only needs to tint.
+    this.ov(this.add.rectangle(W / 2, H / 2, W, H, 0x120400, frost ? Math.min(dim, 0.42) : dim).setInteractive(), 100);
   }
 
   closeOverlay() {
     (this.overlay || []).forEach(o => o.destroy());
     this.overlay = [];
+    if (this.frostRT && this.frostRT.overlay) this.frostRT.overlay.setVisible(false);
+  }
+
+  // ---------- GLASS (requirements 2.29) ----------
+  // Panels are translucent, and what lies behind them shows through frosted. The frost
+  // is made once, when a panel opens, and costs nothing per frame: the whole scene is
+  // drawn into a texture a quarter of the size, and that small copy is then laid down
+  // thirteen times in two rings, each averaged into the last - a blur built from plain
+  // draws, so it does not depend on how the graphics card filters a stretched texture.
+  // There are two, so a pick can open over the choice screen without one overwriting
+  // the other. Where WebGL is missing the panels fall back to a plain dark backing.
+  initFrost() {
+    this.frostRT = {};
+    if (this.game.renderer.type !== Phaser.WEBGL) return;
+    const k = 0.25;
+    this.frostSmall = this.make.renderTexture({ x: 0, y: 0, width: Math.ceil(W * k), height: Math.ceil(H * k) }, false).setOrigin(0).setScale(1 / k);
+    this.frostSmall.camera.setZoom(k); this.frostSmall.camera.centerOn(W / 2, H / 2);
+    this.frostTaps = [[0, 0]];
+    for (let i = 0; i < 6; i++) {
+      const a1 = i * Math.PI / 3, a2 = a1 + Math.PI / 6;
+      this.frostTaps.push([Math.cos(a1) * 4.5, Math.sin(a1) * 4.5], [Math.cos(a2) * 9, Math.sin(a2) * 9]);
+    }
+    for (const slot of ['overlay', 'ui']) this.frostRT[slot] = this.add.renderTexture(W / 2, H / 2, W, H).setOrigin(0.5).setVisible(false);
+  }
+
+  frost(slot, depth) {
+    const rt = this.frostRT && this.frostRT[slot], small = this.frostSmall;
+    if (!rt) return null;
+    try {
+      rt.setVisible(false);
+      this.children.depthSort();
+      small.clear();
+      small.draw(this.children.list.filter(o => o.visible));
+      rt.clear();
+      this.frostTaps.forEach(([dx, dy], i) => { small.setAlpha(1 / (i + 1)); rt.draw(small, dx, dy); });   // a running average
+      return rt.setDepth(depth).setVisible(true);
+    } catch (e) { return null; }
+  }
+
+  // x, y is the centre. A dark translucent body, a faint sheen across the top, a
+  // coloured rim and a hairline of light inside it.
+  glass(g, x, y, w, h, opts = {}) {
+    const r = opts.radius === undefined ? 16 : opts.radius, l = x - w / 2, t = y - h / 2;
+    g.fillStyle(opts.fill === undefined ? FORGE.deep : opts.fill, opts.alpha === undefined ? 0.58 : opts.alpha);
+    g.fillRoundedRect(l, t, w, h, r);
+    g.fillStyle(0xffffff, opts.sheen === undefined ? 0.045 : opts.sheen);
+    g.fillRoundedRect(l + 1, t + 1, w - 2, Math.min(h * 0.45, 140), { tl: r, tr: r, bl: 0, br: 0 });
+    g.lineStyle(1.5, opts.stroke === undefined ? FORGE.gold : opts.stroke, opts.strokeAlpha === undefined ? 0.6 : opts.strokeAlpha);
+    g.strokeRoundedRect(l, t, w, h, r);
+    g.lineStyle(1, 0xffffff, 0.14);
+    g.strokeRoundedRect(l + 1.5, t + 1.5, w - 3, h - 3, Math.max(0, r - 1.5));
+    return g;
+  }
+
+  ovPanel(cx, cy, w, h, opts = {}) {
+    const frosted = this.frostRT && this.frostRT.overlay && this.frostRT.overlay.visible;
+    return this.glass(this.ov(this.add.graphics()), cx, cy, w, h, Object.assign({ alpha: frosted ? 0.58 : 0.96 }, opts));
+  }
+
+  // The same glass for the screens that are not overlays - the choice after a level, the
+  // victory, the end of a run. Everything the screen adds afterwards is lifted above it
+  // by raiseUI().
+  uiPanel(cx, cy, w, h, stroke) {
+    const frost = this.frost('ui', 78);
+    this.uiObjects.push(this.add.rectangle(W / 2, H / 2, W, H, 0x120400, frost ? 0.3 : 0.5).setDepth(78.4));
+    this.uiObjects.push(this.add.zone(W / 2, H / 2, W, H).setInteractive().setDepth(78.5));     // nothing underneath can be tapped
+    this.uiObjects.push(this.glass(this.add.graphics().setDepth(79), cx, cy, w, h, { stroke, strokeAlpha: 0.95, alpha: frost ? 0.6 : 0.96 }));
+  }
+  raiseUI() { this.uiObjects.forEach(o => { if (o.depth === 0) o.setDepth(o.type === 'Text' ? 81 : 80); }); }
+
+  ensureSoftGlow() {
+    if (this.textures.exists('softglow')) return;
+    const tex = this.textures.createCanvas('softglow', 128, 128), c = tex.getContext(), g = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.4, 'rgba(255,255,255,0.42)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = g; c.fillRect(0, 0, 128, 128); tex.refresh();
   }
 
   ov(obj, depth = 101) { obj.setDepth(depth); this.overlay.push(obj); return obj; }
 
   ovText(x, y, str, style) { return this.ov(this.add.text(x, y, str, Object.assign({ resolution: RES }, style)), 102); }
 
+  // A glass button: the look is drawn, and an unseen rectangle over it takes the taps.
+  // Callers that restyle the rectangle (the settings switches) restyle the drawing.
   ovButton(x, y, w, h, label, fill, onClick, opts = {}) {
-    const bg = this.ov(this.add.rectangle(x, y, w, h, fill, 1)
-      .setStrokeStyle(1.5, opts.stroke || FORGE.bronze, 0.9).setInteractive({ useHandCursor: true }));
+    const g = this.ov(this.add.graphics()), look = { fill, stroke: opts.stroke || FORGE.bronze };
+    const paint = () => { g.clear(); this.glass(g, x, y, w, h, { fill: look.fill, alpha: 0.74, stroke: look.stroke, strokeAlpha: 0.9, radius: Math.min(11, h / 2), sheen: 0.09 }); };
+    paint();
+    const bg = this.ov(this.add.rectangle(x, y, w, h, 0xffffff, 0).setInteractive({ useHandCursor: true }));
+    bg.setFillStyle = c => { look.fill = c; paint(); return bg; };
+    bg.setStrokeStyle = (lw, c) => { look.stroke = c; paint(); return bg; };
     const t = this.ovText(x, y, label, { fontSize: (opts.size || 13) + 'px', color: opts.color || '#fffbef', fontStyle: 'bold' }).setOrigin(0.5);
     bg.on('pointerdown', () => { if (opts.sound !== null) this.sfx(opts.sound || 'ui-click'); onClick(bg, t); });
     return { bg, t };
@@ -2594,7 +2890,7 @@ class LootScene extends Phaser.Scene {
   showSettings(onBack) {
     this.openOverlay(0.82);
     const cx = W / 2, left = cx - 150;
-    this.ov(this.add.rectangle(cx, 362, 344, 540, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold, 0.8));
+    this.ovPanel(cx, 362, 344, 540);
     this.ovText(cx, 118, 'SETTINGS', { fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
 
     // Volume: eleven tap-cells (off, 1..10) - easier to hit on a phone than a slider.
@@ -2676,10 +2972,10 @@ class LootScene extends Phaser.Scene {
     page = Phaser.Math.Clamp(page, 0, cards.length - 1);
     this.openOverlay(0.84);
     const cx = W / 2, card = cards[page];
-    this.ov(this.add.rectangle(cx, 370, 350, 548, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold, 0.8));
+    this.ovPanel(cx, 370, 350, 548);
     this.ovText(cx, 118, 'HOW TO PLAY', { fontSize: '11px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
     this.ovText(cx, 142, card.title, { fontSize: '19px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
-    this.ov(this.add.rectangle(cx, 250, 310, 172, 0x3d1200, 1).setStrokeStyle(1, FORGE.bronze, 0.5));
+    this.glass(this.ov(this.add.graphics()), cx, 250, 310, 172, { fill: 0x3d1200, alpha: 0.7, stroke: FORGE.bronze, strokeAlpha: 0.5, radius: 12, sheen: 0.05 });
     card.draw(cx, 250);
     this.ovText(cx, 348, card.body, { fontSize: '13px', color: '#f0dcc0', align: 'left', lineSpacing: 4,
       wordWrap: { width: 304 } }).setOrigin(0.5, 0);
@@ -2866,7 +3162,7 @@ class LootScene extends Phaser.Scene {
       lineSpacing: 2, wordWrap: { width: w - 20 } }).setOrigin(0.5, 0).setDepth(71);
     const h = t.height + 26, top = b.bottom - 8 - h;
     t.setY(top + 7);
-    const bg = this.add.rectangle(cx, top + h / 2, w, h, FORGE.deep, 0.93).setStrokeStyle(1.5, FORGE.gold, 0.9)
+    const bg = this.add.rectangle(cx, top + h / 2, w, h, FORGE.deep, 0.78).setStrokeStyle(1.5, FORGE.gold, 0.9)
       .setDepth(70).setInteractive();
     const sub = this.add.text(cx, top + h - 9, 'tap to dismiss', { resolution: RES, fontSize: '8px', color: '#8a7360' })
       .setOrigin(0.5).setDepth(71);
@@ -3255,11 +3551,7 @@ class LootScene extends Phaser.Scene {
     (this.floorLights || []).forEach(o => { this.tweens.killTweensOf(o); o.destroy(); });
     this.floorLights = [];
     if (!theme.lights) return;
-    if (!this.textures.exists('softglow')) {
-      const tex = this.textures.createCanvas('softglow', 128, 128), c = tex.getContext(), g = c.createRadialGradient(64, 64, 0, 64, 64, 64);
-      g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.4, 'rgba(255,255,255,0.42)'); g.addColorStop(1, 'rgba(255,255,255,0)');
-      c.fillStyle = g; c.fillRect(0, 0, 128, 128); tex.refresh();
-    }
+    this.ensureSoftGlow();
     const b = this.arenaBounds;
     theme.lights.forEach(([x, y, r, colour, alpha, ms]) => {
       const img = this.add.image(b.x + x, b.y + y, 'softglow').setDisplaySize(r * 2, r * 2).setTint(colour).setAlpha(alpha)
@@ -3631,15 +3923,16 @@ class LootScene extends Phaser.Scene {
   clearUI() {
     this.uiObjects.forEach(o => { this.tweens.killTweensOf(o); o.destroy(); });
     this.uiObjects = [];
+    if (this.frostRT && this.frostRT.ui) this.frostRT.ui.setVisible(false);
     this.menu = null;
   }
 
   makeButton(x, y, w, h, label, color, onClick, opts = {}) {
-    const bg = this.add.rectangle(x, y, w, h, color)
-      .setStrokeStyle(2, opts.stroke || FORGE.bronze, opts.stroke ? 0.9 : 0.55).setInteractive({ useHandCursor: true });
+    const g = this.glass(this.add.graphics(), x, y, w, h, { fill: color, alpha: 0.8, stroke: opts.stroke || FORGE.bronze, strokeAlpha: opts.stroke ? 0.9 : 0.6, radius: Math.min(12, h / 2), sheen: 0.1 });
+    const bg = this.add.rectangle(x, y, w, h, 0xffffff, 0).setInteractive({ useHandCursor: true });
     const txt = this.add.text(x, y, label, { resolution: RES, fontSize: (opts.size || 16) + 'px', color: opts.color || '#fffbef', fontStyle: 'bold' }).setOrigin(0.5);
     bg.on('pointerdown', () => { if (opts.sound !== null) this.sfx(opts.sound || 'ui-click'); onClick(); });
-    this.uiObjects.push(bg, txt);
+    this.uiObjects.push(g, bg, txt);
     return bg;
   }
 
@@ -3690,6 +3983,7 @@ class LootScene extends Phaser.Scene {
     say(cx, 436, (session.bestSector ? `Deepest: ${N.stage} ${session.bestSector}` : 'No descent yet') + `  ·  ${wellLine()}`,
       { fontSize: '11px', color: session.water > 0 ? '#9fe8d8' : '#c8a96e' });
     say(cx, 460, `${N.currency}: ${session.metaGold}`, { fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' });
+    if (this.powerText) this.powerText.setText('');
 
     // Exponential, not linear: linear costs let Vitality outgrow every sector. Levels
     // now plateau around 8-12 unless a player commits to many deep runs.
@@ -3703,7 +3997,7 @@ class LootScene extends Phaser.Scene {
     };
     const card = (x, name, level, effect, cost, key) => {
       const can = session.metaGold >= cost;
-      this.uiObjects.push(this.add.rectangle(x, 530, 178, 96, FORGE.deep, 0.9).setStrokeStyle(1.5, can ? FORGE.gold : FORGE.bronze, can ? 0.9 : 0.4));
+      this.uiObjects.push(this.glass(this.add.graphics(), x, 530, 178, 96, { alpha: 0.5, stroke: can ? FORGE.gold : FORGE.bronze, strokeAlpha: can ? 0.9 : 0.45, radius: 14, sheen: 0.07 }));
       say(x, 497, name, { fontSize: '11px', color: '#c8a96e', fontStyle: 'bold' });
       say(x, 515, `Rank ${level}  ·  ${effect}`, { fontSize: '12px', color: '#fffbef' });
       this.makeButton(x, 550, 152, 32, `${cost} ${N.currency}`, can ? BTN.plain : BTN.off, buy(cost, key),
@@ -3715,11 +4009,12 @@ class LootScene extends Phaser.Scene {
     const locked = this.lockedPowerCount();
     say(cx, 598, locked > 0 ? `${locked} power${locked === 1 ? '' : 's'} still locked — descend to find them` : 'all powers unlocked',
       { fontSize: '11px', color: locked > 0 ? '#ffd23c' : '#8a7360' });
-    const small = (x, label, fn) => this.makeButton(x, 634, 88, 34, label, BTN.quiet, fn, { size: 11 });
-    small(59,  'POWERS',      () => this.showCodex());
-    small(153, 'HOW TO PLAY', () => this.showHowTo(0, () => this.closeOverlay()));
-    small(247, 'SETTINGS',    () => this.showSettings(() => this.closeOverlay()));
-    small(341, 'FEEDBACK',    () => Feedback.open());
+    const small = (x, label, fn) => this.makeButton(x, 634, 70, 34, label, BTN.quiet, fn, { size: 10 });
+    small(48,  'PROFILE',  () => this.showProfile(() => this.closeOverlay()));
+    small(124, 'POWERS',   () => this.showCodex());
+    small(200, 'HELP',     () => this.showHowTo(0, () => this.closeOverlay()));
+    small(276, 'SETTINGS', () => this.showSettings(() => this.closeOverlay()));
+    small(352, 'FEEDBACK', () => Feedback.open());
     say(cx, 676, 'build ' + BUILD, { fontSize: '8px', color: '#6b4a2e' });
 
     // Everything above sits over the well, which itself covers the arena and the HUD.
@@ -3851,9 +4146,10 @@ class LootScene extends Phaser.Scene {
     this.boons = {};
     this.rerollsLeft = BOON_REROLLS;
     this.slamBuffMs = 0;   // Read the Slam
-    this.pendingTribute = 0;   // a Gatekeeper's tribute waiting to be paid (2.26)
-    this.boonThen = null;
+    this.powerShown = 0;
+    this.boonQueue = [];       // boons earned and not yet chosen (2.24)
     this.boonTribute = 0;
+    this.choiceBoonTxt = null;
     this.lastShape = null;     // the last wave's shape (2.25)
     this.spawnGap = 380;
     this.stillMs = 0;      // Hold Your Ground
@@ -3940,6 +4236,7 @@ class LootScene extends Phaser.Scene {
     this.atkTimer = 0;
     this.attackFx = this.add.graphics();
     this.buildSatchelUI();
+    this.buildBoonButton();
     if (session.tejasUnlocked) this.buildTejasUI();
 
     this.enemies = [];
@@ -4115,7 +4412,7 @@ class LootScene extends Phaser.Scene {
     const tabW = 26, tabH = 84;
     const tx = b.right - tabW / 2 - 2, ty = b.centerY;
 
-    this.satchelTab = this.add.rectangle(tx, ty, tabW, tabH, FORGE.panel, 0.92)
+    this.satchelTab = this.add.rectangle(tx, ty, tabW, tabH, FORGE.panel, 0.6)
       .setStrokeStyle(1, FORGE.bronze, 0.8)
       .setInteractive({ useHandCursor: true });
     this.satchelTabIcon = this.add.text(tx, ty - 12, '◀', { resolution: RES, fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
@@ -4148,14 +4445,14 @@ class LootScene extends Phaser.Scene {
   showSatchel() {
     this.openOverlay(0.8);
     const cx = W / 2, left = cx - 161;
-    this.ov(this.add.rectangle(cx, 362, 350, 600, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold, 0.8));
+    this.ovPanel(cx, 362, 350, 600);
     this.ovText(cx, 92, N.satchel.toUpperCase(), { fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
     this.ovText(cx, 115, 'the fight is paused', { fontSize: '10px', color: '#c8a96e' }).setOrigin(0.5);
 
     const heading = (y, str) => this.ovText(left, y, str, { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
     const row = (y, item, onTap) => {
-      const bg = this.ov(this.add.rectangle(cx, y, 322, 38, onTap ? FORGE.panel : 0x2a0f04, 1)
-        .setStrokeStyle(1, onTap ? FORGE.bronze : 0x6b4a2e, onTap ? 0.8 : 0.5));
+      this.glass(this.ov(this.add.graphics()), cx, y, 322, 38, { fill: onTap ? FORGE.panel : 0x2a0f04, alpha: 0.6, stroke: onTap ? FORGE.bronze : 0x6b4a2e, strokeAlpha: onTap ? 0.8 : 0.5, radius: 9, sheen: 0.06 });
+      const bg = this.ov(this.add.rectangle(cx, y, 322, 38, 0xffffff, 0));
       if (onTap) { bg.setInteractive({ useHandCursor: true }); bg.on('pointerdown', onTap); }
       this.ov(this.add.image(left + 22, y, `icon_${item.effect || 'none'}`).setDisplaySize(24, 24).setTint(RARITY[item.rarity].color), 102);
       this.ovText(left + 44, y - 16, item.name, { fontSize: '12px', color: '#fffbef', fontStyle: 'bold' });
@@ -4564,12 +4861,8 @@ class LootScene extends Phaser.Scene {
       session.water = Math.min(WELL_FULL, (session.water || 0) + water);
       if (enemy.isMega) { this.bossSlain = true; session.wins = (session.wins || 0) + 1; }
       saveSession();
-      this.time.delayedCall(1000, () => {
-        if (this.state !== 'playing') return;
-        const choice = () => this.showSectorClearChoice(enemy.isMega);
-        // Tribute of 10 or more is paid as a boon pick before the choice screen.
-        if (tribute >= TRIBUTE.boon) this.offerBoons({ tribute, then: choice }); else choice();
-      });
+      if (tribute >= TRIBUTE.boon) this.queueBoon(tribute);            // tribute of 10 or more is paid as a boon
+      this.time.delayedCall(1000, () => { if (this.state === 'playing') this.showSectorClearChoice(enemy.isMega); });
       return;
     }
 
@@ -4578,8 +4871,7 @@ class LootScene extends Phaser.Scene {
     if (enemy.isBoss) {
       this.spawnLootPickup(enemy.x, enemy.y, 'epic');
       if ((enemy.tribute || 0) >= TRIBUTE.item) this.spawnLootPickup(enemy.x + 24, enemy.y, 'epic');
-      // The Gatekeeper's wave already ends in a pick; its tribute pays a second one after it.
-      if ((enemy.tribute || 0) >= TRIBUTE.boon) this.pendingTribute = enemy.tribute;
+      if ((enemy.tribute || 0) >= TRIBUTE.boon) this.queueBoon(enemy.tribute);
       this.showToast('THE GATE OPENS', '#2fbf71');
     } else if (enemy.isElite) {
       this.spawnLootPickup(enemy.x, enemy.y, 'epic');
@@ -4682,12 +4974,13 @@ class LootScene extends Phaser.Scene {
     }
   }
 
-  // Every wave cleared before a boss ends in a boon pick (2.24); choosing one starts the
-  // next wave. A short beat first, so the last kill is seen to land.
+  // Every wave cleared before a boss earns a boon (2.24), to be chosen whenever the
+  // player likes. The next wave comes on after a short beat.
   afterWaveClear() {
     this.addGold(15 + this.depth * 4);
     this.sfx('wave-clear');
-    this.time.delayedCall(450, () => { if (this.state === 'playing') this.offerBoons(); });
+    this.queueBoon();
+    this.time.delayedCall(400, () => { if (this.state === 'playing') this.nextWave(); });
   }
 
   showSectorClearChoice(isMega) {
@@ -4698,7 +4991,9 @@ class LootScene extends Phaser.Scene {
     this.playMusic('hub');   // the decision is a breath between fights
     const say = (y, str, size, colour) => this.uiObjects.push(this.add.text(W/2, y, str,
       { resolution: RES, fontSize: size + 'px', color: colour, align: 'center', lineSpacing: 4 }).setOrigin(0.5));
-    this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 320, FORGE.deep, 0.97).setStrokeStyle(2, 0x2fbf71));
+    // Boons still waiting can be taken here, before the decision: the panel grows a row.
+    const waiting = this.boonQueue.length, grow = waiting ? 42 : 0;
+    this.uiPanel(W/2, H/2 + grow / 2, W-50, 320 + grow, 0x2fbf71);
     this.uiObjects.push(this.add.text(W/2, H/2-125, `${N.stage.toUpperCase()} CLEARED`, { resolution: RES, fontSize: '19px', color: '#2fbf71', fontStyle: 'bold' }).setOrigin(0.5));
     const ahead = this.sector < FINAL_SECTOR ? ` ${N.enemies.megaboss} waits ${levelsBelow(this.sector)}.` : '';
     say(H/2-92, `${sectorTitle(this.sector)} is cleared.${ahead}`, 13, '#fffbef');
@@ -4706,8 +5001,13 @@ class LootScene extends Phaser.Scene {
     say(H/2-44, `${N.currency} carried: ${this.runGold}`, 13, '#ffd23c');
     say(H/2-2, 'Extract now and bank all of it,\nor descend for tougher fights and\nbetter loot. Fall, and half is lost.', 12, '#c8a96e');
 
-    this.makeButton(W/2, H/2+72, 230, 46, 'Extract — Bank & End Run', BTN.quiet, () => this.endRun(true));
-    this.makeButton(W/2, H/2+126, 230, 46, `Descend to ${N.stage} ${this.sector+1}`, BTN.primary, () => this.descend(), { stroke: FORGE.gold });
+    if (waiting) {
+      this.makeButton(W/2, H/2+50, 230, 32, `Choose your boon${waiting > 1 ? 's' : ''} first (${waiting})`, BTN.plain, () => this.openBoons(), { size: 12, stroke: FORGE.gold });
+      this.choiceBoonTxt = this.uiObjects[this.uiObjects.length - 1];
+    }
+    this.makeButton(W/2, H/2+72+grow, 230, 46, 'Extract — Bank & End Run', BTN.quiet, () => this.endRun(true));
+    this.makeButton(W/2, H/2+126+grow, 230, 46, `Descend to ${N.stage} ${this.sector+1}`, BTN.primary, () => this.descend(), { stroke: FORGE.gold });
+    this.raiseUI();
   }
 
   // The ending. The final boss is dead, so the run has been won whatever happens next;
@@ -4721,7 +5021,7 @@ class LootScene extends Phaser.Scene {
     if (firstFull) { session.wellFullSeen = true; saveSession(); }
     const say = (y, str, size, colour) => this.uiObjects.push(this.add.text(W/2, y, str,
       { resolution: RES, fontSize: size + 'px', color: colour, align: 'center', lineSpacing: 4 }).setOrigin(0.5));
-    this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 360, FORGE.deep, 0.97).setStrokeStyle(2, FORGE.gold));
+    this.uiPanel(W/2, H/2, W-50, 360, FORGE.gold);
     this.uiObjects.push(this.add.text(W/2, H/2-142, firstFull ? 'THE WELL IS FULL' : 'THE WATERS RETURN',
       { resolution: RES, fontSize: '23px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
     say(H/2-104, firstFull
@@ -4733,6 +5033,7 @@ class LootScene extends Phaser.Scene {
 
     this.makeButton(W/2, H/2+84, 240, 46, 'Surface — Bank & End Run', BTN.primary, () => this.endRun(true), { stroke: FORGE.gold });
     this.makeButton(W/2, H/2+138, 240, 46, `Descend into ${N.deeper[0]}`, BTN.quiet, () => this.descend());
+    this.raiseUI();
   }
 
   // ---------- END OF RUN ----------
@@ -4761,7 +5062,7 @@ class LootScene extends Phaser.Scene {
     this.clearUI();
     const say = (y, str, size, colour) => this.uiObjects.push(this.add.text(W/2, y, str,
       { resolution: RES, fontSize: size + 'px', color: colour }).setOrigin(0.5));
-    this.uiObjects.push(this.add.rectangle(W/2, H/2, W-50, 336, FORGE.deep, 0.97).setStrokeStyle(2, victory ? 0x2fbf71 : 0xff5c5c));
+    this.uiPanel(W/2, H/2, W-50, 336, victory ? 0x2fbf71 : 0xff5c5c);
     this.uiObjects.push(this.add.text(W/2, H/2-132,
       victory ? (this.bossSlain ? `${bossName.toUpperCase()} SLAIN` : 'EXTRACTED SAFELY') : (abandoned ? 'RUN ABANDONED' : 'YOU FELL'),
       { resolution: RES, fontSize: '24px', color: victory ? '#2fbf71' : '#ff5c5c', fontStyle: 'bold' }).setOrigin(0.5));
@@ -4794,6 +5095,8 @@ class LootScene extends Phaser.Scene {
       if (this.sectorLabel) this.sectorLabel.destroy();
       if (this.weaponText) this.weaponText.setText('');
       this.destroySatchelUI();
+      this.destroyBoonButton();
+      if (this.powerText) this.powerText.setText('');
       this.destroyTejasUI();
       if (this.attackFx) { this.attackFx.destroy(); this.attackFx = null; }   // was leaking one per run
       // Cancel every timer the run scheduled. Without this a callback queued in the
@@ -4819,6 +5122,7 @@ class LootScene extends Phaser.Scene {
     });
     // The end of a run is when a player has something to say.
     this.makeButton(W/2, H/2+136, 150, 24, 'Send feedback', BTN.off, () => Feedback.open(), { size: 11, color: '#c8a96e' });
+    this.raiseUI();
   }
 
   // ---------- MAIN LOOP ----------
@@ -5259,6 +5563,17 @@ class LootScene extends Phaser.Scene {
     // --- HUD text ---
     this.hudText.setText(`${stageLabel(this.sector)} · Wave ${Math.min(this.wave,5)}/5   ${N.currency}: ${this.runGold}`);
     this.weaponText.setText(`${this.player.weapon.name}${this.player.weapon.shots>1 ? ' x'+this.player.weapon.shots : ''}   ${Math.ceil(this.player.hp)}/${Math.ceil(this.player.maxHp)} HP${shield > 0 ? ` +${Math.ceil(shield)} shield` : ''}`);
+    const power = this.powerParts().total;
+    if (power !== this.powerShown) {
+      // A gain shows: the number swells, and the amount floats up from it.
+      if (this.powerShown && power > this.powerShown) {
+        const gain = this.add.text(W - 14, 74, `+${power - this.powerShown}`, { resolution: RES, fontSize: '11px', color: '#fffbef', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 }).setOrigin(1, 0).setDepth(45);
+        this.tweens.add({ targets: gain, y: 88, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => gain.destroy() });
+        this.powerText.setScale(1.35); this.tweens.add({ targets: this.powerText, scale: 1, duration: 300, ease: 'Back.easeOut' });
+      }
+      this.powerShown = power;
+      this.powerText.setText('\u25C6 Power ' + power);
+    }
   }
 }
 

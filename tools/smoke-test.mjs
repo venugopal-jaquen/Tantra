@@ -88,7 +88,9 @@ try {
   check('loader reaches the Begin button', state === 'ready', state);
   const fonts = await page(`return [...document.fonts].filter(f => f.status === 'loaded').map(f => f.family).filter((f, i, a) => a.indexOf(f) === i);`);
   check('both typefaces loaded', fonts.includes('Yatra One') && fonts.includes('Baloo 2'), fonts.join(', '));
-  check('a glossary card is showing', !!(await page(`return document.getElementById('ldr-dev').textContent && document.getElementById('ldr-role').textContent;`)));
+  check('a glossary card is showing', !!(await page(`return document.getElementById('ldr-name').textContent && document.getElementById('ldr-role').textContent;`)));
+  const names = await page(`return { hybrid: N === NAME_PACKS.hybrid, devanagari: /[\u0900-\u097F]/.test(document.getElementById('loader').textContent), currency: N.currency, phase: N.phases.eclipse };`);
+  check('the default names are the hybrid set, with no Devanagari on the loading screen', names.hybrid && !names.devanagari && names.phase === 'Eclipse', JSON.stringify(names));
   const well0 = await page(`const t = id => document.getElementById(id).textContent;
     return { line: t('ldr-well-line'), sub: t('ldr-well-sub'), legend: t('ldr-well-legend'), after: t('ldr-well-after'),
              water: +document.getElementById('well-water').getAttribute('height'), wall: document.getElementById('well-wall').getAttribute('d').length };`);
@@ -136,8 +138,12 @@ try {
   check('first tip shows during the first run', !!run.tip, run.tip || 'none');
   check('HUD line clears the HP bar', run.hudBottom <= run.hpBarTop + 1, `text bottom ${run.hudBottom}, bar top ${run.hpBarTop}`);
 
+  // Waves are held still for the checks that follow: a queue that never spawns, so a kill
+  // is not a cleared wave unless a check empties the queue to make it one.
+  const FREEZE = `s.buildWave = () => { s.spawnQueue = [{}]; s.spawnTimer = 1e9; s.lastShape = 'mixed'; return 'mixed'; }; s.spawnQueue = [{}]; s.spawnTimer = 1e9;`;
+
   // A tap far away must be WALKED to at the same speed the keys give, never jumped to.
-  const walk = await page(`const s = game.scene.keys.LootScene; s.player.iframes = 1e9; s.spawnQueue = []; s.enemies.slice().forEach(e => { e.x = 60; e.y = 640; e.speed = 0; });
+  const walk = await page(`const s = game.scene.keys.LootScene; s.player.iframes = 1e9; ${FREEZE} s.enemies.slice().forEach(e => { e.x = 60; e.y = 640; e.speed = 0; });
     s.player.x = 200; s.player.y = 600; s.setMoveTarget(200, 150); const t0 = performance.now();
     await new Promise(r => setTimeout(r, 500));
     const moved = 600 - s.player.y, secs = (performance.now() - t0) / 1000;
@@ -164,33 +170,51 @@ try {
   check('the satchel pauses the fight and swaps on a tap', satchel.open.state === 'paused' && satchel.open.frozen && satchel.stored >= 1 && satchel.swapped
     && satchel.safe && satchel.after === 'playing' && satchel.open.texts.some(t => /damage|health|block|speed|reflected/.test(t)), JSON.stringify(satchel.open.texts).slice(0, 220));
 
-  // A cleared wave ends in a boon pick: the fight freezes, three cards, one reroll, a tap.
+  // A cleared wave earns a boon and the fight goes on; the + button opens the pick when the player likes.
   const boon = await page(`const s = game.scene.keys.LootScene;
     s.dismissHint(); s.spawnQueue = []; const wave = s.wave;
     while (s.enemies.length) s.killEnemy(s.enemies[0]);    // splitters leave children: kill until the arena is empty
     await new Promise(r => setTimeout(r, 800));
-    const texts = s.overlay.filter(o => o.type === 'Text');
+    const earned = { state: s.state, frozen: s.time.paused, queued: s.boonQueue.length, next: s.wave, button: s.boonUI.btn.visible, badge: s.boonUI.count.text };
+    s.boonUI.btn.emit('pointerdown');
+    const texts = s.overlay.filter(o => o.type === 'Text'), glass = () => !!(s.frostRT.overlay && s.frostRT.overlay.visible);
     const open = { state: s.state, frozen: s.time.paused, cards: s.overlay.filter(o => o.type === 'Rectangle' && o.input && o.width === 322).length,
-                   described: (s.boonOffer || []).every(k => texts.some(t => t.text === BOONS[k].desc)) };
+                   described: (s.boonOffer || []).every(k => texts.some(t => t.text === BOONS[k].desc)), glass: glass(), webgl: game.renderer.type === Phaser.WEBGL };
     const spill = texts.filter(t => { const l = t.x - t.width * t.originX; return l < 27 || l + t.width > 373; }).map(t => t.text.slice(0, 30));
     const card = () => s.overlay.find(o => o.type === 'Rectangle' && o.input && o.width === 322);
+    const offer = s.boonOffer.join();
+    s.closeBoons(); const later = { state: s.state, queued: s.boonQueue.length, frozen: s.time.paused, glass: glass() };
+    s.openBoons(); const kept = s.boonOffer.join() === offer;          // closing and reopening is not a free reroll
     s.rerollBoons(); s.rerollBoons(); const rerolls = s.rerollsLeft, stillOpen = s.state;
     card().emit('pointerdown'); const early = s.state;      // the instant the new cards appear: ignored
     await new Promise(r => setTimeout(r, 400));
-    const chosen = s.boonOffer[0]; card().emit('pointerdown'); s.spawnQueue = [];
-    return { wave, open, spill, early, rerolls, stillOpen, chosen, after: s.state, next: s.wave, frozen: s.time.paused, rank: s.boons[chosen] };`);
-  check('a cleared wave pauses for a pick of three boons', boon.open.state === 'boon' && boon.open.frozen && boon.open.cards === 3 && boon.open.described
-    && boon.spill.length === 0, JSON.stringify(boon.open) + (boon.spill.length ? ' SPILL ' + boon.spill.join(' | ') : ''));
-  check('one reroll, a stray tap ignored, a pick starts the next wave', boon.early === 'boon' && boon.rerolls === 0 && boon.stillOpen === 'boon'
-    && boon.after === 'playing' && !boon.frozen && boon.next === boon.wave + 1 && boon.rank === 1, JSON.stringify(boon));
-  await page(`const s = game.scene.keys.LootScene; s.boons.keen = 2; s.boons.iron = 1; s.state = 'playing'; s.offerBoons();`);
+    const chosen = s.boonOffer[0]; card().emit('pointerdown');
+    return { wave, earned, open, spill, later, kept, early, rerolls, stillOpen, chosen, after: s.state, frozen: s.time.paused, rank: s.boons[chosen], left: s.boonQueue.length, button: s.boonUI.btn.visible };`);
+  check('a cleared wave earns a boon without stopping the fight', boon.earned.state === 'playing' && !boon.earned.frozen && boon.earned.queued === 1 && boon.earned.next === boon.wave + 1
+    && boon.earned.button && boon.earned.badge === '1', JSON.stringify(boon.earned));
+  check('the + button opens a pick of three, on frosted glass', boon.open.state === 'boon' && boon.open.frozen && boon.open.cards === 3 && boon.open.described
+    && boon.spill.length === 0 && boon.open.glass === boon.open.webgl, JSON.stringify(boon.open) + (boon.spill.length ? ' SPILL ' + boon.spill.join(' | ') : ''));
+  check('a pick can wait, keeps its cards, allows one reroll, and ignores a stray tap', boon.later.state === 'playing' && boon.later.queued === 1 && !boon.later.frozen && !boon.later.glass
+    && boon.kept && boon.early === 'boon' && boon.rerolls === 0 && boon.stillOpen === 'boon' && boon.after === 'playing' && !boon.frozen && boon.rank === 1 && boon.left === 0 && !boon.button, JSON.stringify(boon));
+  // The + key spends a waiting boon, as in Dota; Esc puts the pick off.
+  await page(`game.scene.keys.LootScene.queueBoon();`);
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: '+', code: 'Equal', text: '+', unmodifiedText: '=', windowsVirtualKeyCode: 187, nativeVirtualKeyCode: 187 });
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: '+', code: 'Equal', windowsVirtualKeyCode: 187, nativeVirtualKeyCode: 187 });
+  await sleep(150);
+  const byKey = await page(`return game.scene.keys.LootScene.state;`);
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27, nativeVirtualKeyCode: 27 });
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27, nativeVirtualKeyCode: 27 });
+  await sleep(150);
+  const byEsc = await page(`const s = game.scene.keys.LootScene; return { state: s.state, queued: s.boonQueue.length };`);
+  check('the + key opens the pick and Esc puts it off', byKey === 'boon' && byEsc.state === 'playing' && byEsc.queued === 1, byKey + ' ' + JSON.stringify(byEsc));
+  await page(`const s = game.scene.keys.LootScene; s.boons = { keen: 2, iron: 1 }; s.queueBoon(12); s.openBoons();`);
   await sleep(300); await shot('3-boons');
-  await page(`const s = game.scene.keys.LootScene; s.wave = 0; s.pickBoon(null); s.spawnQueue = []; s.boons = {};`);   // wave 0, so the next pick never lands on the Gatekeeper's wave
+  await page(`const s = game.scene.keys.LootScene; s.closeBoons(); s.boonQueue = []; s.refreshBoonButton(); s.boons = {};`);
 
   // What the boons actually do, one number each.
   const fx = await page(`const s = game.scene.keys.LootScene, p = s.player, w = p.weapon, out = {}, eff = w.effect;
     s.boons = { keen: 2 }; out.keen = +s.dmgMult().toFixed(2);
-    const max0 = p.maxHp; s.wave = 0; s.offerBoons(); s.pickBoon('iron'); s.spawnQueue = []; out.iron = p.maxHp - max0;
+    const max0 = p.maxHp; s.queueBoon(); s.openBoons(); s.pickBoon('iron'); out.iron = p.maxHp - max0;
     s.boons = { hide: 1 }; p.hp = 100; p.shieldCharge = 0; s.damagePlayer(50, null, 'slam'); out.hide = Math.round(100 - p.hp);
     s.boons = { greed: 1 }; const g0 = s.runGold; s.addGold(100); out.greed = s.runGold - g0;
     s.boons = { reach: 1, second: 1, quick: 1 }; out.range = s.attackRange() - w.range; out.shots = s.attackShots() - (w.shots || 1); out.rate = +s.attackRate().toFixed(2);
@@ -202,30 +226,57 @@ try {
   check('boons change the numbers they promise', fx.keen === 1.3 && fx.iron === 20 && fx.hide === 46 && fx.greed === 125 && fx.range === 20 && fx.shots === 1
     && fx.rate === 1.12 && fx.cut === 0.35 && fx.cutAsleep === 0.25 && fx.shield === 15 && fx.soaked.shield === 5 && fx.soaked.hp === 0, JSON.stringify(fx));
 
+  // Power: a gear score every item and boon adds to, shown on the HUD and broken down on the profile.
+  const pow = await page(`const s = game.scene.keys.LootScene, p = s.player, keepW = p.weapon, keepT = p.trinket; s.boons = {};
+    p.weapon = { type: 'weapon', name: 'x', rarity: 'common', shots: 1, effect: 'none', dmg: 10, range: 130, atkSpeed: 500 }; p.trinket = null;
+    const base = s.powerParts();
+    p.weapon = Object.assign({}, p.weapon, { rarity: 'epic', shots: 3, effect: 'venom' }); const gun = s.powerParts().total - base.total;
+    s.boons = { keen: 2, ground: 1, hunger: 1, rot: 1 }; const awake = s.powerParts().boons;      // rot counts: the weapon is venom
+    p.weapon.effect = 'none'; const asleep = s.powerParts().boons;
+    s.boons = { quick: 1, feet: 2, second: 1 }; const st = s.stats();
+    await new Promise(r => setTimeout(r, 150));
+    const hud = s.powerText.text, total = s.powerParts().total;
+    s.__keep = { w: keepW, t: keepT };
+    s.pauseGame('profile');
+    const all = s.overlay.filter(o => o.type === 'Text'), texts = all.map(o => o.text);
+    const prof = { state: s.state, power: texts.includes(String(total)), rows: ['Health', 'Shield', 'Attack damage', 'Attack speed', 'Move speed'].every(r => texts.includes(r)),
+      spill: all.filter(t => { const l = t.x - t.width * t.originX; return l < 27 || l + t.width > 373; }).map(t => t.text.slice(0, 30)) };
+    return { base: base.total, gun, awake, asleep, perSecond: +st.perSecond.toFixed(2), move: st.move, targets: st.targets, hud, total, prof };`);
+  await sleep(250); await shot('3-profile');
+  await page(`const s = game.scene.keys.LootScene; s.resumeGame(); s.boons = {}; s.player.weapon = s.__keep.w; s.player.trinket = s.__keep.t; delete s.__keep;`);
+  check('power counts gear and boons, and sleeps a weapon boon with its weapon', pow.base === 120 && pow.gun === 105 && pow.awake === 125 && pow.asleep === 85, JSON.stringify(pow));
+  check('the HUD shows power and the profile shows the stats', pow.hud === '\u25C6 Power ' + pow.total && pow.prof.state === 'paused' && pow.prof.power && pow.prof.rows
+    && pow.prof.spill.length === 0 && pow.perSecond === 2.24 && pow.move === 240 && pow.targets === 4, JSON.stringify(pow));
+
   // Read the Slam: stand in a ring, step out before it lands, hit harder.
   const read = await page(`const s = game.scene.keys.LootScene, p = s.player; s.boons = { readslam: 1 }; s.slamBuffMs = 0; p.iframes = 1e9;
     s.pickups.forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); }); s.pickups = [];   // loose loot could swap a trinket and change health mid-check
     const e = s.spawnGatekeeper(); e.slamTimer = 1e9; e.slamTypes = ['circle']; e.speed = 0;
     p.x = e.x; p.y = e.y + e.radius + 20; s.beginSlam(e);
-    await new Promise(r => setTimeout(r, 250));
+    // Waits are on the event, not the clock: a headless page can stall for a moment.
+    const until = async (test, ms) => { for (let i = 0; i < ms / 40 && !test(); i++) await new Promise(r => setTimeout(r, 40)); };
+    await until(() => e.slam && e.slam.touched, 1500);
     const touched = !!(e.slam && e.slam.touched), hp = p.hp;
     p.x = s.arenaBounds.x + 20; p.y = s.arenaBounds.bottom - 20;
-    await new Promise(r => setTimeout(r, 1100));
+    await until(() => !e.slam, 3000);
+    await new Promise(r => setTimeout(r, 120));
     const out = { touched, buff: Math.round(s.slamBuffMs), mult: +s.dmgMult().toFixed(2), unhurt: p.hp >= hp, arc: s.boonFx.commandBuffer.length > 0 };
     // Hold Your Ground: the gold ring shows only while it is live.
-    s.boons = { ground: 1 }; s.slamBuffMs = 0; await new Promise(r => setTimeout(r, 450));
+    s.boons = { ground: 1 }; s.slamBuffMs = 0; s.stillMs = 0;
+    await until(() => s.stillMs >= 200 && s.boonFx.commandBuffer.length > 0, 2500);
     out.planted = s.boonFx.commandBuffer.length > 0 && +s.dmgMult().toFixed(2) === 1.35;
-    s.setMoveTarget(p.x + 150, p.y - 150); await new Promise(r => setTimeout(r, 200));
+    s.setMoveTarget(p.x + 150, p.y - 150);
+    await until(() => s.moving && s.boonFx.commandBuffer.length === 0, 1500);
     out.walking = s.boonFx.commandBuffer.length === 0 && s.dmgMult() === 1; s.pointerTarget = null;
-    s.boons = {}; s.killEnemy(e); await new Promise(r => setTimeout(r, 700));
-    if (s.state === 'boon') s.pickBoon(null); s.spawnQueue = [];
+    s.boons = {}; s.killEnemy(e);
     return out;`);
-  check('reading a slam makes the next hits harder', read.touched && read.buff > 2500 && read.mult === 1.5 && read.unhurt, JSON.stringify(read));
+  check('reading a slam makes the next hits harder', read.touched && read.buff > 3000 && read.mult === 1.5 && read.unhurt, JSON.stringify(read));
   check('timed boons show on Kiran while they are live', read.arc && read.planted && read.walking, JSON.stringify(read));
 
   // Wave shapes: a first-ever run opens gently; after that waves vary and never repeat a shape.
   const waves = await page(`const s = game.scene.keys.LootScene, out = { shapes: {}, repeat: false };
     const keep = { wave: s.wave, depth: s.depth, best: session.bestSector, last: s.lastShape };
+    delete s.buildWave;                                       // the real one, for this check
     s.showToast = () => {};                                   // 300 waves are built here: no toasts
     session.bestSector = 0; s.sector = 1; s.wave = 1; s.depth = 1; s.buildWave();
     out.gentle = { n: s.spawnQueue.length, plain: s.spawnQueue.every(e => e.type === 'melee' && !e.weak) };
@@ -239,32 +290,31 @@ try {
     out.archers = q('archers').filter(e => e.type === 'ranged').length; out.brute = q('brute').filter(e => e.type === 'tank').length;
     out.split = q('splitters').filter(e => e.type === 'splitter').length; out.mixed = q('mixed').length;
     delete s.showToast;
-    Object.assign(s, { wave: keep.wave, depth: keep.depth, lastShape: keep.last, spawnQueue: [], spawnGap: 380 }); session.bestSector = keep.best;
+    Object.assign(s, { wave: keep.wave, depth: keep.depth, lastShape: keep.last, spawnGap: 380 }); session.bestSector = keep.best;
+    ${FREEZE}
     return out;`);
   check('waves take different shapes, and a first run opens gently', waves.gentle.n === 4 && waves.gentle.plain && waves.early === 'mixed,pincer,swarm' && waves.opening
     && Object.keys(waves.shapes).length === 6 && !waves.repeat && waves.swarm === 15 && waves.swarmWeak && (waves.pincer === '01' || waves.pincer === '23')
     && waves.archers === 4 && waves.brute === 1 && waves.split === 5 && waves.mixed === 9, JSON.stringify(waves));
 
   // Tribute: summoned enemies killed before the boss falls are counted on the boss and paid out.
-  const trib = await page(`const s = game.scene.keys.LootScene, p = s.player; p.iframes = 1e9; s.boons = {}; s.dismissHint();
+  const trib = await page(`const s = game.scene.keys.LootScene, p = s.player; p.iframes = 1e9; s.boons = {}; s.dismissHint(); s.boonQueue = []; s.refreshBoonButton();
     const e = s.spawnGatekeeper(); e.slamTimer = 1e9; e.speed = 0; e.summonTimer = 0; const every0 = e.summonEvery;
     await new Promise(r => setTimeout(r, 250));
     const summoned = s.enemies.filter(m => m.summonedBy === e.id);
     const out = { summoned: summoned.length, quicker: e.summonEvery < every0 };
     e.summonTimer = 1e9; summoned.forEach(m => s.killEnemy(m)); out.count = e.tribute; out.label = e.nameLabel.text;
     const loot0 = s.pickups.length; e.tribute = 15; s.killEnemy(e);
-    out.items = s.pickups.length - loot0; out.pending = s.pendingTribute;
-    await new Promise(r => setTimeout(r, 800));
-    out.first = { state: s.state, tribute: s.boonTribute };
+    out.items = s.pickups.length - loot0; out.queued = s.boonQueue.map(q => q.tribute).join(); out.state = s.state;
+    s.openBoons();
+    out.pick = { state: s.state, head: s.overlay.filter(o => o.type === 'Text')[0].text, metals: s.boonOffer.map(k => BOONS[k].metal) };
     s.pickBoon(s.boonOffer[0]);
-    out.second = { state: s.state, tribute: s.boonTribute, head: s.overlay.filter(o => o.type === 'Text')[0].text, metals: s.boonOffer.map(k => BOONS[k].metal) };
-    const wave = s.wave; s.pickBoon(s.boonOffer[0]); s.spawnQueue = [];
-    out.after = { state: s.state, advanced: s.wave === wave + 1, pending: s.pendingTribute };
+    out.after = { state: s.state, left: s.boonQueue.length };
     s.boons = {}; return out;`);
   check('summoned enemies killed before a boss falls count as tribute', trib.summoned === 2 && trib.quicker && trib.count === 2 && /tribute 2\/5/.test(trib.label), JSON.stringify(trib));
-  check('tribute pays an extra item and a second, better boon pick', trib.items === 2 && trib.pending === 15 && trib.first.state === 'boon' && trib.first.tribute === 0
-    && trib.second.state === 'boon' && trib.second.tribute === 15 && /TRIBUTE OF 15 PAID/.test(trib.second.head) && trib.second.metals.every(m => m !== 'common')
-    && trib.after.state === 'playing' && trib.after.advanced && trib.after.pending === 0, JSON.stringify(trib));
+  check('tribute pays an extra item and a better boon, to be chosen at leisure', trib.items === 2 && trib.queued === '15' && trib.state === 'playing'
+    && trib.pick.state === 'boon' && /TRIBUTE OF 15 PAID/.test(trib.pick.head) && trib.pick.metals.every(m => m !== 'common')
+    && trib.after.state === 'playing' && trib.after.left === 0, JSON.stringify(trib));
 
   // Each sector's floor, with a boss and a slam zone on it to judge legibility.
   await page(`const s = game.scene.keys.LootScene; s.player.iframes = 1e9; s.dismissHint(); const e = s.spawnGatekeeper(); e.slamTimer = 1e9; s.beginSlam(e); s.spawnLootPickup(120, 420, 'epic'); s.spawnLootPickup(280, 500, 'rare');`);
@@ -311,15 +361,19 @@ try {
   check('a run shows how far the goal is', goal.hud.startsWith('Level 1 of 3') && /waits two levels below/.test(goal.banner), goal.hud + ' || ' + goal.banner);
   await shot('5b-level-banner');
   const fell = await page(`const s = game.scene.keys.LootScene; s.sector = 2; s.runGold = 100; s.endRun(false); return ${texts};`);
-  check('falling says how close you came', /You fell in Jal-Kund, level 2 of 3/.test(fell) && /Vritra waits one level below/.test(fell), fell);
+  check('falling says how close you came', /You fell in The Drowned Steps, level 2 of 3/.test(fell) && /Vritra waits one level below/.test(fell), fell);
   await sleep(250); await shot('5c-fell');
   const paid = await page(`const s = game.scene.keys.LootScene; ${press};
     s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; s.wave = 6;
     const b = s.spawnSectorBoss(); b.tribute = 10; const loot0 = s.pickups.length; s.killEnemy(b); const items = s.pickups.length - loot0;
     await new Promise(r => setTimeout(r, 1400));
-    const out = { items, state: s.state, tribute: s.boonTribute }; s.pickBoon(s.boonOffer[0]); out.then = s.state;
+    const label = () => (s.uiObjects.find(o => o.type === 'Text' && /boon/i.test(o.text)) || {}).text;
+    const out = { items, state: s.state, queued: s.boonQueue.length, button: label(), glass: !!(s.frostRT.ui && s.frostRT.ui.visible) };
+    s.openBoons(); out.pick = { state: s.state, head: s.overlay.filter(o => o.type === 'Text')[0].text };
+    s.pickBoon(s.boonOffer[0]); out.then = s.state; out.buttonAfter = label();
     s.endRun(false); session.water = 0; saveSession(); return out;`);
-  check("a level boss's tribute is paid before the choice screen", paid.items === 3 && paid.state === 'boon' && paid.tribute === 10 && paid.then === 'sectorChoice', JSON.stringify(paid));
+  check("a level boss's tribute can be chosen on the choice screen", paid.items === 3 && paid.state === 'sectorChoice' && paid.queued === 1 && /Choose your boon first \(1\)/.test(paid.button || '')
+    && paid.pick.state === 'boon' && /TRIBUTE OF 10 PAID/.test(paid.pick.head) && paid.then === 'sectorChoice' && paid.buttonAfter === 'Boons chosen', JSON.stringify(paid));
   const won = await page(`const s = game.scene.keys.LootScene; ${press};
     s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; s.sector = 3; s.wave = 6; s.runGold = 300; s.setFloor(3);
     s.killEnemy(s.spawnSectorBoss());
@@ -344,6 +398,7 @@ try {
     for (let pg = 0; pg < 9; pg++) { s.showHowTo(pg, () => s.closeOverlay()); const tx = s.overlay.filter(o => o.type === 'Text'); tx.forEach(t => edge(t, 27, 373, 'how-to ' + pg));
       const body = tx.reduce((a, b) => (b.height > a.height ? b : a)); if (body.y + body.height > 548) bad.push('how-to ' + pg + ' body runs into the page dots'); }
     s.showSettings(() => s.closeOverlay()); s.overlay.filter(o => o.type === 'Text').forEach(t => edge(t, 28, 372, 'settings')); s.closeOverlay();
+    s.showHub(); s.showProfile(() => s.closeOverlay()); s.overlay.filter(o => o.type === 'Text').forEach(t => edge(t, 27, 373, 'profile')); s.closeOverlay();
     for (const tab of ['weapons', 'trinkets', 'tejas']) { s.showCodex(tab); s.uiObjects.filter(o => o.type === 'Text').forEach(t => edge(t, s.arenaBounds.x, s.arenaBounds.right, 'powers/' + tab)); }
     for (const m of ['common', 'rare', 'epic']) { s.showCodex('boons', m); const tx = s.uiObjects.filter(o => o.type === 'Text'); tx.forEach(t => edge(t, s.arenaBounds.x, s.arenaBounds.right, 'powers/boons/' + m));
       if (tx.filter(t => Object.values(BOONS).some(d => d.desc === t.text)).length !== 6) bad.push('powers/boons/' + m + ' does not list six boons');
@@ -379,6 +434,7 @@ try {
     game.loop.sleep();
     await new Promise((res, rej) => { const el = document.createElement('script'); el.src = '../tools/playtest-bot.js'; el.onload = res; el.onerror = rej; document.head.appendChild(el); });
     const s = game.scene.keys.LootScene;
+    delete s.buildWave;                                    // real waves again
     s.startRun(); s.showSectorClearChoice(false);          // the bot must cope with a run left on the choice screen
     PlaytestBot.start([{ name: 'fresh', vit: 0, pow: 0, target: 3 }, { name: 'mid', vit: 6, pow: 6, target: 4, tejas: true }, { name: 'grinder', vit: 14, pow: 14, target: 5, tejas: true }, { name: 'no boons', vit: 0, pow: 0, target: 3, boons: false }]);
     while (!PlaytestBot.tick(4000).done) await new Promise(r => setTimeout(r, 0));
@@ -394,7 +450,9 @@ try {
   // because a headless page has never been tapped. Anything else is a real problem.
   // ---------- 7. names: Option A sectors, and the plain-English pack ----------
   const sectors = await page(`return [1, 2, 3, 4, 9].map(n => sectorTitle(n)).join(' / ');`);
-  check('sectors carry the stepwell names', sectors === 'Prangan / Jal-Kund / Nidhi-Kosh / Patal / Patal', sectors);
+  const oldNames = await page(`return NAME_PACKS.sanskrit.sectors.map(x => x[0]).join(' / ') + ' / ' + NAME_PACKS.sanskrit.deeper[0];`);
+  check('levels carry the stepwell names, in both packs', sectors === 'The Courtyard / The Drowned Steps / The Gold Vault / The Abyss / The Abyss'
+    && oldNames === 'Prangan / Jal-Kund / Nidhi-Kosh / Patal', sectors + ' || ' + oldNames);
   await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href + '?names=plain&floors=carved' });
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
@@ -415,7 +473,8 @@ try {
     s.spawnGatekeeper(); s.spawnSectorBoss(); s.spawnLootPickup(200, 300, 'epic'); s.spawnLootPickup(210, 320, 'common');
     await new Promise(r => setTimeout(r, 300));
     grab(s.children.list);
-    s.offerBoons(); grab(s.overlay); for (const k of Object.keys(BOONS)) { s.boonOffer = [k]; s.showBoonScreen(); grab(s.overlay); } s.pickBoon(null); s.spawnQueue = [];
+    s.queueBoon(); s.openBoons(); grab(s.overlay); for (const k of Object.keys(BOONS)) { s.boonQueue[0].offer = [k]; s.showBoonScreen(); grab(s.overlay); } s.closeBoons(); s.boonQueue = []; s.refreshBoonButton();
+    s.pauseGame('profile'); grab(s.overlay); s.resumeGame();
     s.pauseGame(); grab(s.overlay); s.showAbandonConfirm(); grab(s.overlay); s.resumeGame();
     s.runGold = 50; s.showSectorClearChoice(false); grab(s.uiObjects); s.endRun(false); grab(s.uiObjects);
     const words = /Asura|Rakshasa|Mahish|Raktabija|Bakasura|Nidhi|Vritra|Shanti|Shakti|Grahan|Pralaya|Tamra|Rajat|Swarna|Katar|Talwar|Chakram|Parashu|Kavach|Kantak|Paduka|Sanjeevani|Tejas|Viram|[\u0900-\u097F]/i;

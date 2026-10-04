@@ -124,7 +124,7 @@
     const s = S();
     // Never start on top of a run that is still alive (paused, mid-fight, or waiting on
     // the sector-clear choice): its HUD would be orphaned and show up as a phantom leak.
-    while (s.state === 'boon') s.pickBoon(null);   // a tribute pick can follow a wave's pick
+    if (s.state === 'boon') { if (s.closeBoons) s.closeBoons(); else while (s.state === 'boon') s.pickBoon(null); }
     if (s.overlay && s.overlay.length) s.closeOverlay();
     if (s.state === 'paused') s.resumeGame();
     if (s.state === 'playing' || s.state === 'sectorChoice') s.endRun(false);
@@ -179,6 +179,11 @@
     if (s.state === 'playing') {
       steer();
       if (s.tejasBtn && s.tejas >= 100 && s.tejasActive <= 0) s.activateTejas();
+      // Boons wait on the + button now; the bot spends each one as soon as it is earned.
+      if (s.boonQueue && s.boonQueue.length) {
+        s.openBoons();
+        while (s.state === 'boon') s.pickBoon(cur.profile.boons === false ? null : s.boonOffer[Math.floor(Math.random() * s.boonOffer.length)]);
+      }
     }
     t += DT; g().headlessStep(t, DT); cur.frames++;
 
