@@ -94,7 +94,7 @@ try {
   const well0 = await page(`const t = id => document.getElementById(id).textContent;
     return { line: t('ldr-well-line'), sub: t('ldr-well-sub'), legend: t('ldr-well-legend'), after: t('ldr-well-after'),
              water: +document.getElementById('well-water').getAttribute('height'), wall: document.getElementById('well-wall').getAttribute('d').length };`);
-  check('the loading screen shows the well, dry on a new save', well0.line === 'The well is dry' && /drunk it dry/.test(well0.sub) && /7 full descents/.test(well0.legend)
+  check('the loading screen shows the well, dry on a new save', well0.line === 'The well is dry' && /drunk it dry/.test(well0.sub) && /win a depth/.test(well0.legend) && /There are 7/.test(well0.legend)
     && /game is won/.test(well0.after) && well0.water === 0 && well0.wall > 50, JSON.stringify(well0));
   await sleep(500); await shot('1-loader');
 
@@ -353,11 +353,12 @@ try {
   // ---------- 4b. the goal, the near miss and the ending ----------
   const texts = `s.uiObjects.filter(o => o.type === 'Text').map(o => o.text).join(' | ')`;
   const press = `s.uiObjects.find(o => o.type === 'Rectangle' && o.input).emit('pointerdown')`;
-  const goal = await page(`const s = game.scene.keys.LootScene; session.water = 0; session.wins = 0; s.showHub();
+  const goal = await page(`const s = game.scene.keys.LootScene;
+    Object.assign(session, { water: 0, wins: 0, depthsWon: 0, depthBest: 0, depthPick: 0, perks: {}, perksOn: [] }); s.showHub();
     const title = ${texts};
     s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; await new Promise(r => setTimeout(r, 400));
     return { title, hud: s.hudText.text, banner: (s.banner || []).map(t => t.text).join(' | ') };`);
-  check('title screen states the goal', /has drunk the well dry/.test(goal.title) && /The well is dry/.test(goal.title), goal.title.replace(/\n/g, ' ').slice(0, 130));
+  check('title screen states the goal and the depth', /has drunk the well dry/.test(goal.title) && /The well is dry/.test(goal.title) && /DEPTH 1 OF 7  ·  THE FIRST DESCENT/.test(goal.title), goal.title.replace(/\n/g, ' ').slice(0, 230));
   check('a run shows how far the goal is', goal.hud.startsWith('Level 1 of 3') && /waits two levels below/.test(goal.banner), goal.hud + ' || ' + goal.banner);
   await shot('5b-level-banner');
   const fell = await page(`const s = game.scene.keys.LootScene; s.sector = 2; s.runGold = 100; s.endRun(false); return ${texts};`);
@@ -371,31 +372,141 @@ try {
     const out = { items, state: s.state, queued: s.boonQueue.length, button: label(), glass: !!(s.frostRT.ui && s.frostRT.ui.visible) };
     s.openBoons(); out.pick = { state: s.state, head: s.overlay.filter(o => o.type === 'Text')[0].text };
     s.pickBoon(s.boonOffer[0]); out.then = s.state; out.buttonAfter = label();
-    s.endRun(false); session.water = 0; saveSession(); return out;`);
+    out.level = { best: session.depthBest, water: session.water, perk: !!session.perks.eye, says: (s.uiObjects.find(o => o.type === 'Text' && /water/.test(o.text)) || {}).text };
+    s.endRun(false); session.water = 0; session.depthBest = 0; saveSession(); return out;`);
   check("a level boss's tribute can be chosen on the choice screen", paid.items === 3 && paid.state === 'sectorChoice' && paid.queued === 1 && /Choose your boon first \(1\)/.test(paid.button || '')
     && paid.pick.state === 'boon' && /TRIBUTE OF 10 PAID/.test(paid.pick.head) && paid.then === 'sectorChoice' && paid.buttonAfter === 'Boons chosen', JSON.stringify(paid));
+  check("a level's boss fills one measure of the depth being attempted, and its first fall earns a perk", paid.level.best === 1 && paid.level.water === 1 && paid.level.perk && /^\+1 water for the well/.test(paid.level.says || ''), JSON.stringify(paid.level));
   const won = await page(`const s = game.scene.keys.LootScene; ${press};
     s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; s.sector = 3; s.wave = 6; s.runGold = 300; s.setFloor(3);
     s.killEnemy(s.spawnSectorBoss());
     await new Promise(r => setTimeout(r, 1400));
-    return { state: s.state, water: session.water, wins: session.wins, panel: ${texts} };`);
-  check('slaying the final boss wins the run', won.state === 'sectorChoice' && won.water === 3 && won.wins === 1 && /THE WATERS RETURN/.test(won.panel), JSON.stringify(won).replace(/\\n/g, ' '));
+    return { state: s.state, water: session.water, wins: session.wins, depths: session.depthsWon, perks: Object.keys(session.perks).sort().join(), panel: ${texts} };`);
+  check('slaying the final boss wins the run and the depth', won.state === 'sectorChoice' && won.water === 5 && won.wins === 1 && won.depths === 1 && won.perks === 'eye,scale'
+    && /THE WATERS RETURN/.test(won.panel) && /Depth 1 is won\. Depth 2 opens: Swift\./.test(won.panel) && /Perk earned: Serpent's Scale/.test(won.panel), JSON.stringify(won).replace(/\\n/g, ' '));
   await shot('5d-victory');
   const surfaced = await page(`const s = game.scene.keys.LootScene; const before = session.metaGold, carried = s.runGold; ${press};
     const summary = ${texts}; const banked = session.metaGold - before; ${press};
     await new Promise(r => setTimeout(r, 300));
     return { banked, carried, summary, title: ${texts} };`);
   check('surfacing after the win banks everything', surfaced.banked === surfaced.carried && surfaced.carried >= 300 && /VRITRA SLAIN/.test(surfaced.summary), `banked ${surfaced.banked} of ${surfaced.carried} carried | ` + surfaced.summary);
-  check('the well on the title screen has filled', /The well is 9% full/.test(surfaced.title), surfaced.title.replace(/\n/g, ' ').slice(0, 160));
+  check('the title screen shows the water and the next depth', /The well is 14% full/.test(surfaced.title) && /DEPTH 2 OF 7  ·  SWIFT/.test(surfaced.title) && /Enemies move 12% faster\. \+20% Nidhi\./.test(surfaced.title), surfaced.title.replace(/\n/g, ' ').slice(0, 260));
   await sleep(900); await shot('5e-title-with-water');
   const packs = await page(`const shape = o => Object.keys(o).sort().map(k => k + (o[k] && typeof o[k] === 'object' && !Array.isArray(o[k]) ? '{' + Object.keys(o[k]).sort().join(',') + '}' : '')).join(';');
     return Object.fromEntries(Object.keys(NAME_PACKS).map(k => [k, shape(NAME_PACKS[k]) === shape(NAME_PACKS.sanskrit)]));`);
   check('every name pack has the same entries', Object.keys(packs).length === 3 && Object.values(packs).every(Boolean), JSON.stringify(packs));
 
+  // ---------- 4c. the boss says when it can be hurt; the serpent; depths; perks ----------
+  const gate = await page(`const s = game.scene.keys.LootScene; session.gateTaught = false; session.depthPick = 1;
+    const hold = e => { e.slamTimer = 1e9; e.speed = 0; e.summonTimer = 1e9; return e; }, wait = ms => new Promise(r => setTimeout(r, ms));
+    s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.dismissHint();
+    const first = hold(s.spawnGatekeeper());
+    const out = { tier: s.tier, firstOpen: first.weakPhase === s.phase, taught: session.gateTaught, held: s.phaseTimeLeft >= 8000, full: s.weakScale(first) };
+    await wait(300);
+    out.openLabel = first.gateLabel.text;
+    first.weakPhase = PHASE_SEQUENCE.find(p => p !== s.phase);
+    let hp = first.hp; s.damageEnemy(first, 100); out.level1 = Math.round(hp - first.hp);
+    await wait(300);
+    out.closedLabel = first.gateLabel.text; out.grey = s.enemySprites.get(first.id).tintTopLeft === 0x8d94a6;
+    s.sector = 2; hp = first.hp; s.damageEnemy(first, 100); out.level2 = Math.round(hp - first.hp);
+    first.x = 70; first.y = 590;                           // out of the serpent's way
+    s.sector = 3; s.setFloor(3); const v = hold(s.spawnSectorBoss()); v.weakPhase = PHASE_SEQUENCE.find(p => p !== s.phase);
+    await wait(400);
+    out.serpent = { drawn: !!v.serpent && v.serpent.segs.length === SERPENT.length, spriteHidden: !s.enemySprites.get(v.id).visible, label: v.gateLabel.text,
+                    moved: Math.hypot(v.serpent.segs[0].x - v.x, v.serpent.segs[0].y - v.y) < 30 };
+    return out;`);
+  check('the first Gatekeeper a player meets arrives open, and stays open a while', gate.tier === 1 && gate.firstOpen && gate.taught && gate.held && gate.full === 1 && /^VULNERABLE  \d+s$/.test(gate.openLabel), JSON.stringify(gate));
+  check('a resisting boss says so, counts down, and takes 30% on level 1 and 12% below', /^RESISTS  \u00B7  opens in \d+s$/.test(gate.closedLabel) && gate.grey && gate.level1 === 30 && gate.level2 === 12, JSON.stringify(gate));
+  check('Vritra is a drawn serpent with the same tell', gate.serpent.drawn && gate.serpent.spriteHidden && gate.serpent.moved && /^RESISTS/.test(gate.serpent.label), JSON.stringify(gate.serpent));
+  await shot('5f-serpent');
+
+  // Depths: a depth already won pays no water; the next one is harder and pays more.
+  const deep = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
+    const a = s.spawnEnemyOfType('melee', 100, 300, 1), slow = a.speed; s.killEnemy(a);
+    const v = s.enemies.find(e => e.isMega); s.killEnemy(v); await wait(1400);
+    out.again = { water: session.water, depths: session.depthsWon, panel: ${texts} };
+    ${press}; ${press}; await wait(200);
+    session.depthPick = 0; s.showHub();
+    out.arrows = s.uiObjects.filter(o => o.type === 'Text' && (o.text === '<' || o.text === '>')).map(o => o.text).join('');
+    s.startRun(); ${FREEZE} s.player.iframes = 1e9; await wait(300);
+    const quick = s.spawnEnemyOfType('melee', 100, 300, 1); s.killEnemy(quick);
+    s.runGold = 0; s.addGold(100);
+    out.two = { tier: s.tier, hud: s.hudText.text, banner: (s.banner || []).map(t => t.text).join(' | '), faster: Math.round(100 * quick.speed / slow), gold: s.runGold, heal: s.clearHeal(), every: s.convergeEvery() };
+    s.sector = 3; s.wave = 6; s.setFloor(3); s.killEnemy(s.spawnSectorBoss()); await wait(1400);
+    out.won = { water: session.water, depths: session.depthsWon, perks: Object.keys(session.perks).sort().join(), worn: session.perksOn.join(), panel: ${texts} };
+    ${press}; ${press}; await wait(200);
+    s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.wave = 6;
+    out.three = { tier: s.tier, heal: s.clearHeal(), hard: [sectorHpMult(1), sectorDmgMult(1)] };
+    s.killEnemy(s.spawnSectorBoss()); await wait(1300);
+    out.three.water = session.water; out.three.best = session.depthBest;
+    s.descend(); s.spawnQueue = [{}]; s.spawnTimer = 1e9; s.player.iframes = 1e9; s.wave = 6; s.sector = 1; s.killEnemy(s.spawnSectorBoss()); await wait(1300);
+    out.three.again = (s.uiObjects.find(o => o.type === 'Text' && /water/.test(o.text)) || {}).text; out.three.waterAfter = session.water;
+    s.endRun(false); ${press}; await wait(200);
+    session.depthPick = 1; s.showHub(); out.back = ${texts};
+    session.depthPick = 0; saveSession(); s.showHub();
+    return out;`);
+  check('a depth already won pays no water', deep.again.water === 5 && deep.again.depths === 1 && /Depth 1 was already won: no new water/.test(deep.again.panel), JSON.stringify(deep.again).replace(/\\n/g, ' '));
+  check('the second depth is faster and richer, and says which depth it is', deep.arrows === '<' && deep.two.tier === 2 && deep.two.hud.startsWith('D2 · Level 1 of 3') && /DEPTH 2 · LEVEL 1 OF 3/.test(deep.two.banner)
+    && deep.two.faster === 112 && deep.two.gold === 120 && deep.two.heal === 0.35 && deep.two.every === 90000, JSON.stringify(deep.two));
+  check('winning a depth opens the next and earns its perk', deep.won.water === 10 && deep.won.depths === 2 && deep.won.perks === 'eye,lungs,scale' && deep.won.worn === 'eye,scale'
+    && /Depth 2 is won\. Depth 3 opens: Thin Air\./.test(deep.won.panel) && /Perk earned: Deep Lungs/.test(deep.won.panel), JSON.stringify(deep.won).replace(/\\n/g, ' '));
+  check('the third depth heals less, and its level bosses fill the well', deep.three.tier === 3 && deep.three.heal === 0.2 && deep.three.hard.join() === '1,1' && deep.three.water === 11 && deep.three.best === 1 && deep.three.waterAfter === 11 && /^No new water/.test(deep.three.again || '')
+    && /DEPTH 1 OF 7/.test(deep.back) && /Already won: no water here/.test(deep.back), JSON.stringify(deep.three) + ' | ' + deep.back.replace(/\n/g, ' ').slice(0, 200));
+  await sleep(500); await shot('5g-title-depth-3');
+
+  // Perks: worn two at a time, chosen on the profile, and they do what they say.
+  const perk = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), back = () => s.closeOverlay(), out = {};
+    const hp0 = 100 * (1 + session.vitalityLevel * 0.10), note = () => s.overlay.filter(o => o.type === 'Text').map(o => o.text).join(' | ');
+    s.showHub(); s.showProfile(back);
+    out.shown = { head: /PERKS  ·  WEAR 2/.test(note()), power: s.powerParts().perks, slots: s.perkSlots() };
+    const zone = (x, y) => s.overlay.find(o => o.type === 'Zone' && Math.abs(o.x - x) < 2 && Math.abs(o.y - y) < 2);
+    zone(310, 204).emit('pointerdown'); out.locked = /Second Wind  ·  not earned yet/.test(note()) && /To earn it, win depth 3/.test(note()) && session.perksOn.join() === 'eye,scale';
+    s.togglePerk('lungs', back); out.full = /Only 2 perks can be worn/.test(note()) && session.perksOn.join() === 'eye,scale';
+    zone(310, 172).emit('pointerdown'); out.off = session.perksOn.join();                         // a real tap takes Hoarder's Eye off
+    zone(278, 204).emit('pointerdown'); out.on = session.perksOn.join(); out.maxHp = s.loadout().p.maxHp - hp0;   // and puts Deep Lungs on
+    out.saved = JSON.parse(localStorage.getItem(SAVE_KEY)).perksOn.join();
+    return out;`);
+  await sleep(300); await shot('5h-profile-perks');
+  const perk2 = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
+    s.closeOverlay(); session.depthPick = 1;
+    s.startRun(); ${FREEZE} s.dismissHint();
+    out.lungs = s.player.maxHp - 100 * (1 + session.vitalityLevel * 0.10);
+    s.player.iframes = 0; let hp = s.player.hp; s.damagePlayer(20, null, 'melee'); out.scale = Math.round((hp - s.player.hp) * 10) / 10;
+    s.player.iframes = 1e9; s.killEnemy(s.spawnGatekeeper()); out.guardEarned = !!session.perks.guard; out.wornAfter = session.perksOn.join();
+    s.endRun(false); ${press}; await wait(150);
+    session.perksOn = ['guard', 'wind']; session.perks.wind = true;
+    s.startRun(); ${FREEZE} s.dismissHint();
+    s.player.iframes = 0; hp = s.player.hp; s.damagePlayer(20, null, 'melee'); out.guard = { blocked: s.player.hp === hp, left: s.player.guardCharge };
+    s.player.iframes = 0; s.player.hp = 5; const died = s.damagePlayer(50, null, 'melee'); out.wind = { died, hp: Math.round(100 * s.player.hp / s.player.maxHp), state: s.state };
+    s.player.iframes = 0; out.windOnce = s.damagePlayer(1e5, null, 'melee') === true && s.state === 'summary';
+    ${press}; await wait(150);
+    session.perksOn = ['taker', 'reroll', 'study']; session.depthsWon = 4;
+    s.startRun(); ${FREEZE}
+    out.kit = { slots: s.perkSlots(), tribute: s.tributeAt.item + '/' + s.tributeAt.boon + '/' + s.tributeAt.gold, rerolls: s.rerollsLeft, waiting: s.boonQueue.length, power: s.powerParts().perks };
+    s.boonQueue = []; s.refreshBoonButton(); s.endRun(false); ${press}; await wait(150);
+    session.depthsWon = 2; session.perksOn = ['scale', 'lungs']; delete session.perks.wind; session.depthPick = 0; saveSession(); s.showHub();
+    return out;`);
+  check('perks show on the profile, and one not yet earned says how to earn it', perk.shown.head && perk.shown.power === 40 && perk.shown.slots === 2 && perk.locked, JSON.stringify(perk));
+  check('two perks are worn at a time, chosen by tapping, and the choice is saved', perk.full && perk.off === 'scale' && perk.on === 'scale,lungs' && perk.maxHp === 25 && perk.saved === 'scale,lungs', JSON.stringify(perk));
+  check("perks do what they say: health, damage taken, the Gatekeeper's block, a second wind", perk2.lungs === 25 && perk2.scale === 18 && perk2.guardEarned && perk2.wornAfter === 'scale,lungs'
+    && perk2.guard.blocked && perk2.guard.left === 0 && perk2.wind.died === false && perk2.wind.hp === 30 && perk2.wind.state === 'playing' && perk2.windOnce, JSON.stringify(perk2));
+  check('later perks: a third slot, cheaper tribute, a second reroll, a boon to start', perk2.kit.slots === 3 && perk2.kit.tribute === '4/8/12' && perk2.kit.rerolls === 2 && perk2.kit.waiting === 1 && perk2.kit.power === 60, JSON.stringify(perk2.kit));
+
+  // A save from before the depths keeps what it had done.
+  const old = await page(`const keep = localStorage.getItem(SAVE_KEY), now = JSON.stringify(session), read = () => ({ won: session.depthsWon, best: session.depthBest, water: session.water, perks: Object.keys(session.perks).sort().join(), worn: session.perksOn.length });
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ metaGold: 40, vitalityLevel: 1, powerLevel: 0, bestSector: 3, wins: 2, water: 8, hintsSeen: {} })); loadSession(); const winner = read();
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ metaGold: 5, vitalityLevel: 0, powerLevel: 0, bestSector: 3, wins: 0, water: 2, hintsSeen: {} })); loadSession(); const founder = read();
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ metaGold: 0, vitalityLevel: 0, powerLevel: 0, bestSector: 1, wins: 0, water: 0, hintsSeen: {} })); loadSession(); const fresh = read();
+    localStorage.setItem(SAVE_KEY, keep); Object.assign(session, JSON.parse(now));
+    return { winner, founder, fresh, back: session.depthsWon };`);
+  check('an older save is carried into the depths with what it had earned', old.winner.won === 1 && old.winner.water === 5 && old.winner.perks === 'eye,guard,scale' && old.winner.worn === 2
+    && old.founder.won === 0 && old.founder.best === 2 && old.founder.water === 2 && old.founder.perks === 'eye,guard'
+    && old.fresh.won === 0 && old.fresh.water === 0 && old.fresh.perks === '' && old.back === 2, JSON.stringify(old));
+
   // ---------- 5. every text stays inside its panel ----------
   const spill = await page(`const s = game.scene.keys.LootScene, bad = [];
     const edge = (t, lo, hi, where) => { const l = t.x - t.width * t.originX, r = l + t.width; if (l < lo || r > hi) bad.push(where + ': ' + t.text.slice(0, 32)); };
-    for (let pg = 0; pg < 9; pg++) { s.showHowTo(pg, () => s.closeOverlay()); const tx = s.overlay.filter(o => o.type === 'Text'); tx.forEach(t => edge(t, 27, 373, 'how-to ' + pg));
+    for (let pg = 0; pg < 10; pg++) { s.showHowTo(pg, () => s.closeOverlay()); const tx = s.overlay.filter(o => o.type === 'Text'); tx.forEach(t => edge(t, 27, 373, 'how-to ' + pg));
       const body = tx.reduce((a, b) => (b.height > a.height ? b : a)); if (body.y + body.height > 548) bad.push('how-to ' + pg + ' body runs into the page dots'); }
     s.showSettings(() => s.closeOverlay()); s.overlay.filter(o => o.type === 'Text').forEach(t => edge(t, 28, 372, 'settings')); s.closeOverlay();
     s.showHub(); s.showProfile(() => s.closeOverlay()); s.overlay.filter(o => o.type === 'Text').forEach(t => edge(t, 27, 373, 'profile')); s.closeOverlay();
@@ -459,7 +570,7 @@ try {
   await shot('9-plain-loader');
   const well1 = await page(`const t = id => document.getElementById(id).textContent;
     return { line: t('ldr-well-line'), sub: t('ldr-well-sub'), after: t('ldr-well-after'), water: +document.getElementById('well-water').getAttribute('height') };`);
-  check('the loading screen shows the water already returned', well1.line === 'The well is 9% full' && /^3 of 35/.test(well1.sub) && well1.water > 0 && /The Bottomless Well/.test(well1.after), JSON.stringify(well1));
+  check('the loading screen shows the water already returned', well1.line === 'The well is 31% full' && /^Depth 3 of 7 \u00B7 11 of 35/.test(well1.sub) && well1.water > 0 && /The Bottomless Well/.test(well1.after), JSON.stringify(well1));
   const plain = await page(`settings.sfx = 0; settings.tips = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));
     const s = game.scene.keys.LootScene, seen = [];
     const grab = list => list.filter(o => o && o.type === 'Text' && o.text).forEach(o => seen.push(o.text));
@@ -467,7 +578,7 @@ try {
     grab(s.uiObjects);
     for (const tab of ['weapons', 'trinkets', 'tejas']) { s.showCodex(tab); grab(s.uiObjects); }
     for (const m of ['common', 'rare', 'epic']) { s.showCodex('boons', m); grab(s.uiObjects); }
-    s.showHub(); for (let pg = 0; pg < 9; pg++) { s.showHowTo(pg, () => s.closeOverlay()); grab(s.overlay); } s.closeOverlay();
+    s.showHub(); for (let pg = 0; pg < 10; pg++) { s.showHowTo(pg, () => s.closeOverlay()); grab(s.overlay); } s.closeOverlay();
     session.tejasUnlocked = true; s.startRun(); s.player.iframes = 1e9; grab(s.banner || []);
     for (const t of ['melee', 'ranged', 'tank', 'splitter']) s.spawnEnemyOfType(t, 100, 300, 1, false);
     s.spawnGatekeeper(); s.spawnSectorBoss(); s.spawnLootPickup(200, 300, 'epic'); s.spawnLootPickup(210, 320, 'common');
@@ -485,6 +596,23 @@ try {
   check('the carved floor set paints all three levels with their stairs and lights', plain.carved.set && plain.carved.floors === 3 && plain.carved.frames === 3 && plain.carved.lights > 0 && plain.carved.frameShown, JSON.stringify(plain.carved));
   await shot('9-plain-summary');
   check('plain-English pack leaves no Sanskrit on screen', plain.leaks.length === 0 && plain.texts > 80, `${plain.texts} texts read, e.g. ${plain.sample}` + (plain.leaks.length ? ' LEAKS: ' + plain.leaks.join(' | ') : ''));
+
+  // ---------- 8. a save from before the depths, loaded the way a player's is: with the page ----------
+  await page(`localStorage.setItem(SAVE_KEY, JSON.stringify({ metaGold: 77, vitalityLevel: 1, powerLevel: 0, bestSector: 3, tejasUnlocked: true, hintsSeen: {}, water: 2, wins: 0 }));`);
+  await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href });
+  state = 'loading';
+  for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
+  const carried = await page(`const t = id => document.getElementById(id).textContent;
+    const out = { line: t('ldr-well-line'), sub: t('ldr-well-sub'), won: session.depthsWon, best: session.depthBest, water: session.water, gold: session.metaGold,
+      perks: Object.keys(session.perks).sort().join(), worn: session.perksOn.join(), taught: session.gateTaught };
+    settings.sfx = 0; settings.tips = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));
+    const s = game.scene.keys.LootScene;
+    out.title = s.uiObjects.filter(o => o.type === 'Text').map(o => o.text).join(' | ');
+    s.startRun(); out.run = { tier: s.tier, guard: s.player.guardCharge, power: s.powerParts().perks }; s.endRun(false);
+    return out;`);
+  check('an older save loads with the page into depth 1, keeping its water and wearing its perks', carried.line === 'The well is 6% full' && /^Depth 1 of 7 · 2 of 35/.test(carried.sub)
+    && carried.won === 0 && carried.best === 2 && carried.water === 2 && carried.gold === 77 && carried.perks === 'eye,guard' && carried.worn === 'guard,eye' && !carried.taught
+    && /DEPTH 1 OF 7/.test(carried.title) && /The well is 6% full/.test(carried.title) && carried.run.tier === 1 && carried.run.guard === 1 && carried.run.power === 40, JSON.stringify(carried).replace(/\n/g, ' ').slice(0, 420));
 
   const real = problems.filter(p => !/music\/|404|Failed to load resource|navigator\.vibrate/.test(p));
   check('no page errors', real.length === 0, real.join('; '));

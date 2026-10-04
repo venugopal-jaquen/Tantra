@@ -49,6 +49,10 @@ Kept so a reversal is never mistaken for drift or an error.
 | 2026-10-04 | **Boons wait for the player.** §2.24. | "The number of pauses when boon selection is needed just turned me off from the game." The founder pointed to Dota 2, where a level-up is spent at leisure with the + key. A cleared wave no longer stops the fight. |
 | 2026-10-04 | **Power, stats and a profile screen.** §2.28. | The founder asked for a power level on the gameplay screen, numbers for the player's stats, and a first version of the profile screen pinned as P2, laid out like Destiny 2's character screen. |
 | 2026-10-04 | **Glass.** §2.29. | "The overall game doesn't have any transparency as showcased in today's design cues (iOS, Windows 11)." Panels are now translucent over a frosted copy of the scene. |
+| 2026-10-05 | **A boss shows when it can be hurt.** §2.6. | The testing round (`design-document.md` §1.4) named the first boss as the likeliest place to lose a new player: he took 12% damage unless the phase bar matched a small glow at his feet, and one tip explained it. The founder chose all four proposals: the state drawn on the boss, a countdown, a first Gatekeeper who arrives open, and a softer penalty on level 1, which they set at 30%. |
+| 2026-10-05 | **Seven depths, with perks as the rewards.** §2.30. | The same round found nothing to earn by winning. The founder chose seven depths of the well as the spine, each harder than the last, and perks earned from bosses and depths as the rewards. This settles the "seven worlds" question as depths of the one well, and builds the perks pinned as P8. A daily descent was pinned for after the itch.io launch (P9). |
+| 2026-10-05 | **Characters move; Vritra is drawn.** §2.31. | The cast is stock art with no animation frames. The founder chose motion made in code and a serpent drawn in code for now, will make the characters themselves with image tools (`docs/character-art-guide.md`), and is not ready to commission an artist. |
+| 2026-10-05 | **Music stays off until after launch.** §2.16. | The founder on the earlier tracks: "Transitions weren't continuous plus the style for some tracks were not good. Freeware is still not good enough." Buying music is pinned for after the itch.io launch (P10). Sound effects stay. |
 | 2026-10-04 | **A second set of floors, switchable.** §2.10. | The founder on the level backgrounds: "Current ones look too repetitive and low quality. Make something more sophisticated and worthwhile. It should look customized for this game." A new set was painted and offered beside the old one; the choice is theirs. |
 | 2026-10-03 | **Wave shapes, a bigger opening, and tribute.** §2.25, §2.26. | The founder's first playtest of boons on a phone: "the initial runs look a bit too easy with no variability", and a reminder that patient players who kill more creeps before the boss should earn more drops and better benefits. They reached level 3 with the well 6% full. Every run had opened with four Asura, five Asura, then the Gatekeeper, and patience paid only a flat item roll. |
 | 2026-10-03 | **Sound effects restored on iPhone.** §2.16. | The founder: "When I said remove the music, I just said remove the background music. I liked the gameplay sounds and effects." They had gone silent on the phone as a side effect of the music being switched off. |
@@ -113,9 +117,14 @@ Kept so a reversal is never mistaken for drift or an error.
   - **Bakasura** (gatekeeper): circle; adds line from Sector 2. **Nidhi-Raksha**: circle + line. **Vritra**: all three.
   - A **shielded boss is rooted** (the anchor puzzle is a stand-off) but always casts **scatter**, so it reaches you instead of idling.
 - **Gatekeeper**: weak-phase puzzle — full damage only when the Cosmic Cycle matches its core color; telegraphed AoE slam.
+- **The rule is shown on the boss (2026-10-05).** It used to live in one tip: match a glow at his feet to the bar at the top of the screen. Now nothing has to be read or matched. This covers the Gatekeeper and Vritra's first stage.
+  - **Resisting:** the boss turns steel-grey inside slowly turning plates of armour, and a line over his name counts down: "RESISTS · opens in 12s". Hits that glance off float the word RESISTS and play the blocked sound.
+  - **Open:** the grey lifts, a ring flares in his colour with rays, the line reads "VULNERABLE 7s", a bell sounds, and a toast says "GATEKEEPER IS VULNERABLE - STRIKE NOW".
+  - **The first Gatekeeper a player ever meets arrives open**, and stays open for at least 8 seconds (`session.gateTaught`). They see full damage first and then watch it fall away when the phase turns: a rule learnt by contrast.
+  - **How much glances off** (`BOSS_RESIST`): on level 1 a resisting boss takes 30% of a hit, so a new player who ignores the rule still wins, slowly. From level 2 it takes 12%, as before.
 - **Hoardbound** (Sector Boss): starts shielded; 3 "anchor" adds must be killed to break the shield before it becomes damageable.
 - **Shield presentation (2026-09-24):** a breathing inner dome plus two counter-rotating rings, and a **second bar above the HP bar** showing anchors remaining. The two bars sit apart deliberately — while the shield bar has any fill, the HP bar underneath is unreachable, which says the rule faster than a toast does. Breaking the shield blows the rings outward rather than snapping them off, because that break is the payoff for the whole anchor puzzle.
-- **Rift Warden** (Mega Boss, Sector 3): combines both mechanics sequentially — weak-phase timing first, then shield/anchor puzzle once below ~55% HP.
+- **Rift Warden** (Mega Boss, Sector 3): combines both mechanics sequentially — weak-phase timing first, then shield/anchor puzzle once below ~55% HP. Since 2026-10-05 he is a serpent drawn in code (§2.31).
 - **Every enemy** displays a live HP bar (2026-09-24 — previously bosses, tanks and elites only). Bars scale with the enemy so a swarm reads as chatter and a boss reads as a wall, and drain gold → ember → crimson so health is legible without a number.
 
 ### 2.7 Loot
@@ -326,6 +335,8 @@ Modelled on Hades and Archero, not Brotato: Brotato's "figure it out" onboarding
 - Seen tips live in `session.hintsSeen`, so "Reset save" re-arms them. Settings has a **Tutorial tips** on/off switch and a **show tips again** button.
 
 ### 2.12.2 How to Play (built 2026-09-27)
+Ten cards since 2026-10-05: the last, Depths · Perks, draws the well's seven steps with the won ones under water, beside three of the perks (§2.30).
+
 Nine illustrated cards, reachable from the hub and the pause menu: The Goal (added 2026-10-02), Move · Fight, Loot · Satchel, Boons (added 2026-10-03), The Cosmic Cycle, Bosses, Slams, Tejas, and Extract or Descend. The illustrations reuse the real sprites, icons and telegraph shapes, so what the card shows is exactly what the player will see. Players swipe, or use the arrows. The copy switches between touch and keyboard wording.
 
 ### 2.13 Sprite Sourcing (open)
@@ -392,6 +403,8 @@ HP lost can exceed 100% because heals are spent along the way. Across 30+ bot ru
 - Taps on the Tejas button (or the satchel tab) no longer also walk Kiran to that spot.
 
 ### 2.16 Audio (built 2026-09-27)
+**Status, 2026-10-05:** sound effects are in and stay. Music is switched off (`MUSIC_ON = false`) and stays off for the itch.io launch: the founder found that the first tracks' transitions were not continuous and that some did not suit the game, judged free music not good enough, and will consider buying it after launch (`design-document.md` P10). The music engine described below remains in the code.
+
 **Sound effects:** 37 sounds from three Kenney CC0 packs (Impact, Interface and RPG Audio). These are recorded sounds, which the founder chose over generated ones. They ship as mono 16-bit WAV (1.4 MB) because older iOS Safari cannot decode the packs' Ogg Vorbis. Every file has its leading silence trimmed; `knifeSlice` had 235 ms of dead air, which would have read as input lag. Every file is also peak-normalised, so the `SFX` table's per-sound `vol` is the only loudness control.
 
 The sounds were picked by measurement (length, brightness, ring-out) because **Claude cannot hear audio; the founder's ear is the final judge.** Anything can be swapped by editing the `MAP` in the conversion script and re-running it. Design rules:
@@ -470,16 +483,16 @@ Launch track L7. Each load shows **one glossary card**: the word large in Devana
 - If the engine cannot be downloaded, the bar is replaced by a plain message instead of hanging.
 - The loader's design came from the Asura review (§1.7); Asura's own loading screens could not be seen, so this is original.
 
-**The well (2026-10-03).** Under the glossary card sits a small infographic of the goal: a stepwell shaft in cross-section with the water drawn at its current level, read straight from the save so it shows before the engine loads. The shaft has seven steps because seven complete descents fill the well, so one step is one descent. Beside it, four lines:
+**The well (2026-10-03).** Under the glossary card sits a small infographic of the goal: a stepwell shaft in cross-section with the water drawn at its current level, read straight from the save so it shows before the engine loads. The shaft has seven steps because the well has seven depths, and winning a depth fills a step (§2.30). Beside it, four lines:
 
 | Line | New save | In progress | Full |
 |---|---|---|---|
 | Headline | The well is dry | The well is 6% full | The well is full |
-| Count | Vritra has drunk it dry | 2 of 35 measures of water returned | 35 of 35 measures of water returned |
-| What fills it | A level's boss returns 1 · Vritra returns 3 · 7 full descents fill it | the same | Every drop Vritra took is back |
+| Count | Vritra has drunk it dry | Depth 3 of 7 · 11 of 35 measures returned | Depth 7 of 7 · 35 of 35 measures returned |
+| What fills it | Slay Vritra to win a depth and fill a step. There are 7, each harder than the last | the same | Every drop Vritra took is back |
 | What a full well means | Fill it and the game is won. Patal, the endless depths, stays open after. | the same | You have finished the game. Patal, the endless depths, stays open. |
 
-The last line states what exists today and nothing more: a full well ends the game (§2.23) and unlocks nothing else. What a win should unlock is still undecided. The loader is checked to fit a sideways phone and a small phone with its tallest glossary card showing.
+The last line states what exists today and nothing more: a full well ends the game (§2.23). What each win unlocks on the way is in §2.30. Two glossary cards, Seven depths and Perks, were added on 2026-10-05. The loader is checked to fit a sideways phone and a small phone with its tallest glossary card showing.
 
 ### 2.21 Title screen (2026-10-02)
 Launch track L2, first design. **One screen, not two:** the title, the way into a run and the two upgrades share it, because a title in front of a separate hub would put three taps between a player and a fight. It replaces the plain menu that was drawn over the arena.
@@ -522,7 +535,7 @@ The near miss on the summary is deliberate: it is the strongest reason to try ag
 
 Player-facing text now says **level** where it said sector (the word lives in the name pack as `stage`); upgrade cards say *Rank* so the two do not collide. Code and these documents still say sector.
 
-Not decided: whether the seven complete descents should differ from one another (the "seven worlds" idea, `design-document.md` §1.3), and what a win unlocks beyond water.
+**Changed 2026-10-05:** the seven descents now differ. Each is a depth of the well with its own hardship, a win opens the next, and water is counted by depth instead of boss by boss, so beating the first depth seven times no longer fills the well (§2.30).
 
 ### 2.24 Boons between waves (2026-10-03)
 The answer to "the play feels plain" (`design-document.md` §1.3): the game's big decisions (Extract or Descend, the Cosmic Cycle, boss rules) were good but rare, and the small ones were missing. Loot equipped itself, and nothing grew inside a run.
@@ -624,6 +637,7 @@ The first working version of the profile screen pinned as P2 (`design-document.m
 | Trinket | 15 copper, 30 silver, 50 gold |
 | Each boon rank | 10 copper, 25 silver, 40 gold. A weapon boon that is asleep adds nothing |
 | Tejas, once woken | 30 |
+| Each perk worn (§2.30) | 20 |
 
 A new character starts a run at 120. The HUD shows "◆ Power 245" at the right of the weapon line; when it rises the number swells and the gain floats up from it. Tapping it opens the profile.
 
@@ -632,7 +646,7 @@ A new character starts a run at 120. The HUD shows "◆ Power 245" at the right 
 - Name and place at the top left; Power, large, at the top right.
 - Kiran in the middle, lit from behind, standing on the current phase's ring.
 - Left: three gear slots (weapon, trinket, Tejas form), each bordered in its metal and marked with the power it adds.
-- Right: this run's boons as small slots, three across, with the rank when it stacks; a sleeping weapon boon is dimmed.
+- Right: this run's boons as small slots, three across, with the rank when it stacks; a sleeping weapon boon is dimmed. At the top of the well, where there are no boons, the same space holds the perks to choose from (§2.30). The perks worn sit in a row at Kiran's feet on both.
 - Tapping any slot names what is in it and says what it does.
 - **Stats**, with numbers: Health (current / maximum), Shield (Blood Shield points, and the Aegis's "blocks a hit every N s"), Attack damage (per hit, with the number of targets), Attack speed (attacks a second), Move speed. Under them, range and the share of damage taken. Bonuses that come and go (standing still, a read slam, the last stand) are left out: these are what Kiran has all the time.
 - A bar showing where the power comes from, one colour to a source, with the figures under it.
@@ -643,6 +657,53 @@ A new character starts a run at 120. The HUD shows "◆ Power 245" at the right 
 - Without WebGL the panels fall back to a nearly opaque backing.
 - The chips that live in the arena (satchel tab, Tejas button, tip box) are see-through so the fight shows under them. The loading screen's cards and the feedback dialog use the browser's own `backdrop-filter`.
 
+### 2.30 Seven depths, and perks (2026-10-05)
+The answer to "nothing to earn by winning" (`design-document.md` §1.4). The founder chose depths as the spine and perks as the rewards.
+
+**Depths.** The well is won seven times over. Slaying Vritra wins the depth being played: a step of the well fills, and the next depth opens. Each depth keeps every hardship of the ones above it and adds one of its own (`DEPTHS`), and pays 20% more Nidhi than the one before.
+
+| Depth | Name | What it adds | Nidhi |
+|---|---|---|---|
+| 1 | The First Descent | The game as it was | as before |
+| 2 | Swift | Enemies move 12% faster | +20% |
+| 3 | Thin Air | Beating a boss heals 20% of health, not 35% | +40% |
+| 4 | Wrath | Bosses slam a quarter more often | +60% |
+| 5 | Horde | Two more enemies in every wave | +80% |
+| 6 | Restless | Convergence every 60 seconds, not 90 | +100% |
+| 7 | The Serpent's Own | Everything has 20% more health and hits 20% harder | +120% |
+
+- **Choosing.** The title screen shows the depth about to be played, its name and its hardship, on a glass strip under DESCEND. Once a second depth is open, arrows step between the open ones. It defaults to the deepest one open. No new art is needed: a depth is the same three levels under harder rules.
+- **Told during play:** the level banner reads "DEPTH 3 · LEVEL 1 OF 3", the HUD line and the pause menu carry "D3", and the victory screen says "Depth 3 is won. Depth 4 opens: Wrath."
+- **Water is counted by depth.** A depth won holds 5 measures. The depth being attempted holds 1 for each of its two level bosses beaten at best, so progress short of a win still shows. Seven depths make the same 35 measures as before. A depth already won can be replayed for its Nidhi and pays no water, and the title screen and the victory screen both say so.
+- **Older saves** are carried over: a save that had slain Vritra starts with depth 1 won; one that had not keeps up to 2 measures; one that had reached level 2 is given the first two perks.
+
+**Perks.** Lasting gifts, each earned once (`PERKS`). This is the boss-kill perk idea pinned as P8, widened so that every depth has one.
+
+| Perk | Earned by | What it does |
+|---|---|---|
+| Sentinel's Guard | the first Gatekeeper beaten | Start every level with one hit blocked |
+| Hoarder's Eye | the first Hoard Guardian beaten | Enemies drop items a third more often (24% from 18%) |
+| Serpent's Scale | winning depth 1 | Take 10% less damage |
+| Deep Lungs | winning depth 2 | +25 max health |
+| Second Wind | winning depth 3 | Once a run, a killing blow leaves you on 30% health |
+| Quick Study | winning depth 4 | Start every run with a boon waiting |
+| Second Thoughts | winning depth 5 | One more reroll on every level |
+| Tribute Taker | winning depth 6 | Tribute pays at 4, 8 and 12, not 5, 10 and 15 |
+
+- **Two are worn at a time**, three once depth 4 is won. That is the choice: perks are a build made before the run, where boons are a build made during it.
+- A perk is worn at once if a slot is free. Otherwise it waits on the Profile, where tapping a perk wears it or takes it off, and a perk not yet earned says how to earn it. Perks cannot be changed during a run.
+- **Told to the player:** a toast when one is earned, a line on the victory screen and on the end-of-run summary pointing to the Profile, a How to Play card (the tenth), and a glossary card on the loading screen.
+- Each perk worn adds 20 to Power (§2.28).
+- Winning depth 7 earns no perk: the well is full, and that is the ending (§2.23).
+
+**Not built:** a daily descent, pinned as P9 for after the itch.io launch.
+
+### 2.31 Motion without frames, and the drawn serpent (2026-10-05)
+The cast is stock art with one still image for each facing. Until the founder's own characters exist (`docs/character-art-guide.md`), two things are done in code.
+
+- **Motion (`animate`).** Every character, Kiran included, is moved by one small routine: a hop in step with its speed, a lean into the direction of travel, slow breathing when still, a squash when hit, a punch forward on each of Kiran's volleys, a pop when it appears, and a crouch while a boss winds up a slam. Heavy enemies move less. A dying enemy folds and fades instead of blinking out.
+- **Vritra is a serpent (`paintSerpent`, `updateSerpent`).** The game's last boss was a stock sprite standing where the story promises a serpent. He is now drawn in code: a head leading 26 segments in teal banded with gold, each segment following the one before, so he slithers when he moves and draws into a coil when he roots himself behind his shield or winds up a slam. His colour carries the same tell as §2.6: steel-grey while he resists, full colour and flaring while he is open. The stock sprite stays loaded as an unseen stand-in so nothing that expects one breaks. The Goal card in How to Play shows the serpent.
+
 ### 2.20 Automated checks
 - **`tools/playtest-bot.js`** plays complete runs with game logic only (about 80x real time) and records per-sector balance figures, errors and leaked objects (§2.14).
-- **`tools/smoke-test.mjs`** (2026-10-02) loads the game in a private, muted, headless Chrome with a throwaway profile; clicks through the loading screen; checks the fonts, the first tip, the HUD, the abandon prompt, the death and extract payouts and the sector-banner cleanup; checks that all three music tracks load and that each sector paints its own floor; measures every text on the how-to, settings, Powers and title screens against its panel; checks the goal on the title screen, "Level 1 of 3" and the near-miss line, kills the final boss and confirms the win, the water and the full payout; checks that all name packs have the same entries and that the plain pack shows no Sanskrit (every boon card included); clears a wave and checks the boon pick (three cards, the fight frozen, a stray tap ignored, one reroll, the next wave), the numbers a set of boons promise, and Read the Slam on a live slam; opens the feedback dialog, types the game's own keys into it and confirms the message is posted (to a stub, so nothing is sent); checks the gold ring and arc that show on Kiran while Hold Your Ground and Read the Slam are live, and that the Boons tab lists six boons per metal clear of the Back button; checks that a cleared wave earns a boon without pausing, that the + button and the + key open the pick, that a pick can be put off without a free reroll, and that panels are frosted; checks power for gear, boons and a sleeping weapon boon, the HUD number, and the profile's stats; builds 300 waves and checks the six shapes, the no-repeat rule and the gentle first-ever opening; makes a boss summon and checks the tribute count, the extra item, the second pick and the pick before the choice screen; checks the well on the loading screen for a new save and for a save with water; runs four bot profiles, one without boons; and saves screenshots. `node tools/smoke-test.mjs`. It needs Chrome or Edge and Node 22+, and no packages. It exists so testing never plays sound on, or takes over, the machine someone is working on.
+- **`tools/smoke-test.mjs`** (2026-10-02) loads the game in a private, muted, headless Chrome with a throwaway profile; clicks through the loading screen; checks the fonts, the first tip, the HUD, the abandon prompt, the death and extract payouts and the sector-banner cleanup; checks that all three music tracks load and that each sector paints its own floor; measures every text on the how-to, settings, Powers and title screens against its panel; checks the goal on the title screen, "Level 1 of 3" and the near-miss line, kills the final boss and confirms the win, the water and the full payout; checks that all name packs have the same entries and that the plain pack shows no Sanskrit (every boon card included); clears a wave and checks the boon pick (three cards, the fight frozen, a stray tap ignored, one reroll, the next wave), the numbers a set of boons promise, and Read the Slam on a live slam; opens the feedback dialog, types the game's own keys into it and confirms the message is posted (to a stub, so nothing is sent); checks the gold ring and arc that show on Kiran while Hold Your Ground and Read the Slam are live, and that the Boons tab lists six boons per metal clear of the Back button; checks that a cleared wave earns a boon without pausing, that the + button and the + key open the pick, that a pick can be put off without a free reroll, and that panels are frosted; checks power for gear, boons and a sleeping weapon boon, the HUD number, and the profile's stats; builds 300 waves and checks the six shapes, the no-repeat rule and the gentle first-ever opening; makes a boss summon and checks the tribute count, the extra item, the second pick and the pick before the choice screen; checks the well on the loading screen for a new save and for a save with water; checks that the first Gatekeeper arrives open, that a resisting boss says so, counts down and takes 30% on level 1 and 12% below, and that Vritra is the drawn serpent; wins a depth and checks the water, the next depth on the title screen, that a depth already won pays no water, that depth 2 is faster and richer and depth 3 heals less; checks that perks show on the profile, that two are worn and chosen by tapping, that each does what it says, and that an older save is carried into the depths, both when read in play and when the page loads with one; runs four bot profiles, one without boons; and saves screenshots. 65 checks. `node tools/smoke-test.mjs`. It needs Chrome or Edge and Node 22+, and no packages. It exists so testing never plays sound on, or takes over, the machine someone is working on.

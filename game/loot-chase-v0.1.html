@@ -273,7 +273,7 @@ const NAME_PACKS = {
       { kind: 'Enemy',       dev: 'रक्तबीज',       name: 'Raktabija',      meaning: 'blood-seed',
         role: 'Every drop of his blood rose as a new demon. Kill one, and two smaller ones spring up.' },
       { kind: 'Gatekeeper',  dev: 'बकासुर',        name: 'Bakasura',       meaning: 'the demon who demanded tribute',
-        role: 'Bars the way on wave 3. Strike while the phase bar matches the glow at his feet.' },
+        role: 'Bars the way on wave 3. He resists until the timer over his head runs out - then strike.' },
       { kind: 'Sector boss', dev: 'निधि-रक्षा',     name: 'Nidhi-Raksha',   meaning: 'treasure guardian',
         role: "Guards each level's hoard behind a shield. Kill the gold-glowing anchors to break it." },
       { kind: 'The hoarder', dev: 'वृत्र',          name: 'Vritra',         meaning: "the serpent who hoarded the world's waters",
@@ -320,7 +320,9 @@ const NAME_PACKS = {
         role: 'The pause menu. It also tells you what your weapon and trinket actually do.' },
       { kind: 'Boons',       dev: '', name: 'The + button', meaning: '', role: 'Every wave you clear earns a boon. Tap + whenever you like: the fight waits while you pick one of three.' },
       { kind: 'Bosses',      dev: '', name: 'Tribute',      meaning: '', role: 'Kill what a boss summons before you kill the boss. 5 earns an extra item, 10 a boon, 15 a gold boon.' },
-      { kind: 'You',         dev: '', name: 'Power',        meaning: '', role: 'One number for how strong you are. Your weapon, your trinket and every boon add to it. Tap it to see your profile.' }
+      { kind: 'You',         dev: '', name: 'Power',        meaning: '', role: 'One number for how strong you are. Your weapon, your trinket and every boon add to it. Tap it to see your profile.' },
+      { kind: 'The well', dev: '', name: 'Seven depths', meaning: '', role: 'Slay the serpent and a step of the well fills. The next depth is harder and pays more. Win all seven.' },
+      { kind: 'You',      dev: '', name: 'Perks',        meaning: '', role: 'Your first boss kills, and each depth you win, earn a gift that lasts. Wear two of them: choose on your Profile.' }
     ]
   },
   plain: {
@@ -351,7 +353,7 @@ const NAME_PACKS = {
       { kind: 'Enemy',    dev: '', name: 'Hexer',          meaning: '', role: 'Keeps its distance and throws bolts. Keep moving sideways.' },
       { kind: 'Enemy',    dev: '', name: 'Brute',          meaning: '', role: "Slow, heavy, and hits like a cart. Don't let it corner you." },
       { kind: 'Enemy',    dev: '', name: 'Splitter',       meaning: '', role: 'Kill one, and two smaller ones spring up.' },
-      { kind: 'Boss',     dev: '', name: 'Gatekeeper',     meaning: '', role: 'Bars the way on wave 3. Strike while the phase bar matches the glow at his feet.' },
+      { kind: 'Boss',     dev: '', name: 'Gatekeeper',     meaning: '', role: 'Bars the way on wave 3. He resists until the timer over his head runs out - then strike.' },
       { kind: 'Boss',     dev: '', name: 'Hoard Guardian', meaning: '', role: 'Hides behind a shield. Kill the gold-glowing anchors to break it.' },
       { kind: 'Phase',    dev: '', name: 'Eclipse',        meaning: '', role: 'Everyone hits 30% harder. You included.' },
       { kind: 'Phase',    dev: '', name: 'Convergence',    meaning: '', role: 'Every 90 seconds an elite arrives, and the best loot of the cycle drops.' },
@@ -360,7 +362,9 @@ const NAME_PACKS = {
       { kind: 'Power',    dev: '', name: 'Radiance',       meaning: '', role: 'Your supercharge. It fills as you fight; unleash it for six seconds of power shaped by your weapon.' },
       { kind: 'Boons',       dev: '', name: 'The + button', meaning: '', role: 'Every wave you clear earns a boon. Tap + whenever you like: the fight waits while you pick one of three.' },
       { kind: 'Bosses',      dev: '', name: 'Tribute',      meaning: '', role: 'Kill what a boss summons before you kill the boss. 5 earns an extra item, 10 a boon, 15 a gold boon.' },
-      { kind: 'You',         dev: '', name: 'Power',        meaning: '', role: 'One number for how strong you are. Your weapon, your trinket and every boon add to it. Tap it to see your profile.' }
+      { kind: 'You',         dev: '', name: 'Power',        meaning: '', role: 'One number for how strong you are. Your weapon, your trinket and every boon add to it. Tap it to see your profile.' },
+      { kind: 'The well', dev: '', name: 'Seven depths', meaning: '', role: 'Slay the serpent and a step of the well fills. The next depth is harder and pays more. Win all seven.' },
+      { kind: 'You',      dev: '', name: 'Perks',        meaning: '', role: 'Your first boss kills, and each depth you win, earn a gift that lasts. Wear two of them: choose on your Profile.' }
     ]
   },
   // The default since 2026-10-04. The founder played all three and liked this one "much
@@ -396,7 +400,7 @@ const NAME_PACKS = {
       { kind: 'Enemy',      dev: '', name: 'Hexer',          meaning: '', role: 'Keeps its distance and throws bolts. Keep moving sideways.' },
       { kind: 'Enemy',      dev: '', name: 'Brute',          meaning: '', role: "Slow, heavy, and hits like a cart. Don't let it corner you." },
       { kind: 'Enemy',      dev: '', name: 'Bloodseed',      meaning: '', role: 'Kill one, and two smaller ones spring up.' },
-      { kind: 'Boss',       dev: '', name: 'Gatekeeper',     meaning: '', role: 'Bars the way on wave 3. Strike while the phase bar matches the glow at his feet.' },
+      { kind: 'Boss',       dev: '', name: 'Gatekeeper',     meaning: '', role: 'Bars the way on wave 3. He resists until the timer over his head runs out - then strike.' },
       { kind: 'Boss',       dev: '', name: 'Hoard Guardian', meaning: '', role: 'Hides behind a shield. Kill the gold-glowing anchors to break it.' },
       { kind: 'Final boss', dev: '', name: 'Vritra',         meaning: "the serpent who drank the world's waters", role: 'Waits at the bottom of the well. Slay him and the water returns.' },
       { kind: 'Phase',      dev: '', name: 'Surge',          meaning: '', role: 'Enemies pour in faster - and loot drops richer.' },
@@ -407,7 +411,9 @@ const NAME_PACKS = {
       { kind: 'Supercharge', dev: '', name: 'Tejas',         meaning: 'radiance', role: 'It fills as you fight. Unleash it for six seconds of power shaped by your weapon.' },
       { kind: 'Boons',      dev: '', name: 'The + button',   meaning: '', role: 'Every wave you clear earns a boon. Tap + whenever you like: the fight waits while you pick one of three.' },
       { kind: 'Bosses',     dev: '', name: 'Tribute',        meaning: '', role: 'Kill what a boss summons before you kill the boss. 5 earns an extra item, 10 a boon, 15 a gold boon.' },
-      { kind: 'You',        dev: '', name: 'Power',          meaning: '', role: 'One number for how strong you are. Your weapon, your trinket and every boon add to it. Tap it to see your profile.' }
+      { kind: 'You',        dev: '', name: 'Power',          meaning: '', role: 'One number for how strong you are. Your weapon, your trinket and every boon add to it. Tap it to see your profile.' },
+      { kind: 'The well', dev: '', name: 'Seven depths', meaning: '', role: 'Slay the serpent and a step of the well fills. The next depth is harder and pays more. Win all seven.' },
+      { kind: 'You',      dev: '', name: 'Perks',        meaning: '', role: 'Your first boss kills, and each depth you win, earn a gift that lasts. Wear two of them: choose on your Profile.' }
     ]
   }
 };
@@ -437,8 +443,12 @@ const Loader = (() => {
   // The well: how full it is, what fills it, and what a full well means. The shaft has
   // seven steps because seven complete descents fill it, so one step is one descent.
   (() => {
-    let water = 0;
-    try { water = (JSON.parse(localStorage.getItem(SAVE_KEY)) || {}).water || 0; } catch (e) { /* no save yet */ }
+    let water = 0, won = 0;
+    try {
+      const save = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
+      water = save.water || 0;
+      won = save.depthsWon !== undefined ? save.depthsWon : (save.wins > 0 ? 1 : 0);
+    } catch (e) { /* no save yet */ }
     const f = Math.max(0, Math.min(1, water / WELL_FULL)), pc = Math.round(f * 100);
     const boss = N.enemies.megaboss, deep = N.deeper[0], steps = Math.round(WELL_FULL / (WATER.boss * 2 + WATER.final));
     const top = 4, stepH = 70 / steps, left = [];
@@ -451,9 +461,10 @@ const Loader = (() => {
     $('well-surface').setAttribute('y1', level); $('well-surface').setAttribute('y2', level);
     $('well-surface').style.display = f > 0 ? '' : 'none';
     $('ldr-well-line').textContent = pc <= 0 ? 'The well is dry' : pc >= 100 ? 'The well is full' : `The well is ${pc}% full`;
-    $('ldr-well-sub').textContent = water <= 0 ? `${boss} has drunk it dry` : `${Math.min(water, WELL_FULL)} of ${WELL_FULL} measures of water returned`;
+    $('ldr-well-sub').textContent = water <= 0 ? `${boss} has drunk it dry`
+      : `Depth ${Math.min(steps, won + 1)} of ${steps} \u00B7 ${Math.min(water, WELL_FULL)} of ${WELL_FULL} measures returned`;
     $('ldr-well-legend').textContent = f >= 1 ? `Every drop ${boss} took is back`
-      : `A level's boss returns ${WATER.boss} \u00B7 ${boss} returns ${WATER.final} \u00B7 ${steps} full descents fill it`;
+      : `Slay ${boss} to win a depth and fill a step. There are ${steps}, each harder than the last`;
     $('ldr-well-after').textContent = f >= 1 ? `You have finished the game. ${deep}, the endless depths, stays open.`
       : `Fill it and the game is won. ${deep}, the endless depths, stays open after.`;
   })();
@@ -533,7 +544,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.3 (2026-10-04)';
+const BUILD = '0.4 (2026-10-05)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -639,8 +650,9 @@ function metalList() {
 // and HP compound separately so fights get both more dangerous AND longer.
 // Tuned from playtest-bot data (2.14): 1.28 / 1.32 let no profile - not even a fully
 // upgraded one - clear Sector 3.
-function sectorDmgMult(sector) { return Math.pow(1.22, Math.max(0, sector - 1)); }
-function sectorHpMult(sector)  { return Math.pow(1.26, Math.max(0, sector - 1)); }
+let DEPTH_NOW = 1;      // the depth of the run in progress; the seventh hardens everything
+function sectorDmgMult(sector) { return Math.pow(1.22, Math.max(0, sector - 1)) * (DEPTH_NOW >= 7 ? 1.2 : 1); }
+function sectorHpMult(sector)  { return Math.pow(1.26, Math.max(0, sector - 1)) * (DEPTH_NOW >= 7 ? 1.2 : 1); }
 
 // Invulnerability window after a melee or ranged hit (never after a slam).
 const IFRAMES_MS = 280;
@@ -695,6 +707,11 @@ const TEJAS_FORMS = {
 };
 
 // Persists across page reloads via localStorage (falls back to in-memory if unavailable, e.g. private browsing)
+// The well's depths and the perks worn (requirements 2.30). These sit above the save
+// because loading an older save needs them; the tables themselves are further down.
+const DEPTH_MAX = 7, DEPTH_WATER = WATER.boss * 2 + WATER.final, DEPTH_GOLD = 0.2;   // +20% Nidhi per depth past the first
+const PERK_SLOTS = 2;
+
 const session = {                    // SAVE_KEY is defined with the loading screen
   metaGold: 0,
   vitalityLevel: 0,   // +10% max HP per level
@@ -704,13 +721,38 @@ const session = {                    // SAVE_KEY is defined with the loading scr
   hintsSeen: {},        // live tips already shown once (the first-run tutorial)
   water: 0,             // measures returned to the well, 0..WELL_FULL (kept even if the run is lost)
   wins: 0,              // times the final boss has been slain
-  wellFullSeen: false   // the "well is full" ending has been shown
+  wellFullSeen: false,  // the "well is full" ending has been shown
+  gateTaught: false,    // the first Gatekeeper, who arrives vulnerable, has been met
+  depthsWon: 0,         // depths of the well won, 0..7 (requirements 2.30)
+  depthBest: 0,         // level bosses beaten, at best, on the depth now being attempted: 0..2
+  depthPick: 0,         // the depth chosen on the title screen; 0 = the deepest one open
+  perks: {},            // perks earned
+  perksOn: []           // perks worn, at most perkSlots()
 };
+
+// Water is no longer counted boss by boss: it is what the depths hold. A depth won holds
+// all five measures; the one being attempted holds one for each level boss beaten in it.
+function wellWater() {
+  return Math.min(WELL_FULL, session.depthsWon * DEPTH_WATER + (session.depthsWon < DEPTH_MAX ? session.depthBest : 0));
+}
 
 function loadSession() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (saved) Object.assign(session, saved);
+    if (saved) {
+      Object.assign(session, saved);
+      // A save from before the depths: what it had already done is honoured.
+      if (saved.depthsWon === undefined) {
+        session.depthsWon = saved.wins > 0 ? 1 : 0;
+        session.depthBest = session.depthsWon ? 0 : Math.min(2, saved.water || 0);
+        session.depthPick = 0;
+        session.perks = {};
+        if ((saved.bestSector || 0) >= 2 || saved.wins > 0) { session.perks.guard = true; session.perks.eye = true; }
+        if (saved.wins > 0) session.perks.scale = true;
+        session.perksOn = Object.keys(session.perks).slice(0, PERK_SLOTS);
+        session.water = wellWater();
+      }
+    }
   } catch (e) { /* localStorage unavailable — session stays in-memory only */ }
 }
 
@@ -725,7 +767,8 @@ if (!session.hintsSeen) session.hintsSeen = {};
 // because they wanted a fresh run would be a surprise.
 function resetSession() {
   Object.assign(session, { metaGold: 0, vitalityLevel: 0, powerLevel: 0, bestSector: 0,
-                           tejasUnlocked: false, hintsSeen: {}, water: 0, wins: 0, wellFullSeen: false });
+                           tejasUnlocked: false, hintsSeen: {}, water: 0, wins: 0, wellFullSeen: false, gateTaught: false,
+                           depthsWon: 0, depthBest: 0, depthPick: 0, perks: {}, perksOn: [] });
   saveSession();
 }
 
@@ -1105,12 +1148,100 @@ const WAVE_SHAPES = {
 // down to `fastest` ms), and more of them may stand at once.
 const TRIBUTE = { item: 5, boon: 10, gold: 15, quicken: 0.92, fastest: 3500 };
 
+// DEPTHS (requirements 2.30). The well is won seven times over. Slaying Vritra wins the
+// depth you are on: a step of the well fills and the next depth opens. Each depth keeps
+// every hardship of the ones before it and adds one of its own, and pays more Nidhi.
+// It is the reason to come back after the first win, and it costs no new art.
+const DEPTHS = [null,
+  { name: 'The First Descent', twist: 'The well as it stands.' },
+  { name: 'Swift',             twist: 'Enemies move 12% faster.' },
+  { name: 'Thin Air',          twist: 'Beating a boss heals 20%, not 35%.' },
+  { name: 'Wrath',             twist: 'Bosses slam a quarter more often.' },
+  { name: 'Horde',             twist: 'Two more enemies in every wave.' },
+  { name: 'Restless',          twist: 'Convergence comes every 60 seconds, not 90.' },
+  { name: "The Serpent's Own", twist: 'Everything has a fifth more health and hits a fifth harder.' }
+];
+
+// PERKS (requirements 2.30; the "boss-kill perks" pinned as P8). Lasting gifts, earned
+// once: the first two from the first Gatekeeper and Hoard Guardian a player beats, the
+// rest by winning depths. A player wears two of them (three once depth 4 is won) and
+// chooses which on the Profile.
+const PERKS = {
+  guard:  { name: "Sentinel's Guard", icon: 'icon_aegis',    from: 'gatekeeper', desc: 'Start every level with one hit blocked' },
+  eye:    { name: "Hoarder's Eye",    icon: 'icon_mystery',  from: 'sectorboss', desc: 'Enemies drop items a third more often', n: 24 },
+  scale:  { name: "Serpent's Scale",  icon: 'boon_hide',     depth: 1, desc: 'Take 10% less damage', n: 0.10 },
+  lungs:  { name: 'Deep Lungs',       icon: 'icon_vitality', depth: 2, desc: '+25 max health', n: 25 },
+  wind:   { name: 'Second Wind',      icon: 'icon_regen',    depth: 3, desc: 'Once a run, a killing blow leaves you on 30% health', n: 0.3 },
+  study:  { name: 'Quick Study',      icon: 'boon_keen',     depth: 4, desc: 'Start every run with a boon waiting' },
+  reroll: { name: 'Second Thoughts',  icon: 'boon_quick',    depth: 5, desc: 'One more reroll on every level' },
+  taker:  { name: 'Tribute Taker',    icon: 'boon_greed',    depth: 6, desc: 'Tribute pays at 4, 8 and 12, not 5, 10 and 15' }
+};
+const PERK_TINT = 0xd89bff, TRIBUTE_TAKER = { item: 4, boon: 8, gold: 12 };
+
 // POWER (requirements 2.28). One number for how strong Kiran is, the way Destiny shows
 // one: everything carried adds a fixed, visible amount, so equipping an item or taking a
 // boon moves it by a figure the player can learn. It is a gear score, not a formula for
 // damage - the stats on the profile screen give the real numbers.
 const POWER = { base: 100, upgrade: 8, weapon: { common: 20, rare: 45, epic: 80 }, shot: 15, effect: 15,
-                trinket: { common: 15, rare: 30, epic: 50 }, boon: { common: 10, rare: 25, epic: 40 }, tejas: 30 };
+                trinket: { common: 15, rare: 30, epic: 50 }, boon: { common: 10, rare: 25, epic: 40 }, tejas: 30, perk: 20 };
+
+// VRITRA (requirements 2.6). The final boss is the serpent who drank the world's waters,
+// and until 2026-10-04 he was a stock sprite of something else. He is drawn now: a chain
+// of segments behind a head, painted every frame.
+const SERPENT = { length: 26, gap: 7.5, body: 0x1d6f5e, band: 0xd9a441, dark: 0x07211c, sheen: 0x86e6cf, steel: 0x7a8494 };
+
+// pts[0] is the head. `o.size` scales everything; `o.mood` is 'open' (flaring in o.glow),
+// 'closed' (steel-grey: resisting) or 'plain'; `o.rear` 0..1 swells the head for a slam;
+// `o.slither` is how hard the body ripples. Used in the fight and on the How to Play card.
+function paintSerpent(g, pts, heading, time, o) {
+  const n = pts.length, k = o.size || 1, steel = o.mood === 'closed';
+  const body = steel ? SERPENT.steel : SERPENT.body, band = steel ? 0xb9c2d6 : SERPENT.band;
+  // The ripple travels down the body: each point is pushed sideways from its neighbours' line.
+  const at = i => {
+    const p = pts[i], q = pts[Math.min(n - 1, i + 1)], r = pts[Math.max(0, i - 1)];
+    const dx = r.x - q.x, dy = r.y - q.y, d = Math.hypot(dx, dy) || 1;
+    const wave = Math.sin(time / 190 - i * 0.62) * 4.2 * k * (o.slither === undefined ? 1 : o.slither) * Math.min(1, i / 4);
+    return [p.x - dy / d * wave, p.y + dx / d * wave];
+  };
+  const rad = i => (4 + 12.5 * Math.pow(1 - i / (n - 1), 0.75)) * k;
+  for (let i = n - 1; i >= 1; i--) { const [x, y] = at(i); g.fillStyle(0x0a0300, 0.3); g.fillCircle(x + 2.5 * k, y + 3.5 * k, rad(i)); }
+  for (let i = n - 1; i >= 1; i--) { const [x, y] = at(i); g.fillStyle(SERPENT.dark, 1); g.fillCircle(x, y, rad(i) + 1.6 * k); }
+  for (let i = n - 1; i >= 1; i--) {
+    const [x, y] = at(i), r = rad(i);
+    g.fillStyle(i % 4 === 2 ? band : body, 1); g.fillCircle(x, y, r);
+    g.fillStyle(steel ? 0xdfe5f0 : SERPENT.sheen, i % 4 === 2 ? 0.3 : 0.22); g.fillCircle(x - r * 0.3, y - r * 0.36, r * 0.46);
+  }
+  // The head, turned toward its prey.
+  const hx = pts[0].x, hy = pts[0].y, c = Math.cos(heading), s = Math.sin(heading), big = k * (1 + 0.22 * (o.rear || 0));
+  const P = (fx, fy) => ({ x: hx + (c * fx - s * fy) * big, y: hy + (s * fx + c * fy) * big });
+  const head = [P(-14, -13), P(-4, -19), P(10, -15), P(24, -7), P(30, 0), P(24, 7), P(10, 15), P(-4, 19), P(-14, 13)];
+  if (o.mood === 'open') { g.fillStyle(o.glow, 0.22 + 0.12 * Math.sin(time / 130)); g.fillCircle(hx, hy, 34 * big); }
+  g.fillStyle(0x0a0300, 0.32); g.fillPoints(head.map(p => ({ x: p.x + 2.5 * k, y: p.y + 3.5 * k })), true);
+  // The hood, spread behind the jaw.
+  g.fillStyle(steel ? 0x5d6675 : 0x145046, 1);
+  g.fillPoints([P(-12, -10), P(-26, -24), P(-6, -22), P(4, -14)], true); g.fillPoints([P(-12, 10), P(-26, 24), P(-6, 22), P(4, 14)], true);
+  g.lineStyle(1.5 * k, SERPENT.dark, 1);
+  g.strokePoints([P(-12, -10), P(-26, -24), P(-6, -22), P(4, -14)], true); g.strokePoints([P(-12, 10), P(-26, 24), P(-6, 22), P(4, 14)], true);
+  g.fillStyle(o.struck > 0 ? 0xdff7ef : body, 1); g.fillPoints(head, true);
+  g.lineStyle(2 * k, SERPENT.dark, 1); g.strokePoints(head, true);
+  g.fillStyle(band, 0.9); g.fillPoints([P(-8, -3), P(8, -5), P(20, -2), P(20, 2), P(8, 5), P(-8, 3)], true);    // the crest
+  if ((o.rear || 0) > 0.15) { g.lineStyle(2 * k, 0x2a0606, 1); g.lineBetween(P(18, -6).x, P(18, -6).y, P(30, 0).x, P(30, 0).y); g.lineBetween(P(18, 6).x, P(18, 6).y, P(30, 0).x, P(30, 0).y); }
+  if (Math.sin(time / 310) > 0.55 || (o.rear || 0) > 0.3) {                                                      // the tongue
+    g.lineStyle(1.6 * k, 0xe23a2a, 1);
+    const t0 = P(30, 0), t1 = P(40, 0), fa = P(46, -4), fb = P(46, 4);
+    g.lineBetween(t0.x, t0.y, t1.x, t1.y); g.lineBetween(t1.x, t1.y, fa.x, fa.y); g.lineBetween(t1.x, t1.y, fb.x, fb.y);
+  }
+  for (const side of [-1, 1]) {                                                                                   // eyes of ruby
+    const e = P(13, side * 8.5);
+    g.fillStyle(0xff3020, 0.3); g.fillCircle(e.x, e.y, 6.5 * big);
+    g.fillStyle(steel ? 0xffc0b0 : 0xff5038, 1); g.fillCircle(e.x, e.y, 3.2 * big);
+    g.fillStyle(0x1a0200, 1); g.fillEllipse(e.x + c * 0.8 * big, e.y + s * 0.8 * big, 1.6 * big, 4.2 * big);
+  }
+}
+
+// How much of a hit a boss takes outside its own phase. The rule is first met on level 1,
+// so it bites less there: 30%, then 12% from level 2 on (founder, 2026-10-04).
+const BOSS_RESIST = { first: 0.30, deeper: 0.12 };
 
 function pickWeaponEffect(sector) {
   const pool = Object.keys(WEAPON_EFFECTS).filter(k => WEAPON_EFFECTS[k].minSector <= sector);
@@ -2336,7 +2467,7 @@ class LootScene extends Phaser.Scene {
   executeLine() { return this.boonLive('cleancut') ? BOONS.cleancut.n : 0.25; }
   tejasRate() { return 1 + (this.boonRank('kindling') ? BOONS.kindling.n : 0); }
 
-  addGold(n) { this.runGold += Math.round(n * (this.boonRank('greed') ? 1 + BOONS.greed.n : 1)); }
+  addGold(n) { this.runGold += Math.round(n * (this.boonRank('greed') ? 1 + BOONS.greed.n : 1) * (1 + DEPTH_GOLD * (this.tier - 1))); }
 
   // fromBlood: vampiric healing, whose overflow Blood Shield keeps as a shield.
   healPlayer(amount, fromBlood) {
@@ -2484,7 +2615,7 @@ class LootScene extends Phaser.Scene {
   showBoonScreen() {
     const pick = this.boonQueue[0], waiting = this.boonQueue.length - 1;
     // The offer is drawn once and kept, so closing and reopening is not a free reroll.
-    if (!pick.offer) pick.offer = this.drawBoons(pick.tribute >= TRIBUTE.gold);
+    if (!pick.offer) pick.offer = this.drawBoons(pick.tribute >= this.tributeAt.gold);
     this.boonOffer = pick.offer;
     this.boonTribute = pick.tribute;
     this.openOverlay(0.8);
@@ -2543,7 +2674,7 @@ class LootScene extends Phaser.Scene {
   // What Kiran carries: the live run when there is one, otherwise what a new run starts with.
   loadout() {
     const live = !!this.player && ['playing', 'paused', 'boon', 'sectorChoice'].includes(this.state);
-    const hp0 = 100 * (1 + session.vitalityLevel * 0.10);
+    const hp0 = 100 * (1 + session.vitalityLevel * 0.10) + (this.perkOn('lungs') ? PERKS.lungs.n : 0);
     const p = live ? this.player : { maxHp: hp0, hp: hp0, speed: 200, bloodShield: 0, trinket: null,
       weapon: { type: 'weapon', name: WEAPON_EFFECTS.none.label, rarity: 'common', shots: 1, effect: 'none', dmg: 10 * (1 + session.powerLevel * 0.08), range: 130, atkSpeed: 500 } };
     return { live, p, boons: live ? (this.boons || {}) : {} };
@@ -2558,9 +2689,10 @@ class LootScene extends Phaser.Scene {
       trinket: t ? POWER.trinket[t.rarity] : 0,
       // A weapon boon that is asleep adds nothing until its weapon is back in hand.
       boons: Object.keys(boons).reduce((sum, k) => sum + (BOONS[k].weapon && BOONS[k].weapon !== w.effect ? 0 : boons[k] * POWER.boon[BOONS[k].metal]), 0),
-      tejas: session.tejasUnlocked ? POWER.tejas : 0
+      tejas: session.tejasUnlocked ? POWER.tejas : 0,
+      perks: session.perksOn.length * POWER.perk
     };
-    parts.total = parts.base + parts.upgrades + parts.weapon + parts.trinket + parts.boons + parts.tejas;
+    parts.total = parts.base + parts.upgrades + parts.weapon + parts.trinket + parts.boons + parts.tejas + parts.perks;
     return parts;
   }
 
@@ -2572,16 +2704,17 @@ class LootScene extends Phaser.Scene {
       hp: Math.ceil(p.hp), maxHp: Math.ceil(p.maxHp),
       shield: Math.round(p.bloodShield || 0),
       block: t && t.effect === 'aegis' ? Math.round(t.rechargeMs / 1000) : 0,
+      guard: this.perkOn('guard'),
       damage: w.dmg * (1 + rank('keen') * BOONS.keen.n),
       perSecond: 1000 / w.atkSpeed * (1 + rank('quick') * BOONS.quick.n),
       move: p.speed + (t && t.effect === 'swift' ? t.speedBonus : 0) + rank('feet') * BOONS.feet.n,
       targets: (w.shots || 1) + rank('second'),
       range: w.range + rank('reach') * BOONS.reach.n,
-      taken: Math.round(100 * (1 - rank('hide') * BOONS.hide.n) * (rank('greed') ? 1 + BOONS.greed.hurt : 1))
+      taken: Math.round(100 * (1 - rank('hide') * BOONS.hide.n) * (rank('greed') ? 1 + BOONS.greed.hurt : 1) * (this.perkOn('scale') ? 1 - PERKS.scale.n : 1))
     };
   }
 
-  showProfile(onBack) {
+  showProfile(onBack, note) {
     this.openOverlay(0.8);
     this.ensureSoftGlow();
     const cx = W / 2, left = cx - 156, right = cx + 156, parts = this.powerParts(), st = this.stats(), { live, p, boons } = this.loadout();
@@ -2600,18 +2733,18 @@ class LootScene extends Phaser.Scene {
 
     // Kiran, lit from behind.
     this.ov(this.add.image(cx, 232, 'softglow').setDisplaySize(230, 230).setTint(0xffa040).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD), 101);
-    this.ov(this.add.ellipse(cx, 290, 100, 26, 0x000000, 0.3), 101);
-    this.ov(this.add.ellipse(cx, 288, 92, 24, 0, 0).setStrokeStyle(2, live ? PHASE_DEFS[this.phase].color : FORGE.gold, 0.85), 101);
-    this.ov(this.add.image(cx, 226, `${CHARS.player}-front`).setDisplaySize(132, 132), 102);
+    this.ov(this.add.ellipse(cx, 280, 100, 26, 0x000000, 0.3), 101);
+    this.ov(this.add.ellipse(cx, 278, 92, 24, 0, 0).setStrokeStyle(2, live ? PHASE_DEFS[this.phase].color : FORGE.gold, 0.85), 101);
+    this.ov(this.add.image(cx, 216, `${CHARS.player}-front`).setDisplaySize(132, 132), 102);
 
     // Tapping a slot says what is in it.
-    const detail = this.ovText(cx, 320, '', { fontSize: '11px', color: '#f0dcc0', align: 'center', wordWrap: { width: 300 } }).setOrigin(0.5, 0);
-    const slot = (x, y, size, texture, tint, corner, title, body, dim) => {
+    const detail = this.ovText(cx, 322, '', { fontSize: '11px', color: '#f0dcc0', align: 'center', wordWrap: { width: 300 } }).setOrigin(0.5, 0);
+    const slot = (x, y, size, texture, tint, corner, title, body, dim, onTap) => {
       this.glass(this.ov(this.add.graphics()), x, y, size, size, { fill: FORGE.panel, alpha: 0.6, stroke: dim ? 0x6b4a2e : tint, strokeAlpha: 0.95, radius: 9, sheen: 0.08 });
       this.ov(this.add.image(x, y - (size > 40 ? 2 : 0), texture).setDisplaySize(size * 0.6, size * 0.6).setTint(dim ? 0x5a4535 : tint), 102);
       if (corner) this.ovText(x + size / 2 - 3, y + size / 2 - 2, corner, { fontSize: '9px', color: '#fffbef', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 2.5 }).setOrigin(1, 1);
       const hit = this.ov(this.add.zone(x, y, size + 6, size + 6).setInteractive({ useHandCursor: true }), 103);
-      hit.on('pointerdown', () => { this.sfx('ui-page'); detail.setText(`${title}\n${body}`); });
+      hit.on('pointerdown', () => { this.sfx('ui-page'); detail.setText(`${title}\n${body}`); if (onTap) onTap(); });
     };
     // Left: what is equipped, each with the power it adds.
     const col = left + 26, f = this.tejasForm ? TEJAS_FORMS[w.effect || 'none'] || TEJAS_FORMS.none : null;
@@ -2623,20 +2756,23 @@ class LootScene extends Phaser.Scene {
     else slot(col, 286, 48, 'icon_mystery', 0x6b4a2e, '', `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}.`, true);
 
     // Right: the boons of this run.
-    this.ovText(right - 46, 146, 'BOONS', { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
+    this.ovText(right - 46, 146, live ? 'BOONS' : `PERKS  \u00B7  WEAR ${this.perkSlots()}`, { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
+    // The perks worn, at Kiran's feet.
+    session.perksOn.forEach((key, i) => slot(cx + (i - (session.perksOn.length - 1) / 2) * 30, 304, 24, PERKS[key].icon, PERK_TINT, '', `${PERKS[key].name}  \u00B7  perk`, PERKS[key].desc));
     const keys = Object.keys(boons);
     keys.slice(0, 15).forEach((key, i) => {
       const b = BOONS[key], asleep = b.weapon && b.weapon !== w.effect;
       slot(right - 78 + (i % 3) * 32, 172 + Math.floor(i / 3) * 32, 28, 'boon_' + key, RARITY[b.metal].color, boons[key] > 1 ? String(boons[key]) : '',
         N.boons[key][0] + (b.max > 1 ? `  ·  rank ${boons[key]} of ${b.max}` : '') + (asleep ? '  ·  asleep' : ''), b.desc, asleep);
     });
-    if (!keys.length) this.ovText(right - 46, 190, live ? 'none yet:\nclear a wave,\nthen tap +' : 'earned\nduring a run', { fontSize: '10px', color: '#8a7360', align: 'center', lineSpacing: 2 }).setOrigin(0.5, 0);
-    detail.setText(live ? 'Tap anything you carry to see what it does.' : 'This is what you start a run with. Tap a slot to see what it does.');
+    if (!live) this.profilePerks(slot, right, onBack);
+    else if (!keys.length) this.ovText(right - 46, 190, 'none yet:\nclear a wave,\nthen tap +', { fontSize: '10px', color: '#8a7360', align: 'center', lineSpacing: 2 }).setOrigin(0.5, 0);
+    detail.setText(note || (live ? 'Tap anything you carry to see what it does.' : 'This is what you start a run with. Tap a perk to wear it or take it off.'));
 
     // The numbers.
     const rows = [
       ['icon_vitality', 0xff6b6b, 'Health', `${st.hp} / ${st.maxHp}`],
-      ['icon_aegis', 0x9fd8ff, 'Shield', st.shield || st.block ? [st.shield ? String(st.shield) : '', st.block ? `blocks a hit every ${st.block}s` : ''].filter(Boolean).join('  +  ') : '0'],
+      ['icon_aegis', 0x9fd8ff, 'Shield', st.shield || st.block || st.guard ? [st.shield ? String(st.shield) : '', st.block ? `blocks a hit every ${st.block}s` : st.guard ? 'blocks 1 hit a level' : ''].filter(Boolean).join('  +  ') : '0'],
       ['boon_keen', 0xff8c42, 'Attack damage', (Math.round(st.damage * 10) / 10) + (st.targets > 1 ? `  x ${st.targets} targets` : '')],
       ['boon_quick', 0xffd23c, 'Attack speed', (Math.round(st.perSecond * 100) / 100).toFixed(2) + ' a second'],
       ['boon_feet', 0x5fe08a, 'Move speed', String(Math.round(st.move))]
@@ -2653,12 +2789,12 @@ class LootScene extends Phaser.Scene {
 
     // Where the power comes from: one bar, a colour to each source.
     const src = [['Base', parts.base, 0x8a7360], ['Upgrades', parts.upgrades, 0xfffbef], ['Weapon', parts.weapon, 0xff8c42],
-                 ['Trinket', parts.trinket, 0x4dd0ff], ['Boons', parts.boons, 0xffd23c], [N.supercharge, parts.tejas, 0xc77dff]].filter(e => e[1] > 0);
+                 ['Trinket', parts.trinket, 0x4dd0ff], ['Boons', parts.boons, 0xffd23c], [N.supercharge, parts.tejas, 0xfff0a0], ['Perks', parts.perks, PERK_TINT]].filter(e => e[1] > 0);
     const bar = this.ov(this.add.graphics(), 102), bw = right - left;
     let bx = left;
     src.forEach(([, v, c]) => { const sw = bw * v / parts.total; bar.fillStyle(c, 0.9); bar.fillRect(bx, 532, Math.max(1, sw - 1.5), 8); bx += sw; });
     src.forEach(([name, v, c], i) => {
-      const lx = left + (i % 3) * (bw / 3), ly = 552 + Math.floor(i / 3) * 15;
+      const lx = left + (i % 4) * (bw / 4), ly = 552 + Math.floor(i / 4) * 15;
       const dot = this.ov(this.add.graphics(), 102); dot.fillStyle(c, 1); dot.fillCircle(lx + 4, ly, 3.2);
       this.ovText(lx + 12, ly, `${name} ${v}`, { fontSize: '10px', color: '#c8a96e' }).setOrigin(0, 0.5);
     });
@@ -2666,16 +2802,79 @@ class LootScene extends Phaser.Scene {
     this.ovButton(cx, 628, 200, 40, 'BACK', 0x5c2a05, () => onBack(), { stroke: FORGE.gold });
   }
 
+  // ---------- DEPTHS AND PERKS (requirements 2.30) ----------
+  perkOn(key) { return session.perksOn.includes(key); }
+  perkSlots() { return PERK_SLOTS + (session.depthsWon >= 4 ? 1 : 0); }
+  get tributeAt() { return this.perkOn('taker') ? TRIBUTE_TAKER : TRIBUTE; }
+  clearHeal() { return this.tier >= 3 ? 0.2 : SECTOR_CLEAR_HEAL; }
+  convergeEvery() { return this.tier >= 6 ? 60000 : CONVERGENCE_INTERVAL; }
+  perkHow(key) {
+    const pk = PERKS[key];
+    return pk.from ? `beat ${pk.from === 'gatekeeper' ? 'a ' + N.enemies.gatekeeper : 'a ' + N.enemies.sectorboss}` : `win depth ${pk.depth}`;
+  }
+
+  earnPerk(key) {
+    if (session.perks[key]) return false;
+    session.perks[key] = true;
+    if (session.perksOn.length < this.perkSlots()) session.perksOn.push(key);     // worn at once if there is room
+    saveSession();
+    this.sfx('loot-swarna');
+    this.time.delayedCall(1300, () => this.showToast(`PERK EARNED: ${PERKS[key].name.toUpperCase()}`, '#e2b6ff'));
+    (this.perksEarned = this.perksEarned || []).push(key);
+    return true;
+  }
+
+  togglePerk(key, onBack) {
+    const at = session.perksOn.indexOf(key), pk = PERKS[key];
+    let note;
+    if (at >= 0) { session.perksOn.splice(at, 1); note = `${pk.name} taken off.\n${pk.desc}.`; }
+    else if (session.perksOn.length >= this.perkSlots()) { this.sfx('ui-error'); note = `${pk.name}: ${pk.desc}.\nOnly ${this.perkSlots()} perks can be worn. Take one off first.`; }
+    else { session.perksOn.push(key); this.sfx('equip'); note = `${pk.name} worn.\n${pk.desc}.`; }
+    saveSession();
+    this.showProfile(onBack, note);
+  }
+
+  // What a boss's fall earns beyond its drop: a perk the first time, and - on the depth
+  // being attempted - water. A depth already won pays Nidhi and nothing else.
+  bossRewards(e) {
+    this.lastWater = 0;
+    if (e.type === 'gatekeeper') { this.earnPerk('guard'); return; }
+    const frontier = this.tier === session.depthsWon + 1 && session.depthsWon < DEPTH_MAX, before = wellWater();
+    if (!e.isMega) {
+      this.earnPerk('eye');
+      if (frontier && this.sector <= 2) session.depthBest = Math.max(session.depthBest, this.sector);
+    } else {
+      this.depthNews = { depth: this.tier, won: frontier };
+      if (frontier) {
+        session.depthsWon++; session.depthBest = 0; session.depthPick = 0;
+        const perk = Object.keys(PERKS).find(k => PERKS[k].depth === this.tier);
+        if (perk) this.earnPerk(perk);
+      }
+    }
+    session.water = wellWater();
+    this.lastWater = session.water - before;
+    this.runWater += this.lastWater;
+  }
+
+  // The perks to choose from, on the Profile at the top of the well.
+  profilePerks(slot, right, onBack) {
+    Object.keys(PERKS).forEach((key, i) => {
+      const pk = PERKS[key], has = !!session.perks[key], worn = session.perksOn.includes(key);
+      slot(right - 78 + (i % 3) * 32, 172 + Math.floor(i / 3) * 32, 28, pk.icon, worn ? PERK_TINT : 0xc8a96e, worn ? 'ON' : '',
+        pk.name + (has ? '' : '  \u00B7  not earned yet'), has ? pk.desc : `${pk.desc}. To earn it, ${this.perkHow(key)}.`, !has, has ? () => this.togglePerk(key, onBack) : null);
+    });
+  }
+
   // ---------- TRIBUTE (requirements 2.26) ----------
   addTribute(boss) {
     const t = boss.tribute = (boss.tribute || 0) + 1;
-    const next = [TRIBUTE.item, TRIBUTE.boon, TRIBUTE.gold].find(n => n > t);
+    const next = [this.tributeAt.item, this.tributeAt.boon, this.tributeAt.gold].find(n => n > t);
     if (boss.nameLabel) boss.nameLabel.setText(`${boss.baseName} · tribute ${t}${next ? '/' + next : ''}`)
-      .setColor(t >= TRIBUTE.item ? '#ffd23c' : '#fffbef');
-    const earned = { [TRIBUTE.item]: 'AN EXTRA ITEM', [TRIBUTE.boon]: 'A BOON', [TRIBUTE.gold]: `A ${N.metals.epic.toUpperCase()} BOON` }[t];
+      .setColor(t >= this.tributeAt.item ? '#ffd23c' : '#fffbef');
+    const earned = { [this.tributeAt.item]: 'AN EXTRA ITEM', [this.tributeAt.boon]: 'A BOON', [this.tributeAt.gold]: `A ${N.metals.epic.toUpperCase()} BOON` }[t];
     if (earned) {
       this.showToast(`TRIBUTE ${t} - ${earned} WHEN IT FALLS`, '#ffd23c');
-      this.sfx(LOOT_SFX[t >= TRIBUTE.gold ? 'epic' : 'rare']);
+      this.sfx(LOOT_SFX[t >= this.tributeAt.gold ? 'epic' : 'rare']);
     }
   }
 
@@ -2757,7 +2956,7 @@ class LootScene extends Phaser.Scene {
     else row(314, 'mystery', 0x5a4535, `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}`);
     this.ovText(left, 350, 'YOUR BOONS', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
     if (!this.drawBoonRow(left + 16, 374, 18)) this.ovText(left, 367, 'None yet. One comes after every wave.', { fontSize: '10px', color: '#8a7360' });
-    this.ovText(cx, 400, `${stageLabel(this.sector)} · Wave ${Math.min(this.wave, 5)}/5 · ${this.runGold} ${N.currency} this run`,
+    this.ovText(cx, 400, `${this.tier > 1 ? 'Depth ' + this.tier + ' · ' : ''}${stageLabel(this.sector)} · Wave ${Math.min(this.wave, 5)}/5 · ${this.runGold} ${N.currency} this run`,
       { fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
 
     this.ovButton(cx, 440, 240, 44, 'RESUME', 0x7a3a0a, () => this.resumeGame(), { sound: null, stroke: FORGE.gold, size: 16 });
@@ -3014,7 +3213,8 @@ class LootScene extends Phaser.Scene {
         body: `${N.enemies.megaboss} has drunk the well dry. Descend to ${N.stage.toLowerCase()} ${FINAL_SECTOR}, the bottom of the well, and slay him to bring the water back. Every boss you beat on the way returns a little water, even if the run is lost. Fill the well and the game is won.`,
         draw: (cx, cy) => {
           const gr = g();
-          img(`${CHARS.megaboss}-front`, cx - 84, cy - 6, 84);
+          const coil = Array.from({ length: 22 }, (_, i) => ({ x: cx - 84 + Math.sin(i * 0.5 + 0.4) * (4 + i * 1.5), y: cy - 34 + i * 3.6 }));
+          paintSerpent(g(), coil, -Math.PI / 2 + 0.5, 3000, { size: 0.62, mood: 'plain', slither: 0.4 });
           label(cx - 84, cy + 54, N.enemies.megaboss, '#ffb38a', 10);
           gr.fillStyle(0x2a0f04, 1); gr.fillRect(cx + 4, cy - 44, 112, 76);
           gr.fillStyle(0x1f8f80, 0.9); gr.fillRect(cx + 4, cy + 2, 112, 30);
@@ -3081,7 +3281,7 @@ class LootScene extends Phaser.Scene {
           label(cx - 60, cy + 62, 'phase ring', '#c8a96e', 8);
         } },
       { title: 'BOSSES',
-        body: `Every boss has a glowing core. It takes full damage only while the phase bar matches the core's colour - survive until then. A shielded boss can't be hurt at all: kill the gold-glowing ${N.enemies.melee} anchoring the shield to break it. Bosses summon ${N.enemies.melee}: each one you kill first is tribute. ${TRIBUTE.item} earns an item, ${TRIBUTE.boon} a boon, ${TRIBUTE.gold} a ${N.metalGloss.epic || N.metals.epic.toLowerCase()} boon - but the summons speed up.`,
+        body: `A boss resists most damage outside its own phase. The timer over its head counts down to when it opens. A shielded boss can't be hurt at all: kill the gold-glowing ${N.enemies.melee} anchoring the shield. Bosses summon ${N.enemies.melee}: each one you kill first is tribute. ${this.tributeAt.item} earns an item, ${this.tributeAt.boon} a boon, ${this.tributeAt.gold} a ${N.metalGloss.epic || N.metals.epic.toLowerCase()} boon - but the summons speed up.`,
         draw: (cx, cy) => {
           const gr = g(); gr.setDepth(101.5);
           gr.fillStyle(PHASE_DEFS.surge.color, 0.35); gr.fillEllipse(cx - 70, cy + 32, 72, 26);
@@ -3134,6 +3334,24 @@ class LootScene extends Phaser.Scene {
           this.ov(this.add.rectangle(cx, cy + 22, 230, 40, 0x7a3a0a, 1).setStrokeStyle(1.5, FORGE.gold, 0.9), 102);
           label(cx, cy + 22, `Descend to ${N.stage} 2`, '#ffd23c', 11);
           label(cx, cy + 62, 'deeper = richer and deadlier', '#8a7360', 9);
+        } },
+      { title: 'DEPTHS · PERKS',
+        body: `Slay ${N.enemies.megaboss} and that depth of the well is won: a step fills, and the next depth opens with a new hardship and richer ${N.currency}. There are seven. Your first boss kills and each depth you win also earn a perk, a gift that lasts. Choose which to wear on your Profile.`,
+        draw: (cx, cy) => {
+          const gr = g(), won = Math.min(DEPTH_MAX, session.depthsWon);
+          for (let i = 0; i < DEPTH_MAX; i++) {                 // the well's seven steps, the won ones under water
+            const half = 62 - i * 6.5, y = cy - 58 + i * 15;
+            gr.fillStyle(DEPTH_MAX - 1 - i < won ? 0x1f8f80 : 0x2a0f04, 1); gr.fillRect(cx - 80 - half, y, half * 2, 13);
+            gr.lineStyle(1.2, 0xc8a96e, 0.8); gr.strokeRect(cx - 80 - half, y, half * 2, 13);
+          }
+          label(cx - 80, cy + 62, `depth ${Math.min(DEPTH_MAX, won + 1)} of ${DEPTH_MAX}`, '#9fe8d8', 9);
+          ['guard', 'scale', 'wind'].forEach((k, i) => {
+            const y = cy - 44 + i * 40;
+            this.glass(gr, cx + 30, y, 30, 30, { fill: FORGE.panel, alpha: 0.7, stroke: PERK_TINT, strokeAlpha: 0.95, radius: 7, sheen: 0.08 });
+            img(PERKS[k].icon, cx + 30, y, 18, PERK_TINT);
+            this.ovText(cx + 52, y - 13, PERKS[k].name, { fontSize: '10px', color: '#fffbef', fontStyle: 'bold' });
+            this.ovText(cx + 52, y + 1, PERKS[k].desc, { fontSize: '8px', color: '#c8a96e', wordWrap: { width: 96 } });
+          });
         } }
     ];
   }
@@ -3244,6 +3462,30 @@ class LootScene extends Phaser.Scene {
     this.tweens.add({ targets: g, alpha: 0, scale: 1.35, duration: 210, onComplete: () => g.destroy() });
   }
 
+  // Life without animation frames (requirements 2.10). Every character is one still image
+  // per facing, so the motion is made here: a hop in the stride, a lean into the turn, a
+  // breath at rest, a squash when struck, a swell on arrival, a crouch before a slam.
+  // `a` carries the state (the enemy itself, or playerAnim). Returns how far the sprite
+  // should be lifted off its spot this frame.
+  animate(spr, a, delta, vx, vy, heavy, crouch) {
+    if (spr.baseSX === undefined) { spr.baseSX = spr.scaleX; spr.baseSY = spr.scaleY; }
+    if (a.gait === undefined) { a.gait = Math.random() * 6.28; a.age = a.age || 0; }
+    a.age += delta;
+    const speed = Math.hypot(vx, vy), moving = speed > 12, rate = heavy ? 0.0085 : 0.0135;
+    a.gait += delta * (moving ? rate + Math.min(0.006, speed * 0.00003) : rate * 0.22);
+    const stride = Math.sin(a.gait), k = heavy ? 0.55 : 1;
+    let sx = 1, sy = 1, lift = 0;
+    if (moving) { sy += 0.055 * stride * k; sx -= 0.04 * stride * k; lift = Math.abs(stride) * (heavy ? 1.6 : 2.8); }
+    else { const breath = Math.sin(a.gait * 2) * 0.02; sy += breath; sx -= breath * 0.6; }
+    if (a.squash > 0) { a.squash -= delta; const q = Math.max(0, a.squash / 140); sx += 0.17 * q; sy -= 0.15 * q; }
+    if (a.punch > 0) { a.punch -= delta; const q = Math.max(0, a.punch / 90); sx += 0.07 * q; sy += 0.07 * q; }
+    if (crouch > 0) { sy -= 0.12 * crouch; sx += 0.09 * crouch; }
+    if (a.age < 220) { const q = a.age / 220, pop = 0.55 + 0.45 * (1 - Math.pow(1 - q, 3)); sx *= pop; sy *= pop; }
+    spr.setScale(spr.baseSX * sx, spr.baseSY * sy);
+    spr.setRotation(moving ? Phaser.Math.Clamp(vx / 260, -1, 1) * 0.1 : 0);
+    return lift;
+  }
+
   // The attacker visibly lunges at you. Stored as an offset rather than tweened, because
   // the update loop re-positions every sprite from its logical position each frame.
   enemyLunge(e) {
@@ -3265,7 +3507,7 @@ class LootScene extends Phaser.Scene {
       megaboss:   { types: ['circle', 'line', 'scatter'], cooldown: 1900, radius: 96, summonEvery: 7000 }
     }[kind];
     e.slamTypes = byKind.types;
-    e.slamCooldown = byKind.cooldown;
+    e.slamCooldown = byKind.cooldown * (this.tier >= 4 ? 0.75 : 1);
     e.slamRadius = byKind.radius;
     e.slamTimer = 1400;                    // a short grace beat after it appears
     e.slam = null;
@@ -3307,7 +3549,7 @@ class LootScene extends Phaser.Scene {
       // 3.4 minutes. The cap grows with tribute, so the patient player earns the crowd.
       const alive = this.enemies.filter(m => m.summonedBy === e.id).length;
       const cap = Math.min(7, 4 + Math.floor((e.tribute || 0) / 5));
-      this.hint('tribute', `Bosses summon ${N.enemies.melee}. Each one you kill before the boss falls is tribute: ${TRIBUTE.item} earns an extra item, ${TRIBUTE.boon} a boon. But the summons speed up.`);
+      this.hint('tribute', `Bosses summon ${N.enemies.melee}. Each one you kill before the boss falls is tribute: ${this.tributeAt.item} earns an extra item, ${this.tributeAt.boon} a boon. But the summons speed up.`);
       if (this.enemies.length < 16 && alive < cap) {
         const b = this.arenaBounds;
         for (let i = 0; i < 2; i++) {
@@ -3476,9 +3718,87 @@ class LootScene extends Phaser.Scene {
   }
 
   // Bosses with an exposed weak core take full damage only in the matching phase.
+  bossGated(e) { return !!e.isBoss && (!e.isSectorBoss || e.bossPhase === 'timing'); }
   weakScale(e) {
-    const gated = e.isBoss && (!e.isSectorBoss || e.bossPhase === 'timing');
-    return gated && this.phase !== e.weakPhase ? 0.12 : 1;
+    return this.bossGated(e) && this.phase !== e.weakPhase ? (this.sector === 1 ? BOSS_RESIST.first : BOSS_RESIST.deeper) : 1;
+  }
+
+  // Milliseconds until `target` is the phase again; 0 if it is the phase now. Convergence
+  // holds the cycle still, so its remaining time is added on.
+  phaseWait(target) {
+    let cur = this.phase, wait = this.phaseTimeLeft;
+    if (this.inConvergence) {
+      cur = this.savedPhase;
+      if (cur === target) return this.phaseTimeLeft;
+      wait += this.savedPhaseTimeLeft > 0 ? this.savedPhaseTimeLeft : PHASE_DEFS[cur].duration;
+    } else if (cur === target) return 0;
+    for (let i = PHASE_SEQUENCE.indexOf(cur), k = 0; k < PHASE_SEQUENCE.length; k++) {
+      i = (i + 1) % PHASE_SEQUENCE.length;
+      if (PHASE_SEQUENCE[i] === target) return wait;
+      wait += PHASE_DEFS[PHASE_SEQUENCE[i]].duration;
+    }
+    return wait;
+  }
+
+  // The rule shown on the boss itself (requirements 2.6, 2026-10-04). It used to live in
+  // one tip: match a small glow at his feet to the bar at the top. Now a resisting boss
+  // is steel-grey under plates, with a countdown to when he opens; an open one flares in
+  // his colour and says so. Nothing to read, nothing to match.
+  updateBossGate(e, time) {
+    if (!this.bossGated(e) || e.shieldOn) {
+      if (e.gateLabel) { e.gateLabel.setVisible(false); e.gateFx.clear(); }
+      if (e.gateOpen === false) { const spr0 = this.enemySprites.get(e.id); if (spr0) spr0.clearTint(); }
+      e.gateOpen = null;
+      return;
+    }
+    if (!e.gateLabel) {
+      e.gateLabel = this.add.text(e.x, e.y, '', { resolution: RES, fontSize: '10px', color: '#fffbef', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 }).setOrigin(0.5).setDepth(42);
+      e.gateFx = this.add.graphics().setDepth(Z.fx);
+      e.gateBorn = this.time.now;
+    }
+    const open = this.phase === e.weakPhase, col = PHASE_DEFS[e.weakPhase].color, spr = this.enemySprites.get(e.id);
+    if (open !== e.gateOpen) {
+      e.gateOpen = open;
+      if (spr) { if (open) spr.clearTint(); else spr.setTint(0x8d94a6); }
+      if (open) {
+        // Not on top of the banner that announces him.
+        this.time.delayedCall(this.time.now - e.gateBorn < 1500 ? 1500 : 0, () => {
+          if (this.state === 'playing' && e.hp > 0 && e.gateOpen) this.showToast(`${e.baseName.toUpperCase()} IS VULNERABLE - STRIKE NOW`, '#' + col.toString(16).padStart(6, '0'));
+        });
+        this.sfx('tejas-bell', { vol: 0.6, rate: 1.25 });
+      }
+    }
+    const secs = Math.max(1, Math.ceil((open ? this.phaseTimeLeft : this.phaseWait(e.weakPhase)) / 1000));
+    const ab = this.arenaBounds, top = (e.nameLabel ? e.nameLabel.y : e.y - e.radius - 26) - 13;
+    e.gateLabel.setVisible(true).setText(open ? `VULNERABLE  ${secs}s` : `RESISTS  \u00B7  opens in ${secs}s`).setColor(open ? '#ffe27a' : '#b9c2d6');
+    const half = e.gateLabel.width / 2 + 2;
+    e.gateLabel.setPosition(Phaser.Math.Clamp(e.x, ab.x + half, ab.right - half), Math.max((this.trackY || ab.y) + 28, top));
+    const g = e.gateFx, r = e.radius + 9;
+    g.clear();
+    if (open) {                                   // a bright ring breathing in his colour, and rays
+      const pulse = 0.5 + 0.5 * Math.sin(time / 130);
+      g.lineStyle(3, col, 0.55 + 0.4 * pulse); g.strokeCircle(e.x, e.y, r + pulse * 4);
+      g.lineStyle(2, col, 0.5);
+      for (let i = 0; i < 10; i++) {
+        const a = time / 900 + i * Math.PI / 5;
+        g.lineBetween(e.x + Math.cos(a) * (r + 8), e.y + Math.sin(a) * (r + 8), e.x + Math.cos(a) * (r + 15 + pulse * 4), e.y + Math.sin(a) * (r + 15 + pulse * 4));
+      }
+    } else {                                      // plates of armour, turning slowly
+      g.lineStyle(4, 0x8d94a6, 0.85);
+      for (let i = 0; i < 6; i++) {
+        const a = time / 2600 + i * Math.PI / 3;
+        g.beginPath(); g.arc(e.x, e.y, r, a, a + 0.72); g.strokePath();
+      }
+      g.lineStyle(1.5, 0x2a2f3a, 0.8); g.strokeCircle(e.x, e.y, r + 3.5);
+    }
+  }
+
+  // A hit that mostly glances off says so.
+  resistFx(e) {
+    if (this.silent || this.time.now - (e.resistAt || -1e9) < 480) return;
+    e.resistAt = this.time.now;
+    const t = this.add.text(e.x + Phaser.Math.Between(-18, 18), e.y - e.radius - 2, 'RESISTS', { resolution: RES, fontSize: '9px', color: '#b9c2d6', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 }).setOrigin(0.5).setDepth(41);
+    this.tweens.add({ targets: t, y: t.y - 20, alpha: 0, duration: 620, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
   }
 
   // One door for all player-sourced damage to an enemy: shields, boss weak phases and
@@ -3487,7 +3807,9 @@ class LootScene extends Phaser.Scene {
   damageEnemy(e, dmg) {
     if (!e || e.hp <= 0) return false;
     if (e.shieldOn) return false;
-    e.hp -= dmg * this.weakScale(e);
+    const scale = this.weakScale(e);
+    if (scale < 1) this.resistFx(e); else e.squash = 140;
+    e.hp -= dmg * scale;
     // Vritra must pass through its shield phase: clamp a big hit at the 55% line
     // instead of letting it skip the second half of the fight.
     if (e.isMega && e.bossPhase === 'timing' && e.hp <= e.maxHp * 0.55) {
@@ -3986,6 +4308,17 @@ class LootScene extends Phaser.Scene {
     say(cx, cy - 5, 'DESCEND', { fontSize: '19px', color: '#fffbef', fontStyle: 'bold' });
     say(cx, cy + 16, 'start a run', { fontSize: '10px', color: '#ffe9a0' });
 
+    // Which depth of the well this run goes down (requirements 2.30).
+    const openDepth = Math.min(DEPTH_MAX, session.depthsWon + 1), pick = Phaser.Math.Clamp(session.depthPick || openDepth, 1, openDepth), dp = DEPTHS[pick];
+    this.uiObjects.push(this.glass(this.add.graphics(), cx, 393, 348, 54, { fill: FORGE.panel, alpha: 0.62, stroke: FORGE.gold, strokeAlpha: 0.55, radius: 14, sheen: 0.06 }));
+    say(cx, 381, `DEPTH ${pick} OF ${DEPTH_MAX}  ·  ${dp.name.toUpperCase()}`, { fontSize: '12px', color: '#ffd23c', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 });
+    say(cx, 404, (pick === 1 ? dp.twist : `${dp.twist} +${Math.round(DEPTH_GOLD * (pick - 1) * 100)}% ${N.currency}.`) + (pick <= session.depthsWon ? ' Already won: no water here.' : ''),
+      { fontSize: '10px', color: '#f0dcc0', align: 'center', stroke: '#2a0800', strokeThickness: 2, wordWrap: { width: 262 } });
+    if (openDepth > 1) {
+      const step = d => () => { session.depthPick = Phaser.Math.Clamp(pick + d, 1, openDepth); saveSession(); this.showHub(); };
+      if (pick > 1) this.makeButton(cx - 152, 393, 30, 34, '<', BTN.quiet, step(-1), { size: 14, sound: 'ui-page' });
+      if (pick < openDepth) this.makeButton(cx + 152, 393, 30, 34, '>', BTN.quiet, step(1), { size: 14, sound: 'ui-page', stroke: FORGE.gold });
+    }
     say(cx, 436, (session.bestSector ? `Deepest: ${N.stage} ${session.bestSector}` : 'No descent yet') + `  ·  ${wellLine()}`,
       { fontSize: '11px', color: session.water > 0 ? '#9fe8d8' : '#c8a96e' });
     say(cx, 460, `${N.currency}: ${session.metaGold}`, { fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' });
@@ -4139,6 +4472,11 @@ class LootScene extends Phaser.Scene {
   startRun() {
     this.clearUI();
     this.closeOverlay();
+    // The depth of the well this run goes down: the one picked on the title screen, or
+    // the deepest that is open.
+    const openDepth = Math.min(DEPTH_MAX, session.depthsWon + 1);
+    this.tier = DEPTH_NOW = Phaser.Math.Clamp(session.depthPick || openDepth, 1, openDepth);
+    this.windUsed = false; this.depthNews = null; this.perksEarned = [];
     this.time.paused = false;   // a run never starts frozen, whatever screen came before
     this.tweens.resumeAll();
     this.state = 'playing';
@@ -4150,7 +4488,7 @@ class LootScene extends Phaser.Scene {
 
     // Boons (2.24): one after each wave, kept until the run ends.
     this.boons = {};
-    this.rerollsLeft = BOON_REROLLS;
+    this.rerollsLeft = BOON_REROLLS + (this.perkOn('reroll') ? 1 : 0);
     this.slamBuffMs = 0;   // Read the Slam
     this.powerShown = 0;
     this.boonQueue = [];       // boons earned and not yet chosen (2.24)
@@ -4168,7 +4506,7 @@ class LootScene extends Phaser.Scene {
     // Cosmic Cycle state - continuous, learnable timer independent of waves
     this.phase = 'drift';
     this.phaseTimeLeft = PHASE_DEFS.drift.duration;
-    this.convergenceCountdown = CONVERGENCE_INTERVAL;
+    this.convergenceCountdown = this.convergeEvery();
     this.inConvergence = false;
     this.savedPhase = null;
     this.savedPhaseTimeLeft = null;
@@ -4182,13 +4520,14 @@ class LootScene extends Phaser.Scene {
     this.phaseTint = this.add.rectangle(W/2, arenaCy, W - MARGIN*2, H - HUD_H - MARGIN*2, PHASE_DEFS.drift.tint, PHASE_DEFS.drift.tintAlpha)
       .setDepth(Z.tint);   // over the floor, under telegraphs - it must never dim a slam warning
 
-    const baseMaxHP = 100 * (1 + session.vitalityLevel * 0.10);
+    const baseMaxHP = 100 * (1 + session.vitalityLevel * 0.10) + (this.perkOn('lungs') ? PERKS.lungs.n : 0);
     this.player = {
       x: W/2, y: HUD_H + (H-HUD_H)/2,
       maxHp: baseMaxHP, hp: baseMaxHP,
       speed: 200,
       flashTimer: 0,
       shieldCharge: 0,
+      guardCharge: this.perkOn('guard') ? 1 : 0,     // Sentinel's Guard: one hit blocked on every level
       shieldRechargeTimer: 0,
       // `type` matters now that the satchel can hand this back to applyLoot: without
       // it the starting Dagger fell through to the trinket branch and equipped itself
@@ -4198,6 +4537,7 @@ class LootScene extends Phaser.Scene {
       bloodShield: 0       // Blood Shield boon: soaks damage before health
     };
     this.playerFacing = 'front';
+    this.playerAnim = { age: 1e6 };       // the state of Kiran's motion (see animate)
     this.playerSprite = this.add.image(this.player.x, this.player.y, `${CHARS.player}-front`).setDisplaySize(44, 44);
     // The ring stays a vector circle: it is the phase-colour tell, and must not inherit ship art.
     // Stance ring at Kiran's feet, not a circle around the body - a ring around a
@@ -4256,6 +4596,7 @@ class LootScene extends Phaser.Scene {
 
     this.runGold = 0;
     this.runWater = 0;         // measures returned to the well this run
+    this.lastWater = 0;        // and by the last boss to fall
     this.bossSlain = false;    // the final boss has fallen this run
     this.wave = 0;
     this.spawnQueue = [];
@@ -4264,6 +4605,7 @@ class LootScene extends Phaser.Scene {
     this.showSectorBanner(this.sector);
     this.nextWave();
     this.showPauseButton(true);
+    if (this.perkOn('study')) this.queueBoon();
     this.playMusic('combat');
     this.time.delayedCall(900, () => this.hint('move', this.sys.game.device.input.touch
       ? 'Tap or drag to walk there. You attack on your own - just stay in range.'
@@ -4273,7 +4615,7 @@ class LootScene extends Phaser.Scene {
   showSectorBanner(n) {
     const style = (size, colour, bold) => ({ resolution: RES, stroke: '#2a0800', strokeThickness: 4, fontSize: size + 'px', color: colour, fontStyle: bold ? 'bold' : 'normal' });
     const line = (y, str, st) => this.add.text(W/2, y, str, st).setOrigin(0.5).setAlpha(0);
-    const t1 = line(H/2-46, stageLabel(n).toUpperCase(), style(14, '#e8c690', true));
+    const t1 = line(H/2-46, (this.tier > 1 ? `DEPTH ${this.tier} · ` : '') + stageLabel(n).toUpperCase(), style(14, '#e8c690', true));
     const t2 = line(H/2-16, sectorTitle(n), style(28, '#ffd23c', true));
     const t3 = line(H/2+14, sectorSub(n), style(12, '#f0dcc0'));
     // Every level says how far the goal is.
@@ -4339,7 +4681,7 @@ class LootScene extends Phaser.Scene {
     const gentle = !force && !session.bestSector && this.sector === 1 && this.wave <= 2;
     // Deeper sectors field more enemies, not just tougher ones - HP scaling alone made
     // Sector 5 feel like Sector 1 with bigger numbers.
-    const base = (gentle ? 3 : WAVE_BASE + (this.sector === 1 ? WAVE_OPENING : 0)) + this.wave + (this.sector - 1);
+    const base = (gentle ? 3 : WAVE_BASE + (this.sector === 1 ? WAVE_OPENING : 0)) + this.wave + (this.sector - 1) + (this.tier >= 5 ? 2 : 0);
     let shape = force || 'mixed';
     if (!force && !gentle) {
       const pool = Object.entries(WAVE_SHAPES).filter(([k, d]) => d.from <= this.depth && (k === 'mixed' || k !== this.lastShape));
@@ -4383,7 +4725,8 @@ class LootScene extends Phaser.Scene {
       this.time.delayedCall(1600, () => this.showToast(`${N.supercharge.toUpperCase()} AWAKENS - kill to charge, then unleash`, '#ffd23c'));
     }
     this.wave = 0;
-    this.rerollsLeft = BOON_REROLLS;
+    this.rerollsLeft = BOON_REROLLS + (this.perkOn('reroll') ? 1 : 0);
+    if (this.perkOn('guard')) this.player.guardCharge = 1;
     this.progressNodes.forEach(node => { node.fillColor = 0x2a0f04; });
     this.state = 'playing';
     this.setFloor(this.sector, true);
@@ -4555,7 +4898,15 @@ class LootScene extends Phaser.Scene {
   spawnGatekeeper() {
     const b = this.arenaBounds;
     const x = (b.x + b.right) / 2, y = b.y + 60;
-    const weakPhase = Phaser.Utils.Array.GetRandom(PHASE_SEQUENCE);
+    let weakPhase = Phaser.Utils.Array.GetRandom(PHASE_SEQUENCE);
+    // The first Gatekeeper a player ever meets arrives open, and stays open for a good
+    // while: they see what full damage looks like, then watch it fall away when the phase
+    // turns. A rule learnt by contrast needs no reading.
+    if (!session.gateTaught) {
+      weakPhase = this.inConvergence ? this.savedPhase : this.phase;
+      if (!this.inConvergence) this.phaseTimeLeft = Math.max(this.phaseTimeLeft, 8000);
+      session.gateTaught = true; saveSession();
+    }
     const hp = (220 + this.depth * 16) * sectorHpMult(this.sector);
     const enemy = {
       id: Phaser.Math.RND.uuid(),
@@ -4580,7 +4931,7 @@ class LootScene extends Phaser.Scene {
     this.enemyCores.set(enemy.id, core);
     this.addHpBar(enemy);
     this.addNameLabel(enemy);
-    this.hint('core', `The glowing core at ${N.enemies.gatekeeper}'s feet is the weak spot: full damage only while the phase bar matches that colour.`);
+    this.hint('core', `${N.enemies.gatekeeper} resists most of your damage outside his own phase. The timer over his head counts down to when he opens.`);
     return enemy;
   }
 
@@ -4616,6 +4967,12 @@ class LootScene extends Phaser.Scene {
 
     if (isMega) {
       enemy.orbiters = [ this.add.circle(x, y, 4, 0xffd23c), this.add.circle(x, y, 4, 0xffd23c) ];
+      // Vritra is drawn, not a sprite (2026-10-04): a serpent that coils and strikes. The
+      // stock sprite stays as an unseen stand-in, so nothing that expects one breaks.
+      spr.setVisible(false);
+      outerRing.setVisible(false);
+      enemy.serpent = { gfx: this.add.graphics(), heading: Math.PI / 2,
+        segs: Array.from({ length: SERPENT.length }, (_, i) => ({ x: x + Math.cos(i * 0.5) * (14 + i * 2), y: y + 8 + Math.sin(i * 0.5) * (14 + i * 2) * 0.8 })) };
     }
 
     if (enemy.bossPhase === 'timing') {
@@ -4627,6 +4984,29 @@ class LootScene extends Phaser.Scene {
       this.spawnShieldAdds(enemy);
     }
     return enemy;
+  }
+
+  // The serpent's body is a chain: the head leads, every segment keeps its distance from
+  // the one before, and the whole thing draws in to a coil whenever he roots himself -
+  // behind his shield, or winding up a slam.
+  updateSerpent(e, time, delta) {
+    const sp = e.serpent, dt = delta / 1000, rooted = !!e.shieldOn || !!e.slam, b = this.arenaBounds;
+    sp.heading = Phaser.Math.Angle.RotateTo(sp.heading, Math.atan2(this.player.y - e.y, this.player.x - e.x), 2.6 * dt);
+    sp.segs[0].x = e.x; sp.segs[0].y = e.y;
+    for (let i = 1; i < sp.segs.length; i++) {
+      const prev = sp.segs[i - 1], seg = sp.segs[i];
+      if (rooted) {
+        const a = time / 1500 + i * 0.5, r = 14 + i * 2, pull = Math.min(1, dt * 2.4);
+        seg.x += (e.x + Math.cos(a) * r - seg.x) * pull; seg.y += (e.y + 8 + Math.sin(a) * r * 0.8 - seg.y) * pull;
+      } else {
+        const dx = seg.x - prev.x, dy = seg.y - prev.y, d = Math.hypot(dx, dy) || 1;
+        seg.x = prev.x + dx / d * SERPENT.gap; seg.y = prev.y + dy / d * SERPENT.gap;
+      }
+      seg.x = Phaser.Math.Clamp(seg.x, b.x + 6, b.right - 6); seg.y = Phaser.Math.Clamp(seg.y, b.y + 6, b.bottom - 6);
+    }
+    const mood = !this.bossGated(e) || e.shieldOn ? 'plain' : this.phase === e.weakPhase ? 'open' : 'closed';
+    paintSerpent(sp.gfx.clear(), sp.segs, sp.heading, time, { size: 1, mood, glow: PHASE_DEFS[e.weakPhase].color,
+      rear: e.slam ? Math.min(1, e.slam.t / e.slam.dur) : 0, struck: e.squash > 0 ? e.squash / 140 : 0, slither: rooted ? 0.35 : 1 });
   }
 
   spawnShieldAdds(boss) {
@@ -4699,7 +5079,7 @@ class LootScene extends Phaser.Scene {
       id: Phaser.Math.RND.uuid(),
       type, isSplit: !!isSplit, isElite: !!isElite,
       x, y, hp, maxHp: hp,
-      speed: (62 + wave * 5) * def.speedMult * (isSplit ? 1.15 : 1),
+      speed: (62 + wave * 5) * def.speedMult * (isSplit ? 1.15 : 1) * (this.tier >= 2 ? 1.12 : 1),
       dmg: (8 + wave * 1.4) * def.dmgMult * (isElite ? 1.5 : 1) * sectorDmgMult(this.sector),
       radius: (isSplit ? Math.max(7, def.radius - 4) : def.radius) + (isElite ? 6 : 0),
       hitCooldown: 0,
@@ -4748,6 +5128,14 @@ class LootScene extends Phaser.Scene {
     // landed five hits in the same instant - a one-frame death that reads as unfair, not
     // hard. Slams are exempt: they are telegraphed, so standing in one should always cost.
     if (kind !== 'slam' && this.player.iframes > 0) return false;
+    if (this.player.guardCharge > 0) {
+      this.player.guardCharge--;
+      if (kind !== 'slam') this.player.iframes = IFRAMES_MS;
+      this.showToast(`${PERKS.guard.name.toUpperCase()} BLOCKED`, '#e2b6ff');
+      this.sfx('kavach');
+      this.impactBurst(this.player.x, this.player.y, PERK_TINT);
+      return false;
+    }
     if (this.player.shieldCharge > 0) {
       this.player.shieldCharge--;
       this.showToast(`${TRINKET_EFFECTS.aegis.label.toUpperCase()} BLOCKED`, '#4dd0ff');
@@ -4755,7 +5143,7 @@ class LootScene extends Phaser.Scene {
       this.impactBurst(this.player.x, this.player.y, 0x9fd8ff);
       return false;
     }
-    amount *= (1 - this.boonRank('hide') * BOONS.hide.n) * (this.boonRank('greed') ? 1 + BOONS.greed.hurt : 1);
+    amount *= (1 - this.boonRank('hide') * BOONS.hide.n) * (this.boonRank('greed') ? 1 + BOONS.greed.hurt : 1) * (this.perkOn('scale') ? 1 - PERKS.scale.n : 1);
     if (this.player.bloodShield > 0) {
       const soak = Math.min(this.player.bloodShield, amount);
       this.player.bloodShield -= soak;
@@ -4770,7 +5158,15 @@ class LootScene extends Phaser.Scene {
     this.player.flashTimer = Math.max(150, kind !== 'slam' ? IFRAMES_MS : 0);
     this.hitFeedback(amount, source, kind);
     if (this.player.hp > 0 && this.player.hp < this.player.maxHp * 0.3) {
-      this.hint('lowhp', `Low HP! Keep your distance. Beating a ${N.stage.toLowerCase()}'s boss restores 35% of your health.`);
+      this.hint('lowhp', `Low HP! Keep your distance. Beating a ${N.stage.toLowerCase()}'s boss restores ${Math.round(this.clearHeal() * 100)}% of your health.`);
+    }
+    if (this.player.hp <= 0 && this.perkOn('wind') && !this.windUsed) {      // Second Wind: once a run
+      this.windUsed = true;
+      this.player.hp = Math.round(this.player.maxHp * PERKS.wind.n);
+      this.player.iframes = 1500;
+      this.showToast('SECOND WIND', '#e2b6ff');
+      this.sfx('kavach');
+      return false;
     }
     if (this.player.hp <= 0) {
       this.player.hp = 0;
@@ -4782,8 +5178,17 @@ class LootScene extends Phaser.Scene {
 
   killEnemy(enemy) {
     const spr = this.enemySprites.get(enemy.id);
+    if (spr && spr.visible && !this.silent) {          // it folds and fades rather than blinking out
+      const ghost = this.add.image(spr.x, spr.y, spr.texture.key).setScale(spr.scaleX, spr.scaleY).setTint(0xffe6c0).setAlpha(0.85);
+      this.tweens.add({ targets: ghost, scaleX: spr.scaleX * 1.3, scaleY: spr.scaleY * 0.35, y: spr.y + spr.displayHeight * 0.3, alpha: 0, duration: 190, ease: 'Cubic.easeIn', onComplete: () => ghost.destroy() });
+    }
     if (spr) spr.destroy();
     this.enemySprites.delete(enemy.id);
+    if (enemy.gateLabel) { enemy.gateLabel.destroy(); enemy.gateFx.destroy(); enemy.gateLabel = enemy.gateFx = null; }
+    if (enemy.serpent) {                               // the coil bursts from the tail to the head
+      enemy.serpent.segs.forEach((sg, i) => { if (i % 3 === 0 && !this.silent) this.time.delayedCall((enemy.serpent.segs.length - i) * 14, () => this.impactBurst(sg.x, sg.y, 0x7fe0c8)); });
+      enemy.serpent.gfx.destroy(); enemy.serpent = null;
+    }
     if (this.enemyCores.has(enemy.id)) { this.enemyCores.get(enemy.id).destroy(); this.enemyCores.delete(enemy.id); }
     if (this.enemyRings.has(enemy.id)) { this.enemyRings.get(enemy.id).destroy(); this.enemyRings.delete(enemy.id); }
     if (this.enemyShields.has(enemy.id)) { this.enemyShields.get(enemy.id).destroy(); this.enemyShields.delete(enemy.id); }
@@ -4848,7 +5253,7 @@ class LootScene extends Phaser.Scene {
       // Beating the sector boss restores part of your health. HP otherwise carries over,
       // and the bot showed players arriving at Sector 2 on 19-45% HP - nobody presses
       // Descend on 20% HP, which is the exact decision 1.6 depends on.
-      const heal = Math.round(this.player.maxHp * SECTOR_CLEAR_HEAL);
+      const heal = Math.round(this.player.maxHp * this.clearHeal());
       const before = this.player.hp;
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
       const gained = Math.round(this.player.hp - before);
@@ -4860,14 +5265,12 @@ class LootScene extends Phaser.Scene {
       this.spawnLootPickup(enemy.x, enemy.y, 'epic');
       this.spawnLootPickup(enemy.x + 24, enemy.y, 'epic');
       const tribute = enemy.tribute || 0;
-      if (tribute >= TRIBUTE.item) this.spawnLootPickup(enemy.x - 24, enemy.y, 'epic');
+      if (tribute >= this.tributeAt.item) this.spawnLootPickup(enemy.x - 24, enemy.y, 'epic');
       this.showToast(`${N.enemies[enemy.isMega ? 'megaboss' : 'sectorboss'].toUpperCase()} FALLS`, '#2fbf71');
-      const water = enemy.isMega ? WATER.final : WATER.boss;
-      this.runWater += water;
-      session.water = Math.min(WELL_FULL, (session.water || 0) + water);
       if (enemy.isMega) { this.bossSlain = true; session.wins = (session.wins || 0) + 1; }
+      this.bossRewards(enemy);
       saveSession();
-      if (tribute >= TRIBUTE.boon) this.queueBoon(tribute);            // tribute of 10 or more is paid as a boon
+      if (tribute >= this.tributeAt.boon) this.queueBoon(tribute);            // tribute of 10 or more is paid as a boon
       this.time.delayedCall(1000, () => { if (this.state === 'playing') this.showSectorClearChoice(enemy.isMega); });
       return;
     }
@@ -4876,12 +5279,13 @@ class LootScene extends Phaser.Scene {
 
     if (enemy.isBoss) {
       this.spawnLootPickup(enemy.x, enemy.y, 'epic');
-      if ((enemy.tribute || 0) >= TRIBUTE.item) this.spawnLootPickup(enemy.x + 24, enemy.y, 'epic');
-      if ((enemy.tribute || 0) >= TRIBUTE.boon) this.queueBoon(enemy.tribute);
+      if ((enemy.tribute || 0) >= this.tributeAt.item) this.spawnLootPickup(enemy.x + 24, enemy.y, 'epic');
+      if ((enemy.tribute || 0) >= this.tributeAt.boon) this.queueBoon(enemy.tribute);
       this.showToast('THE GATE OPENS', '#2fbf71');
+      this.bossRewards(enemy);
     } else if (enemy.isElite) {
       this.spawnLootPickup(enemy.x, enemy.y, 'epic');
-    } else if (waveJustCleared || Phaser.Math.Between(0,100) < 18) {
+    } else if (waveJustCleared || Phaser.Math.Between(0,100) < (this.perkOn('eye') ? PERKS.eye.n : 18)) {
       this.spawnLootPickup(enemy.x, enemy.y);
     }
     if (waveJustCleared) this.afterWaveClear();
@@ -5003,7 +5407,7 @@ class LootScene extends Phaser.Scene {
     this.uiObjects.push(this.add.text(W/2, H/2-125, `${N.stage.toUpperCase()} CLEARED`, { resolution: RES, fontSize: '19px', color: '#2fbf71', fontStyle: 'bold' }).setOrigin(0.5));
     const ahead = this.sector < FINAL_SECTOR ? ` ${N.enemies.megaboss} waits ${levelsBelow(this.sector)}.` : '';
     say(H/2-92, `${sectorTitle(this.sector)} is cleared.${ahead}`, 13, '#fffbef');
-    say(H/2-68, `+${WATER.boss} water for the well  ·  ${wellLine()}`, 12, '#9fe8d8');
+    say(H/2-68, (this.lastWater > 0 ? `+${this.lastWater} water for the well` : 'No new water') + `  ·  ${wellLine()}`, 12, '#9fe8d8');
     say(H/2-44, `${N.currency} carried: ${this.runGold}`, 13, '#ffd23c');
     say(H/2-2, 'Extract now and bank all of it,\nor descend for tougher fights and\nbetter loot. Fall, and half is lost.', 12, '#c8a96e');
 
@@ -5027,18 +5431,23 @@ class LootScene extends Phaser.Scene {
     if (firstFull) { session.wellFullSeen = true; saveSession(); }
     const say = (y, str, size, colour) => this.uiObjects.push(this.add.text(W/2, y, str,
       { resolution: RES, fontSize: size + 'px', color: colour, align: 'center', lineSpacing: 4 }).setOrigin(0.5));
-    this.uiPanel(W/2, H/2, W-50, 360, FORGE.gold);
+    this.uiPanel(W/2, H/2 + 10, W-50, 386, FORGE.gold);
     this.uiObjects.push(this.add.text(W/2, H/2-142, firstFull ? 'THE WELL IS FULL' : 'THE WATERS RETURN',
       { resolution: RES, fontSize: '23px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
     say(H/2-104, firstFull
       ? `Every drop ${N.enemies.megaboss} took is back in the well.\nYou have finished the game. Thank you for playing.`
       : `${N.enemies.megaboss} is slain, and the water he hoarded\nrises through the well again.`, 13, '#fffbef');
     say(H/2-62, `+${this.runWater} water this run  ·  ${wellLine()}`, 13, '#9fe8d8');
-    say(H/2-36, `${N.currency} carried: ${this.runGold}`, 13, '#ffd23c');
-    say(H/2+6, `Surface now and bank all of it,\nor go on into ${N.deeper[0]}, the endless depths.\nFall there, and half is lost.`, 12, '#c8a96e');
+    const news = this.depthNews || { depth: this.tier, won: false }, next = DEPTHS[news.depth + 1];
+    say(H/2-40, !news.won ? `Depth ${news.depth} was already won: no new water.`
+      : next ? `Depth ${news.depth} is won. Depth ${news.depth + 1} opens: ${next.name}.` : 'The seventh depth is won.', 12, '#ffd23c');
+    const got = this.perksEarned || [];
+    if (got.length) say(H/2-21, `Perk earned: ${PERKS[got[got.length - 1]].name}`, 12, '#e2b6ff');
+    say(H/2-1, `${N.currency} carried: ${this.runGold}`, 13, '#ffd23c');
+    say(H/2+40, `Surface now and bank all of it,\nor go on into ${N.deeper[0]}, the endless depths.\nFall there, and half is lost.`, 12, '#c8a96e');
 
-    this.makeButton(W/2, H/2+84, 240, 46, 'Surface — Bank & End Run', BTN.primary, () => this.endRun(true), { stroke: FORGE.gold });
-    this.makeButton(W/2, H/2+138, 240, 46, `Descend into ${N.deeper[0]}`, BTN.quiet, () => this.descend());
+    this.makeButton(W/2, H/2+104, 240, 46, 'Surface — Bank & End Run', BTN.primary, () => this.endRun(true), { stroke: FORGE.gold });
+    this.makeButton(W/2, H/2+158, 240, 46, `Descend into ${N.deeper[0]}`, BTN.quiet, () => this.descend());
     this.raiseUI();
   }
 
@@ -5082,6 +5491,8 @@ class LootScene extends Phaser.Scene {
     }
     say(H/2+4, `Treasury: ${session.metaGold} ${N.currency}`, 13, '#c8a96e');
     say(H/2+30, this.runWater > 0 ? `Water returned: +${this.runWater}  ·  ${wellLine()}` : `No water returned  ·  ${wellLine()}`, 12, '#9fe8d8');
+    const got = this.perksEarned || [];       // a perk is worth a visit to the Profile
+    if (got.length) say(H/2+52, got.length > 1 ? `${got.length} perks earned  ·  choose which to wear on your Profile` : `Perk earned: ${PERKS[got[0]].name}  ·  see your Profile`, 12, '#e2b6ff');
 
     this.makeButton(W/2, H/2+88, 200, 48, 'Continue to Hub', BTN.primary, () => {
       // clean up run visuals
@@ -5120,6 +5531,8 @@ class LootScene extends Phaser.Scene {
         if (e.shieldBarBg) { e.shieldBarBg.destroy(); e.shieldBarFill.destroy(); }
         if (e.shieldParts) e.shieldParts.forEach(pt => pt.destroy());
         if (e.nameLabel) e.nameLabel.destroy();
+        if (e.gateLabel) { e.gateLabel.destroy(); e.gateFx.destroy(); }
+        if (e.serpent) e.serpent.gfx.destroy();
       });
       this.goldPickups.forEach(g => g.sprite && g.sprite.destroy());
       if (this.projectiles) this.projectiles.forEach(p => { if (p.sprite) p.sprite.destroy(); if (p.halo) p.halo.destroy(); });
@@ -5155,7 +5568,7 @@ class LootScene extends Phaser.Scene {
         this.inConvergence = true;
         this.phase = 'convergence';
         this.phaseTimeLeft = PHASE_DEFS.convergence.duration;
-        this.convergenceCountdown = CONVERGENCE_INTERVAL;
+        this.convergenceCountdown = this.convergeEvery();
         this.showToast(`${PHASE_DEFS.convergence.label} - an elite approaches`, '#fffbef');
         this.spawnElite();
         this.sfx('tejas-bell', { rate: 0.7 });
@@ -5247,7 +5660,8 @@ class LootScene extends Phaser.Scene {
     this.player.x = Phaser.Math.Clamp(this.player.x, this.arenaBounds.x+15, this.arenaBounds.right-15);
     this.player.y = Phaser.Math.Clamp(this.player.y, this.arenaBounds.y+15, this.arenaBounds.bottom-15);
 
-    this.playerSprite.setPosition(this.player.x, this.player.y);
+    const lift = this.animate(this.playerSprite, this.playerAnim, delta, (this.player.x - prevX) / dt, (this.player.y - prevY) / dt, false, 0);
+    this.playerSprite.setPosition(this.player.x, this.player.y - lift);
     this.playerRing.setPosition(this.player.x, this.player.y + 16);
     // Ring carries the live phase colour, so the player reads Cycle timing off their own feet.
     this.playerRing.setStrokeStyle(2, PHASE_DEFS[this.phase].color, 0.9);
@@ -5350,6 +5764,8 @@ class LootScene extends Phaser.Scene {
             o.setPosition(enemy.x + Math.cos(ang)*(enemy.radius+16), enemy.y + Math.sin(ang)*(enemy.radius+16));
           });
         }
+        this.updateBossGate(enemy, time);
+        if (enemy.serpent) this.updateSerpent(enemy, time, delta);
       } else {
         // melee / tank / splitter: chase and hit on contact
         enemy.x += (edx/edist) * enemy.speed * dt;
@@ -5385,8 +5801,11 @@ class LootScene extends Phaser.Scene {
           if (k >= 1) enemy.lunge = null;
           else { const push = Math.sin(k * Math.PI) * enemy.lunge.amp; ox = enemy.lunge.dx * push; oy = enemy.lunge.dy * push; }
         }
-        spr.setPosition(enemy.x + ox, enemy.y + oy);
-        // 4-direction art must never be rotated - swap the facing frame instead.
+        const lift = this.animate(spr, enemy, delta, (enemy.x - (enemy.lastX === undefined ? enemy.x : enemy.lastX)) / dt,
+          (enemy.y - (enemy.lastY === undefined ? enemy.y : enemy.lastY)) / dt, !!enemy.isBoss, enemy.slam ? Math.min(1, enemy.slam.t / enemy.slam.dur) : 0);
+        enemy.lastX = enemy.x; enemy.lastY = enemy.y;
+        spr.setPosition(enemy.x + ox, enemy.y + oy - lift);
+        // 4-direction art is never turned to face - the facing frame is swapped instead.
         // Face the player, which is also the direction almost every enemy is moving.
         if (enemy.char) {
           const f = facingFor(this.player.x - enemy.x, this.player.y - enemy.y);
@@ -5479,9 +5898,10 @@ class LootScene extends Phaser.Scene {
 
       if (inRange.length) {
         this.atkTimer = this.player.weapon.atkSpeed / this.attackRate();
+        this.playerAnim.punch = 90;
         this.attackFx.clear();
         const wfx = this.player.weapon.effect;
-        this.sfx(inRange.every(o => o.e.shieldOn) ? 'hit-blocked'
+        this.sfx(inRange.every(o => o.e.shieldOn || this.weakScale(o.e) < 1) ? 'hit-blocked'
           : ({ chain: 'hit-zap', executioner: 'hit-axe' }[wfx] || 'hit-blade'));
         const beamColour = { venom: 0x7fdd3c, vampiric: 0xff8080, chain: 0x4dd0ff,
                              executioner: FORGE.gold }[wfx] || FORGE.cool;
@@ -5567,7 +5987,7 @@ class LootScene extends Phaser.Scene {
     this.bloodBar.width = this.hpBarW * Math.min(1, shield / this.player.maxHp);
 
     // --- HUD text ---
-    this.hudText.setText(`${stageLabel(this.sector)} · Wave ${Math.min(this.wave,5)}/5   ${N.currency}: ${this.runGold}`);
+    this.hudText.setText(`${this.tier > 1 ? 'D' + this.tier + ' · ' : ''}${stageLabel(this.sector)} · Wave ${Math.min(this.wave,5)}/5   ${N.currency}: ${this.runGold}`);
     this.weaponText.setText(`${this.player.weapon.name}${this.player.weapon.shots>1 ? ' x'+this.player.weapon.shots : ''}   ${Math.ceil(this.player.hp)}/${Math.ceil(this.player.maxHp)} HP${shield > 0 ? ` +${Math.ceil(shield)} shield` : ''}`);
     const power = this.powerParts().total;
     if (power !== this.powerShown) {

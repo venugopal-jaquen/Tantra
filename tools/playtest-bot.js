@@ -11,6 +11,8 @@
  * wave it takes a boon at random from the three offered, or none if the profile says
  * boons: false (to compare a build with and without them), or only between levels if it
  * says boons: 'late' (a player who ignores the + button while fighting).
+ * depth: 1..7 pins the depth of the well a profile plays (default 1), and perks: [...]
+ * the perks it wears (default none).
  *
  * Usage (browser console, with the game open):
  *   const s = document.createElement('script'); s.src = '../tools/playtest-bot.js';
@@ -43,7 +45,14 @@
   // Under headlessStep Phaser's tweens barely advance (they measure real elapsed time),
   // so counting them reports a phantom leak. A real leak is something nothing will ever
   // clean up - i.e. not being tweened.
-  const countChildren = () => S().children.list.filter(o => !S().tweens.isTweening(o)).length;
+  // Objects mid-tween are effects still in flight (tweens run on real time, which barely
+  // moves while the bot steps), so they are left out - except the ones the scene keeps a
+  // name for, such as the hurt flash and the power number: those last, are tweened now
+  // and then, and would otherwise make the count wobble by one.
+  const countChildren = () => {
+    const s = S(), kept = new Set(Object.values(s));
+    return s.children.list.filter(o => kept.has(o) || !s.tweens.isTweening(o)).length;
+  };
 
   // ---------- the player's brain ----------
   function steer() {
@@ -132,9 +141,21 @@
     if (s.state === 'summary') press('Continue to Hub');
     Object.assign(session, { vitalityLevel: profile.vit, powerLevel: profile.pow });
     if ('tejasUnlocked' in session) session.tejasUnlocked = !!profile.tejas;
-    if (baseline === null) baseline = countChildren();
+    // Depths and perks (2.30): every run goes down the depth its profile names, wearing
+    // the perks it names, whatever the runs before it won. A profile that names neither
+    // plays the first depth with no perks, which is what the older builds were.
+    if ('depthsWon' in session) {
+      const d = profile.depth || 1;
+      Object.assign(session, { depthsWon: d - 1, depthBest: 0, depthPick: d, perks: {}, perksOn: [], gateTaught: true });
+      (profile.perks || []).forEach(k => { session.perks[k] = true; session.perksOn.push(k); });
+    }
+    // The title screen is drawn again for this profile before it is counted: what it
+    // shows depends on the depth, so one count would not serve every profile.
+    if (s.state === 'hub') s.showHub();
+    baseline = countChildren();
+    const pinned = JSON.stringify(session);
     s.startRun();
-    cur = { profile, frames: 0, sectors: [sectorRec(s)], result: null, lastHit: null, capFrames: profile.capMin * 60 * 60 };
+    cur = { profile, base: baseline, pinned, frames: 0, sectors: [sectorRec(s)], result: null, lastHit: null, capFrames: profile.capMin * 60 * 60 };
 
     // instrument (on the instance, removed at the end of the run)
     const od = s.damagePlayer.bind(s);
@@ -166,11 +187,17 @@
     cur.boons = s.boons ? Object.values(s.boons).reduce((a, b) => a + b, 0) : 0;
     cur.gameMin = +(cur.frames * DT / 60000).toFixed(1);
     if (s.state === 'summary') press('Continue to Hub');
+    // A run that wins a depth, wakes Tejas or sets a record changes what the title screen
+    // shows, and that is not a leak: count the screen as it stood before the run.
+    const after = JSON.stringify(session);
+    Object.assign(session, JSON.parse(cur.pinned));
+    if (s.state === 'hub') s.showHub();
     // Let transient FX (damage numbers ~700ms, bursts, slashes) finish and self-destroy
     // before counting - counting too early reports them as a leak.
     for (let i = 0; i < 120; i++) { t += DT; g().headlessStep(t, DT); }
     cur.childrenAtHub = countChildren();
-    cur.leak = cur.childrenAtHub - baseline;
+    cur.leak = cur.childrenAtHub - cur.base;
+    Object.assign(session, JSON.parse(after));
     results.push(cur);
     cur = null;
   }
@@ -237,7 +264,7 @@
       loadSession();
       S().silent = false; S().autoPause = true;
       return { errors: [...new Set(errors)], runs: results.map(r => ({
-        profile: r.profile.name, result: r.result, finalSector: r.finalSector, gameMin: r.gameMin, leak: r.leak, boons: r.boons,
+        profile: r.profile.name, depth: r.profile.depth || 1, result: r.result, finalSector: r.finalSector, gameMin: r.gameMin, leak: r.leak, boons: r.boons,
         sectors: r.sectors.map(x => ({
           S: x.sector, min: +(x.secs / 60).toFixed(1), maxHp: x.maxHp,
           hpLostPct: Math.round(100 * x.dmg / x.maxHp), minHpPct: x.minHpPct, kills: x.kills,
