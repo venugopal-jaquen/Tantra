@@ -180,7 +180,7 @@ What the runs say:
 |---|---|---|
 | Getting in | All four: the state drawn on the boss, a countdown, a first Gatekeeper who arrives open, and a softer penalty on level 1 (the founder set it at 30% of a hit getting through, where 50% was proposed) | `requirements.md` §2.6 |
 | Coming back | Seven depths as the spine, perks as the rewards. The daily descent is pinned (P9) | §2.30 |
-| Advertising | Motion in code and a drawn Vritra now. The founder will make the characters themselves with image tools, and is not ready to commission an artist (`docs/character-art-guide.md`). Music waits until after launch (P10) | §2.31 |
+| Advertising | Motion in code and a drawn Vritra now. The founder will make the characters themselves with image tools, and is not ready to commission an artist (`docs/character-art-guide.md`). Music waits until after launch (P10). Later the same day: walk frames switched on from the stock packs already licensed, as a stopgap (build 0.5) | §2.31 |
 
 Holding the tribute, power and satchel tips back until level 2 was proposed under "getting in" and not chosen; it is not built.
 

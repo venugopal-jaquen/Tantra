@@ -151,6 +151,26 @@ try {
     return { moved: Math.round(moved), speed: Math.round(moved / secs), arrived: Math.round(s.player.y), target: s.pointerTarget };`);
   check('a tap is walked to at walking speed, not jumped to', walk.speed > 150 && walk.speed < 250 && walk.arrived === 150 && walk.target === null, JSON.stringify(walk));
 
+  // Walk frames: every character but Vritra has a sheet; a standing figure shows the first
+  // cell of its facing's row, a moving one steps through the rest, and the figure is the
+  // size it was as a still.
+  const legs = await page(`const s = game.scene.keys.LootScene, per = WALK.frames + 1, wait = ms => new Promise(r => setTimeout(r, ms));
+    const stepsOf = async (spr, need) => { const seen = new Set(), rows = new Set();
+      for (let i = 0; i < 80 && seen.size < need; i++) { await wait(30); const f = spr.frame.name; if (f % per) { seen.add(f % per); rows.add(Math.floor(f / per)); } }
+      return { steps: seen.size, rows: [...rows].join() }; };
+    const out = { sheets: WALKERS.filter(n => s.textures.exists(n + '-walk') && s.textures.get(n + '-walk').frameTotal - 1 === per * FACINGS.length).length, walkers: WALKERS.length,
+      vritra: s.textures.exists(CHARS.megaboss + '-walk'), onSheet: !!s.playerSprite.walks, size: Math.round(s.playerSprite.baseSX * WALK.cell / WALK.pad), standing: s.playerSprite.frame.name % per };
+    s.setMoveTarget(330, 150); out.kiran = await stepsOf(s.playerSprite, 5); out.right = FACINGS.indexOf('right');
+    for (let i = 0; i < 60 && s.pointerTarget; i++) await wait(40);
+    await wait(320); out.stopped = s.playerSprite.frame.name % per;
+    const e = s.spawnEnemyOfType('melee', 70, 330, 1), spr = s.enemySprites.get(e.id);
+    out.asura = await stepsOf(spr, 4); out.asuraSize = Math.round(spr.baseSX * WALK.cell / WALK.pad * 10) / 10; out.asuraWants = Math.round(e.radius * 28) / 10;
+    e.speed = 0; await wait(320); out.asuraStopped = spr.frame.name % per;
+    s.killEnemy(e); return out;`);
+  check('every character but Vritra has a walk sheet, and figures keep their size', legs.sheets === 7 && legs.walkers === 7 && !legs.vritra && legs.onSheet && legs.size === 44 && legs.asuraSize === legs.asuraWants, JSON.stringify(legs));
+  check('Kiran and his enemies step through their walk frames, and stand when they stop', legs.standing === 0 && legs.kiran.steps >= 5 && legs.kiran.rows === String(legs.right) && legs.stopped === 0
+    && legs.asura.steps >= 4 && legs.asuraStopped === 0, JSON.stringify(legs));
+
   // The satchel pauses the fight, says what each item does, and swaps on a tap.
   const satchel = await page(`const s = game.scene.keys.LootScene;
     for (const r of ['rare', 'epic', 'common']) { s.spawnLootPickup(s.player.x, s.player.y, r); await new Promise(r2 => setTimeout(r2, 150)); }

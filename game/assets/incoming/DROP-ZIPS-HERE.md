@@ -23,6 +23,8 @@ CC0. `tools/convert-sfx.py` regenerates `game/assets/sfx/` from them.
 
 Four **free** packs, downloaded while signed in to craftpix.net and dropped here
 unextracted. `tools/extract-chars.py` regenerates `game/assets/chars/` from them.
+`tools/extract-walk.py` builds the walk sheets (`<name>-walk.png`) and reads the zips as
+they are: nothing needs unpacking for it.
 
 | # | Pack | URL | Used for |
 |---|---|---|---|

@@ -23,6 +23,14 @@ roster reads as a single set rather than four borrowed packs:
 | Free Top-Down Boss Character 4-Direction Pack | Giant Goblin, Viking Leader, Caveman Boss |
 | Free Medieval Bandit 4-Direction Character Pack | Assassin |
 
+### Walk sheets (2026-10-05)
+
+`chars/<name>-walk.png`, one for each character but Vritra, are built from the same
+packs by `tools/extract-walk.py`: the first idle frame and eight frames of the pack's
+walk cycle for each of the four facings, reduced to 112 px cells and a 255-colour
+palette. Same licence, same terms as the stills. The packs' attack, hurt, dying and idle
+animations are not used.
+
 ### Roster mapping
 
 Sanskrit names per `docs/requirements.md` §2.12. The art is European fantasy and carries

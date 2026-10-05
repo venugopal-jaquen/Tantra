@@ -40,18 +40,17 @@ of one image far faster than many separate images.
 
 - 8 characters, each as **4 still pictures**: front, back, left, right. 32 files of
   96 x 96 pixels in `game/assets/chars/`, named like `kiran-front.png`.
-- No frames. Since 2026-10-05 the stills are moved by code (a hop, a lean, a squash when
-  hit: `requirements.md` §2.31), and Vritra is drawn entirely in code as a serpent, so he
-  needs no art.
-- The stills come from four free CraftPix packs (`game/assets/CREDITS.md`). They are
+- **A walk sheet for 7 of them** (since build 0.5, 2026-10-05), named like
+  `kiran-walk.png`: four rows, one for each facing, and nine cells in a row, a standing
+  frame and eight walk frames. Open one to see exactly what section 1 describes.
+- Code adds the rest (a lean, a squash when hit, breathing: `requirements.md` §2.31), and
+  Vritra is drawn entirely in code as a serpent, so he needs no art.
+- All of it comes from four free CraftPix packs (`game/assets/CREDITS.md`). They are
   European fantasy: a warrior, goblins, a Viking, a caveman.
 
-**Something worth knowing:** those four packs are already on this machine, and they hold
-full animation for every character and facing: walk (20 to 30 frames), attack, hurt, dying
-and idle. The game takes only the first idle frame of each. So real walk and attack
-animation for the *current* cast can be switched on from files already licensed, at the
-cost of a larger download. It would not make the cast fit the setting, which is the reason
-to make your own.
+The packs hold more than the game uses: attack, hurt, dying and idle frames for every
+character and facing. The walk frames were switched on as a stopgap. They do not make the
+cast fit the setting, which is the reason to make your own.
 
 ## 3. What your own cast needs
 
@@ -86,8 +85,8 @@ proportions), which keeps faces readable when small. Keep one view for everyone.
 
 | Stage | You make | Frames | The game gains |
 |---|---|---|---|
-| 1 | A front, back and side still for each of 7 characters | 21 pictures | A cast that belongs to the setting. The code motion keeps them alive. |
-| 2 | A 4-frame walk for each facing | 84 | Real walking |
+| 1 | A front, back and side still for each of 7 characters | 21 pictures | A cast that belongs to the setting. A character with no walk frames gets a hop and a lean from code, so it is never stiff. |
+| 2 | A 4-frame walk for each facing | 84 | Real walking, as the stock cast has now |
 | 3 | An attack and a hurt frame for Kiran and the two bosses | about 20 | Hits that land |
 
 Stage 1 is the one that changes how the game looks in a screenshot. Start there.
@@ -151,8 +150,8 @@ per character is fine. Nothing needs to be cut, resized or cleaned.
 - remove the background and cut the picture into equal cells;
 - line the feet up so nothing jitters, and even out size between characters;
 - build the sheet, shrink it for the game, and wire it in. Replacing the stills needs no
-  change to the game's code: the files keep their names. Walk frames need a small change,
-  once, that then serves every character;
+  change to the game's code: the files keep their names. Walk frames go into a sheet laid
+  out like the stock ones, which the game already knows how to play;
 - show you each one in the game, at real size, on the real floors, before anything is kept;
 - record where every picture came from in `game/assets/CREDITS.md`.
 
