@@ -544,7 +544,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.5 (2026-10-05)';
+const BUILD = '0.5 (2026-10-06)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -625,6 +625,7 @@ const W = 400, H = 700;
 // Clamped to 3: beyond that the buffer cost stops buying visible sharpness.
 const RES = Math.min(3, Math.max(2, Math.round(window.devicePixelRatio || 1)));
 const MARGIN = 30, HUD_H = 76;
+const HP_BAR = { w: 42, h: 5, up: 35 };   // Kiran's health bar: its size, and how far over his middle it floats
 const GATEKEEPER_WAVE = 3;
 const MEGA_BOSS_SECTOR = 3;
 
@@ -4585,15 +4586,16 @@ class LootScene extends Phaser.Scene {
       .setStrokeStyle(2, PHASE_DEFS.drift.color, 0.9);
     this.boonFx = this.add.graphics();   // tells for Hold Your Ground and Read the Slam
 
-    // HP bar
-    const barX = 14, barY = 24, barW = W - 28, barH = 8;
-    this.hpBarBg = this.add.rectangle(barX, barY, barW, barH, 0x2a0f04).setOrigin(0,0.5).setStrokeStyle(1, 0x6b4a2e);
-    this.hpBarFill = this.add.rectangle(barX, barY, barW, barH, 0x2fbf71).setOrigin(0,0.5);
+    // HP bar: over Kiran's head, where the eyes already are in a fight (2026-10-06). It
+    // used to run across the top of the screen. It follows him every frame (see update).
+    const barX = this.player.x - HP_BAR.w / 2, barY = this.player.y - HP_BAR.up, barW = HP_BAR.w, barH = HP_BAR.h;
+    this.hpBarBg = this.add.rectangle(barX, barY, barW, barH, 0x2a0f04).setOrigin(0,0.5).setStrokeStyle(1.5, 0x1a0600).setDepth(40);
+    this.hpBarFill = this.add.rectangle(barX, barY, barW, barH, 0x2fbf71).setOrigin(0,0.5).setDepth(40);
     this.hpBarW = barW;
-    this.bloodBar = this.add.rectangle(barX, barY, 0, barH - 4, 0xffb0b0).setOrigin(0, 0.5);   // Blood Shield
+    this.bloodBar = this.add.rectangle(barX, barY - barH / 2 - 2, 0, 2, 0xffb0b0).setOrigin(0, 0.5).setDepth(40);   // Blood Shield, a line over the bar
 
     // Phase bar - big, prominent, drains as the current phase runs out. This replaces the old tiny dial.
-    const pbarX = 14, pbarY = 42, pbarW = W - 28, pbarH = 14;
+    const pbarX = 14, pbarY = 36, pbarW = W - 28, pbarH = 18;
     this.phaseBarBg = this.add.rectangle(pbarX, pbarY, pbarW, pbarH, 0x2a0f04).setOrigin(0,0.5).setStrokeStyle(1, 0x6b4a2e);
     this.phaseBarFill = this.add.rectangle(pbarX, pbarY, pbarW, pbarH, PHASE_DEFS.drift.color).setOrigin(0,0.5);
     this.phaseBarLabel = this.add.text(pbarX + pbarW/2, pbarY, PHASE_DEFS.drift.label, { resolution: RES, fontSize: '11px', color: '#1a0600', fontStyle: 'bold' }).setOrigin(0.5);
@@ -6013,6 +6015,8 @@ class LootScene extends Phaser.Scene {
 
     // --- HP bar update ---
     const hpPct = Math.max(0, this.player.hp/this.player.maxHp);
+    const hbX = this.player.x - HP_BAR.w / 2, hbY = this.player.y - HP_BAR.up;
+    this.hpBarBg.setPosition(hbX, hbY); this.hpBarFill.setPosition(hbX, hbY); this.bloodBar.setPosition(hbX, hbY - HP_BAR.h / 2 - 2);
     this.hpBarFill.width = this.hpBarW * hpPct;
     this.hpBarFill.fillColor = hpPct > 0.5 ? 0x2fbf71 : (hpPct > 0.25 ? 0xffd23c : 0xff5c5c);
     const shield = this.player.bloodShield || 0;
