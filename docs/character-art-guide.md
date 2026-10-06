@@ -39,7 +39,7 @@ of one image far faster than many separate images.
 ## 2. What the game uses today
 
 - 8 characters, each as **4 still pictures**: front, back, left, right. 32 files of
-  96 x 96 pixels in `game/assets/chars/`, named like `kiran-front.png`.
+  96 x 96 pixels in `game/assets/chars/`, named like `kiran-front.png` (the hero's files keep that first name).
 - **A walk sheet for 7 of them** (since build 0.5, 2026-10-05), named like
   `kiran-walk.png`: four rows, one for each facing, and nine cells in a row, a standing
   frame and eight walk frames. Open one to see exactly what section 1 describes.
@@ -58,7 +58,7 @@ Seven characters (Vritra is drawn in code):
 
 | In the game | Role | What must read at a glance |
 |---|---|---|
-| Kiran | the hero | Small, bright, warm colours; the one figure that is clearly "you" |
+| The hero | the player, who names them (no name of their own since 2026-10-06) | Small, bright, warm colours; the one figure that is clearly "you" |
 | Asura | rank and file | Simple, in numbers; a strong silhouette at thumbnail size |
 | Hexer | ranged | Looks like it throws things: a staff, a raised hand, a glow |
 | Brute | slow and heavy | Twice the bulk of an Asura |
@@ -73,7 +73,7 @@ Two rules already in force (`requirements.md` §2.12):
 - The setting is a stepwell; the palette is warm (maroon, sandstone, saffron, gold). Enemies
   in cool colours (teal, violet, sickly green) stand out against it.
 
-Sizes. Kiran is drawn about 44 pixels wide on a 400-pixel-wide screen, and phones triple
+Sizes. The hero is drawn about 44 pixels wide on a 400-pixel-wide screen, and phones triple
 that. Make each cell **256 x 256**; the game shrinks it. At that size, fine detail
 vanishes, so judge every design at thumbnail size: if the silhouette does not read when
 the picture is as big as a fingernail, the detail will not save it.
@@ -87,7 +87,7 @@ proportions), which keeps faces readable when small. Keep one view for everyone.
 |---|---|---|---|
 | 1 | A front, back and side still for each of 7 characters | 21 pictures | A cast that belongs to the setting. A character with no walk frames gets a hop and a lean from code, so it is never stiff. |
 | 2 | A 4-frame walk for each facing | 84 | Real walking, as the stock cast has now |
-| 3 | An attack and a hurt frame for Kiran and the two bosses | about 20 | Hits that land |
+| 3 | An attack and a hurt frame for the hero and the two bosses | about 20 | Hits that land |
 
 Stage 1 is the one that changes how the game looks in a screenshot. Start there.
 
@@ -155,5 +155,5 @@ per character is fine. Nothing needs to be cut, resized or cleaned.
 - show you each one in the game, at real size, on the real floors, before anything is kept;
 - record where every picture came from in `game/assets/CREDITS.md`.
 
-A good first session: Kiran only, stage 1. One character through the whole route shows
+A good first session: the hero only, stage 1. One character through the whole route shows
 what the tool can hold steady, and sets the style for the other six.
