@@ -509,7 +509,7 @@ Launch track L10, the basic version the founder asked for: a text box whose cont
 
 - **Where:** a Feedback button on the title screen and a "Send feedback" button on every run summary, since the end of a run is when a player has something to say.
 - **What is sent:** the message, an optional reply address, the build, the player's best sector, the screen size and the browser's device string. The dialog says so.
-- **How:** a static page cannot send mail, so the message is posted to FormSubmit (`formsubmit.co`), a free relay that needs no account. **The first message ever sent triggers an activation email to the founder; nothing is delivered until the link in it is clicked once.** FormSubmit then issues a private alias, which should replace the address in the page source (the address is visible there until it does).
+- **How:** a static page cannot send mail, so the message is posted to FormSubmit (`formsubmit.co`), a free relay that needs no account. **The first message ever sent triggers an activation email to the founder; nothing is delivered until the link in it is clicked once.** The founder did this on 2026-10-06, and a test message sent through the live dialog that day was accepted. FormSubmit then issues a private alias, which should replace the address in the page source (the address is visible there until it does).
 - If the relay fails, the dialog offers "Email it instead", which opens the player's own mail app with the message filled in.
 - The dialog is plain DOM, because a canvas has no text box. While it is open the game's keyboard handling is switched off; otherwise W, A, S, D, E, P and Space, which the game claims, could not be typed.
 - To grow later: a proper backend, categories, screenshots.
