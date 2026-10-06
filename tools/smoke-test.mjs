@@ -414,7 +414,7 @@ try {
     await new Promise(r => setTimeout(r, 300));
     return { banked, carried, summary, title: ${texts} };`);
   check('surfacing after the win banks everything', surfaced.banked === surfaced.carried && surfaced.carried >= 300 && /VRITRA SLAIN/.test(surfaced.summary), `banked ${surfaced.banked} of ${surfaced.carried} carried | ` + surfaced.summary);
-  check('the title screen shows the water and the next depth', /The well is 14% full/.test(surfaced.title) && /DEPTH 2 OF 7  ·  SWIFT/.test(surfaced.title) && /Enemies move 12% faster\. \+20% Nidhi\./.test(surfaced.title), surfaced.title.replace(/\n/g, ' ').slice(0, 260));
+  check('the title screen shows the water and the next depth', /The well is 14% full/.test(surfaced.title) && /DEPTH 2 OF 7  ·  SWIFT/.test(surfaced.title) && /Enemies move 12% faster\./.test(surfaced.title) && /\+4% enemy health  ·  a stray in some waves  ·  \+20% Nidhi/.test(surfaced.title), surfaced.title.replace(/\n/g, ' ').slice(0, 330));
   await sleep(900); await shot('5e-title-with-water');
   const packs = await page(`const shape = o => Object.keys(o).sort().map(k => k + (o[k] && typeof o[k] === 'object' && !Array.isArray(o[k]) ? '{' + Object.keys(o[k]).sort().join(',') + '}' : '')).join(';');
     return Object.fromEntries(Object.keys(NAME_PACKS).map(k => [k, shape(NAME_PACKS[k]) === shape(NAME_PACKS.sanskrit)]));`);
@@ -474,8 +474,8 @@ try {
     && deep.two.faster === 112 && deep.two.gold === 120 && deep.two.heal === 0.35 && deep.two.every === 90000, JSON.stringify(deep.two));
   check('winning a depth opens the next and earns its perk', deep.won.water === 10 && deep.won.depths === 2 && deep.won.perks === 'eye,lungs,scale' && deep.won.worn === 'eye,scale'
     && /Depth 2 is won\. Depth 3 opens: Thin Air\./.test(deep.won.panel) && /Perk earned: Deep Lungs/.test(deep.won.panel), JSON.stringify(deep.won).replace(/\\n/g, ' '));
-  check('the third depth heals less, and its level bosses fill the well', deep.three.tier === 3 && deep.three.heal === 0.2 && deep.three.hard.join() === '1,1' && deep.three.water === 11 && deep.three.best === 1 && deep.three.waterAfter === 11 && /^No new water/.test(deep.three.again || '')
-    && /DEPTH 1 OF 7/.test(deep.back) && /Already won: no water here/.test(deep.back), JSON.stringify(deep.three) + ' | ' + deep.back.replace(/\n/g, ' ').slice(0, 200));
+  check('the third depth heals less and toughens enemies by 8%, and its level bosses fill the well', deep.three.tier === 3 && deep.three.heal === 0.2 && deep.three.hard.join() === '1.08,1' && deep.three.water === 11 && deep.three.best === 1 && deep.three.waterAfter === 11 && /^No new water/.test(deep.three.again || '')
+    && /DEPTH 1 OF 7/.test(deep.back) && /won: no water here/.test(deep.back), JSON.stringify(deep.three) + ' | ' + deep.back.replace(/\n/g, ' ').slice(0, 200));
   await sleep(500); await shot('5g-title-depth-3');
 
   // Perks: worn two at a time, chosen on the profile, and they do what they say.
@@ -526,6 +526,45 @@ try {
   check('an older save is carried into the depths with what it had earned', old.winner.won === 1 && old.winner.water === 5 && old.winner.perks === 'eye,guard,scale' && old.winner.worn === 2
     && old.founder.won === 0 && old.founder.best === 2 && old.founder.water === 2 && old.founder.perks === 'eye,guard'
     && old.fresh.won === 0 && old.fresh.water === 0 && old.fresh.perks === '' && old.back === 2, JSON.stringify(old));
+
+  // Each depth bites (founder, 2026-10-06): +4% enemy health a depth, and strays. Depth 1 has neither.
+  const bite = await page(`const s = game.scene.keys.LootScene, out = {}, real = Object.getPrototypeOf(s).buildWave;
+    const keep = { tier: s.tier, now: DEPTH_NOW, toast: s.showToast, wave: s.wave, depth: s.depth, sector: s.sector, state: s.state, last: s.lastShape, strayIn: s.strayIn, best: session.bestSector };
+    const said = []; s.showToast = t => said.push(t);
+    session.bestSector = 3; s.sector = 1; s.depth = 4;
+    const run = (tier, n) => { s.tier = tier; s.strayIn = s.strayGap(); let strays = 0, bad = 0, gaps = [], since = 0;
+      for (let i = 0; i < n; i++) { s.wave = 1 + (i % 2) * 3; real.call(s); const st = s.spawnQueue.filter(e => e.stray); since++;
+        if (st.length) { strays += st.length; gaps.push(since); since = 0;
+          const others = new Set(s.spawnQueue.filter(e => !e.stray).map(e => e.type).filter(Boolean));
+          if (st.length > 1 || !STRAYS.kinds.includes(st[0].type) || (others.size < STRAYS.kinds.length && others.has(st[0].type))) bad++; } }
+      return { strays, bad, longest: Math.max(0, ...gaps) }; };
+    out.one = run(1, 30); out.two = run(2, 60); out.four = run(4, 60); out.six = run(6, 30);
+    out.said = said.filter(t => /A STRAY /.test(t)).length; out.sample = said.find(t => /A STRAY /.test(t));
+    out.health = [1, 2, 4, 7].map(d => { DEPTH_NOW = d; return Math.round(sectorHpMult(1) * 100) + '/' + Math.round(sectorDmgMult(1) * 100); }).join(' ');
+    s.showToast = keep.toast; delete s.showToast; DEPTH_NOW = keep.now; session.bestSector = keep.best;
+    Object.assign(s, { tier: keep.tier, wave: keep.wave, depth: keep.depth, sector: keep.sector, lastShape: keep.last, strayIn: keep.strayIn, spawnGap: 380 });
+    s.spawnQueue = [{}]; s.spawnTimer = 1e9;
+    return out;`);
+  check('each depth adds 4% enemy health, and only the seventh adds damage', bite.health === '100/100 104/100 112/100 124/120', bite.health);
+  check('strays join some waves from depth 2, more often deeper, and never at depth 1', bite.one.strays === 0 && bite.two.strays >= 20 && bite.two.strays <= 30 && bite.two.longest <= 3
+    && bite.four.strays >= 30 && bite.four.strays <= 60 && bite.four.longest <= 2 && bite.six.strays === 30 && bite.two.bad + bite.four.bad + bite.six.bad === 0
+    && bite.said === bite.two.strays + bite.four.strays + bite.six.strays && /A STRAY [A-Z]+$/.test(bite.sample || ''), JSON.stringify(bite));
+
+  // Thinning the first run: two tips wait until the player has reached level 2.
+  const held = await page(`const s = game.scene.keys.LootScene, out = {};
+    const keep = { tips: settings.tips, seen: session.hintsSeen, best: session.bestSector };
+    const asked = id => s.hintShowing === id || (s.hintQueue || []).some(q => q.id === id) || !!session.hintsSeen[id];
+    const fresh = () => { s.hintQueue = []; s.dismissHint(); s.hintQueue = []; session.hintsSeen = {}; };
+    s.startRun(); ${FREEZE} s.player.iframes = 1e9; settings.tips = true;
+    session.bestSector = 0; fresh();
+    s.hint('tribute', 'tribute tip'); s.hint('satchel', 'satchel tip'); out.level1 = asked('tribute') || asked('satchel');
+    s.hint('loot', 'loot tip'); out.others = asked('loot');
+    fresh(); s.sector = 2; s.hint('tribute', 'tribute tip'); out.level2 = asked('tribute'); s.sector = 1;
+    fresh(); session.bestSector = 2; s.hint('satchel', 'satchel tip'); out.later = asked('satchel');
+    fresh(); settings.tips = keep.tips; session.hintsSeen = keep.seen; session.bestSector = keep.best; saveSession();
+    s.endRun(false); ${press}; await new Promise(r => setTimeout(r, 150));
+    return out;`);
+  check('the tribute and satchel tips wait until a player has reached level 2', held.level1 === false && held.others === true && held.level2 === true && held.later === true, JSON.stringify(held));
 
   // The hero is named by the player (requirements 2.32).
   const nick = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};

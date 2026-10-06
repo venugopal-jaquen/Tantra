@@ -696,9 +696,11 @@ function metalList() {
 // and HP compound separately so fights get both more dangerous AND longer.
 // Tuned from playtest-bot data (2.14): 1.28 / 1.32 let no profile - not even a fully
 // upgraded one - clear Sector 3.
-let DEPTH_NOW = 1;      // the depth of the run in progress; the seventh hardens everything
+let DEPTH_NOW = 1;      // the depth of the run in progress
+// Every depth past the first toughens every enemy a little (DEPTH_HEALTH), so each win is
+// felt in the next run; the seventh also hits a fifth harder.
 function sectorDmgMult(sector) { return Math.pow(1.22, Math.max(0, sector - 1)) * (DEPTH_NOW >= 7 ? 1.2 : 1); }
-function sectorHpMult(sector)  { return Math.pow(1.26, Math.max(0, sector - 1)) * (DEPTH_NOW >= 7 ? 1.2 : 1); }
+function sectorHpMult(sector)  { return Math.pow(1.26, Math.max(0, sector - 1)) * (1 + DEPTH_HEALTH * (DEPTH_NOW - 1)); }
 
 // Invulnerability window after a melee or ranged hit (never after a slam).
 const IFRAMES_MS = 280;
@@ -756,6 +758,7 @@ const TEJAS_FORMS = {
 // The well's depths and the perks worn (requirements 2.30). These sit above the save
 // because loading an older save needs them; the tables themselves are further down.
 const DEPTH_MAX = 7, DEPTH_WATER = WATER.boss * 2 + WATER.final, DEPTH_GOLD = 0.2;   // +20% Nidhi per depth past the first
+const DEPTH_HEALTH = 0.04;                    // and +4% enemy health (founder, 2026-10-06)
 const PERK_SLOTS = 2;
 
 const session = {                    // SAVE_KEY is defined with the loading screen
@@ -1209,8 +1212,16 @@ const DEPTHS = [null,
   { name: 'Wrath',             twist: 'Bosses slam a quarter more often.' },
   { name: 'Horde',             twist: 'Two more enemies in every wave.' },
   { name: 'Restless',          twist: 'Convergence comes every 60 seconds, not 90.' },
-  { name: "The Serpent's Own", twist: 'Everything has a fifth more health and hits a fifth harder.' }
+  { name: "The Serpent's Own", twist: 'Everything hits a fifth harder.' }
 ];
+
+// Strays (requirements 2.30; founder, 2026-10-06: "a random extra creep every few waves to
+// add to the complexity"). From depth 2 an enemy of a random kind joins some waves,
+// whatever the wave's shape: a Brute in a swarm, a Hexer behind a pincer. `every` is the
+// longest wait between two of them, in waves, for each depth; the wait itself is a wave
+// shorter as often as not, so their coming cannot be counted.
+const STRAYS = { every: [0, 0, 3, 3, 2, 2, 1, 1], kinds: ['melee', 'ranged', 'tank', 'splitter'],
+                 says: ['', '', 'some', 'some', 'most', 'most', 'every', 'every'] };
 
 // PERKS (requirements 2.30; the "boss-kill perks" pinned as P8). Lasting gifts, earned
 // once: the first two from the first Gatekeeper and Hoard Guardian a player beats, the
@@ -2198,6 +2209,9 @@ function pickEnemyType(wave) {
   return 'melee';
 }
 
+// Tips held back until a player has reached level 2 (design-document 1.4, "thin the first run").
+const HELD_TIPS = ['tribute', 'satchel'];
+
 class LootScene extends Phaser.Scene {
   constructor() { super('LootScene'); }
 
@@ -2884,6 +2898,7 @@ class LootScene extends Phaser.Scene {
   perkSlots() { return PERK_SLOTS + (session.depthsWon >= 4 ? 1 : 0); }
   get tributeAt() { return this.perkOn('taker') ? TRIBUTE_TAKER : TRIBUTE; }
   clearHeal() { return this.tier >= 3 ? 0.2 : SECTOR_CLEAR_HEAL; }
+  strayGap() { const e = STRAYS.every[this.tier] || 0; return e ? Phaser.Math.Between(Math.max(1, e - 1), e) : 0; }
   convergeEvery() { return this.tier >= 6 ? 60000 : CONVERGENCE_INTERVAL; }
   perkHow(key) {
     const pk = PERKS[key];
@@ -3413,7 +3428,7 @@ class LootScene extends Phaser.Scene {
           label(cx, cy + 62, 'deeper = richer and deadlier', '#8a7360', 9);
         } },
       { title: 'DEPTHS · PERKS',
-        body: `Slay ${N.enemies.megaboss} and that depth of the well is won: a step fills, and the next depth opens with a new hardship and richer ${N.currency}. There are seven. Your first boss kills and each depth you win also earn a perk, a gift that lasts. Choose which to wear on your Profile.`,
+        body: `Slay ${N.enemies.megaboss} and that depth of the well is won: a step fills, and the next depth opens with a new hardship, tougher enemies, a stray now and then, and richer ${N.currency}. There are seven. Your first boss kills and each depth you win also earn a perk, a gift that lasts. Choose which to wear on your Profile.`,
         draw: (cx, cy) => {
           const gr = g(), won = Math.min(DEPTH_MAX, session.depthsWon);
           for (let i = 0; i < DEPTH_MAX; i++) {                 // the well's seven steps, the won ones under water
@@ -3438,6 +3453,9 @@ class LootScene extends Phaser.Scene {
   // Archero approach, never a forced lesson. Play never stops; tap one to dismiss it.
   hint(id, text, urgent) {
     if (!settings.tips || this.silent || this.state !== 'playing' || session.hintsSeen[id]) return;
+    // The first level has enough to learn. What can wait, waits until the player has got
+    // to level 2: it is not marked as seen, so it comes back the next time it applies.
+    if (HELD_TIPS.includes(id) && this.sector < 2 && (session.bestSector || 0) < 2) return;
     this.hintQueue = this.hintQueue || [];
     if (this.hintShowing === id || this.hintQueue.some(q => q.id === id)) return;
     const entry = { id, text, at: this.time.now };
@@ -4422,18 +4440,23 @@ class LootScene extends Phaser.Scene {
 
     // Which depth of the well this run goes down (requirements 2.30).
     const openDepth = Math.min(DEPTH_MAX, session.depthsWon + 1), pick = Phaser.Math.Clamp(session.depthPick || openDepth, 1, openDepth), dp = DEPTHS[pick];
-    this.uiObjects.push(this.glass(this.add.graphics(), cx, 393, 348, 54, { fill: FORGE.panel, alpha: 0.62, stroke: FORGE.gold, strokeAlpha: 0.55, radius: 14, sheen: 0.06 }));
-    say(cx, 381, `DEPTH ${pick} OF ${DEPTH_MAX}  ·  ${dp.name.toUpperCase()}`, { fontSize: '12px', color: '#ffd23c', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 });
-    say(cx, 404, (pick === 1 ? dp.twist : `${dp.twist} +${Math.round(DEPTH_GOLD * (pick - 1) * 100)}% ${N.currency}.`) + (pick <= session.depthsWon ? ' Already won: no water here.' : ''),
-      { fontSize: '10px', color: '#f0dcc0', align: 'center', stroke: '#2a0800', strokeThickness: 2, wordWrap: { width: 262 } });
+    this.uiObjects.push(this.glass(this.add.graphics(), cx, 396, 348, 66, { fill: FORGE.panel, alpha: 0.62, stroke: FORGE.gold, strokeAlpha: 0.55, radius: 14, sheen: 0.06 }));
+    say(cx, 379, `DEPTH ${pick} OF ${DEPTH_MAX}  ·  ${dp.name.toUpperCase()}`, { fontSize: '12px', color: '#ffd23c', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 });
+    say(cx, 397, dp.twist, { fontSize: '10px', color: '#f0dcc0', align: 'center', stroke: '#2a0800', strokeThickness: 2, wordWrap: { width: 262 } });
+    // What every depth past the first adds besides its own hardship, and what it pays.
+    const won = pick <= session.depthsWon, health = Math.round(DEPTH_HEALTH * (pick - 1) * 100), gold = Math.round(DEPTH_GOLD * (pick - 1) * 100);
+    say(cx, 414, pick === 1 ? (won ? 'won: no water here' : 'win it and depth 2 opens')
+      : won ? `+${health}% health  ·  strays  ·  +${gold}% ${N.currency}  ·  won, no water`
+      : `+${health}% enemy health  ·  a stray in ${STRAYS.says[pick]} wave${STRAYS.says[pick] === 'every' ? '' : 's'}  ·  +${gold}% ${N.currency}`,
+      { fontSize: '9px', color: '#c8a96e', stroke: '#2a0800', strokeThickness: 2 });
     if (openDepth > 1) {
       const step = d => () => { session.depthPick = Phaser.Math.Clamp(pick + d, 1, openDepth); saveSession(); this.showHub(); };
-      if (pick > 1) this.makeButton(cx - 152, 393, 30, 34, '<', BTN.quiet, step(-1), { size: 14, sound: 'ui-page' });
-      if (pick < openDepth) this.makeButton(cx + 152, 393, 30, 34, '>', BTN.quiet, step(1), { size: 14, sound: 'ui-page', stroke: FORGE.gold });
+      if (pick > 1) this.makeButton(cx - 152, 396, 30, 34, '<', BTN.quiet, step(-1), { size: 14, sound: 'ui-page' });
+      if (pick < openDepth) this.makeButton(cx + 152, 396, 30, 34, '>', BTN.quiet, step(1), { size: 14, sound: 'ui-page', stroke: FORGE.gold });
     }
-    say(cx, 436, (session.bestSector ? `Deepest: ${N.stage} ${session.bestSector}` : 'No descent yet') + `  ·  ${wellLine()}`,
+    say(cx, 441, (session.bestSector ? `Deepest: ${N.stage} ${session.bestSector}` : 'No descent yet') + `  ·  ${wellLine()}`,
       { fontSize: '11px', color: session.water > 0 ? '#9fe8d8' : '#c8a96e' });
-    say(cx, 460, `${N.currency}: ${session.metaGold}`, { fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' });
+    say(cx, 463, `${N.currency}: ${session.metaGold}`, { fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' });
     if (this.powerText) this.powerText.setText('');
 
     // Exponential, not linear: linear costs let Vitality outgrow every sector. Levels
@@ -4589,6 +4612,7 @@ class LootScene extends Phaser.Scene {
     const openDepth = Math.min(DEPTH_MAX, session.depthsWon + 1);
     this.tier = DEPTH_NOW = Phaser.Math.Clamp(session.depthPick || openDepth, 1, openDepth);
     this.windUsed = false; this.depthNews = null; this.perksEarned = [];
+    this.strayIn = this.strayGap();
     this.time.paused = false;   // a run never starts frozen, whatever screen came before
     this.tweens.resumeAll();
     this.state = 'playing';
@@ -4820,10 +4844,20 @@ class LootScene extends Phaser.Scene {
     } else add(base, gentle ? { type: 'melee' } : {});
     if (shape === 'archers' || shape === 'splitters') Phaser.Utils.Array.Shuffle(q);
 
+    // A stray: one enemy of a kind this wave does not already field, somewhere in its ranks.
+    let toast = WAVE_SHAPES[shape].toast ? WAVE_SHAPES[shape].toast() : '';
+    if (!force && !gentle && this.strayIn > 0 && --this.strayIn === 0) {
+      const here = new Set(q.map(e => e.type).filter(Boolean)), fresh = STRAYS.kinds.filter(k => !here.has(k));
+      const kind = Phaser.Utils.Array.GetRandom(fresh.length ? fresh : STRAYS.kinds);
+      q.splice(Phaser.Math.Between(1, q.length), 0, { type: kind, stray: true });
+      toast += (toast ? '  ·  ' : '') + `A STRAY ${N.enemies[kind].toUpperCase()}`;
+      this.strayIn = this.strayGap();
+    }
+
     this.spawnQueue = q;
     this.spawnGap = WAVE_SHAPES[shape].gap;
     this.spawnTimer = 0;
-    if (WAVE_SHAPES[shape].toast) this.showToast(WAVE_SHAPES[shape].toast(), '#ffb38a');
+    if (toast) this.showToast(toast, '#ffb38a');
     return shape;
   }
 
