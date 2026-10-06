@@ -137,7 +137,7 @@ try {
   const run = await page(`const s = game.scene.keys.LootScene; return { state: s.state, tip: s.hintBox ? s.hintBox[1].text : null, hudBottom: Math.round(s.hudText.y + s.hudText.height), barTop: Math.round(s.phaseBarBg.y - s.phaseBarBg.height / 2), hp: { dx: Math.round(s.hpBarBg.x + s.hpBarBg.width / 2 - s.player.x), dy: Math.round(s.player.y - s.hpBarBg.y), w: s.hpBarBg.width } };`);
   check('first tip shows during the first run', !!run.tip, run.tip || 'none');
   check('HUD line clears the phase bar', run.hudBottom <= run.barTop + 1, `text bottom ${run.hudBottom}, bar top ${run.barTop}`);
-  check("Kiran's health bar floats over his head", run.hp.dx === 0 && run.hp.dy === 35 && run.hp.w === 42, JSON.stringify(run.hp));
+  check("the hero's health bar floats over his head", run.hp.dx === 0 && run.hp.dy === 35 && run.hp.w === 42, JSON.stringify(run.hp));
 
   // Waves are held still for the checks that follow: a queue that never spawns, so a kill
   // is not a cleared wave unless a check empties the queue to make it one.
@@ -169,7 +169,7 @@ try {
     e.speed = 0; await wait(320); out.asuraStopped = spr.frame.name % per;
     s.killEnemy(e); return out;`);
   check('every character but Vritra has a walk sheet, and figures keep their size', legs.sheets === 7 && legs.walkers === 7 && !legs.vritra && legs.onSheet && legs.size === 44 && legs.asuraSize === legs.asuraWants, JSON.stringify(legs));
-  check('Kiran and his enemies step through their walk frames, and stand when they stop', legs.standing === 0 && legs.kiran.steps >= 5 && legs.kiran.rows === String(legs.right) && legs.stopped === 0
+  check('the hero and his enemies step through their walk frames, and stand when they stop', legs.standing === 0 && legs.kiran.steps >= 5 && legs.kiran.rows === String(legs.right) && legs.stopped === 0
     && legs.asura.steps >= 4 && legs.asuraStopped === 0, JSON.stringify(legs));
 
   // The satchel pauses the fight, says what each item does, and swaps on a tap.
@@ -292,7 +292,7 @@ try {
     s.boons = {}; s.killEnemy(e);
     return out;`);
   check('reading a slam makes the next hits harder', read.touched && read.buff > 3000 && read.mult === 1.5 && read.unhurt, JSON.stringify(read));
-  check('timed boons show on Kiran while they are live', read.arc && read.planted && read.walking, JSON.stringify(read));
+  check('timed boons show on the hero while they are live', read.arc && read.planted && read.walking, JSON.stringify(read));
 
   // Wave shapes: a first-ever run opens gently; after that waves vary and never repeat a shape.
   const waves = await page(`const s = game.scene.keys.LootScene, out = { shapes: {}, repeat: false };
@@ -344,8 +344,11 @@ try {
     await page(`const s = game.scene.keys.LootScene; s.setFloor(${n}); const e = s.enemies.find(x => x.isBoss); if (e && !e.slam) { e.slamTypes = ['${n === 2 ? 'line' : 'circle'}']; s.beginSlam(e); }`);
     await sleep(450); await shot('3-floor-sector-' + n);
   }
-  const floors = await page(`const s = game.scene.keys.LootScene; s.setFloor(1); return { layers: s.floorLayers.length, textures: ['floor-0-0', 'floor-1-0', 'floor-2-0', 'floor-0-1'].filter(k => s.textures.exists(k)).length };`);
-  check('each sector paints its own floor', floors.textures === 4 && floors.layers === 1, JSON.stringify(floors));
+  const floors = await page(`const s = game.scene.keys.LootScene; const t0 = performance.now(); for (const n of [1, 2, 3]) s.setFloor(n);
+    const out = { set: FLOORS === FLOOR_SETS.carved, floors: [0, 1, 2].filter(k => s.textures.exists('floor-' + k + '-0')).length,
+      frames: [0, 1, 2].filter(k => s.textures.exists('frame-floor-' + k + '-0')).length, lights: s.floorLights.length, frameShown: s.frameImg.visible, paintMs: Math.round(performance.now() - t0) };
+    s.setFloor(1); return out;`);
+  check('the carved floors are the default, and paint all three levels with their stairs and lights', floors.set && floors.floors === 3 && floors.frames === 3 && floors.lights > 0 && floors.frameShown, JSON.stringify(floors));
 
   // ---------- 4. pause, abandon prompt, death keeps half ----------
   await page(`const s = game.scene.keys.LootScene; s.runGold = 125; s.pauseGame();`);
@@ -411,7 +414,7 @@ try {
     await new Promise(r => setTimeout(r, 300));
     return { banked, carried, summary, title: ${texts} };`);
   check('surfacing after the win banks everything', surfaced.banked === surfaced.carried && surfaced.carried >= 300 && /VRITRA SLAIN/.test(surfaced.summary), `banked ${surfaced.banked} of ${surfaced.carried} carried | ` + surfaced.summary);
-  check('the title screen shows the water and the next depth', /The well is 14% full/.test(surfaced.title) && /DEPTH 2 OF 7  ·  SWIFT/.test(surfaced.title) && /Enemies move 12% faster\. \+20% Nidhi\./.test(surfaced.title), surfaced.title.replace(/\n/g, ' ').slice(0, 260));
+  check('the title screen shows the water and the next depth', /The well is 14% full/.test(surfaced.title) && /DEPTH 2 OF 7  ·  SWIFT/.test(surfaced.title) && /Enemies move 12% faster\./.test(surfaced.title) && /\+4% enemy health  ·  a stray in some waves  ·  \+20% Nidhi/.test(surfaced.title), surfaced.title.replace(/\n/g, ' ').slice(0, 330));
   await sleep(900); await shot('5e-title-with-water');
   const packs = await page(`const shape = o => Object.keys(o).sort().map(k => k + (o[k] && typeof o[k] === 'object' && !Array.isArray(o[k]) ? '{' + Object.keys(o[k]).sort().join(',') + '}' : '')).join(';');
     return Object.fromEntries(Object.keys(NAME_PACKS).map(k => [k, shape(NAME_PACKS[k]) === shape(NAME_PACKS.sanskrit)]));`);
@@ -471,8 +474,8 @@ try {
     && deep.two.faster === 112 && deep.two.gold === 120 && deep.two.heal === 0.35 && deep.two.every === 90000, JSON.stringify(deep.two));
   check('winning a depth opens the next and earns its perk', deep.won.water === 10 && deep.won.depths === 2 && deep.won.perks === 'eye,lungs,scale' && deep.won.worn === 'eye,scale'
     && /Depth 2 is won\. Depth 3 opens: Thin Air\./.test(deep.won.panel) && /Perk earned: Deep Lungs/.test(deep.won.panel), JSON.stringify(deep.won).replace(/\\n/g, ' '));
-  check('the third depth heals less, and its level bosses fill the well', deep.three.tier === 3 && deep.three.heal === 0.2 && deep.three.hard.join() === '1,1' && deep.three.water === 11 && deep.three.best === 1 && deep.three.waterAfter === 11 && /^No new water/.test(deep.three.again || '')
-    && /DEPTH 1 OF 7/.test(deep.back) && /Already won: no water here/.test(deep.back), JSON.stringify(deep.three) + ' | ' + deep.back.replace(/\n/g, ' ').slice(0, 200));
+  check('the third depth heals less and toughens enemies by 8%, and its level bosses fill the well', deep.three.tier === 3 && deep.three.heal === 0.2 && deep.three.hard.join() === '1.08,1' && deep.three.water === 11 && deep.three.best === 1 && deep.three.waterAfter === 11 && /^No new water/.test(deep.three.again || '')
+    && /DEPTH 1 OF 7/.test(deep.back) && /won: no water here/.test(deep.back), JSON.stringify(deep.three) + ' | ' + deep.back.replace(/\n/g, ' ').slice(0, 200));
   await sleep(500); await shot('5g-title-depth-3');
 
   // Perks: worn two at a time, chosen on the profile, and they do what they say.
@@ -523,6 +526,80 @@ try {
   check('an older save is carried into the depths with what it had earned', old.winner.won === 1 && old.winner.water === 5 && old.winner.perks === 'eye,guard,scale' && old.winner.worn === 2
     && old.founder.won === 0 && old.founder.best === 2 && old.founder.water === 2 && old.founder.perks === 'eye,guard'
     && old.fresh.won === 0 && old.fresh.water === 0 && old.fresh.perks === '' && old.back === 2, JSON.stringify(old));
+
+  // Each depth bites (founder, 2026-10-06): +4% enemy health a depth, and strays. Depth 1 has neither.
+  const bite = await page(`const s = game.scene.keys.LootScene, out = {}, real = Object.getPrototypeOf(s).buildWave;
+    const keep = { tier: s.tier, now: DEPTH_NOW, toast: s.showToast, wave: s.wave, depth: s.depth, sector: s.sector, state: s.state, last: s.lastShape, strayIn: s.strayIn, best: session.bestSector };
+    const said = []; s.showToast = t => said.push(t);
+    session.bestSector = 3; s.sector = 1; s.depth = 4;
+    const run = (tier, n) => { s.tier = tier; s.strayIn = s.strayGap(); let strays = 0, bad = 0, gaps = [], since = 0;
+      for (let i = 0; i < n; i++) { s.wave = 1 + (i % 2) * 3; real.call(s); const st = s.spawnQueue.filter(e => e.stray); since++;
+        if (st.length) { strays += st.length; gaps.push(since); since = 0;
+          const others = new Set(s.spawnQueue.filter(e => !e.stray).map(e => e.type).filter(Boolean));
+          if (st.length > 1 || !STRAYS.kinds.includes(st[0].type) || (others.size < STRAYS.kinds.length && others.has(st[0].type))) bad++; } }
+      return { strays, bad, longest: Math.max(0, ...gaps) }; };
+    out.one = run(1, 30); out.two = run(2, 60); out.four = run(4, 60); out.six = run(6, 30);
+    out.said = said.filter(t => /A STRAY /.test(t)).length; out.sample = said.find(t => /A STRAY /.test(t));
+    out.health = [1, 2, 4, 7].map(d => { DEPTH_NOW = d; return Math.round(sectorHpMult(1) * 100) + '/' + Math.round(sectorDmgMult(1) * 100); }).join(' ');
+    s.showToast = keep.toast; delete s.showToast; DEPTH_NOW = keep.now; session.bestSector = keep.best;
+    Object.assign(s, { tier: keep.tier, wave: keep.wave, depth: keep.depth, sector: keep.sector, lastShape: keep.last, strayIn: keep.strayIn, spawnGap: 380 });
+    s.spawnQueue = [{}]; s.spawnTimer = 1e9;
+    return out;`);
+  check('each depth adds 4% enemy health, and only the seventh adds damage', bite.health === '100/100 104/100 112/100 124/120', bite.health);
+  check('strays join some waves from depth 2, more often deeper, and never at depth 1', bite.one.strays === 0 && bite.two.strays >= 20 && bite.two.strays <= 30 && bite.two.longest <= 3
+    && bite.four.strays >= 30 && bite.four.strays <= 60 && bite.four.longest <= 2 && bite.six.strays === 30 && bite.two.bad + bite.four.bad + bite.six.bad === 0
+    && bite.said === bite.two.strays + bite.four.strays + bite.six.strays && /A STRAY [A-Z]+$/.test(bite.sample || ''), JSON.stringify(bite));
+
+  // Thinning the first run: two tips wait until the player has reached level 2.
+  const held = await page(`const s = game.scene.keys.LootScene, out = {};
+    const keep = { tips: settings.tips, seen: session.hintsSeen, best: session.bestSector };
+    const asked = id => s.hintShowing === id || (s.hintQueue || []).some(q => q.id === id) || !!session.hintsSeen[id];
+    const fresh = () => { s.hintQueue = []; s.dismissHint(); s.hintQueue = []; session.hintsSeen = {}; };
+    s.startRun(); ${FREEZE} s.player.iframes = 1e9; settings.tips = true;
+    session.bestSector = 0; fresh();
+    s.hint('tribute', 'tribute tip'); s.hint('satchel', 'satchel tip'); out.level1 = asked('tribute') || asked('satchel');
+    s.hint('loot', 'loot tip'); out.others = asked('loot');
+    fresh(); s.sector = 2; s.hint('tribute', 'tribute tip'); out.level2 = asked('tribute'); s.sector = 1;
+    fresh(); session.bestSector = 2; s.hint('satchel', 'satchel tip'); out.later = asked('satchel');
+    fresh(); settings.tips = keep.tips; session.hintsSeen = keep.seen; session.bestSector = keep.best; saveSession();
+    s.endRun(false); ${press}; await new Promise(r => setTimeout(r, 150));
+    return out;`);
+  check('the tribute and satchel tips wait until a player has reached level 2', held.level1 === false && held.others === true && held.level2 === true && held.later === true, JSON.stringify(held));
+
+  // The hero is named by the player (requirements 2.32).
+  const nick = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
+    const words = () => s.uiObjects.filter(o => o.type === 'Text').map(o => o.text);
+    session.nickname = ''; s.showHub();
+    out.unnamed = { chip: words().includes('Name yourself'), hero: heroName(), kiran: words().concat([document.getElementById('loader').textContent]).some(t => /Kiran/.test(t)) };
+    out.clean = [Namer.clean('  Ravi \\n the   <b>Bold</b> '), Namer.clean('ABCDEFGHIJKLMNOPQRS'), Namer.clean('   ')].join('|');
+    s.uiObjects.find(o => o.type === 'Rectangle' && o.input && Math.abs(o.y - 27) < 1).emit('pointerdown');
+    await wait(150);
+    out.dialog = { open: Namer.isOpen, keysOff: game.input.keyboard.enabled === false, focus: document.activeElement.id };
+    return out;`);
+  await send('Input.insertText', { text: 'Ravi the Bold' });
+  await sleep(150); await shot('5i-name-dialog');
+  const nick2 = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
+    const words = () => s.uiObjects.filter(o => o.type === 'Text').map(o => o.text);
+    document.getElementById('nm-save').click(); await wait(100);
+    out.saved = { name: session.nickname, stored: JSON.parse(localStorage.getItem(SAVE_KEY)).nickname, closed: !Namer.isOpen, keysOn: game.input.keyboard.enabled === true, chip: words().includes('Ravi the Bold  ·  rename') };
+    s.showProfile(() => s.closeOverlay());
+    let head = s.overlay.filter(o => o.type === 'Text');
+    out.profile = { name: head[0].text, sub: head[1].text };
+    s.overlay.find(o => o.type === 'Zone' && Math.abs(o.y - 94) < 1).emit('pointerdown'); await wait(150);
+    out.fromProfile = Namer.isOpen && document.getElementById('nm-text').value === 'Ravi the Bold';
+    document.getElementById('nm-text').value = 'WWWWWWWWWWWWWWWWWW'; document.getElementById('nm-save').click(); await wait(100);
+    head = s.overlay.filter(o => o.type === 'Text');
+    out.long = { name: session.nickname.length, right: Math.round(head[0].x + head[0].width), font: parseInt(head[0].style.fontSize, 10) };
+    s.closeOverlay(); session.nickname = 'Ravi the Bold'; saveSession();
+    session.depthPick = 1; s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.sector = 3; s.wave = 6; s.setFloor(3); s.killEnemy(s.spawnSectorBoss()); await wait(1400);
+    out.victory = ${texts};
+    ${press}; ${press}; await wait(200); session.depthPick = 0; saveSession(); s.showHub();
+    return out;`);
+  check('an unnamed hero is "Hero", the old name is gone, and the title screen offers a name', nick.unnamed.chip && nick.unnamed.hero === 'Hero' && !nick.unnamed.kiran
+    && nick.clean === 'Ravi the bBold|ABCDEFGHIJKLMN|' && nick.dialog.open && nick.dialog.keysOff && nick.dialog.focus === 'nm-text', JSON.stringify(nick));
+  check('a nickname is saved and shown on the title screen, the profile and the victory', nick2.saved.name === 'Ravi the Bold' && nick2.saved.stored === 'Ravi the Bold' && nick2.saved.closed && nick2.saved.keysOn && nick2.saved.chip
+    && nick2.profile.name === 'RAVI THE BOLD' && /tap to rename/.test(nick2.profile.sub) && nick2.fromProfile && nick2.long.name === 14 && nick2.long.right <= 232 && nick2.long.font < 25
+    && /Ravi the Bold has slain Vritra\./.test(nick2.victory), JSON.stringify(nick2).replace(/\\n/g, ' ').slice(0, 700));
 
   // ---------- 5. every text stays inside its panel ----------
   const spill = await page(`const s = game.scene.keys.LootScene, bad = [];
@@ -585,13 +662,17 @@ try {
   const oldNames = await page(`return NAME_PACKS.sanskrit.sectors.map(x => x[0]).join(' / ') + ' / ' + NAME_PACKS.sanskrit.deeper[0];`);
   check('levels carry the stepwell names, in both packs', sectors === 'The Courtyard / The Drowned Steps / The Gold Vault / The Abyss / The Abyss'
     && oldNames === 'Prangan / Jal-Kund / Nidhi-Kosh / Patal', sectors + ' || ' + oldNames);
-  await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href + '?names=plain&floors=carved' });
+  await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href + '?names=plain&floors=classic' });
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
   await shot('9-plain-loader');
   const well1 = await page(`const t = id => document.getElementById(id).textContent;
     return { line: t('ldr-well-line'), sub: t('ldr-well-sub'), after: t('ldr-well-after'), water: +document.getElementById('well-water').getAttribute('height') };`);
   check('the loading screen shows the water already returned', well1.line === 'The well is 31% full' && /^Depth 3 of 7 \u00B7 11 of 35/.test(well1.sub) && well1.water > 0 && /The Bottomless Well/.test(well1.after), JSON.stringify(well1));
+  const youCard = `const t = id => document.getElementById(id).textContent; for (let k = 0; k < GLOSSARY.length && !/^That is you\./.test(t('ldr-role')); k++) document.getElementById('ldr-card').click();
+    return { kind: t('ldr-kind'), name: t('ldr-name'), role: t('ldr-role') };`;
+  const card1 = await page(youCard);
+  check("the loading screen's card about the hero carries the player's name", card1.kind === 'You' && card1.name === 'Ravi the Bold' && !/Name yourself/.test(card1.role), JSON.stringify(card1));
   const plain = await page(`settings.sfx = 0; settings.tips = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));
     const s = game.scene.keys.LootScene, seen = [];
     const grab = list => list.filter(o => o && o.type === 'Text' && o.text).forEach(o => seen.push(o.text));
@@ -610,11 +691,10 @@ try {
     s.pauseGame(); grab(s.overlay); s.showAbandonConfirm(); grab(s.overlay); s.resumeGame();
     s.runGold = 50; s.showSectorClearChoice(false); grab(s.uiObjects); s.endRun(false); grab(s.uiObjects);
     const words = /Asura|Rakshasa|Mahish|Raktabija|Bakasura|Nidhi|Vritra|Shanti|Shakti|Grahan|Pralaya|Tamra|Rajat|Swarna|Katar|Talwar|Chakram|Parashu|Kavach|Kantak|Paduka|Sanjeevani|Tejas|Viram|[\u0900-\u097F]/i;
-    const t0 = performance.now(); for (const n of [1, 2, 3]) s.setFloor(n);
-    const carved = { set: FLOORS === FLOOR_SETS.carved, floors: [0, 1, 2].filter(k => s.textures.exists('floor-' + k + '-0')).length,
-      frames: [0, 1, 2].filter(k => s.textures.exists('frame-floor-' + k + '-0')).length, lights: s.floorLights.length, frameShown: s.frameImg.visible, paintMs: Math.round(performance.now() - t0) };
-    return { carved, texts: seen.length, leaks: [...new Set(seen.filter(t => words.test(t)).map(t => t.replace(/\s+/g, ' ').slice(0, 60)))], sample: sectorTitle(1) + ' / ' + N.enemies.melee + ' / ' + N.currency };`);
-  check('the carved floor set paints all three levels with their stairs and lights', plain.carved.set && plain.carved.floors === 3 && plain.carved.frames === 3 && plain.carved.lights > 0 && plain.carved.frameShown, JSON.stringify(plain.carved));
+    for (const n of [1, 2, 3]) s.setFloor(n); s.setFloor(1);
+    const classic = { set: FLOORS === FLOOR_SETS.classic, layers: s.floorLayers.length, textures: ['floor-0-0', 'floor-1-0', 'floor-2-0'].filter(k => s.textures.exists(k)).length, frames: [0, 1, 2].filter(k => s.textures.exists('frame-floor-' + k + '-0')).length };
+    return { classic, texts: seen.length, leaks: [...new Set(seen.filter(t => words.test(t)).map(t => t.replace(/\s+/g, ' ').slice(0, 60)))], sample: sectorTitle(1) + ' / ' + N.enemies.melee + ' / ' + N.currency };`);
+  check('the classic floors still paint when the address asks for them', plain.classic.set && plain.classic.textures === 3 && plain.classic.layers === 1 && plain.classic.frames === 0, JSON.stringify(plain.classic));
   await shot('9-plain-summary');
   check('plain-English pack leaves no Sanskrit on screen', plain.leaks.length === 0 && plain.texts > 80, `${plain.texts} texts read, e.g. ${plain.sample}` + (plain.leaks.length ? ' LEAKS: ' + plain.leaks.join(' | ') : ''));
 
@@ -623,6 +703,8 @@ try {
   await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href });
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
+  const card2 = await page(youCard);
+  check('an unnamed player is told on the loading screen where to name themselves', card2.kind === 'You' && card2.name === 'Hero' && /Name yourself on the title screen\.$/.test(card2.role), JSON.stringify(card2));
   const carried = await page(`const t = id => document.getElementById(id).textContent;
     const out = { line: t('ldr-well-line'), sub: t('ldr-well-sub'), won: session.depthsWon, best: session.depthBest, water: session.water, gold: session.metaGold,
       perks: Object.keys(session.perks).sort().join(), worn: session.perksOn.join(), taught: session.gateTaught };

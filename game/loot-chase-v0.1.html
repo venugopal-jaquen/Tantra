@@ -123,12 +123,12 @@
   @media (prefers-reduced-motion: reduce) { .card.in > *, .begin { animation: none; } }
 
   /* ---------- Feedback dialog (requirements 2.21) ---------- */
-  #feedback {
+  #feedback, #namer {
     position: fixed; inset: 0; z-index: 20; box-sizing: border-box; padding: 16px;
     display: grid; place-items: center; background: rgba(18,4,0,.5); color: var(--cream);
     -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
   }
-  #feedback[hidden] { display: none; }
+  #feedback[hidden], #namer[hidden] { display: none; }
   .fb-box {
     width: min(380px, 100%); box-sizing: border-box; padding: 18px 18px 16px; text-align: left;
     background: linear-gradient(rgba(96,36,8,.62), rgba(44,12,2,.72)); border: 1px solid rgba(255,220,160,.45); border-radius: 18px;
@@ -140,13 +140,14 @@
   .fb-label { display: block; margin: 0 0 4px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--bronze); }
   .fb-label span { font-weight: 400; letter-spacing: 0; text-transform: none; color: #8a7360; }
   /* 16px on the fields: anything smaller makes iOS zoom the page when one is focused. */
-  #fb-text, #fb-email {
+  #fb-text, #fb-email, #nm-text {
     width: 100%; box-sizing: border-box; margin: 0 0 12px; padding: 9px 10px; font: 16px/1.35 "Baloo 2", system-ui, sans-serif;
     color: var(--cream); background: #2a0f04; border: 1px solid #6b4a2e; border-radius: 8px;
   }
   #fb-text { resize: vertical; min-height: 110px; max-height: 40vh; }
-  #fb-text:focus, #fb-email:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: transparent; }
-  #fb-text::placeholder, #fb-email::placeholder { color: #8a7360; }
+  #fb-text:focus, #fb-email:focus, #nm-text:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: transparent; }
+  #fb-text::placeholder, #fb-email::placeholder, #nm-text::placeholder { color: #8a7360; }
+  #nm-text { font-size: 20px; font-weight: 700; }
   .fb-note { margin: 0 0 14px; font-size: 12px; line-height: 1.35; color: #8a7360; min-height: 2.7em; }
   .fb-note.fb-good { color: #5fe08a; font-size: 15px; }
   .fb-note.fb-bad { color: #ff9a80; font-size: 13px; }
@@ -208,6 +209,19 @@
     </div>
   </form>
 </div>
+<div id="namer" hidden role="dialog" aria-modal="true" aria-labelledby="nm-title">
+  <form class="fb-box" id="nm-form" novalidate>
+    <h2 class="fb-title" id="nm-title">Name yourself</h2>
+    <p class="fb-sub">What should the well call you? It shows on your profile and when you win.</p>
+    <label class="fb-label" for="nm-text">Your nickname <span>(up to 14 characters)</span></label>
+    <input id="nm-text" type="text" maxlength="14" autocomplete="nickname" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="Type a name">
+    <p class="fb-note" id="nm-note">It stays on this device. Leave it empty to go unnamed.</p>
+    <div class="fb-actions">
+      <button type="button" class="fb-btn fb-cancel" id="nm-cancel">Cancel</button>
+      <button type="submit" class="fb-btn fb-send" id="nm-save">Save</button>
+    </div>
+  </form>
+</div>
 <div id="game-container"></div>
 <script>
 // One line to rename the game: the browser tab, the loading screen and the hub all read
@@ -232,7 +246,7 @@ const GAME_TITLE = 'Anantarya';
 // saves survive a switch of pack.
 const NAME_PACKS = {
   sanskrit: {
-    player: 'Kiran', currency: 'Nidhi', satchel: 'Satchel', supercharge: 'Tejas', stage: 'Level',
+    player: 'Veer', currency: 'Nidhi', satchel: 'Satchel', supercharge: 'Tejas', stage: 'Level',
     pause: 'Viram', pauseSub: '\u0935\u093F\u0930\u093E\u092E \u00B7 paused',
     enemies: { melee: 'Asura', ranged: 'Rakshasa', tank: 'Mahish', splitter: 'Raktabija',
                gatekeeper: 'Bakasura', sectorboss: 'Nidhi-Raksha', megaboss: 'Vritra' },
@@ -262,7 +276,7 @@ const NAME_PACKS = {
     // Loading-screen cards: one per load, so the Sanskrit is learnt a word at a time.
     // Each says what the word means AND what it does in play.
     cards: [
-      { kind: 'You',         dev: 'किरण',        name: 'Kiran',          meaning: 'ray of light',
+      { kind: 'You',         dev: 'वीर',         name: 'Veer',           meaning: 'the brave one', you: true,
         role: 'That is you. You strike on your own - your whole job is choosing where to stand.' },
       { kind: 'Enemy',       dev: 'असुर',         name: 'Asura',          meaning: 'power-seeking rivals of the devas',
         role: 'The rank and file. They rush straight at you and hit on contact.' },
@@ -326,7 +340,7 @@ const NAME_PACKS = {
     ]
   },
   plain: {
-    player: 'Kiran', currency: 'Gold', satchel: 'Satchel', supercharge: 'Radiance', stage: 'Level',
+    player: 'Hero', currency: 'Gold', satchel: 'Satchel', supercharge: 'Radiance', stage: 'Level',
     pause: 'Paused', pauseSub: '',
     enemies: { melee: 'Goblin', ranged: 'Hexer', tank: 'Brute', splitter: 'Splitter',
                gatekeeper: 'Gatekeeper', sectorboss: 'Hoard Guardian', megaboss: 'The Hoarder' },
@@ -348,7 +362,7 @@ const NAME_PACKS = {
               ['The Gold Vault', 'the hoard at the bottom']],
     deeper: ['The Bottomless Well', 'deeper than any map remembers'],
     cards: [
-      { kind: 'You',      dev: '', name: 'Kiran',          meaning: '', role: 'That is you. You strike on your own - your whole job is choosing where to stand.' },
+      { kind: 'You',      dev: '', name: 'Hero',           meaning: '', you: true, role: 'That is you. You strike on your own - your whole job is choosing where to stand.' },
       { kind: 'Enemy',    dev: '', name: 'Goblin',         meaning: '', role: 'The rank and file. They rush straight at you and hit on contact.' },
       { kind: 'Enemy',    dev: '', name: 'Hexer',          meaning: '', role: 'Keeps its distance and throws bolts. Keep moving sideways.' },
       { kind: 'Enemy',    dev: '', name: 'Brute',          meaning: '', role: "Slow, heavy, and hits like a cart. Don't let it corner you." },
@@ -370,10 +384,12 @@ const NAME_PACKS = {
   // The default since 2026-10-04. The founder played all three and liked this one "much
   // better than the Sanskrit version", then asked for it to lean further West. So English
   // carries everything a player must understand at a glance - the phases, the enemy
-  // types, the weapons - and five short Sanskrit words stay as the game's own: Kiran,
-  // Asura, Vritra, Nidhi and Tejas. No Devanagari on the loading screen.
+  // types, the weapons - and four short Sanskrit words stay as the game's own: Asura,
+  // Vritra, Nidhi and Tejas. No Devanagari on the loading screen. The hero was "Kiran"
+  // until 2026-10-06; the founder did not like it, and the player now names the hero
+  // (requirements 2.32). `player` is what an unnamed hero is called.
   hybrid: {
-    player: 'Kiran', currency: 'Nidhi', satchel: 'Satchel', supercharge: 'Tejas', stage: 'Level',
+    player: 'Hero', currency: 'Nidhi', satchel: 'Satchel', supercharge: 'Tejas', stage: 'Level',
     pause: 'Paused', pauseSub: '',
     enemies: { melee: 'Asura', ranged: 'Hexer', tank: 'Brute', splitter: 'Bloodseed',
                gatekeeper: 'Gatekeeper', sectorboss: 'Hoard Guardian', megaboss: 'Vritra' },
@@ -395,7 +411,7 @@ const NAME_PACKS = {
               ['The Gold Vault', 'the hoard at the bottom']],
     deeper: ['The Abyss', 'deeper than any map remembers'],
     cards: [
-      { kind: 'You',        dev: '', name: 'Kiran',          meaning: 'ray of light', role: 'That is you. You strike on your own - your whole job is choosing where to stand.' },
+      { kind: 'You',        dev: '', name: 'Hero',           meaning: '', you: true, role: 'That is you. You strike on your own - your whole job is choosing where to stand.' },
       { kind: 'Enemy',      dev: '', name: 'Asura',          meaning: 'demons of Indian myth', role: 'The rank and file. They rush straight at you and hit on contact.' },
       { kind: 'Enemy',      dev: '', name: 'Hexer',          meaning: '', role: 'Keeps its distance and throws bolts. Keep moving sideways.' },
       { kind: 'Enemy',      dev: '', name: 'Brute',          meaning: '', role: "Slow, heavy, and hits like a cart. Don't let it corner you." },
@@ -469,8 +485,13 @@ const Loader = (() => {
       : `Fill it and the game is won. ${deep}, the endless depths, stays open after.`;
   })();
 
+  // The card about the hero carries the name the player chose, or says where to choose one.
+  let nick = '';
+  try { nick = String((JSON.parse(localStorage.getItem(SAVE_KEY)) || {}).nickname || '').slice(0, 28); } catch (e) { /* no save yet */ }
   const show = () => {
-    const n = GLOSSARY.length, g = GLOSSARY[((i % n) + n) % n], card = $('ldr-card');
+    const n = GLOSSARY.length, card = $('ldr-card');
+    let g = GLOSSARY[((i % n) + n) % n];
+    if (g.you) g = Object.assign({}, g, nick ? { dev: '', name: nick, meaning: '' } : { role: g.role + ' Name yourself on the title screen.' });
     $('ldr-kind').textContent = g.kind;
     $('ldr-dev').textContent = g.dev;
     $('ldr-dev').style.display = g.dev ? '' : 'none';
@@ -544,7 +565,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.5 (2026-10-06)';
+const BUILD = '0.6 (2026-10-06)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -610,6 +631,30 @@ const Feedback = (() => {
   root.addEventListener('keydown', e => { if (e.key === 'Escape') close(); e.stopPropagation(); });
   return { open, close, get isOpen() { return !root.hidden; } };
 })();
+
+// Naming yourself (requirements 2.32). The hero has no name of their own: the player
+// gives one here. A plain text field, because the engine has none and a phone's keyboard
+// only comes up for a real one.
+const Namer = (() => {
+  const $ = id => document.getElementById(id);
+  const root = $('namer'), text = $('nm-text'), MAX = 14;
+  let done = null;
+  const gameKeys = on => { try { game.input.keyboard.enabled = on; } catch (e) { /* game not up */ } };
+  // Any script is welcome. Out go line breaks, control characters and angle brackets;
+  // runs of spaces close up; the length is counted in whole characters.
+  const clean = v => [...String(v || '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim()].slice(0, MAX).join('').trim();
+  const close = () => { root.hidden = true; gameKeys(true); };
+  const open = (current, onSave) => {
+    done = onSave; text.value = current || '';
+    root.hidden = false; gameKeys(false);
+    setTimeout(() => { text.focus(); text.select(); }, 50);
+  };
+  $('nm-form').addEventListener('submit', e => { e.preventDefault(); const name = clean(text.value); close(); if (done) done(name); });
+  $('nm-cancel').addEventListener('click', close);
+  root.addEventListener('click', e => { if (e.target === root) close(); });
+  root.addEventListener('keydown', e => { if (e.key === 'Escape') close(); e.stopPropagation(); });
+  return { open, close, clean, get isOpen() { return !root.hidden; } };
+})();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"
         onerror="Loader.fail('The game engine could not be downloaded. Check your connection and reload.')"></script>
@@ -625,7 +670,7 @@ const W = 400, H = 700;
 // Clamped to 3: beyond that the buffer cost stops buying visible sharpness.
 const RES = Math.min(3, Math.max(2, Math.round(window.devicePixelRatio || 1)));
 const MARGIN = 30, HUD_H = 76;
-const HP_BAR = { w: 42, h: 5, up: 35 };   // Kiran's health bar: its size, and how far over his middle it floats
+const HP_BAR = { w: 42, h: 5, up: 35 };   // the hero's health bar: its size, and how far over his middle it floats
 const GATEKEEPER_WAVE = 3;
 const MEGA_BOSS_SECTOR = 3;
 
@@ -651,9 +696,11 @@ function metalList() {
 // and HP compound separately so fights get both more dangerous AND longer.
 // Tuned from playtest-bot data (2.14): 1.28 / 1.32 let no profile - not even a fully
 // upgraded one - clear Sector 3.
-let DEPTH_NOW = 1;      // the depth of the run in progress; the seventh hardens everything
+let DEPTH_NOW = 1;      // the depth of the run in progress
+// Every depth past the first toughens every enemy a little (DEPTH_HEALTH), so each win is
+// felt in the next run; the seventh also hits a fifth harder.
 function sectorDmgMult(sector) { return Math.pow(1.22, Math.max(0, sector - 1)) * (DEPTH_NOW >= 7 ? 1.2 : 1); }
-function sectorHpMult(sector)  { return Math.pow(1.26, Math.max(0, sector - 1)) * (DEPTH_NOW >= 7 ? 1.2 : 1); }
+function sectorHpMult(sector)  { return Math.pow(1.26, Math.max(0, sector - 1)) * (1 + DEPTH_HEALTH * (DEPTH_NOW - 1)); }
 
 // Invulnerability window after a melee or ranged hit (never after a slam).
 const IFRAMES_MS = 280;
@@ -711,6 +758,7 @@ const TEJAS_FORMS = {
 // The well's depths and the perks worn (requirements 2.30). These sit above the save
 // because loading an older save needs them; the tables themselves are further down.
 const DEPTH_MAX = 7, DEPTH_WATER = WATER.boss * 2 + WATER.final, DEPTH_GOLD = 0.2;   // +20% Nidhi per depth past the first
+const DEPTH_HEALTH = 0.04;                    // and +4% enemy health (founder, 2026-10-06)
 const PERK_SLOTS = 2;
 
 const session = {                    // SAVE_KEY is defined with the loading screen
@@ -724,6 +772,7 @@ const session = {                    // SAVE_KEY is defined with the loading scr
   wins: 0,              // times the final boss has been slain
   wellFullSeen: false,  // the "well is full" ending has been shown
   gateTaught: false,    // the first Gatekeeper, who arrives vulnerable, has been met
+  nickname: '',         // what the player calls themselves (requirements 2.32); empty = unnamed
   depthsWon: 0,         // depths of the well won, 0..7 (requirements 2.30)
   depthBest: 0,         // level bosses beaten, at best, on the depth now being attempted: 0..2
   depthPick: 0,         // the depth chosen on the title screen; 0 = the deepest one open
@@ -736,6 +785,9 @@ const session = {                    // SAVE_KEY is defined with the loading scr
 function wellWater() {
   return Math.min(WELL_FULL, session.depthsWon * DEPTH_WATER + (session.depthsWon < DEPTH_MAX ? session.depthBest : 0));
 }
+
+// What the hero is called: the name the player gave, or the pack's word for an unnamed one.
+function heroName() { return session.nickname || N.player; }
 
 function loadSession() {
   try {
@@ -769,7 +821,7 @@ if (!session.hintsSeen) session.hintsSeen = {};
 function resetSession() {
   Object.assign(session, { metaGold: 0, vitalityLevel: 0, powerLevel: 0, bestSector: 0,
                            tejasUnlocked: false, hintsSeen: {}, water: 0, wins: 0, wellFullSeen: false, gateTaught: false,
-                           depthsWon: 0, depthBest: 0, depthPick: 0, perks: {}, perksOn: [] });
+                           depthsWon: 0, depthBest: 0, depthPick: 0, perks: {}, perksOn: [], nickname: '' });
   saveSession();
 }
 
@@ -779,7 +831,7 @@ const settings = {
   music: 0.7, sfx: 0.8,    // 0..1
   shake: true,             // camera shake on hits and slams
   reduceFlash: false,      // accessibility: caps the red hit flash, drops the Tejas flash
-  dmgNumbers: true,        // floating -N / +N over Kiran
+  dmgNumbers: true,        // floating -N / +N over the hero
   vibrate: true,           // Android only - iOS Safari exposes no vibration API
   tips: true               // live first-run tips
 };
@@ -1098,7 +1150,7 @@ const TRINKET_EFFECTS = {
   regen:    { label: N.trinkets.regen[0], meaning: N.trinkets.regen[1], minSector: 3, desc: 'Heals over time' }
 };
 // BOONS (requirements 2.24). One pick from three after every cleared wave before a boss.
-// They belong to Kiran, not to the weapon, so a swap keeps them, and they last until the
+// They belong to the hero, not to the weapon, so a swap keeps them, and they last until the
 // run ends. The metal follows the loot ladder: copper boons add stats and stack, silver
 // ones change how you fight, gold ones deepen what you carry and are offered only when
 // they apply. `n` is the number the description quotes - keep the two in step.
@@ -1160,8 +1212,16 @@ const DEPTHS = [null,
   { name: 'Wrath',             twist: 'Bosses slam a quarter more often.' },
   { name: 'Horde',             twist: 'Two more enemies in every wave.' },
   { name: 'Restless',          twist: 'Convergence comes every 60 seconds, not 90.' },
-  { name: "The Serpent's Own", twist: 'Everything has a fifth more health and hits a fifth harder.' }
+  { name: "The Serpent's Own", twist: 'Everything hits a fifth harder.' }
 ];
+
+// Strays (requirements 2.30; founder, 2026-10-06: "a random extra creep every few waves to
+// add to the complexity"). From depth 2 an enemy of a random kind joins some waves,
+// whatever the wave's shape: a Brute in a swarm, a Hexer behind a pincer. `every` is the
+// longest wait between two of them, in waves, for each depth; the wait itself is a wave
+// shorter as often as not, so their coming cannot be counted.
+const STRAYS = { every: [0, 0, 3, 3, 2, 2, 1, 1], kinds: ['melee', 'ranged', 'tank', 'splitter'],
+                 says: ['', '', 'some', 'some', 'most', 'most', 'every', 'every'] };
 
 // PERKS (requirements 2.30; the "boss-kill perks" pinned as P8). Lasting gifts, earned
 // once: the first two from the first Gatekeeper and Hoard Guardian a player beats, the
@@ -1179,7 +1239,7 @@ const PERKS = {
 };
 const PERK_TINT = 0xd89bff, TRIBUTE_TAKER = { item: 4, boon: 8, gold: 12 };
 
-// POWER (requirements 2.28). One number for how strong Kiran is, the way Destiny shows
+// POWER (requirements 2.28). One number for how strong the hero is, the way Destiny shows
 // one: everything carried adds a fixed, visible amount, so equipping an item or taking a
 // boon moves it by a figure the player can learn. It is a gear score, not a formula for
 // damage - the stats on the profile screen give the real numbers.
@@ -1275,7 +1335,7 @@ const CHARS = {
   ranged:   'rakshasa',     // राक्षस    — shape-shifting demons famed for sorcery (maya)
   tank:     'mahish',       // महिष    — the buffalo demon
   splitter: 'raktabija',    // रक्तबीज  — every drop of his blood rose as a new demon
-  player:   'kiran',        // किरण    — ray of light
+  player:   'kiran',        // the hero's art keeps its first file name; the player names the hero (2.32)
   gatekeeper:  'bakasura',    // बकासुर   — demanded tribute before anyone could pass
   sectorboss:  'nidhiraksha', // निधि-रक्षा — treasure guardian (descriptive, not a figure)
   megaboss:    'vritra'       // वृत्र     — the serpent who hoarded the world's waters
@@ -1752,7 +1812,7 @@ function roundRectPoints(w, h, m, r, step) {
 // Each level is a place with its own scene, not a pattern: weathered stone shaded pixel by
 // pixel, carving that catches one sun, and things that belong to this game's story.
 const FLOORS_CARVED = [
-  { // Level 1 - Prangan, the sunlit court. Kiran means "ray of light": the court is paved
+  { // Level 1 - Prangan, the sunlit court. The hero walks in from daylight: the court is paved
     // round a carved sun, and daylight falls through a jaali screen across it.
     name: 'court', ember: 0xffc070, emberAlpha: 0.14, edge: 0xe8c690,
     lights: [[118, 150, 120, 0xffb060, 0.1, 3200], [248, 384, 150, 0xffc880, 0.07, 4100]],   // the sun, breathing as cloud passes
@@ -2092,10 +2152,11 @@ const FLOORS_CARVED = [
     } }
 ];
 
-// Which set of floors the game paints. `classic` is the line-drawn set of 2026-10-02.
-// Add ?floors=carved to the address to see another without changing anything.
+// Which set of floors the game paints. `carved` is the default since 2026-10-06, chosen
+// by the founder; `classic` is the line-drawn set of 2026-10-02 it replaced. Add
+// ?floors=classic to the address to see the old one without changing anything.
 const FLOOR_SETS = { classic: FLOORS_CLASSIC, carved: FLOORS_CARVED };
-const FLOOR_SET = 'classic';
+const FLOOR_SET = 'carved';
 const FLOORS = FLOOR_SETS[new URLSearchParams(location.search).get('floors')] || FLOOR_SETS[FLOOR_SET];
 // painted floor sets >>>
 
@@ -2147,6 +2208,9 @@ function pickEnemyType(wave) {
   }
   return 'melee';
 }
+
+// Tips held back until a player has reached level 2 (design-document 1.4, "thin the first run").
+const HELD_TIPS = ['tribute', 'satchel'];
 
 class LootScene extends Phaser.Scene {
   constructor() { super('LootScene'); }
@@ -2216,7 +2280,7 @@ class LootScene extends Phaser.Scene {
 
     // input for movement (only acts while playing)
     this.pointerTarget = null;
-    // Tapping a button (satchel tab, Tejas) must not ALSO walk Kiran to that spot.
+    // Tapping a button (satchel tab, Tejas) must not ALSO walk the hero to that spot.
     this.input.on('pointerdown', (p, over) => {
       this.pointerOnUI = !!(over && over.length);
       if (this.state === 'playing' && !this.pointerOnUI) { this.setMoveTarget(p.worldX, p.worldY); this.tapMark(); }
@@ -2414,7 +2478,7 @@ class LootScene extends Phaser.Scene {
   }
 
   // Where the player has asked to walk to. Kept inside the arena, so the walk can always
-  // arrive (a tap on the HUD would otherwise leave Kiran pushing at the wall forever).
+  // arrive (a tap on the HUD would otherwise leave the hero pushing at the wall forever).
   setMoveTarget(x, y) {
     const b = this.arenaBounds;
     this.pointerTarget = { x: Phaser.Math.Clamp(x, b.x + 15, b.right - 15), y: Phaser.Math.Clamp(y, b.y + 15, b.bottom - 15) };
@@ -2682,7 +2746,7 @@ class LootScene extends Phaser.Scene {
   }
 
   // ---------- POWER, STATS AND THE PROFILE (requirements 2.28) ----------
-  // What Kiran carries: the live run when there is one, otherwise what a new run starts with.
+  // What the hero carries: the live run when there is one, otherwise what a new run starts with.
   loadout() {
     const live = !!this.player && ['playing', 'paused', 'boon', 'sectorChoice'].includes(this.state);
     const hp0 = 100 * (1 + session.vitalityLevel * 0.10) + (this.perkOn('lungs') ? PERKS.lungs.n : 0);
@@ -2708,7 +2772,7 @@ class LootScene extends Phaser.Scene {
   }
 
   // The numbers themselves. Bonuses that come and go (standing still, a read slam, the
-  // last stand) are left out: these are what Kiran has all the time.
+  // last stand) are left out: these are what the hero has all the time.
   stats() {
     const { p, boons } = this.loadout(), w = p.weapon, t = p.trinket, rank = k => boons[k] || 0;
     return {
@@ -2725,6 +2789,15 @@ class LootScene extends Phaser.Scene {
     };
   }
 
+  // Opens the naming dialog and keeps what comes back; an empty name means unnamed again.
+  nameYourself(after) {
+    Namer.open(session.nickname, name => {
+      session.nickname = name; saveSession();
+      this.sfx(name ? 'ui-confirm' : 'ui-close');
+      if (after) after();
+    });
+  }
+
   showProfile(onBack, note) {
     this.openOverlay(0.8);
     this.ensureSoftGlow();
@@ -2733,16 +2806,23 @@ class LootScene extends Phaser.Scene {
     this.ovPanel(cx, 362, 350, 600);
 
     // Who, and where.
-    this.ovText(left, 76, N.player.toUpperCase(), { fontSize: '25px', color: '#ffd23c', fontStyle: 'bold' });
-    this.ovText(left + 1, 108, live ? `${stageLabel(this.sector)} · wave ${Math.min(this.wave, 5)} of 5` : 'at the top of the well',
-      { fontSize: '10px', color: '#c8a96e' });
+    const nameT = this.ovText(left, 76, heroName().toUpperCase(), { fontSize: '25px', color: '#ffd23c', fontStyle: 'bold' });
+    const room = right - left - 126;                       // the Power number has the rest of the line
+    if (nameT.width > room) nameT.setFontSize(Math.floor(25 * room / nameT.width));
+    this.ovText(left + 1, 108, live ? `${stageLabel(this.sector)} · wave ${Math.min(this.wave, 5)} of 5`
+      : session.nickname ? 'at the top of the well  ·  tap to rename' : 'tap to name yourself',
+      { fontSize: '10px', color: live || session.nickname ? '#c8a96e' : '#ffd23c' });
+    if (!live) {
+      const rename = this.ov(this.add.zone(left + 92, 94, 196, 48).setInteractive({ useHandCursor: true }), 103);
+      rename.on('pointerdown', () => { this.sfx('ui-click'); this.nameYourself(() => this.showProfile(onBack)); });
+    }
     // Power, the way Destiny sets it: small label, large number.
     this.ovText(right, 74, 'POWER', { fontSize: '9px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(1, 0);
     const num = this.ovText(right, 82, String(parts.total), { fontSize: '36px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(1, 0);
     const dia = this.ov(this.add.graphics(), 102), dx = right - num.width - 13, dy = 106;
     dia.fillStyle(FORGE.gold, 1); dia.fillPoints([{ x: dx, y: dy - 7 }, { x: dx + 7, y: dy }, { x: dx, y: dy + 7 }, { x: dx - 7, y: dy }], true);
 
-    // Kiran, lit from behind.
+    // The hero, lit from behind.
     this.ov(this.add.image(cx, 232, 'softglow').setDisplaySize(230, 230).setTint(0xffa040).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD), 101);
     this.ov(this.add.ellipse(cx, 280, 100, 26, 0x000000, 0.3), 101);
     this.ov(this.add.ellipse(cx, 278, 92, 24, 0, 0).setStrokeStyle(2, live ? PHASE_DEFS[this.phase].color : FORGE.gold, 0.85), 101);
@@ -2768,7 +2848,7 @@ class LootScene extends Phaser.Scene {
 
     // Right: the boons of this run.
     this.ovText(right - 46, 146, live ? 'BOONS' : `PERKS  \u00B7  WEAR ${this.perkSlots()}`, { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
-    // The perks worn, at Kiran's feet.
+    // The perks worn, at the hero's feet.
     session.perksOn.forEach((key, i) => slot(cx + (i - (session.perksOn.length - 1) / 2) * 30, 304, 24, PERKS[key].icon, PERK_TINT, '', `${PERKS[key].name}  \u00B7  perk`, PERKS[key].desc));
     const keys = Object.keys(boons);
     keys.slice(0, 15).forEach((key, i) => {
@@ -2818,6 +2898,7 @@ class LootScene extends Phaser.Scene {
   perkSlots() { return PERK_SLOTS + (session.depthsWon >= 4 ? 1 : 0); }
   get tributeAt() { return this.perkOn('taker') ? TRIBUTE_TAKER : TRIBUTE; }
   clearHeal() { return this.tier >= 3 ? 0.2 : SECTOR_CLEAR_HEAL; }
+  strayGap() { const e = STRAYS.every[this.tier] || 0; return e ? Phaser.Math.Between(Math.max(1, e - 1), e) : 0; }
   convergeEvery() { return this.tier >= 6 ? 60000 : CONVERGENCE_INTERVAL; }
   perkHow(key) {
     const pk = PERKS[key];
@@ -3234,8 +3315,8 @@ class LootScene extends Phaser.Scene {
           label(cx + 60, cy + 54, 'the well fills as you win', '#9fe8d8', 9);
         } },
       { title: 'MOVE · FIGHT',
-        body: (touch ? `Tap a spot and ${N.player} walks there; hold and drag to steer.` : 'Move with WASD or the arrow keys (or click and drag).') +
-              ` Attacks are automatic: ${N.player} strikes the nearest enemy in range. Your whole job is where you stand.`,
+        body: (touch ? 'Tap a spot and you walk there; hold and drag to steer.' : 'Move with WASD or the arrow keys (or click and drag).') +
+              ' Attacks are automatic: you strike the nearest enemy in range. Your whole job is where you stand.',
         draw: (cx, cy) => {
           const gr = g();
           gr.lineStyle(1, FORGE.cool, 0.35); gr.strokeCircle(cx - 50, cy, 70);
@@ -3347,7 +3428,7 @@ class LootScene extends Phaser.Scene {
           label(cx, cy + 62, 'deeper = richer and deadlier', '#8a7360', 9);
         } },
       { title: 'DEPTHS · PERKS',
-        body: `Slay ${N.enemies.megaboss} and that depth of the well is won: a step fills, and the next depth opens with a new hardship and richer ${N.currency}. There are seven. Your first boss kills and each depth you win also earn a perk, a gift that lasts. Choose which to wear on your Profile.`,
+        body: `Slay ${N.enemies.megaboss} and that depth of the well is won: a step fills, and the next depth opens with a new hardship, tougher enemies, a stray now and then, and richer ${N.currency}. There are seven. Your first boss kills and each depth you win also earn a perk, a gift that lasts. Choose which to wear on your Profile.`,
         draw: (cx, cy) => {
           const gr = g(), won = Math.min(DEPTH_MAX, session.depthsWon);
           for (let i = 0; i < DEPTH_MAX; i++) {                 // the well's seven steps, the won ones under water
@@ -3372,6 +3453,9 @@ class LootScene extends Phaser.Scene {
   // Archero approach, never a forced lesson. Play never stops; tap one to dismiss it.
   hint(id, text, urgent) {
     if (!settings.tips || this.silent || this.state !== 'playing' || session.hintsSeen[id]) return;
+    // The first level has enough to learn. What can wait, waits until the player has got
+    // to level 2: it is not marked as seen, so it comes back the next time it applies.
+    if (HELD_TIPS.includes(id) && this.sector < 2 && (session.bestSector || 0) < 2) return;
     this.hintQueue = this.hintQueue || [];
     if (this.hintShowing === id || this.hintQueue.some(q => q.id === id)) return;
     const entry = { id, text, at: this.time.now };
@@ -3454,7 +3538,7 @@ class LootScene extends Phaser.Scene {
                       onComplete: () => num.destroy() });
   }
 
-  // Returns Kiran to whatever tint the current state calls for (Tejas glows gold).
+  // Returns the hero to whatever tint the current state calls for (Tejas glows gold).
   restorePlayerTint() {
     if (!this.playerSprite) return;
     if (this.tejasActive > 0) this.playerSprite.setTint(0xffe08a);
@@ -3563,7 +3647,7 @@ class LootScene extends Phaser.Scene {
       e.y += (edy/edist) * e.speed * dt;
     }
 
-    // Reach, not just body contact: collision holds Kiran at exactly 15 + radius, and a
+    // Reach, not just body contact: collision holds the hero at exactly 15 + radius, and a
     // rooted (shielded) boss never steps back into him, so a body-contact check almost
     // never fired. Bosses swing with a 30px reach past their own edge.
     if (edist < (30 + e.radius) && e.hitCooldown <= 0) {
@@ -4332,6 +4416,13 @@ class LootScene extends Phaser.Scene {
     };
     say(cx, 84, GAME_TITLE, { fontSize: '54px', color: '#ffd23c', display: true,
       shadow: { offsetX: 0, offsetY: 3, color: '#5c2a05', blur: 8, fill: true } });
+    // Who is descending (requirements 2.32): the player's own name, or the way to give one.
+    const named = !!session.nickname;
+    const who = say(cx, 27, named ? `${session.nickname}  ·  rename` : 'Name yourself', { fontSize: '11px', color: named ? '#f0dcc0' : '#ffd23c', fontStyle: 'bold' });
+    this.uiObjects.push(this.glass(this.add.graphics(), cx, 27, who.width + 28, 24, { fill: FORGE.panel, alpha: 0.6, stroke: named ? FORGE.bronze : FORGE.gold, strokeAlpha: named ? 0.5 : 0.9, radius: 12, sheen: 0.08 }));
+    const whoHit = this.add.rectangle(cx, 27, who.width + 40, 36, 0xffffff, 0).setInteractive({ useHandCursor: true });
+    whoHit.on('pointerdown', () => { this.sfx('ui-click'); this.nameYourself(() => this.showHub()); });
+    this.uiObjects.push(whoHit);
     // The goal, in the first thing a player reads.
     say(cx, 136, `${N.enemies.megaboss} has drunk the well dry.\nDescend ${['no', 'one', 'two', 'three', 'four', 'five'][FINAL_SECTOR] || FINAL_SECTOR} ${N.stage.toLowerCase()}s and take the water back.`,
       { fontSize: '13px', color: '#fffbef', align: 'center', lineSpacing: 3, stroke: '#2a0800', strokeThickness: 3 });
@@ -4349,18 +4440,23 @@ class LootScene extends Phaser.Scene {
 
     // Which depth of the well this run goes down (requirements 2.30).
     const openDepth = Math.min(DEPTH_MAX, session.depthsWon + 1), pick = Phaser.Math.Clamp(session.depthPick || openDepth, 1, openDepth), dp = DEPTHS[pick];
-    this.uiObjects.push(this.glass(this.add.graphics(), cx, 393, 348, 54, { fill: FORGE.panel, alpha: 0.62, stroke: FORGE.gold, strokeAlpha: 0.55, radius: 14, sheen: 0.06 }));
-    say(cx, 381, `DEPTH ${pick} OF ${DEPTH_MAX}  ·  ${dp.name.toUpperCase()}`, { fontSize: '12px', color: '#ffd23c', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 });
-    say(cx, 404, (pick === 1 ? dp.twist : `${dp.twist} +${Math.round(DEPTH_GOLD * (pick - 1) * 100)}% ${N.currency}.`) + (pick <= session.depthsWon ? ' Already won: no water here.' : ''),
-      { fontSize: '10px', color: '#f0dcc0', align: 'center', stroke: '#2a0800', strokeThickness: 2, wordWrap: { width: 262 } });
+    this.uiObjects.push(this.glass(this.add.graphics(), cx, 396, 348, 66, { fill: FORGE.panel, alpha: 0.62, stroke: FORGE.gold, strokeAlpha: 0.55, radius: 14, sheen: 0.06 }));
+    say(cx, 379, `DEPTH ${pick} OF ${DEPTH_MAX}  ·  ${dp.name.toUpperCase()}`, { fontSize: '12px', color: '#ffd23c', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 });
+    say(cx, 397, dp.twist, { fontSize: '10px', color: '#f0dcc0', align: 'center', stroke: '#2a0800', strokeThickness: 2, wordWrap: { width: 262 } });
+    // What every depth past the first adds besides its own hardship, and what it pays.
+    const won = pick <= session.depthsWon, health = Math.round(DEPTH_HEALTH * (pick - 1) * 100), gold = Math.round(DEPTH_GOLD * (pick - 1) * 100);
+    say(cx, 414, pick === 1 ? (won ? 'won: no water here' : 'win it and depth 2 opens')
+      : won ? `+${health}% health  ·  strays  ·  +${gold}% ${N.currency}  ·  won, no water`
+      : `+${health}% enemy health  ·  a stray in ${STRAYS.says[pick]} wave${STRAYS.says[pick] === 'every' ? '' : 's'}  ·  +${gold}% ${N.currency}`,
+      { fontSize: '9px', color: '#c8a96e', stroke: '#2a0800', strokeThickness: 2 });
     if (openDepth > 1) {
       const step = d => () => { session.depthPick = Phaser.Math.Clamp(pick + d, 1, openDepth); saveSession(); this.showHub(); };
-      if (pick > 1) this.makeButton(cx - 152, 393, 30, 34, '<', BTN.quiet, step(-1), { size: 14, sound: 'ui-page' });
-      if (pick < openDepth) this.makeButton(cx + 152, 393, 30, 34, '>', BTN.quiet, step(1), { size: 14, sound: 'ui-page', stroke: FORGE.gold });
+      if (pick > 1) this.makeButton(cx - 152, 396, 30, 34, '<', BTN.quiet, step(-1), { size: 14, sound: 'ui-page' });
+      if (pick < openDepth) this.makeButton(cx + 152, 396, 30, 34, '>', BTN.quiet, step(1), { size: 14, sound: 'ui-page', stroke: FORGE.gold });
     }
-    say(cx, 436, (session.bestSector ? `Deepest: ${N.stage} ${session.bestSector}` : 'No descent yet') + `  ·  ${wellLine()}`,
+    say(cx, 441, (session.bestSector ? `Deepest: ${N.stage} ${session.bestSector}` : 'No descent yet') + `  ·  ${wellLine()}`,
       { fontSize: '11px', color: session.water > 0 ? '#9fe8d8' : '#c8a96e' });
-    say(cx, 460, `${N.currency}: ${session.metaGold}`, { fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' });
+    say(cx, 463, `${N.currency}: ${session.metaGold}`, { fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' });
     if (this.powerText) this.powerText.setText('');
 
     // Exponential, not linear: linear costs let Vitality outgrow every sector. Levels
@@ -4516,6 +4612,7 @@ class LootScene extends Phaser.Scene {
     const openDepth = Math.min(DEPTH_MAX, session.depthsWon + 1);
     this.tier = DEPTH_NOW = Phaser.Math.Clamp(session.depthPick || openDepth, 1, openDepth);
     this.windUsed = false; this.depthNews = null; this.perksEarned = [];
+    this.strayIn = this.strayGap();
     this.time.paused = false;   // a run never starts frozen, whatever screen came before
     this.tweens.resumeAll();
     this.state = 'playing';
@@ -4576,17 +4673,17 @@ class LootScene extends Phaser.Scene {
       bloodShield: 0       // Blood Shield boon: soaks damage before health
     };
     this.playerFacing = 'front';
-    this.playerAnim = { age: 1e6 };       // the state of Kiran's motion (see animate)
+    this.playerAnim = { age: 1e6 };       // the state of the hero's motion (see animate)
     this.playerSprite = this.charSprite(CHARS.player, this.player.x, this.player.y, 44);
     // The ring stays a vector circle: it is the phase-colour tell, and must not inherit ship art.
-    // Stance ring at Kiran's feet, not a circle around the body - a ring around a
+    // Stance ring at the hero's feet, not a circle around the body - a ring around a
     // character sprite reads as a bubble, but on the floor it reads as a stance and
     // leaves the silhouette clean. This is the Cosmic Cycle phase tell.
     this.playerRing = this.add.ellipse(this.player.x, this.player.y + 16, 34, 13, 0xffffff, 0)
       .setStrokeStyle(2, PHASE_DEFS.drift.color, 0.9);
     this.boonFx = this.add.graphics();   // tells for Hold Your Ground and Read the Slam
 
-    // HP bar: over Kiran's head, where the eyes already are in a fight (2026-10-06). It
+    // HP bar: over the hero's head, where the eyes already are in a fight (2026-10-06). It
     // used to run across the top of the screen. It follows him every frame (see update).
     const barX = this.player.x - HP_BAR.w / 2, barY = this.player.y - HP_BAR.up, barW = HP_BAR.w, barH = HP_BAR.h;
     this.hpBarBg = this.add.rectangle(barX, barY, barW, barH, 0x2a0f04).setOrigin(0,0.5).setStrokeStyle(1.5, 0x1a0600).setDepth(40);
@@ -4747,10 +4844,20 @@ class LootScene extends Phaser.Scene {
     } else add(base, gentle ? { type: 'melee' } : {});
     if (shape === 'archers' || shape === 'splitters') Phaser.Utils.Array.Shuffle(q);
 
+    // A stray: one enemy of a kind this wave does not already field, somewhere in its ranks.
+    let toast = WAVE_SHAPES[shape].toast ? WAVE_SHAPES[shape].toast() : '';
+    if (!force && !gentle && this.strayIn > 0 && --this.strayIn === 0) {
+      const here = new Set(q.map(e => e.type).filter(Boolean)), fresh = STRAYS.kinds.filter(k => !here.has(k));
+      const kind = Phaser.Utils.Array.GetRandom(fresh.length ? fresh : STRAYS.kinds);
+      q.splice(Phaser.Math.Between(1, q.length), 0, { type: kind, stray: true });
+      toast += (toast ? '  ·  ' : '') + `A STRAY ${N.enemies[kind].toUpperCase()}`;
+      this.strayIn = this.strayGap();
+    }
+
     this.spawnQueue = q;
     this.spawnGap = WAVE_SHAPES[shape].gap;
     this.spawnTimer = 0;
-    if (WAVE_SHAPES[shape].toast) this.showToast(WAVE_SHAPES[shape].toast(), '#ffb38a');
+    if (toast) this.showToast(toast, '#ffb38a');
     return shape;
   }
 
@@ -5193,7 +5300,7 @@ class LootScene extends Phaser.Scene {
     this.player.hp -= amount;
     if (kind !== 'slam') this.player.iframes = IFRAMES_MS;
     // The existing hit flicker now lasts exactly as long as the invulnerability, so the
-    // player can read "I'm safe for a moment" off Kiran himself.
+    // player can read "I'm safe for a moment" off the hero himself.
     this.player.flashTimer = Math.max(150, kind !== 'slam' ? IFRAMES_MS : 0);
     this.hitFeedback(amount, source, kind);
     if (this.player.hp > 0 && this.player.hp < this.player.maxHp * 0.3) {
@@ -5475,6 +5582,7 @@ class LootScene extends Phaser.Scene {
       { resolution: RES, fontSize: '23px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
     say(H/2-104, firstFull
       ? `Every drop ${N.enemies.megaboss} took is back in the well.\nYou have finished the game. Thank you for playing.`
+      : session.nickname ? `${session.nickname} has slain ${N.enemies.megaboss}.\nThe water he hoarded rises through the well again.`
       : `${N.enemies.megaboss} is slain, and the water he hoarded\nrises through the well again.`, 13, '#fffbef');
     say(H/2-62, `+${this.runWater} water this run  ·  ${wellLine()}`, 13, '#9fe8d8');
     const news = this.depthNews || { depth: this.tier, won: false }, next = DEPTHS[news.depth + 1];
@@ -5707,7 +5815,7 @@ class LootScene extends Phaser.Scene {
 
     // Boon tells (2.24). A boon that only works some of the time has to say when it is
     // working: a gold ring planted outside the phase ring while Hold Your Ground is live,
-    // and a gold arc around Kiran that drains for as long as Read the Slam lasts.
+    // and a gold arc around the hero that drains for as long as Read the Slam lasts.
     this.boonFx.clear();
     if (this.boonRank('ground') && this.stillMs >= 200) {
       this.boonFx.lineStyle(2, FORGE.gold, 0.65 + 0.3 * Math.sin(time / 160));

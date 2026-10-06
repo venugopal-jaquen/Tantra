@@ -39,25 +39,66 @@ depicts worship or revered figures (`requirements.md` §1.3 and §2.12).
 
 ## 1. Title screen background
 
-Portrait, **9:16** (make it 1080 × 1920 or larger). The game puts the title in the top
-fifth and the menu in the bottom third, so both must stay calm.
+**The founder chose to explore made art for this screen (2026-10-06).** Today's backdrop is
+drawn in code. A picture replaces only the backdrop: the name, the goal, the DESCEND button
+and the menu are still drawn by the game on top of it.
+
+**Where things sit.** `docs/title-art-layout.jpg` shows the screen with three bands marked:
+
+| Band | Part of the picture | What it must be |
+|---|---|---|
+| Title | top 22% | Calm and darker. The game writes the name and the goal here |
+| The picture | 22% to 52% | The subject. The round DESCEND button covers the very middle, so lead the eye to the centre without needing it |
+| Menu | bottom 48% | Dark and plain. Panels and buttons sit on it |
+
+Portrait, **9:16** (1080 × 1920 or larger). No lettering in the picture. If a picture turns
+out to deserve more room than the middle band, the two upgrade cards can move to a screen
+of their own and the picture can have two thirds of the height: say so and it will be done.
+
+**Three directions.** Make a few of each and keep whatever stops you scrolling.
+
+A. *Down the shaft.* The nearest to today's screen: the button is the light you fall toward.
 
 ```
 [style block] Looking straight down the square shaft of an ancient Indian stepwell from
 its rim. Tier after tier of zigzag sandstone stairs descend in concentric squares,
 sunlit and saffron at the top, deepening to red and maroon below, with a molten gold
-glow rising from the very bottom at the centre of the image. Embers drift upward.
-Strong one-point perspective, symmetrical. The top fifth and the bottom third of the
-image are darker and plain, with little detail. Portrait 9:16.
+glow rising from the very bottom, a little above the centre of the image. Embers drift
+upward. Strong one-point perspective, symmetrical. The top fifth of the image is darker
+and plain. The whole lower half fades to deep maroon shadow with almost no detail.
+Portrait 9:16.
 ```
 
-Variation worth trying, with a figure for scale:
+B. *The serpent's coil.* The same view with the villain in it: the first screen then shows
+what took the water.
 
 ```
-[style block] The same stepwell shaft seen from above, with one small warrior in a
-conical steel helmet standing on the top step at the lower edge of the image, seen from
-behind, looking down into the glowing depth. Portrait 9:16.
+[style block] Looking straight down the square shaft of an ancient Indian stepwell. A
+colossal serpent with dark teal scales banded in gold lies coiled along the tiers of
+stairs, winding down and round the shaft, its head resting near the bottom beside a
+molten gold glow a little above the centre of the image. The stairs are dry and cracked.
+Seen from far above, the serpent is a pattern before it is a creature. The top fifth is
+darker and plain; the whole lower half fades to deep maroon shadow. Portrait 9:16.
 ```
+
+C. *The first step.* A figure for scale, seen from behind, so the screen is about the
+player. Make this one after the hero has a design (`docs/character-art-guide.md`), or keep
+the figure a small dark silhouette so it need not match.
+
+```
+[style block] A small lone figure, seen from behind as a dark silhouette, stands on the
+top step at the rim of a vast square Indian stepwell and looks down. Below, zigzag
+sandstone stairs fall away tier after tier into a molten gold glow. The figure stands
+just below the centre of the image and the glow sits above it, so the eye travels from
+the figure down into the well. Warm light from above, long shadow. The top fifth is
+darker and plain; the lower half is the dark stone of the rim, with almost no detail.
+Portrait 9:16.
+```
+
+**Judging a candidate.** Put it behind `docs/title-art-layout.jpg` in your head: is the top
+calm enough for the name to read, is the subject inside the middle band, does the bottom
+half get out of the way? Then drop it in `game/assets/incoming/` and it will be shown
+behind the real screen before anything is kept.
 
 ## 2. Arena floors (one per sector)
 
