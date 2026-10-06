@@ -149,8 +149,11 @@ try {
     await new Promise(r => setTimeout(r, 500));
     const moved = 600 - s.player.y, secs = (performance.now() - t0) / 1000;
     await new Promise(r => setTimeout(r, 2200));
-    return { moved: Math.round(moved), speed: Math.round(moved / secs), arrived: Math.round(s.player.y), target: s.pointerTarget };`);
+    return { moved: Math.round(moved), speed: Math.round(moved / secs), arrived: Math.round(s.player.y), target: s.pointerTarget,
+      still: ARENA_SCALE === 1 && s.camOff.x === 0 && s.camOff.y === 0 && s.cameras.main.scrollX === 0 && s.cameras.main.scrollY === 0
+        && Phaser.Geom.Rectangle.Equals(s.arenaBounds, s.viewBounds) && s.farFx === null };`);
   check('a tap is walked to at walking speed, not jumped to', walk.speed > 150 && walk.speed < 250 && walk.arrived === 150 && walk.target === null, JSON.stringify(walk));
+  check('by default the arena is one screen and the camera never moves', walk.still === true, JSON.stringify(walk));
 
   // Walk frames: every character but Vritra has a sheet; a standing figure shows the first
   // cell of its facing's row, a moving one steps through the rest, and the figure is the
@@ -716,6 +719,70 @@ try {
   check('an older save loads with the page into depth 1, keeping its water and wearing its perks', carried.line === 'The well is 6% full' && /^Depth 1 of 7 · 2 of 35/.test(carried.sub)
     && carried.won === 0 && carried.best === 2 && carried.water === 2 && carried.gold === 77 && carried.perks === 'eye,guard' && carried.worn === 'guard,eye' && !carried.taught
     && /DEPTH 1 OF 7/.test(carried.title) && /The well is 6% full/.test(carried.title) && carried.run.tier === 1 && carried.run.guard === 1 && carried.run.power === 40, JSON.stringify(carried).replace(/\n/g, ' ').slice(0, 420));
+
+  // ---------- 9. the wide arena: a walled arena larger than the screen, the camera following (requirements 2.33) ----------
+  await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href + '?arena=wide' });
+  state = 'loading';
+  for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
+  const wide = await page(`settings.sfx = 0; settings.tips = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));
+    const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms)), round = a => a.map(Math.round);
+    const until = async (test, ms) => { for (let i = 0; i < ms / 40 && !test(); i++) await wait(40); };
+    out.hub = { scale: ARENA_SCALE, cam: [s.camOff.x, s.camOff.y] };
+    s.buildWave = () => { s.spawnQueue = [{}]; s.spawnTimer = 1e9; s.lastShape = 'mixed'; return 'mixed'; };
+    s.startRun(); s.spawnQueue = [{}]; s.spawnTimer = 1e9; s.player.iframes = 1e9;
+    const b = s.arenaBounds, S = ARENA_SCALE, mid = HUD_H + (H - HUD_H) / 2;
+    out.arena = round([b.x, b.y, b.width, b.height]);
+    out.start = { centred: Math.abs(s.player.x - s.camOff.x - W / 2) < 1 && Math.abs(s.player.y - s.camOff.y - mid) < 1, floor: round([s.floorLayers[0].displayWidth, s.floorLayers[0].displayHeight]) };
+    out.pinned = [s.hudText, s.hudPanel, s.phaseBarBg, s.pauseBtn, s.satchelTab, s.progressLine, s.hurtFlash, s.farFx].every(o => o.scrollFactorX === 0)
+      && [s.playerSprite, s.playerRing, s.hpBarBg, s.floorLayers[0], s.phaseTint].every(o => o.scrollFactorX === 1);
+    s.setMoveTarget(9999, 9999); await wait(600);
+    out.moving = { x: Math.round(s.camOff.x), follows: s.camOff.x > 130 && Math.abs(s.cameras.main.scrollX - s.camOff.x) < 0.01 };
+    await until(() => !s.pointerTarget, 7000); await wait(700);
+    out.corner = { cam: round([s.camOff.x, s.camOff.y]), most: round([W * (S - 1), (H - HUD_H) * (S - 1)]), player: round([b.right - s.player.x, b.bottom - s.player.y]) };
+    const e = s.spawnEnemy({ type: 'melee', edge: 0 }), r = s.spawnRect(), v = s.viewRect();
+    out.spawn = { top: Math.round(e.y - v.y), inArena: Phaser.Geom.Rectangle.Contains(b, e.x, e.y), rect: round([r.width, r.height]) };
+    e.speed = 0; s.killEnemy(e);
+    const boss = s.spawnGatekeeper(); boss.speed = 0; boss.slamTimer = 1e9; boss.summonTimer = 1e9;
+    out.boss = { seen: Phaser.Geom.Rectangle.Contains(v, boss.x, boss.y) };
+    boss.x = b.x + 60; boss.y = b.y + 60; await wait(200);
+    out.boss.pointed = s.farFx.commandBuffer.length > 0;
+    s.pauseGame(); out.overlay = s.overlay.length > 3 && s.overlay.every(o => o.scrollFactorX === 0); s.resumeGame();
+    const rc = game.canvas.getBoundingClientRect();
+    out.canvas = [rc.left, rc.top, rc.width, rc.height];
+    return out;`);
+  // A real tap, at a point on the screen: it must be read as that point in the arena.
+  const tapAt = { x: Math.round(wide.canvas[0] + wide.canvas[2] * 0.5), y: Math.round(wide.canvas[1] + wide.canvas[3] * 0.55) };
+  await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: tapAt.x, y: tapAt.y, button: 'left', clickCount: 1 });
+  await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: tapAt.x, y: tapAt.y, button: 'left', clickCount: 1 });
+  await sleep(120);
+  const wide2 = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
+    const rc = game.canvas.getBoundingClientRect(), gx = (${tapAt.x} - rc.left) * W / rc.width, gy = (${tapAt.y} - rc.top) * H / rc.height;
+    out.tap = { target: s.pointerTarget && [Math.round(s.pointerTarget.x), Math.round(s.pointerTarget.y)], want: [Math.round(gx + s.camOff.x), Math.round(gy + s.camOff.y)] };
+    s.pointerTarget = null;
+    s.endRun(false); await wait(300);
+    out.summary = s.uiObjects.length > 4 && s.uiObjects.every(o => o.scrollFactorX === 0);
+    s.uiObjects.find(o => o.type === 'Rectangle' && o.input).emit('pointerdown'); await wait(300);
+    out.hub = { state: s.state, cam: [s.camOff.x, s.camOff.y], scroll: [s.cameras.main.scrollX, s.cameras.main.scrollY] };
+    game.loop.sleep();
+    await new Promise((res, rej) => { const el = document.createElement('script'); el.src = '../tools/playtest-bot.js'; el.onload = res; el.onerror = rej; document.head.appendChild(el); });
+    delete s.buildWave;
+    PlaytestBot.start([{ name: 'fresh', vit: 0, pow: 0, target: 3 }, { name: 'mid', vit: 6, pow: 6, target: 3, tejas: true }, { name: 'grinder', vit: 14, pow: 14, target: 4, tejas: true }]);
+    while (!PlaytestBot.tick(4000).done) await new Promise(r => setTimeout(r, 0));
+    const rep = PlaytestBot.report();
+    game.loop.wake();
+    out.bot = { errors: rep.errors, runs: rep.runs.map(r => r.profile + ': level ' + r.finalSector + ', leak ' + r.leak).join('; '), leaks: rep.runs.map(r => r.leak) };
+    return out;`);
+  check('the wide arena is 1.6 times the screen, and a run starts with the hero in the middle of the window', wide.hub.scale === 1.6 && wide.hub.cam.join() === '0,0' && wide.arena.join() === '48,124,544,902'
+    && wide.start.centred && wide.start.floor.join() === '544,902', JSON.stringify({ hub: wide.hub, arena: wide.arena, start: wide.start }));
+  check('the camera follows the hero and stops at the walls; the HUD and panels stay on the screen', wide.pinned && wide.moving.follows && wide.corner.cam.join() === wide.corner.most.join()
+    && wide.corner.player.join() === '15,15' && wide.overlay && wide2.summary, JSON.stringify({ pinned: wide.pinned, moving: wide.moving, corner: wide.corner, overlay: wide.overlay, summary: wide2.summary }));
+  check('enemies come in at the edge of what is seen, a boss enters in sight, and an arrow points to one out of sight', wide.spawn.top >= -27 && wide.spawn.top <= 0 && wide.spawn.inArena
+    && wide.boss.seen && wide.boss.pointed, JSON.stringify({ spawn: wide.spawn, boss: wide.boss }));
+  check('a tap in the wide arena is read where it lands, and the camera returns for the title screen', wide2.tap.target && Math.abs(wide2.tap.target[0] - wide2.tap.want[0]) <= 3 && Math.abs(wide2.tap.target[1] - wide2.tap.want[1]) <= 3
+    && wide2.hub.state === 'hub' && wide2.hub.cam.join() === '0,0' && wide2.hub.scroll.join() === '0,0', JSON.stringify({ tap: wide2.tap, hub: wide2.hub }));
+  console.log('      wide arena bot: ' + wide2.bot.runs);
+  check('bot runs in the wide arena raise no errors and leak nothing', wide2.bot.errors.length === 0 && wide2.bot.leaks.every(l => l <= 0), wide2.bot.errors.join('; ') + ' ' + wide2.bot.runs);
+  await shot('10-wide-hub');
 
   const real = problems.filter(p => !/music\/|404|Failed to load resource|navigator\.vibrate/.test(p));
   check('no page errors', real.length === 0, real.join('; '));

@@ -670,6 +670,19 @@ const W = 400, H = 700;
 // Clamped to 3: beyond that the buffer cost stops buying visible sharpness.
 const RES = Math.min(3, Math.max(2, Math.round(window.devicePixelRatio || 1)));
 const MARGIN = 30, HUD_H = 76;
+
+// The arena (requirements 2.33). `fixed` is the game as it has always been: the arena is one
+// screen and the camera never moves. `wide` is Brotato's: a walled arena larger than the
+// screen, with the camera following the hero, so that walking is travelling. Everything in
+// the arena is laid out for the fixed one and scaled by this number about the corner under
+// the HUD; add ?arena=wide to the address to try it, or ?arena=1.9 to try another size.
+const ARENA_SCALES = { fixed: 1, wide: 1.6 };
+const ARENA_MODE = 'fixed';
+const ARENA_SCALE = (() => {
+  const q = new URLSearchParams(location.search).get('arena'), n = parseFloat(q);
+  return ARENA_SCALES[q] || (n >= 1 && n <= 2.2 ? n : ARENA_SCALES[ARENA_MODE]);
+})();
+const CAMERA_EASE = 0.012;                 // how fast the camera closes on the hero, per millisecond
 const HP_BAR = { w: 42, h: 5, up: 35 };   // the hero's health bar: its size, and how far over his middle it floats
 const GATEKEEPER_WAVE = 3;
 const MEGA_BOSS_SECTOR = 3;
@@ -1360,7 +1373,7 @@ const CHAR_LABELS = N.enemies;
 // Render layers. Floor < phase tint < slam telegraphs < everything else (default 0),
 // so a telegraph is painted ON the ground, under the characters standing in it, and is
 // never dimmed by the phase-tint overlay.
-const Z = { floor: -10, tint: -8, telegraph: -5, fx: -4 };
+const Z = { floor: -10, tint: -8, telegraph: -5, fx: -4, hud: 55 };
 
 // "Cosmic Forge" palette, measured from concept/loot-chase-visual-forge-v2.html.
 // Warm throughout: the direction was rejected twice for reading too dark.
@@ -2236,7 +2249,6 @@ class LootScene extends Phaser.Scene {
 
   create() {
     this.state = 'loading'; // loading -> hub -> playing -> ... -> summary -> hub
-    this.uiObjects = [];
 
     // One door for typography: every this.add.text() call in this file picks up its
     // typeface here, so no call site has to name a font.
@@ -2244,16 +2256,29 @@ class LootScene extends Phaser.Scene {
     this.add.text = (x, y, str, style) => addText.call(this.add, x, y, str, styleText(style, str));
 
     // Canvas is RES times larger than the world; zoom back in by RES so the visible
-    // area is exactly 0..W, 0..H. Every coordinate below stays in world units.
-    this.cameras.main.setZoom(RES).centerOn(W/2, H/2);
+    // area is exactly 0..W, 0..H. Every coordinate below stays in world units. The zoom
+    // is taken about the top-left corner, so the camera's scroll is simply that corner's
+    // place in the arena: (0, 0) while the arena is one screen, and things pinned to the
+    // screen (see fix) stay where they are drawn however far it scrolls.
+    this.cameras.main.setOrigin(0, 0).setZoom(RES).setScroll(0, 0);
+    this.camOff = { x: 0, y: 0 };
+    this.cameraOn = false;
+    this.uiObjects = this.uiList();
     this.makeLootIcons();
     this.initFrost();
 
     // Below every layer. At the default depth 0 it covered the floor, the phase tint AND
     // every slam telegraph - which silently made boss attacks invisible.
-    this.add.rectangle(W/2, H/2, W, H, FORGE.deep).setDepth(Z.floor - 1);
+    this.fix(this.add.rectangle(W/2, H/2, W, H, FORGE.deep).setDepth(Z.floor - 1));
 
-    this.arenaBounds = new Phaser.Geom.Rectangle(MARGIN, HUD_H + MARGIN, W - MARGIN*2, H - HUD_H - MARGIN*2);
+    // Two rectangles. viewBounds is the window on to the arena: the part of the screen
+    // under the HUD and inside the frame; what lives on the screen during a fight (tips,
+    // tabs, the wave track) is placed against it. arenaBounds is the arena itself, where
+    // everything that fights is kept. With a fixed arena they are the same rectangle.
+    const S = ARENA_SCALE;
+    this.viewBounds = new Phaser.Geom.Rectangle(MARGIN, HUD_H + MARGIN, W - MARGIN*2, H - HUD_H - MARGIN*2);
+    this.arenaBounds = new Phaser.Geom.Rectangle(MARGIN * S, HUD_H + MARGIN * S, (W - MARGIN*2) * S, (H - HUD_H - MARGIN*2) * S);
+    this.worldBounds = new Phaser.Geom.Rectangle(0, 0, W * S, HUD_H + (H - HUD_H) * S);
 
     const ab = this.arenaBounds;
 
@@ -2268,15 +2293,18 @@ class LootScene extends Phaser.Scene {
 
     // Full-arena red flash for taking damage. Created once and reused - it idles at
     // alpha 0 rather than being built and destroyed on every hit.
-    this.hurtFlash = this.add.rectangle(ab.centerX, ab.centerY, ab.width, ab.height, 0xff2a14, 0).setDepth(50);
+    // It covers the window: the arena when that is one screen, everything under the HUD when it is wide.
+    const vb = this.viewBounds, flash = S > 1 ? new Phaser.Geom.Rectangle(0, HUD_H, W, H - HUD_H) : vb;
+    this.hurtFlash = this.fix(this.add.rectangle(flash.centerX, flash.centerY, flash.width, flash.height, 0xff2a14, 0).setDepth(50));
 
     // HUD chrome is drawn after the arena so it always wins the depth fight.
-    this.add.rectangle(W/2, HUD_H/2, W, HUD_H, FORGE.panel);
+    this.hudPanel = this.add.rectangle(W/2, HUD_H/2, W, HUD_H, FORGE.panel);
     this.hudText = this.add.text(14, 2, '', { resolution: RES, fontSize: '13px', color: '#fffbef' });
     this.weaponText = this.add.text(14, 60, '', { resolution: RES, fontSize: '11px', color: '#c8a96e' });
     // Power (2.28), at the right of the same line. Tapping it opens the profile.
     this.powerText = this.add.text(W - 14, 59, '', { resolution: RES, fontSize: '12px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(1, 0);
-    this.add.zone(W - 52, 66, 104, 24).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.pauseGame('profile'));
+    const powerZone = this.add.zone(W - 52, 66, 104, 24).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.pauseGame('profile'));
+    this.fix(this.hudPanel, this.hudText, this.weaponText, this.powerText, powerZone);
 
     // input for movement (only acts while playing)
     this.pointerTarget = null;
@@ -2329,7 +2357,7 @@ class LootScene extends Phaser.Scene {
 
   buildTejasUI() {
     if (this.tejasBtn) return;
-    const b = this.arenaBounds;
+    const b = this.viewBounds;
     this.tejasPos = { x: b.x + 36, y: b.bottom - 36 };
     const { x, y } = this.tejasPos;
     this.tejasBtn = this.add.circle(x, y, 25, FORGE.deep, 0.62)
@@ -2338,6 +2366,7 @@ class LootScene extends Phaser.Scene {
     this.tejasLabel = this.add.text(x, y - 4, N.supercharge.toUpperCase(), { resolution: RES, fontSize: '8px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(0.5).setDepth(22);
     this.tejasPct = this.add.text(x, y + 7, '0%', { resolution: RES, fontSize: '8px', color: '#8a7360' }).setOrigin(0.5).setDepth(22);
     this.tejasBtn.on('pointerdown', () => this.activateTejas());
+    this.fix(this.tejasBtn, this.tejasArc, this.tejasLabel, this.tejasPct);
   }
 
   destroyTejasUI() {
@@ -2494,6 +2523,76 @@ class LootScene extends Phaser.Scene {
 
   shake(duration, intensity) { if (settings.shake) this.cameras.main.shake(duration, intensity); }
 
+  // ---------- THE SCREEN AND THE ARENA (requirements 2.33) ----------
+  // Pins things to the screen: they stay put when the camera moves. Whatever is not part
+  // of the fight goes through here, or through ov() or uiObjects, which do the same.
+  fix(...objs) { objs.forEach(o => { if (o && o.setScrollFactor) o.setScrollFactor(0); }); return objs[0]; }
+
+  // A list whose members are pinned to the screen as they are added (uiObjects).
+  uiList() {
+    const list = [], push = list.push;
+    list.push = (...objs) => { this.fix(...objs); return push.apply(list, objs); };
+    return list;
+  }
+
+  // The part of the arena the screen shows under the HUD, in the arena's own coordinates.
+  viewRect() { return new Phaser.Geom.Rectangle(this.camOff.x, this.camOff.y + HUD_H, W, H - HUD_H); }
+
+  // Where enemies come in. The walls of a fixed arena; in a wide one, just beyond what
+  // the screen shows, or the wall where that is nearer, so that they arrive as soon as
+  // they always have and are never seen appearing.
+  spawnRect() {
+    const b = this.arenaBounds;
+    if (ARENA_SCALE === 1) return b;
+    const v = this.viewRect(), pad = 26;
+    const x0 = Math.max(b.x, v.x - pad), y0 = Math.max(b.y, v.y - pad), x1 = Math.min(b.right, v.right + pad), y1 = Math.min(b.bottom, v.bottom + pad);
+    return new Phaser.Geom.Rectangle(x0, y0, x1 - x0, y1 - y0);
+  }
+
+  // Keeps the hero in the middle of the window, easing after him, and stops at the
+  // arena's walls. With a fixed arena, or outside a run, the camera sits at the corner.
+  aimCamera(snap, delta = 16) {
+    const S = ARENA_SCALE;
+    let x = 0, y = 0;
+    if (S > 1 && this.cameraOn && this.player) {
+      x = Phaser.Math.Clamp(this.player.x - W / 2, 0, W * (S - 1));
+      y = Phaser.Math.Clamp(this.player.y - (HUD_H + (H - HUD_H) / 2), 0, (H - HUD_H) * (S - 1));
+    }
+    const k = snap ? 1 : Math.min(1, delta * CAMERA_EASE);
+    this.camOff.x += (x - this.camOff.x) * k;
+    this.camOff.y += (y - this.camOff.y) * k;
+    this.cameras.main.setScroll(this.camOff.x, this.camOff.y);
+  }
+
+  // In a wide arena the HUD has the arena passing underneath it, so during a run it is
+  // lifted above everything that fights. On the title screen it goes back under the menu.
+  hudOnTop(on) {
+    if (ARENA_SCALE === 1) return;
+    this.hudPanel.setDepth(on ? Z.hud : 0);
+    [this.hudText, this.weaponText, this.powerText].forEach(o => o.setDepth(on ? Z.hud + 1 : 0));
+  }
+
+  // Arrows at the edge of the window toward what is out of sight: a boss always, and the
+  // last few enemies of a wave, so a wide arena never becomes a search.
+  drawFarPointers() {
+    if (!this.farFx) return;
+    const g = this.farFx;
+    g.clear();
+    const few = this.enemies.length <= 3, inset = 12;
+    const L = inset, R = W - inset, T = HUD_H + inset, B = H - inset, cx = W / 2, cy = HUD_H + (H - HUD_H) / 2;
+    for (const e of this.enemies) {
+      if (!e.isBoss && !few) continue;
+      const sx = e.x - this.camOff.x, sy = e.y - this.camOff.y;
+      if (sx > L - 4 && sx < R + 4 && sy > T - 4 && sy < B + 4) continue;                  // in sight
+      const a = Math.atan2(sy - cy, sx - cx), t = Math.min((sx > cx ? R - cx : cx - L) / Math.abs(Math.cos(a) || 1e-6), (sy > cy ? B - cy : cy - T) / Math.abs(Math.sin(a) || 1e-6));
+      const px = cx + Math.cos(a) * t, py = cy + Math.sin(a) * t, size = e.isBoss ? 11 : 7;
+      g.fillStyle(e.isBoss ? FORGE.gold : 0xfffbef, e.isBoss ? 0.95 : 0.75);
+      g.lineStyle(1.5, 0x2a0800, 0.9);
+      const tri = [[1, 0], [-0.7, 0.75], [-0.7, -0.75]].map(([ux, uy]) => ({ x: px + (ux * Math.cos(a) - uy * Math.sin(a)) * size, y: py + (ux * Math.sin(a) + uy * Math.cos(a)) * size }));
+      g.fillPoints(tri, true); g.strokePoints(tri, true);
+    }
+  }
+
   buzz(ms) {
     if (!settings.vibrate || this.silent || !navigator.vibrate) return;
     try { navigator.vibrate(Math.round(ms)); } catch (e) { /* ignore */ }
@@ -2611,7 +2710,7 @@ class LootScene extends Phaser.Scene {
 
   buildBoonButton() {
     this.destroyBoonButton();
-    const b = this.arenaBounds, x = b.right - 25, y = b.centerY + 86;
+    const b = this.viewBounds, x = b.right - 25, y = b.centerY + 86;
     this.boonUI = {
       ring:  this.add.circle(x, y, 21, 0x000000, 0).setStrokeStyle(2, FORGE.gold, 0.9).setDepth(20),
       btn:   this.add.circle(x, y, 20, FORGE.gold, 0.92).setStrokeStyle(1.5, 0xfffbef, 0.9).setDepth(21),
@@ -2619,6 +2718,7 @@ class LootScene extends Phaser.Scene {
       badge: this.add.circle(x + 15, y - 15, 9, 0xc4331f, 1).setStrokeStyle(1.5, 0xfffbef, 0.9).setDepth(23),
       count: this.add.text(x + 15, y - 15, '', { resolution: RES, fontSize: '10px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(0.5).setDepth(24)
     };
+    this.fix(...Object.values(this.boonUI));
     this.boonUI.btn.setInteractive(new Phaser.Geom.Circle(20, 20, 26), Phaser.Geom.Circle.Contains);
     this.boonUI.btn.input.cursor = 'pointer';
     this.boonUI.btn.on('pointerdown', () => this.openBoons());
@@ -2979,6 +3079,7 @@ class LootScene extends Phaser.Scene {
     // The touch target is much larger than the drawn button: 30x17 is too small for a thumb.
     this.pauseHit = this.add.zone(x - 8, y + 4, 56, 36).setInteractive({ useHandCursor: true }).setDepth(62);
     this.pauseHit.on('pointerdown', () => this.pauseGame());
+    this.fix(this.pauseBtn, this.pauseIcon, this.pauseHit);
     this.showPauseButton(false);
   }
 
@@ -3104,13 +3205,13 @@ class LootScene extends Phaser.Scene {
     if (this.game.renderer.type !== Phaser.WEBGL) return;
     const k = 0.25;
     this.frostSmall = this.make.renderTexture({ x: 0, y: 0, width: Math.ceil(W * k), height: Math.ceil(H * k) }, false).setOrigin(0).setScale(1 / k);
-    this.frostSmall.camera.setZoom(k); this.frostSmall.camera.centerOn(W / 2, H / 2);
+    this.frostSmall.camera.setOrigin(0, 0).setZoom(k).setScroll(0, 0);     // the same view as the main camera, a quarter of the size
     this.frostTaps = [[0, 0]];
     for (let i = 0; i < 6; i++) {
       const a1 = i * Math.PI / 3, a2 = a1 + Math.PI / 6;
       this.frostTaps.push([Math.cos(a1) * 4.5, Math.sin(a1) * 4.5], [Math.cos(a2) * 9, Math.sin(a2) * 9]);
     }
-    for (const slot of ['overlay', 'ui']) this.frostRT[slot] = this.add.renderTexture(W / 2, H / 2, W, H).setOrigin(0.5).setVisible(false);
+    for (const slot of ['overlay', 'ui']) this.frostRT[slot] = this.fix(this.add.renderTexture(W / 2, H / 2, W, H).setOrigin(0.5).setVisible(false));
   }
 
   frost(slot, depth) {
@@ -3119,6 +3220,7 @@ class LootScene extends Phaser.Scene {
     try {
       rt.setVisible(false);
       this.children.depthSort();
+      small.camera.setScroll(this.camOff.x, this.camOff.y);
       small.clear();
       small.draw(this.children.list.filter(o => o.visible));
       rt.clear();
@@ -3165,7 +3267,7 @@ class LootScene extends Phaser.Scene {
     c.fillStyle = g; c.fillRect(0, 0, 128, 128); tex.refresh();
   }
 
-  ov(obj, depth = 101) { obj.setDepth(depth); this.overlay.push(obj); return obj; }
+  ov(obj, depth = 101) { obj.setDepth(depth).setScrollFactor(0); this.overlay.push(obj); return obj; }
 
   ovText(x, y, str, style) { return this.ov(this.add.text(x, y, str, Object.assign({ resolution: RES }, style)), 102); }
 
@@ -3473,7 +3575,7 @@ class LootScene extends Phaser.Scene {
     session.hintsSeen[id] = true;
     saveSession();
     this.hintShowing = id;
-    const b = this.arenaBounds;
+    const b = this.viewBounds;
     // Bottom-right of the arena: clear of bosses (they enter at the top) and of the
     // Tejas button (bottom-left), whose taps it must never swallow.
     const left = b.x + 76, w = b.right - 8 - left, cx = left + w / 2;
@@ -3487,6 +3589,7 @@ class LootScene extends Phaser.Scene {
       .setOrigin(0.5).setDepth(71);
     bg.on('pointerdown', () => this.dismissHint());
     this.hintBox = [bg, t, sub];
+    this.fix(bg, t, sub);
     this.sfx('ui-open', { vol: 0.6 });
     this.hintTimer = this.time.delayedCall(3800 + text.length * 30, () => this.dismissHint());
   }
@@ -3895,7 +3998,7 @@ class LootScene extends Phaser.Scene {
     const ab = this.arenaBounds, top = (e.nameLabel ? e.nameLabel.y : e.y - e.radius - 26) - 13;
     e.gateLabel.setVisible(true).setText(open ? `VULNERABLE  ${secs}s` : `RESISTS  \u00B7  opens in ${secs}s`).setColor(open ? '#ffe27a' : '#b9c2d6');
     const half = e.gateLabel.width / 2 + 2;
-    e.gateLabel.setPosition(Phaser.Math.Clamp(e.x, ab.x + half, ab.right - half), Math.max((this.trackY || ab.y) + 28, top));
+    e.gateLabel.setPosition(Phaser.Math.Clamp(e.x, ab.x + half, ab.right - half), Math.max((this.trackY ? this.trackY + this.camOff.y : ab.y) + 28, top));
     const g = e.gateFx, r = e.radius + 9;
     g.clear();
     if (open) {                                   // a bright ring breathing in his colour, and rays
@@ -3953,7 +4056,9 @@ class LootScene extends Phaser.Scene {
   }
 
   paintFloor(key, theme, cycle) {
-    const b = this.arenaBounds, px = Math.min(RES, 2);     // floors are soft art: 2x is plenty, and a third of the memory of 3x
+    // Floors are soft art: 2x is plenty, and a third of the memory of 3x. A wide arena
+    // shows the same painting larger, so it is painted finer by as much, up to 2048 pixels.
+    const b = this.viewBounds, px = Math.min(Math.min(RES, 2) * ARENA_SCALE, 2048 / b.height);
     const tex = this.textures.createCanvas(key, Math.round(b.width * px), Math.round(b.height * px));
     const ctx = tex.getContext(), w = b.width, h = b.height;
     ctx.scale(px, px);
@@ -4003,8 +4108,9 @@ class LootScene extends Phaser.Scene {
     this.floorLights = [];
     if (!theme.lights) return;
     this.ensureSoftGlow();
-    const b = this.arenaBounds;
-    theme.lights.forEach(([x, y, r, colour, alpha, ms]) => {
+    const b = this.arenaBounds, S = ARENA_SCALE;
+    theme.lights.forEach(([x0, y0, r0, colour, alpha, ms]) => {
+      const x = x0 * S, y = y0 * S, r = r0 * S;                // set out for the fixed arena
       const img = this.add.image(b.x + x, b.y + y, 'softglow').setDisplaySize(r * 2, r * 2).setTint(colour).setAlpha(alpha)
         .setBlendMode(Phaser.BlendModes.ADD).setDepth(Z.floor + 0.3);
       // Clipped to the arena, so a light in a corner does not spill over the stairs.
@@ -4020,15 +4126,15 @@ class LootScene extends Phaser.Scene {
   // saw-tooth frame of drawWellFrame showing). One image, re-skinned per level.
   setFrame(sector, theme) {
     if (!theme.frame) { if (this.frameImg) this.frameImg.setVisible(false); return; }
-    const key = this.frameKey(sector), fw = W, fh = H - HUD_H;
-    if (!this.frameImg) this.frameImg = this.add.image(W / 2, HUD_H + fh / 2, key).setDepth(Z.floor - 0.4);
+    const key = this.frameKey(sector), S = ARENA_SCALE, fw = W * S, fh = (H - HUD_H) * S;
+    if (!this.frameImg) this.frameImg = this.add.image(fw / 2, HUD_H + fh / 2, key).setDepth(Z.floor - 0.4);
     this.frameImg.setTexture(key).setDisplaySize(fw, fh).setVisible(true);
   }
 
   frameKey(sector) {
     const theme = FLOORS[(sector - 1) % FLOORS.length], key = 'frame-' + this.floorKey(sector), fw = W, fh = H - HUD_H;
     if (theme.frame && !this.textures.exists(key)) {
-      const px = Math.min(RES, 2), tex = this.textures.createCanvas(key, Math.round(fw * px), Math.round(fh * px)), ctx = tex.getContext();
+      const px = Math.min(Math.min(RES, 2) * ARENA_SCALE, 2048 / fh), tex = this.textures.createCanvas(key, Math.round(fw * px), Math.round(fh * px)), ctx = tex.getContext();
       ctx.scale(px, px);
       theme.frame(ctx, fw, fh, px);
       tex.refresh();
@@ -4045,7 +4151,8 @@ class LootScene extends Phaser.Scene {
   // The stairs around every arena: two courses of saw-tooth steps climbing away on all
   // four sides, the pattern that makes Chand Baori instantly recognisable from above.
   drawWellFrame() {
-    const b = this.arenaBounds, g = this.add.graphics().setDepth(Z.floor - 0.5);
+    // Drawn for the fixed arena, then scaled with it about the corner under the HUD.
+    const b = this.viewBounds, g = this.add.graphics().setDepth(Z.floor - 0.5).setScale(ARENA_SCALE).setPosition(0, HUD_H * (1 - ARENA_SCALE));
     const courses = 2, ch = MARGIN / courses, tooth = 20;
     for (let c = courses - 1; c >= 0; c--) {
       const near = c * ch, far = (c + 1) * ch;                       // distance out from the arena edge
@@ -4373,7 +4480,7 @@ class LootScene extends Phaser.Scene {
   // ---------- UI HELPERS ----------
   clearUI() {
     this.uiObjects.forEach(o => { this.tweens.killTweensOf(o); o.destroy(); });
-    this.uiObjects = [];
+    this.uiObjects = this.uiList();
     if (this.frostRT && this.frostRT.ui) this.frostRT.ui.setVisible(false);
     this.menu = null;
   }
@@ -4393,6 +4500,9 @@ class LootScene extends Phaser.Scene {
   showHub() {
     this.clearUI();
     this.state = 'hub';
+    this.cameraOn = false;
+    this.aimCamera(true);
+    this.hudOnTop(false);
     this.hudText.setText('');
     this.showPauseButton(false);
     this.setFloor(1);
@@ -4512,7 +4622,7 @@ class LootScene extends Phaser.Scene {
     this.clearUI();
     this.state = 'hub';
     const reached = session.bestSector || 1;
-    const b = this.arenaBounds;
+    const b = this.viewBounds;
     const textX = 80, wrap = b.right - textX - 12;       // never past the arena border
 
     // A backing panel keeps the text readable over the rangoli floor.
@@ -4652,13 +4762,13 @@ class LootScene extends Phaser.Scene {
     this.depth = 0;
 
     // mood tint over the arena that shifts with the current phase (procedural, no art needed)
-    const arenaCy = HUD_H + (H-HUD_H)/2;
-    this.phaseTint = this.add.rectangle(W/2, arenaCy, W - MARGIN*2, H - HUD_H - MARGIN*2, PHASE_DEFS.drift.tint, PHASE_DEFS.drift.tintAlpha)
+    const arena = this.arenaBounds;
+    this.phaseTint = this.add.rectangle(arena.centerX, arena.centerY, arena.width, arena.height, PHASE_DEFS.drift.tint, PHASE_DEFS.drift.tintAlpha)
       .setDepth(Z.tint);   // over the floor, under telegraphs - it must never dim a slam warning
 
     const baseMaxHP = 100 * (1 + session.vitalityLevel * 0.10) + (this.perkOn('lungs') ? PERKS.lungs.n : 0);
     this.player = {
-      x: W/2, y: HUD_H + (H-HUD_H)/2,
+      x: arena.centerX, y: arena.centerY,
       maxHp: baseMaxHP, hp: baseMaxHP,
       speed: 200,
       flashTimer: 0,
@@ -4697,6 +4807,8 @@ class LootScene extends Phaser.Scene {
     this.phaseBarFill = this.add.rectangle(pbarX, pbarY, pbarW, pbarH, PHASE_DEFS.drift.color).setOrigin(0,0.5);
     this.phaseBarLabel = this.add.text(pbarX + pbarW/2, pbarY, PHASE_DEFS.drift.label, { resolution: RES, fontSize: '11px', color: '#1a0600', fontStyle: 'bold' }).setOrigin(0.5);
     this.phaseBarW = pbarW;
+    this.fix(this.phaseBarBg, this.phaseBarFill, this.phaseBarLabel);
+    if (ARENA_SCALE > 1) [this.phaseBarBg, this.phaseBarFill, this.phaseBarLabel].forEach(o => o.setDepth(Z.hud + 1));
 
     // Progress track - Dota-lane style: waves 1-5, gate at wave 3, ancient/flag at wave 5, moving marker
     const b = new Phaser.Geom.Rectangle(MARGIN, HUD_H + MARGIN, W - MARGIN*2, H - HUD_H - MARGIN*2);
@@ -4715,6 +4827,9 @@ class LootScene extends Phaser.Scene {
     this.progressMarker = this.add.triangle(this.trackStartX, trackY+16, 0,0, -6,9, 6,9, 0xffd23c);
     this.trackY = trackY;
     this.sectorLabel = this.add.text(this.trackStartX - 14, trackY, N.stage[0] + '1', { resolution: RES, fontSize: '10px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(1, 0.5);
+    this.fix(this.progressLine, this.progressMarker, this.sectorLabel, ...this.progressNodes);
+    // Arrows toward what is out of sight; only a wide arena has an out of sight.
+    this.farFx = ARENA_SCALE > 1 ? this.fix(this.add.graphics().setDepth(44)) : null;
 
     this.atkTimer = 0;
     this.attackFx = this.add.graphics();
@@ -4739,6 +4854,9 @@ class LootScene extends Phaser.Scene {
     this.spawnQueue = [];
     this.spawnTimer = 0;
 
+    this.cameraOn = true;
+    this.aimCamera(true);
+    this.hudOnTop(true);
     this.showSectorBanner(this.sector);
     this.nextWave();
     this.showPauseButton(true);
@@ -4751,7 +4869,7 @@ class LootScene extends Phaser.Scene {
 
   showSectorBanner(n) {
     const style = (size, colour, bold) => ({ resolution: RES, stroke: '#2a0800', strokeThickness: 4, fontSize: size + 'px', color: colour, fontStyle: bold ? 'bold' : 'normal' });
-    const line = (y, str, st) => this.add.text(W/2, y, str, st).setOrigin(0.5).setAlpha(0);
+    const line = (y, str, st) => this.fix(this.add.text(W/2, y, str, st).setOrigin(0.5).setAlpha(0));
     const t1 = line(H/2-46, (this.tier > 1 ? `DEPTH ${this.tier} · ` : '') + stageLabel(n).toUpperCase(), style(14, '#e8c690', true));
     const t2 = line(H/2-16, sectorTitle(n), style(28, '#ffd23c', true));
     const t3 = line(H/2+14, sectorSub(n), style(12, '#f0dcc0'));
@@ -4904,7 +5022,7 @@ class LootScene extends Phaser.Scene {
   // eyesight - and every game this one is measured against pauses for a build decision.
   // Picking loot up off the floor still does not pause; only choosing between items does.
   buildSatchelUI() {
-    const b = this.arenaBounds;
+    const b = this.viewBounds;
     const tabW = 26, tabH = 84;
     const tx = b.right - tabW / 2 - 2, ty = b.centerY;
 
@@ -4914,6 +5032,7 @@ class LootScene extends Phaser.Scene {
     this.satchelTabIcon = this.add.text(tx, ty - 12, '◀', { resolution: RES, fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
     this.satchelTabCount = this.add.text(tx, ty + 8, '0', { resolution: RES, fontSize: '13px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(0.5);
     this.satchelTab.on('pointerdown', () => this.pauseGame('satchel'));
+    this.fix(this.satchelTab, this.satchelTabIcon, this.satchelTabCount);
   }
 
   refreshSatchel() {
@@ -5043,8 +5162,8 @@ class LootScene extends Phaser.Scene {
   }
 
   spawnGatekeeper() {
-    const b = this.arenaBounds;
-    const x = (b.x + b.right) / 2, y = b.y + 60;
+    const b = this.arenaBounds, v = this.viewRect();        // he enters at the top of what is seen
+    const x = ARENA_SCALE > 1 ? Phaser.Math.Clamp(v.centerX, b.x + 60, b.right - 60) : (b.x + b.right) / 2, y = Math.max(b.y, v.y) + 60;
     let weakPhase = Phaser.Utils.Array.GetRandom(PHASE_SEQUENCE);
     // The first Gatekeeper a player ever meets arrives open, and stays open for a good
     // while: they see what full damage looks like, then watch it fall away when the phase
@@ -5084,8 +5203,8 @@ class LootScene extends Phaser.Scene {
 
   spawnSectorBoss() {
     const isMega = this.sector === MEGA_BOSS_SECTOR;
-    const b = this.arenaBounds;
-    const x = (b.x + b.right) / 2, y = b.y + 70;
+    const b = this.arenaBounds, v = this.viewRect();
+    const x = ARENA_SCALE > 1 ? Phaser.Math.Clamp(v.centerX, b.x + 60, b.right - 60) : (b.x + b.right) / 2, y = Math.max(b.y, v.y) + 70;
     const hp = (420 + this.depth * 26) * sectorHpMult(this.sector);
     const weakPhase = Phaser.Utils.Array.GetRandom(PHASE_SEQUENCE);
     const enemy = {
@@ -5206,7 +5325,7 @@ class LootScene extends Phaser.Scene {
     const want = entry && typeof entry === 'object' ? entry : {};
     const type = want.type || pickEnemyType(this.depth);
     const edge = want.edge !== undefined ? want.edge : Phaser.Math.Between(0,3);
-    const b = this.arenaBounds;
+    const b = this.spawnRect();
     let x,y;
     if (edge===0) { x = Phaser.Math.Between(b.x, b.right); y = b.y; }
     else if (edge===1) { x = Phaser.Math.Between(b.x, b.right); y = b.bottom; }
@@ -5255,7 +5374,7 @@ class LootScene extends Phaser.Scene {
   }
 
   spawnElite() {
-    const b = this.arenaBounds;
+    const b = this.spawnRect();
     const edge = Phaser.Math.Between(0,3);
     let x,y;
     if (edge===0) { x = Phaser.Math.Between(b.x, b.right); y = b.y; }
@@ -5503,8 +5622,8 @@ class LootScene extends Phaser.Scene {
   }
 
   showToast(msg, color) {
-    const t = this.add.text(W/2, HUD_H + 20, msg, { resolution: RES, fontSize: '14px', color, fontStyle: 'bold',
-      stroke: '#2a0800', strokeThickness: 4 }).setOrigin(0.5).setAlpha(0).setDepth(45);
+    const t = this.fix(this.add.text(W/2, HUD_H + 20, msg, { resolution: RES, fontSize: '14px', color, fontStyle: 'bold',
+      stroke: '#2a0800', strokeThickness: 4 }).setOrigin(0.5).setAlpha(0).setDepth(ARENA_SCALE > 1 ? Z.hud + 2 : 45));
     this.tweens.add({
       targets: t, alpha: 1, y: HUD_H + 8, duration: 200, yoyo: true, hold: 700,
       onComplete: () => t.destroy()
@@ -5657,6 +5776,7 @@ class LootScene extends Phaser.Scene {
       if (this.progressNodes) this.progressNodes.forEach(n => n.destroy());
       if (this.progressMarker) this.progressMarker.destroy();
       if (this.sectorLabel) this.sectorLabel.destroy();
+      if (this.farFx) { this.farFx.destroy(); this.farFx = null; }
       if (this.weaponText) this.weaponText.setText('');
       this.destroySatchelUI();
       this.destroyBoonButton();
@@ -5758,6 +5878,12 @@ class LootScene extends Phaser.Scene {
       this.phaseBarLabel.setAlpha(1);
     }
 
+    // In a wide arena a held finger keeps steering: the spot under it moves as the camera does.
+    if (ARENA_SCALE > 1) {
+      const ptr = this.input.activePointer;
+      if (ptr.isDown && !this.pointerOnUI) { ptr.updateWorldPoint(this.cameras.main); this.setMoveTarget(ptr.worldX, ptr.worldY); }
+    }
+
     // --- movement ---
     // Captured before any movement so facing can be derived from where we actually went.
     const prevX = this.player.x, prevY = this.player.y;
@@ -5807,6 +5933,7 @@ class LootScene extends Phaser.Scene {
     this.player.x = Phaser.Math.Clamp(this.player.x, this.arenaBounds.x+15, this.arenaBounds.right-15);
     this.player.y = Phaser.Math.Clamp(this.player.y, this.arenaBounds.y+15, this.arenaBounds.bottom-15);
 
+    this.aimCamera(false, delta);
     const lift = this.animate(this.playerSprite, this.playerAnim, delta, (this.player.x - prevX) / dt, (this.player.y - prevY) / dt, false, 0);
     this.playerSprite.setPosition(this.player.x, this.player.y - lift);
     this.playerRing.setPosition(this.player.x, this.player.y + 16);
@@ -5963,7 +6090,7 @@ class LootScene extends Phaser.Scene {
         const topBar = enemy.shieldBarFill ? 27 : (enemy.isBoss ? 18 : 13);
         // Clamped below the progress track: bosses spawn near the top of the arena and
         // their label would otherwise sit on top of the sector rail.
-        const floor = (this.trackY || this.arenaBounds.y) + 14, ab = this.arenaBounds, half = enemy.nameLabel.width / 2 + 2;
+        const floor = (this.trackY ? this.trackY + this.camOff.y : this.arenaBounds.y) + 14, ab = this.arenaBounds, half = enemy.nameLabel.width / 2 + 2;
         // Kept inside the arena: a boss's label grows once it carries a tribute count.
         enemy.nameLabel.setPosition(half * 2 >= ab.width ? ab.centerX : Phaser.Math.Clamp(enemy.x, ab.x + half, ab.right - half),
                                     Math.max(floor, enemy.y - enemy.radius - topBar - 8));
@@ -6000,7 +6127,7 @@ class LootScene extends Phaser.Scene {
       if (p.halo) p.halo.setPosition(p.x, p.y);
 
       const pdist = Math.hypot(p.x - this.player.x, p.y - this.player.y);
-      const offscreen = p.x < 0 || p.x > W || p.y < 0 || p.y > H;
+      const offscreen = !Phaser.Geom.Rectangle.Contains(this.worldBounds, p.x, p.y);
 
       if (pdist < 18) {
         const died = this.damagePlayer(p.dmg * PHASE_DEFS[this.phase].enemyDmgMult, null, 'ranged');
@@ -6121,6 +6248,8 @@ class LootScene extends Phaser.Scene {
       }
     }
 
+    this.drawFarPointers();
+
     // --- HP bar update ---
     const hpPct = Math.max(0, this.player.hp/this.player.maxHp);
     const hbX = this.player.x - HP_BAR.w / 2, hbY = this.player.y - HP_BAR.up;
@@ -6137,7 +6266,7 @@ class LootScene extends Phaser.Scene {
     if (power !== this.powerShown) {
       // A gain shows: the number swells, and the amount floats up from it.
       if (this.powerShown && power > this.powerShown) {
-        const gain = this.add.text(W - 14, 74, `+${power - this.powerShown}`, { resolution: RES, fontSize: '11px', color: '#fffbef', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 }).setOrigin(1, 0).setDepth(45);
+        const gain = this.fix(this.add.text(W - 14, 74, `+${power - this.powerShown}`, { resolution: RES, fontSize: '11px', color: '#fffbef', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 }).setOrigin(1, 0).setDepth(ARENA_SCALE > 1 ? Z.hud + 2 : 45));
         this.tweens.add({ targets: gain, y: 88, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => gain.destroy() });
         this.powerText.setScale(1.35); this.tweens.add({ targets: this.powerText, scale: 1, duration: 300, ease: 'Back.easeOut' });
       }
