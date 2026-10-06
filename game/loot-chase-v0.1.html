@@ -544,7 +544,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.4 (2026-10-05)';
+const BUILD = '0.5 (2026-10-06)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -625,6 +625,7 @@ const W = 400, H = 700;
 // Clamped to 3: beyond that the buffer cost stops buying visible sharpness.
 const RES = Math.min(3, Math.max(2, Math.round(window.devicePixelRatio || 1)));
 const MARGIN = 30, HUD_H = 76;
+const HP_BAR = { w: 42, h: 5, up: 35 };   // Kiran's health bar: its size, and how far over his middle it floats
 const GATEKEEPER_WAVE = 3;
 const MEGA_BOSS_SECTOR = 3;
 
@@ -1280,6 +1281,13 @@ const CHARS = {
   megaboss:    'vritra'       // वृत्र     — the serpent who hoarded the world's waters
 };
 const FACINGS = ['front', 'back', 'left', 'right'];
+// Walk frames (requirements 2.31). One sheet per character, "<name>-walk": a row for each
+// facing, in the order of FACINGS; the first cell of a row is the standing frame and the
+// rest are one walk cycle. Cells are larger than the 96px stills so that a stride never
+// clips, and a sheet is drawn larger by the same amount (pad), which leaves the figure the
+// size it was. Built by tools/extract-walk.py. Vritra has none: he is drawn in code.
+const WALK = { frames: 8, cell: 112, pad: 112 / 96 };
+const WALKERS = Object.keys(CHARS).filter(k => k !== 'megaboss').map(k => CHARS[k]);
 const INV_MAX = 8;   // satchel capacity; oldest falls out past this
 
 // Shown above every enemy. These are the Sanskrit *type* names, not proper nouns -
@@ -2152,6 +2160,9 @@ class LootScene extends Phaser.Scene {
       for (const f of FACINGS) {
         this.load.image(`${name}-${f}`, `assets/chars/${name}-${f}.png`);
       }
+    }
+    for (const name of WALKERS) {
+      this.load.spritesheet(`${name}-walk`, `assets/chars/${name}-walk.png`, { frameWidth: WALK.cell, frameHeight: WALK.cell });
     }
     this.load.image('bg_stars', 'assets/bg-stars.png');
     for (const [key, def] of Object.entries(SFX)) {
@@ -3462,27 +3473,55 @@ class LootScene extends Phaser.Scene {
     this.tweens.add({ targets: g, alpha: 0, scale: 1.35, duration: 210, onComplete: () => g.destroy() });
   }
 
-  // Life without animation frames (requirements 2.10). Every character is one still image
-  // per facing, so the motion is made here: a hop in the stride, a lean into the turn, a
-  // breath at rest, a squash when struck, a swell on arrival, a crouch before a slam.
-  // `a` carries the state (the enemy itself, or playerAnim). Returns how far the sprite
-  // should be lifted off its spot this frame.
+  // A character's sprite: its walk sheet where it has one, its still otherwise. `size` is
+  // how large the standing figure is drawn, whichever it is.
+  charSprite(char, x, y, size) {
+    if (!this.textures.exists(`${char}-walk`)) return this.add.image(x, y, `${char}-front`).setDisplaySize(size, size);
+    const spr = this.add.image(x, y, `${char}-walk`, 0).setDisplaySize(size * WALK.pad, size * WALK.pad);
+    spr.walks = true;
+    return spr;
+  }
+
+  // Turns a character to a facing, and on a walk sheet shows the step that animate() has
+  // reached: 0 is standing, 1 to WALK.frames the stride. `a` is the state animate() keeps.
+  pose(spr, char, facing, a) {
+    if (spr.walks) {
+      const frame = FACINGS.indexOf(facing) * (WALK.frames + 1) + (a.step || 0);
+      if (spr.frame.name !== frame) spr.setFrame(frame);
+    } else if (spr.posed !== facing) {
+      spr.posed = facing;
+      spr.setTexture(`${char}-${facing}`);
+    }
+  }
+
+  // Life beyond the frames (requirements 2.31). The walk sheets carry the stride; the rest
+  // is made here: a lean into the turn, a breath at rest, a squash when struck, a swell on
+  // arrival, a crouch before a slam - and, for a character with no sheet, a hop in place of
+  // the stride. `a` carries the state (the enemy itself, or playerAnim). Returns how far
+  // the sprite should be lifted off its spot this frame.
   animate(spr, a, delta, vx, vy, heavy, crouch) {
-    if (spr.baseSX === undefined) { spr.baseSX = spr.scaleX; spr.baseSY = spr.scaleY; }
+    if (spr.baseSX === undefined) { spr.baseSX = spr.scaleX; spr.baseSY = spr.scaleY; spr.strideLen = spr.displayWidth / (spr.walks ? WALK.pad : 1) * 2.4; }
     if (a.gait === undefined) { a.gait = Math.random() * 6.28; a.age = a.age || 0; }
     a.age += delta;
     const speed = Math.hypot(vx, vy), moving = speed > 12, rate = heavy ? 0.0085 : 0.0135;
     a.gait += delta * (moving ? rate + Math.min(0.006, speed * 0.00003) : rate * 0.22);
     const stride = Math.sin(a.gait), k = heavy ? 0.55 : 1;
     let sx = 1, sy = 1, lift = 0;
-    if (moving) { sy += 0.055 * stride * k; sx -= 0.04 * stride * k; lift = Math.abs(stride) * (heavy ? 1.6 : 2.8); }
-    else { const breath = Math.sin(a.gait * 2) * 0.02; sy += breath; sx -= breath * 0.6; }
+    if (spr.walks) {
+      // The cycle keeps pace with the ground covered, so feet do not slide; a slow giant
+      // still steps at a walk. The pose is held a moment after stopping, so a character
+      // jostled in a crowd does not flicker between standing and walking.
+      if (moving) { a.walkHold = 140; a.walk = (a.walk || 0) + Math.max(0.7, speed / spr.strideLen) * delta / 1000; }
+      else if (a.walkHold > 0) a.walkHold -= delta;
+      a.step = a.walkHold > 0 ? 1 + Math.floor((a.walk || 0) * WALK.frames) % WALK.frames : 0;
+    } else if (moving) { sy += 0.055 * stride * k; sx -= 0.04 * stride * k; lift = Math.abs(stride) * (heavy ? 1.6 : 2.8); }
+    if (!moving) { const breath = Math.sin(a.gait * 2) * 0.02; sy += breath; sx -= breath * 0.6; }
     if (a.squash > 0) { a.squash -= delta; const q = Math.max(0, a.squash / 140); sx += 0.17 * q; sy -= 0.15 * q; }
     if (a.punch > 0) { a.punch -= delta; const q = Math.max(0, a.punch / 90); sx += 0.07 * q; sy += 0.07 * q; }
     if (crouch > 0) { sy -= 0.12 * crouch; sx += 0.09 * crouch; }
     if (a.age < 220) { const q = a.age / 220, pop = 0.55 + 0.45 * (1 - Math.pow(1 - q, 3)); sx *= pop; sy *= pop; }
     spr.setScale(spr.baseSX * sx, spr.baseSY * sy);
-    spr.setRotation(moving ? Phaser.Math.Clamp(vx / 260, -1, 1) * 0.1 : 0);
+    spr.setRotation(moving ? Phaser.Math.Clamp(vx / 260, -1, 1) * (spr.walks ? 0.06 : 0.1) : 0);
     return lift;
   }
 
@@ -4538,7 +4577,7 @@ class LootScene extends Phaser.Scene {
     };
     this.playerFacing = 'front';
     this.playerAnim = { age: 1e6 };       // the state of Kiran's motion (see animate)
-    this.playerSprite = this.add.image(this.player.x, this.player.y, `${CHARS.player}-front`).setDisplaySize(44, 44);
+    this.playerSprite = this.charSprite(CHARS.player, this.player.x, this.player.y, 44);
     // The ring stays a vector circle: it is the phase-colour tell, and must not inherit ship art.
     // Stance ring at Kiran's feet, not a circle around the body - a ring around a
     // character sprite reads as a bubble, but on the floor it reads as a stance and
@@ -4547,15 +4586,16 @@ class LootScene extends Phaser.Scene {
       .setStrokeStyle(2, PHASE_DEFS.drift.color, 0.9);
     this.boonFx = this.add.graphics();   // tells for Hold Your Ground and Read the Slam
 
-    // HP bar
-    const barX = 14, barY = 24, barW = W - 28, barH = 8;
-    this.hpBarBg = this.add.rectangle(barX, barY, barW, barH, 0x2a0f04).setOrigin(0,0.5).setStrokeStyle(1, 0x6b4a2e);
-    this.hpBarFill = this.add.rectangle(barX, barY, barW, barH, 0x2fbf71).setOrigin(0,0.5);
+    // HP bar: over Kiran's head, where the eyes already are in a fight (2026-10-06). It
+    // used to run across the top of the screen. It follows him every frame (see update).
+    const barX = this.player.x - HP_BAR.w / 2, barY = this.player.y - HP_BAR.up, barW = HP_BAR.w, barH = HP_BAR.h;
+    this.hpBarBg = this.add.rectangle(barX, barY, barW, barH, 0x2a0f04).setOrigin(0,0.5).setStrokeStyle(1.5, 0x1a0600).setDepth(40);
+    this.hpBarFill = this.add.rectangle(barX, barY, barW, barH, 0x2fbf71).setOrigin(0,0.5).setDepth(40);
     this.hpBarW = barW;
-    this.bloodBar = this.add.rectangle(barX, barY, 0, barH - 4, 0xffb0b0).setOrigin(0, 0.5);   // Blood Shield
+    this.bloodBar = this.add.rectangle(barX, barY - barH / 2 - 2, 0, 2, 0xffb0b0).setOrigin(0, 0.5).setDepth(40);   // Blood Shield, a line over the bar
 
     // Phase bar - big, prominent, drains as the current phase runs out. This replaces the old tiny dial.
-    const pbarX = 14, pbarY = 42, pbarW = W - 28, pbarH = 14;
+    const pbarX = 14, pbarY = 36, pbarW = W - 28, pbarH = 18;
     this.phaseBarBg = this.add.rectangle(pbarX, pbarY, pbarW, pbarH, 0x2a0f04).setOrigin(0,0.5).setStrokeStyle(1, 0x6b4a2e);
     this.phaseBarFill = this.add.rectangle(pbarX, pbarY, pbarW, pbarH, PHASE_DEFS.drift.color).setOrigin(0,0.5);
     this.phaseBarLabel = this.add.text(pbarX + pbarW/2, pbarY, PHASE_DEFS.drift.label, { resolution: RES, fontSize: '11px', color: '#1a0600', fontStyle: 'bold' }).setOrigin(0.5);
@@ -4921,7 +4961,7 @@ class LootScene extends Phaser.Scene {
     this.enemies.push(enemy);
     enemy.char = CHARS.gatekeeper;
     enemy.facing = 'front';
-    const spr = this.add.image(x, y, `${enemy.char}-front`).setDisplaySize(enemy.radius * 2.8, enemy.radius * 2.8);
+    const spr = this.charSprite(enemy.char, x, y, enemy.radius * 2.8);
     // The weak-phase core sits UNDER the sprite as a glow pool, so Dwarapal's
     // silhouette stays readable while the colour tell is still unmistakable.
     const core = this.add.circle(x, y + enemy.radius * 0.55, 14, PHASE_DEFS[weakPhase].color, 0.85);
@@ -4958,7 +4998,7 @@ class LootScene extends Phaser.Scene {
 
     enemy.char = isMega ? CHARS.megaboss : CHARS.sectorboss;
     enemy.facing = 'front';
-    const spr = this.add.image(x, y, `${enemy.char}-front`).setDisplaySize(enemy.radius * 2.8, enemy.radius * 2.8);
+    const spr = this.charSprite(enemy.char, x, y, enemy.radius * 2.8);
     this.enemySprites.set(enemy.id, spr);
     const outerRing = this.add.circle(x, y, enemy.radius + 10, 0x000000, 0).setStrokeStyle(2, isMega ? 0xc23cff : FORGE.gold, 0.5);
     this.enemyRings.set(enemy.id, outerRing);
@@ -5098,8 +5138,7 @@ class LootScene extends Phaser.Scene {
     // muddies it. Elites keep a gold wash because that IS a state, not an identity.
     enemy.char = CHARS[type];
     enemy.facing = 'front';
-    const spr = this.add.image(x, y, `${enemy.char}-front`)
-      .setDisplaySize(enemy.radius * 2.8, enemy.radius * 2.8);
+    const spr = this.charSprite(enemy.char, x, y, enemy.radius * 2.8);
     if (isElite) spr.setTint(0xffd23c);
     this.enemySprites.set(enemy.id, spr);
     this.addHpBar(enemy);
@@ -5179,7 +5218,7 @@ class LootScene extends Phaser.Scene {
   killEnemy(enemy) {
     const spr = this.enemySprites.get(enemy.id);
     if (spr && spr.visible && !this.silent) {          // it folds and fades rather than blinking out
-      const ghost = this.add.image(spr.x, spr.y, spr.texture.key).setScale(spr.scaleX, spr.scaleY).setTint(0xffe6c0).setAlpha(0.85);
+      const ghost = this.add.image(spr.x, spr.y, spr.texture.key, spr.frame.name).setScale(spr.scaleX, spr.scaleY).setTint(0xffe6c0).setAlpha(0.85);
       this.tweens.add({ targets: ghost, scaleX: spr.scaleX * 1.3, scaleY: spr.scaleY * 0.35, y: spr.y + spr.displayHeight * 0.3, alpha: 0, duration: 190, ease: 'Cubic.easeIn', onComplete: () => ghost.destroy() });
     }
     if (spr) spr.destroy();
@@ -5695,10 +5734,8 @@ class LootScene extends Phaser.Scene {
       }
       want = aim ? facingFor(aim.x - this.player.x, aim.y - this.player.y) : this.playerFacing;
     }
-    if (want && want !== this.playerFacing) {
-      this.playerFacing = want;
-      this.playerSprite.setTexture(`${CHARS.player}-${want}`);
-    }
+    if (want) this.playerFacing = want;
+    this.pose(this.playerSprite, CHARS.player, this.playerFacing, this.playerAnim);
 
     // Slow drift sells "descending" without moving the arena itself.
     if (this.starfield) this.starfield.tilePositionY -= 0.28 * (delta / 16.67);
@@ -5808,11 +5845,8 @@ class LootScene extends Phaser.Scene {
         // 4-direction art is never turned to face - the facing frame is swapped instead.
         // Face the player, which is also the direction almost every enemy is moving.
         if (enemy.char) {
-          const f = facingFor(this.player.x - enemy.x, this.player.y - enemy.y);
-          if (f !== enemy.facing) {
-            enemy.facing = f;
-            spr.setTexture(`${enemy.char}-${f}`);
-          }
+          enemy.facing = facingFor(this.player.x - enemy.x, this.player.y - enemy.y);
+          this.pose(spr, enemy.char, enemy.facing, enemy);
         }
       }
 
@@ -5981,6 +6015,8 @@ class LootScene extends Phaser.Scene {
 
     // --- HP bar update ---
     const hpPct = Math.max(0, this.player.hp/this.player.maxHp);
+    const hbX = this.player.x - HP_BAR.w / 2, hbY = this.player.y - HP_BAR.up;
+    this.hpBarBg.setPosition(hbX, hbY); this.hpBarFill.setPosition(hbX, hbY); this.bloodBar.setPosition(hbX, hbY - HP_BAR.h / 2 - 2);
     this.hpBarFill.width = this.hpBarW * hpPct;
     this.hpBarFill.fillColor = hpPct > 0.5 ? 0x2fbf71 : (hpPct > 0.25 ? 0xffd23c : 0xff5c5c);
     const shield = this.player.bloodShield || 0;

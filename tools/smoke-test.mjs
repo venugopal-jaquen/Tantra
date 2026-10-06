@@ -134,9 +134,10 @@ try {
   // ---------- 3. a run in real time: HUD, first tip, banner ----------
   await page(`game.scene.keys.LootScene.startRun();`);
   await sleep(1500); await shot('3-run-start');
-  const run = await page(`const s = game.scene.keys.LootScene; return { state: s.state, tip: s.hintBox ? s.hintBox[1].text : null, hudBottom: Math.round(s.hudText.y + s.hudText.height), hpBarTop: Math.round(s.hpBarBg.y - s.hpBarBg.height / 2) };`);
+  const run = await page(`const s = game.scene.keys.LootScene; return { state: s.state, tip: s.hintBox ? s.hintBox[1].text : null, hudBottom: Math.round(s.hudText.y + s.hudText.height), barTop: Math.round(s.phaseBarBg.y - s.phaseBarBg.height / 2), hp: { dx: Math.round(s.hpBarBg.x + s.hpBarBg.width / 2 - s.player.x), dy: Math.round(s.player.y - s.hpBarBg.y), w: s.hpBarBg.width } };`);
   check('first tip shows during the first run', !!run.tip, run.tip || 'none');
-  check('HUD line clears the HP bar', run.hudBottom <= run.hpBarTop + 1, `text bottom ${run.hudBottom}, bar top ${run.hpBarTop}`);
+  check('HUD line clears the phase bar', run.hudBottom <= run.barTop + 1, `text bottom ${run.hudBottom}, bar top ${run.barTop}`);
+  check("Kiran's health bar floats over his head", run.hp.dx === 0 && run.hp.dy === 35 && run.hp.w === 42, JSON.stringify(run.hp));
 
   // Waves are held still for the checks that follow: a queue that never spawns, so a kill
   // is not a cleared wave unless a check empties the queue to make it one.
@@ -150,6 +151,26 @@ try {
     await new Promise(r => setTimeout(r, 2200));
     return { moved: Math.round(moved), speed: Math.round(moved / secs), arrived: Math.round(s.player.y), target: s.pointerTarget };`);
   check('a tap is walked to at walking speed, not jumped to', walk.speed > 150 && walk.speed < 250 && walk.arrived === 150 && walk.target === null, JSON.stringify(walk));
+
+  // Walk frames: every character but Vritra has a sheet; a standing figure shows the first
+  // cell of its facing's row, a moving one steps through the rest, and the figure is the
+  // size it was as a still.
+  const legs = await page(`const s = game.scene.keys.LootScene, per = WALK.frames + 1, wait = ms => new Promise(r => setTimeout(r, ms));
+    const stepsOf = async (spr, need) => { const seen = new Set(), rows = new Set();
+      for (let i = 0; i < 80 && seen.size < need; i++) { await wait(30); const f = spr.frame.name; if (f % per) { seen.add(f % per); rows.add(Math.floor(f / per)); } }
+      return { steps: seen.size, rows: [...rows].join() }; };
+    const out = { sheets: WALKERS.filter(n => s.textures.exists(n + '-walk') && s.textures.get(n + '-walk').frameTotal - 1 === per * FACINGS.length).length, walkers: WALKERS.length,
+      vritra: s.textures.exists(CHARS.megaboss + '-walk'), onSheet: !!s.playerSprite.walks, size: Math.round(s.playerSprite.baseSX * WALK.cell / WALK.pad), standing: s.playerSprite.frame.name % per };
+    s.setMoveTarget(330, 150); out.kiran = await stepsOf(s.playerSprite, 5); out.right = FACINGS.indexOf('right');
+    for (let i = 0; i < 60 && s.pointerTarget; i++) await wait(40);
+    await wait(320); out.stopped = s.playerSprite.frame.name % per;
+    const e = s.spawnEnemyOfType('melee', 70, 330, 1), spr = s.enemySprites.get(e.id);
+    out.asura = await stepsOf(spr, 4); out.asuraSize = Math.round(spr.baseSX * WALK.cell / WALK.pad * 10) / 10; out.asuraWants = Math.round(e.radius * 28) / 10;
+    e.speed = 0; await wait(320); out.asuraStopped = spr.frame.name % per;
+    s.killEnemy(e); return out;`);
+  check('every character but Vritra has a walk sheet, and figures keep their size', legs.sheets === 7 && legs.walkers === 7 && !legs.vritra && legs.onSheet && legs.size === 44 && legs.asuraSize === legs.asuraWants, JSON.stringify(legs));
+  check('Kiran and his enemies step through their walk frames, and stand when they stop', legs.standing === 0 && legs.kiran.steps >= 5 && legs.kiran.rows === String(legs.right) && legs.stopped === 0
+    && legs.asura.steps >= 4 && legs.asuraStopped === 0, JSON.stringify(legs));
 
   // The satchel pauses the fight, says what each item does, and swaps on a tap.
   const satchel = await page(`const s = game.scene.keys.LootScene;

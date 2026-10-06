@@ -52,7 +52,7 @@ Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the cond
 | L7 | **Loading screen** | ✅ **Built 2026-10-02**: one glossary card per load, with a copper-silver-gold progress bar and a Begin button (`requirements.md` §2.19). Since 2026-10-03 it also shows how full the well is and what a full well means. | A branded loader with a progress bar. |
 | L8 | **Real-device check** (= P6) | Untested on a real phone. | Profiled on a mid-range Android and an iPhone; the frame rate holds with a full arena. |
 | L9 | **itch.io page** | Nothing. To carry into it: **self-host the two typefaces and the engine** in the zip (both load from CDNs today); itch.io asks creators to **disclose generative-AI content**, which covers this project's AI-assisted code and any AI-generated music; give the chosen tracks **in-world names** for the credits and store page, as Asura did. | Zipped build, embed size set, mobile-friendly flag, fullscreen button, cover image (630×500), 3–5 screenshots, a short GIF, description, tags, credits. Released **free**: no money changes hands, so the GST/CA question waits. |
-| L10 | **Feedback loop** | ⏳ **Built 2026-10-02** (`requirements.md` §2.22): a dialog on the title screen and after every run that emails the founder through FormSubmit. **The founder must click the activation link** in the email the first message triggers, then pass on the alias it issues. itch.io analytics start with L9. | An in-game "Send feedback" link, and itch.io analytics watched for the first two weeks. |
+| L10 | **Feedback loop** | ⏳ **Built 2026-10-02** (`requirements.md` §2.22): a dialog on the title screen and after every run that emails the founder through FormSubmit. **Activated by the founder, 2026-10-06.** Checked the same day with one labelled test message sent through the dialog on the live site: FormSubmit answered that it was submitted successfully. Still to do: swap the address in the page for the private alias FormSubmit issued, once the founder passes it on. itch.io analytics start with L9. | An in-game "Send feedback" link, and itch.io analytics watched for the first two weeks. |
 
 **Not needed for the POC:** P2 (look-builder), P4 (commissioned art), P5 (visual-story polish), M8 (narrative), M9 (capstone boss). These wait on the itch.io response, as the "prove it, then invest" rule in `launch-roadmap.md` says.
 
@@ -180,7 +180,7 @@ What the runs say:
 |---|---|---|
 | Getting in | All four: the state drawn on the boss, a countdown, a first Gatekeeper who arrives open, and a softer penalty on level 1 (the founder set it at 30% of a hit getting through, where 50% was proposed) | `requirements.md` §2.6 |
 | Coming back | Seven depths as the spine, perks as the rewards. The daily descent is pinned (P9) | §2.30 |
-| Advertising | Motion in code and a drawn Vritra now. The founder will make the characters themselves with image tools, and is not ready to commission an artist (`docs/character-art-guide.md`). Music waits until after launch (P10) | §2.31 |
+| Advertising | Motion in code and a drawn Vritra now. The founder will make the characters themselves with image tools, and is not ready to commission an artist (`docs/character-art-guide.md`). Music waits until after launch (P10). Later the same day: walk frames switched on from the stock packs already licensed, as a stopgap (build 0.5) | §2.31 |
 
 Holding the tribute, power and satchel tips back until level 2 was proposed under "getting in" and not chosen; it is not built.
 
