@@ -201,7 +201,22 @@ What the runs say:
 2. **Depth 7 is a cliff.** The fifth more health and damage it adds is the first thing on the ladder that bites: no wins at 10/10, three of eight at 14/14 with three perks. Depths 5 and 6 were not run.
 3. **Two perks do not move the bot's results** at depth 1. They are small by design; their worth is the choosing.
 
-So the ladder as built is flat for three or four wins and then steep. A player would feel "the same run again" and then a wall. **Proposed, not built:** give every depth a small share of what depth 7 has, so each win is felt: enemy health and damage +4% for each depth past the first (depth 4 +12%, depth 7 +24%, about where depth 7 is now), with The Serpent's Own keeping a twist of its own in place of its flat fifth. Then run this table again. It waits on the founder's word.
+So the ladder as built was flat for three or four wins and then steep. A player would feel "the same run again" and then a wall. Proposed: enemy health and damage +4% for each depth past the first.
+
+**Decided and built the same day (build 0.6).** The founder: "Depth - add 4% enemy health and a random extra creep every few waves to add to the complexity." So health ramps and damage does not, strays were added (`requirements.md` §2.30), and depth 7 keeps its fifth more damage while its extra health now comes from the ramp. The same six-rung table, run again with ten runs each:
+
+| Depth (upgrades 10/10, two perks) | Before: slew Vritra | After: health lost on level 1 | After: reached level 3 | After: slew Vritra |
+|---|---|---|---|---|
+| 1 | 2 of 8 | 7% | 10 of 10 | 7 of 10 |
+| 2 | 5 of 8 | 8% | 8 of 10 | 3 of 10 |
+| 4 | 6 of 8 | 18% | 10 of 10 | 4 of 10 |
+| 6 | not run | 23% | 7 of 10 | 1 of 10 |
+| 7 | 0 of 8 | 41% | 7 of 10 | 0 of 10 |
+| 7, upgrades 14/14, three perks | 3 of 8 | 35% | 10 of 10 | 5 of 10 |
+
+1. **The ladder now climbs.** Wins fall from 7 in 10 at depth 1 to 1 in 10 at depth 6, and the health a run costs on level 1, the steadier of the two measures, rises at every rung: 7%, 8%, 18%, 23%, 41%.
+2. **How much to trust it.** Depth 1 plays by the same rules in both builds, and the bot won 2 of 8 there one day and 7 of 10 the next. A gap of two or three wins between neighbouring rungs means nothing; the slope across five rungs does.
+3. **Depth 7 is still out of reach at 10/10** and is won half the time at 14/14 with three perks. That reads as a last depth that asks for upgrades and perks, which is what a last depth is for; whether it is too much is a question for a player, not the bot.
 
 **Second assessment (2026-10-06, build 0.6).** Asked for again by the founder: adoption and "sustenance". The same caution as before: argued from the screens, the genre and the bot; **no one but the founder has played yet**, and now that the feedback form works, five outside players would tell more than any of this.
 
@@ -228,8 +243,8 @@ So the ladder as built is flat for three or four wins and then steep. A player w
 | Aim | Change |
 |---|---|
 | All three | Put build 0.6 in front of five people who have never seen it and read what comes back through the feedback form |
-| Coming back | Tune the depths so each one bites (the proposal above), then measure again |
-| Getting in | Thin the first run: hold the tribute, power and satchel tips until level 2 |
+| Coming back | Tune the depths so each one bites, then measure again. **Done 2026-10-06**, table above |
+| Getting in | Thin the first run: hold the tribute and satchel tips until level 2. **Done 2026-10-06** (`requirements.md` §2.12.1). Power was named with them; it has no tip |
 | Advertising | The founder's own cast and title art, a name, then a short clip |
 
 ---
