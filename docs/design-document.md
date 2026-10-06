@@ -125,6 +125,8 @@ Games for the founder to play first: Vampire Survivors and 10 Minutes Till Dawn 
 
 **First phone playtest of boons (2026-10-03).** The founder reached level 3 with the well 6% full and reported "the initial runs look a bit too easy with no variability". They also asked whether rewarding patient play (more creeps killed before the boss, more drops and better benefits) was built: only partly. All three proposals were approved and built the same day: wave shapes and a bigger opening (`requirements.md` §2.25) and tribute (§2.26). Still open after it: what a full well should unlock beyond ending the game, and a difficulty pass on levels 2 and 3 once the founder has played this build.
 
+**4. One screen, or a wide arena with the camera following? Open since 2026-10-06.** The founder asked for Brotato's moving screen. It is built as an option (`requirements.md` §2.33): `?arena=wide`. The fixed arena stays the default until they have played both. If wide wins, two things follow before it ships: the larger floors are measured on a real phone (L8), and the difficulty is looked at again, because more room is more room to run.
+
 **3. Does the Indian identity help or harm onboarding and retention?** The founder is re-evaluating. The names are now switchable in one line so the question can be tested instead of argued (`requirements.md` §2.12).
 
 ## 1.4 Testing round and assessment (2026-10-04)
