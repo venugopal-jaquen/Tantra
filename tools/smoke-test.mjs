@@ -151,9 +151,9 @@ try {
     await new Promise(r => setTimeout(r, 2200));
     return { moved: Math.round(moved), speed: Math.round(moved / secs), arrived: Math.round(s.player.y), target: s.pointerTarget,
       still: ARENA_SCALE === 1 && s.camOff.x === 0 && s.camOff.y === 0 && s.cameras.main.scrollX === 0 && s.cameras.main.scrollY === 0
-        && Phaser.Geom.Rectangle.Equals(s.arenaBounds, s.viewBounds) && s.farFx === null };`);
+        && Phaser.Geom.Rectangle.Equals(s.arenaBounds, s.viewBounds) && s.farFx === null && s.slamReach() === 1 && (s.waveExtra || 0) === 0 };`);
   check('a tap is walked to at walking speed, not jumped to', walk.speed > 150 && walk.speed < 250 && walk.arrived === 150 && walk.target === null, JSON.stringify(walk));
-  check('by default the arena is one screen and the camera never moves', walk.still === true, JSON.stringify(walk));
+  check('by default the arena is one screen, the camera never moves, and slams and waves are their usual size', walk.still === true, JSON.stringify(walk));
 
   // Walk frames: every character but Vritra has a sheet; a standing figure shows the first
   // cell of its facing's row, a moving one steps through the rest, and the figure is the
@@ -724,7 +724,7 @@ try {
   await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href + '?arena=wide' });
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
-  const wide = await page(`settings.sfx = 0; settings.tips = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));
+  const wide = await page(`settings.sfx = 0; settings.tips = false; settings.shake = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));   // no shake: a tap read mid-shake lands a few pixels off
     const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms)), round = a => a.map(Math.round);
     const until = async (test, ms) => { for (let i = 0; i < ms / 40 && !test(); i++) await wait(40); };
     out.hub = { scale: ARENA_SCALE, cam: [s.camOff.x, s.camOff.y] };
@@ -747,6 +747,17 @@ try {
     boss.x = b.x + 60; boss.y = b.y + 60; await wait(200);
     out.boss.pointed = s.farFx.commandBuffer.length > 0;
     s.pauseGame(); out.overlay = s.overlay.length > 3 && s.overlay.every(o => o.scrollFactorX === 0); s.resumeGame();
+    // Harder to make up for the room (the founder's figures): slams reach further, more so each level; waves are larger by chance.
+    const reach = [1, 2, 3, 9].map(n => { s.sector = n; return Math.round(s.slamReach() * 100); }); s.sector = 1;
+    boss.slamTypes = ['circle']; s.beginSlam(boss); const ring = Math.round(boss.slam.r * 10) / 10; s.resolveSlam(boss);
+    boss.slamTypes = ['line']; s.beginSlam(boss); const cleave = [Math.round(boss.slam.len), Math.round(boss.slam.w * 10) / 10]; s.resolveSlam(boss);
+    boss.shieldOn = true; s.beginSlam(boss); const blob = Math.round(boss.slam.blobs[0].r * 10) / 10; s.resolveSlam(boss); boss.shieldOn = false; boss.slamTimer = 1e9;
+    out.slams = { reach: reach.join(), ring, cleave: cleave.join(), blob, was: boss.slamRadius };
+    const real = Object.getPrototypeOf(s).buildWave, toast = s.showToast, extras = { 1: new Set(), 3: new Set() }, keep = { wave: s.wave, depth: s.depth, best: session.bestSector };
+    s.showToast = () => {}; session.bestSector = 3;
+    for (const n of [1, 3]) for (let i = 0; i < 80; i++) { s.sector = n; s.wave = 4; s.depth = (n - 1) * 5 + 4; real.call(s); extras[n].add(s.waveExtra); }
+    out.extra = { one: [...extras[1]].sort().join(), three: [...extras[3]].sort().join() };
+    s.showToast = toast; s.sector = 1; s.wave = keep.wave; s.depth = keep.depth; session.bestSector = keep.best; s.spawnQueue = [{}]; s.spawnTimer = 1e9;
     const rc = game.canvas.getBoundingClientRect();
     out.canvas = [rc.left, rc.top, rc.width, rc.height];
     return out;`);
@@ -780,6 +791,8 @@ try {
     && wide.boss.seen && wide.boss.pointed, JSON.stringify({ spawn: wide.spawn, boss: wide.boss }));
   check('a tap in the wide arena is read where it lands, and the camera returns for the title screen', wide2.tap.target && Math.abs(wide2.tap.target[0] - wide2.tap.want[0]) <= 3 && Math.abs(wide2.tap.target[1] - wide2.tap.want[1]) <= 3
     && wide2.hub.state === 'hub' && wide2.hub.cam.join() === '0,0' && wide2.hub.scroll.join() === '0,0', JSON.stringify({ tap: wide2.tap, hub: wide2.hub }));
+  check('in the wide arena slams reach 30% further, 5% more each level, and waves bring one to three more enemies, up to five by level 3', wide.slams.reach === '130,135,140,160'
+    && wide.slams.ring === 101.4 && wide.slams.cleave === '364,62.4' && wide.slams.blob === 46.8 && wide.slams.was === 78 && wide.extra.one === '1,2,3' && wide.extra.three === '1,2,3,4,5', JSON.stringify({ slams: wide.slams, extra: wide.extra }));
   console.log('      wide arena bot: ' + wide2.bot.runs);
   check('bot runs in the wide arena raise no errors and leak nothing', wide2.bot.errors.length === 0 && wide2.bot.leaks.every(l => l <= 0), wide2.bot.errors.join('; ') + ' ' + wide2.bot.runs);
   await shot('10-wide-hub');
