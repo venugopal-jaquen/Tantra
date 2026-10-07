@@ -565,7 +565,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.7 (2026-10-07)';
+const BUILD = '0.8 (2026-10-07)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -671,13 +671,14 @@ const W = 400, H = 700;
 const RES = Math.min(3, Math.max(2, Math.round(window.devicePixelRatio || 1)));
 const MARGIN = 30, HUD_H = 76;
 
-// The arena (requirements 2.33). `fixed` is the game as it has always been: the arena is one
-// screen and the camera never moves. `wide` is Brotato's: a walled arena larger than the
-// screen, with the camera following the hero, so that walking is travelling. Everything in
-// the arena is laid out for the fixed one and scaled by this number about the corner under
-// the HUD; add ?arena=wide to the address to try it, or ?arena=1.9 to try another size.
+// The arena (requirements 2.33). `wide` is Brotato's: a walled arena larger than the screen,
+// with the camera following the hero, so that walking is travelling. It is the default
+// since 2026-10-07, chosen by the founder after playing both. `fixed` is the game as it was
+// before: the arena is one screen and the camera never moves. Everything in the arena is
+// laid out for the fixed one and scaled by this number about the corner under the HUD; add
+// ?arena=fixed to the address for the old arena, or ?arena=1.9 to try another size.
 const ARENA_SCALES = { fixed: 1, wide: 1.6 };
-const ARENA_MODE = 'fixed';
+const ARENA_MODE = 'wide';
 const ARENA_SCALE = (() => {
   const q = new URLSearchParams(location.search).get('arena'), n = parseFloat(q);
   return ARENA_SCALES[q] || (n >= 1 && n <= 2.2 ? n : ARENA_SCALES[ARENA_MODE]);

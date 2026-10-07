@@ -150,10 +150,10 @@ try {
     const moved = 600 - s.player.y, secs = (performance.now() - t0) / 1000;
     await new Promise(r => setTimeout(r, 2200));
     return { moved: Math.round(moved), speed: Math.round(moved / secs), arrived: Math.round(s.player.y), target: s.pointerTarget,
-      still: ARENA_SCALE === 1 && s.camOff.x === 0 && s.camOff.y === 0 && s.cameras.main.scrollX === 0 && s.cameras.main.scrollY === 0
-        && Phaser.Geom.Rectangle.Equals(s.arenaBounds, s.viewBounds) && s.farFx === null && s.slamReach() === 1 && (s.waveExtra || 0) === 0 };`);
+      wide: ARENA_MODE === 'wide' && ARENA_SCALE === 1.6 && Math.round(s.arenaBounds.width) === 544 && s.farFx !== null && Math.round(s.slamReach() * 100) === 130
+        && Math.abs(s.cameras.main.scrollX - s.camOff.x) < 0.01 && s.camOff.y < 0.5 };`);        // the hero is near the top wall, so the camera is against it
   check('a tap is walked to at walking speed, not jumped to', walk.speed > 150 && walk.speed < 250 && walk.arrived === 150 && walk.target === null, JSON.stringify(walk));
-  check('by default the arena is one screen, the camera never moves, and slams and waves are their usual size', walk.still === true, JSON.stringify(walk));
+  check('the wide arena is the default', walk.wide === true, JSON.stringify(walk));
 
   // Walk frames: every character but Vritra has a sheet; a standing figure shows the first
   // cell of its facing's row, a moving one steps through the rest, and the figure is the
@@ -720,8 +720,8 @@ try {
     && carried.won === 0 && carried.best === 2 && carried.water === 2 && carried.gold === 77 && carried.perks === 'eye,guard' && carried.worn === 'guard,eye' && !carried.taught
     && /DEPTH 1 OF 7/.test(carried.title) && /The well is 6% full/.test(carried.title) && carried.run.tier === 1 && carried.run.guard === 1 && carried.run.power === 40, JSON.stringify(carried).replace(/\n/g, ' ').slice(0, 420));
 
-  // ---------- 9. the wide arena: a walled arena larger than the screen, the camera following (requirements 2.33) ----------
-  await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href + '?arena=wide' });
+  // ---------- 9. the wide arena, the default: a walled arena larger than the screen, the camera following (requirements 2.33) ----------
+  await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href });
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
   const wide = await page(`settings.sfx = 0; settings.tips = false; settings.shake = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));   // no shake: a tap read mid-shake lands a few pixels off
@@ -796,6 +796,29 @@ try {
   console.log('      wide arena bot: ' + wide2.bot.runs);
   check('bot runs in the wide arena raise no errors and leak nothing', wide2.bot.errors.length === 0 && wide2.bot.leaks.every(l => l <= 0), wide2.bot.errors.join('; ') + ' ' + wide2.bot.runs);
   await shot('10-wide-hub');
+
+  // ---------- 10. the fixed arena, on request: one screen, the camera still, nothing made harder ----------
+  await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href + '?arena=fixed' });
+  state = 'loading';
+  for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
+  const fixedArena = await page(`settings.sfx = 0; settings.tips = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));
+    const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
+    s.startRun(); s.player.iframes = 1e9; s.setMoveTarget(9999, 9999); await wait(1500);
+    out.still = ARENA_SCALE === 1 && s.camOff.x === 0 && s.camOff.y === 0 && s.cameras.main.scrollX === 0 && s.cameras.main.scrollY === 0
+      && Phaser.Geom.Rectangle.Equals(s.arenaBounds, s.viewBounds) && s.farFx === null;
+    out.plain = s.slamReach() === 1 && (s.waveExtra || 0) === 0 && s.floorLayers[0].displayWidth === 340;
+    s.endRun(false); await wait(200);
+    game.loop.sleep();
+    await new Promise((res, rej) => { const el = document.createElement('script'); el.src = '../tools/playtest-bot.js'; el.onload = res; el.onerror = rej; document.head.appendChild(el); });
+    PlaytestBot.start([{ name: 'fresh', vit: 0, pow: 0, target: 3 }, { name: 'mid', vit: 6, pow: 6, target: 3, tejas: true }]);
+    while (!PlaytestBot.tick(4000).done) await new Promise(r => setTimeout(r, 0));
+    const rep = PlaytestBot.report();
+    game.loop.wake();
+    out.bot = { errors: rep.errors, runs: rep.runs.map(r => r.profile + ': level ' + r.finalSector + ', leak ' + r.leak).join('; '), leaks: rep.runs.map(r => r.leak) };
+    return out;`);
+  console.log('      fixed arena bot: ' + fixedArena.bot.runs);
+  check('the fixed arena is still there on request: one screen, the camera still, slams and waves their old size', fixedArena.still && fixedArena.plain
+    && fixedArena.bot.errors.length === 0 && fixedArena.bot.leaks.every(l => l <= 0), JSON.stringify(fixedArena));
 
   const real = problems.filter(p => !/music\/|404|Failed to load resource|navigator\.vibrate/.test(p));
   check('no page errors', real.length === 0, real.join('; '));
