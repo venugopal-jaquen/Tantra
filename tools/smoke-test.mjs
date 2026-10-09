@@ -4,7 +4,11 @@
  * screenshots. Nothing appears on screen and nothing touches your own browser profile or
  * your saved game.
  *
- *   node tools/smoke-test.mjs [output-dir]
+ *   node tools/smoke-test.mjs [output-dir] [page.html]
+ *
+ * The page defaults to game/loot-chase-v0.1.html. Give dist/itch/index.html to run every
+ * check against the folder tools/build-itch.py made for itch.io ("" keeps the default
+ * output directory).
  *
  * Needs Chrome or Edge installed and Node 22+ (for the built-in WebSocket). No packages.
  * Exit code 0 = every check passed.
@@ -17,6 +21,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = resolve(process.argv[2] || join(tmpdir(), 'anantarya-smoke'));
+const PAGE = pathToFileURL(resolve(process.argv[3] || join(REPO, 'game', 'loot-chase-v0.1.html'))).href;
+const BOT = pathToFileURL(join(REPO, 'tools', 'playtest-bot.js')).href;
 const PORT = 9333 + Math.floor(Math.random() * 500);
 const BROWSERS = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
@@ -41,6 +47,7 @@ const browser = spawn(exe, [
 
 let ws, nextId = 1;
 const pending = new Map(), problems = [];
+const asked = new Map(), missing = [];          // every address the page fetched, and the ones that did not arrive
 const send = (method, params = {}) => new Promise((res, rej) => {
   const id = nextId++;
   pending.set(id, { res, rej });
@@ -77,12 +84,14 @@ try {
     if (m.id && pending.has(m.id)) { const p = pending.get(m.id); pending.delete(m.id); m.error ? p.rej(new Error(m.error.message)) : p.res(m.result); }
     else if (m.method === 'Runtime.exceptionThrown') problems.push('exception: ' + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text).split('\n')[0]);
     else if (m.method === 'Log.entryAdded' && m.params.entry.level === 'error') problems.push('console: ' + m.params.entry.text + ' ' + (m.params.entry.url || '').split('/').pop());
+    else if (m.method === 'Network.requestWillBeSent') asked.set(m.params.requestId, m.params.request.url);
+    else if (m.method === 'Network.loadingFailed' && !m.params.canceled) missing.push((asked.get(m.params.requestId) || '?').split('/').slice(-2).join('/') + ' ' + m.params.errorText);
   };
-  await send('Page.enable'); await send('Runtime.enable'); await send('Log.enable');
+  await send('Page.enable'); await send('Runtime.enable'); await send('Log.enable'); await send('Network.enable');
   await send('Emulation.setDeviceMetricsOverride', { width: 420, height: 740, deviceScaleFactor: 2, mobile: false });
 
   // ---------- 1. loading screen ----------
-  await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href });
+  await send('Page.navigate', { url: PAGE });
   let state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
   check('loader reaches the Begin button', state === 'ready', state);
@@ -644,7 +653,7 @@ try {
   // ---------- 6. playtest bot: errors and leaks ----------
   const bot = await page(`
     game.loop.sleep();
-    await new Promise((res, rej) => { const el = document.createElement('script'); el.src = '../tools/playtest-bot.js'; el.onload = res; el.onerror = rej; document.head.appendChild(el); });
+    await new Promise((res, rej) => { const el = document.createElement('script'); el.src = '${BOT}'; el.onload = res; el.onerror = rej; document.head.appendChild(el); });
     const s = game.scene.keys.LootScene;
     delete s.buildWave;                                    // real waves again
     s.startRun(); s.showSectorClearChoice(false);          // the bot must cope with a run left on the choice screen
@@ -665,7 +674,7 @@ try {
   const oldNames = await page(`return NAME_PACKS.sanskrit.sectors.map(x => x[0]).join(' / ') + ' / ' + NAME_PACKS.sanskrit.deeper[0];`);
   check('levels carry the stepwell names, in both packs', sectors === 'The Courtyard / The Drowned Steps / The Gold Vault / The Abyss / The Abyss'
     && oldNames === 'Prangan / Jal-Kund / Nidhi-Kosh / Patal', sectors + ' || ' + oldNames);
-  await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href + '?names=plain&floors=classic' });
+  await send('Page.navigate', { url: PAGE + '?names=plain&floors=classic' });
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
   await shot('9-plain-loader');
@@ -703,7 +712,7 @@ try {
 
   // ---------- 8. a save from before the depths, loaded the way a player's is: with the page ----------
   await page(`localStorage.setItem(SAVE_KEY, JSON.stringify({ metaGold: 77, vitalityLevel: 1, powerLevel: 0, bestSector: 3, tejasUnlocked: true, hintsSeen: {}, water: 2, wins: 0 }));`);
-  await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href });
+  await send('Page.navigate', { url: PAGE });
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
   const card2 = await page(youCard);
@@ -721,7 +730,7 @@ try {
     && /DEPTH 1 OF 7/.test(carried.title) && /The well is 6% full/.test(carried.title) && carried.run.tier === 1 && carried.run.guard === 1 && carried.run.power === 40, JSON.stringify(carried).replace(/\n/g, ' ').slice(0, 420));
 
   // ---------- 9. the wide arena, the default: a walled arena larger than the screen, the camera following (requirements 2.33) ----------
-  await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href });
+  await send('Page.navigate', { url: PAGE });
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
   const wide = await page(`settings.sfx = 0; settings.tips = false; settings.shake = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));   // no shake: a tap read mid-shake lands a few pixels off
@@ -775,7 +784,7 @@ try {
     s.uiObjects.find(o => o.type === 'Rectangle' && o.input).emit('pointerdown'); await wait(300);
     out.hub = { state: s.state, cam: [s.camOff.x, s.camOff.y], scroll: [s.cameras.main.scrollX, s.cameras.main.scrollY] };
     game.loop.sleep();
-    await new Promise((res, rej) => { const el = document.createElement('script'); el.src = '../tools/playtest-bot.js'; el.onload = res; el.onerror = rej; document.head.appendChild(el); });
+    await new Promise((res, rej) => { const el = document.createElement('script'); el.src = '${BOT}'; el.onload = res; el.onerror = rej; document.head.appendChild(el); });
     delete s.buildWave;
     PlaytestBot.start([{ name: 'fresh', vit: 0, pow: 0, target: 3 }, { name: 'mid', vit: 6, pow: 6, target: 3, tejas: true }, { name: 'grinder', vit: 14, pow: 14, target: 4, tejas: true }]);
     while (!PlaytestBot.tick(4000).done) await new Promise(r => setTimeout(r, 0));
@@ -798,7 +807,7 @@ try {
   await shot('10-wide-hub');
 
   // ---------- 10. the fixed arena, on request: one screen, the camera still, nothing made harder ----------
-  await send('Page.navigate', { url: pathToFileURL(join(REPO, 'game', 'loot-chase-v0.1.html')).href + '?arena=fixed' });
+  await send('Page.navigate', { url: PAGE + '?arena=fixed' });
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
   const fixedArena = await page(`settings.sfx = 0; settings.tips = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));
@@ -809,7 +818,7 @@ try {
     out.plain = s.slamReach() === 1 && (s.waveExtra || 0) === 0 && s.floorLayers[0].displayWidth === 340;
     s.endRun(false); await wait(200);
     game.loop.sleep();
-    await new Promise((res, rej) => { const el = document.createElement('script'); el.src = '../tools/playtest-bot.js'; el.onload = res; el.onerror = rej; document.head.appendChild(el); });
+    await new Promise((res, rej) => { const el = document.createElement('script'); el.src = '${BOT}'; el.onload = res; el.onerror = rej; document.head.appendChild(el); });
     PlaytestBot.start([{ name: 'fresh', vit: 0, pow: 0, target: 3 }, { name: 'mid', vit: 6, pow: 6, target: 3, tejas: true }]);
     while (!PlaytestBot.tick(4000).done) await new Promise(r => setTimeout(r, 0));
     const rep = PlaytestBot.report();
@@ -820,7 +829,16 @@ try {
   check('the fixed arena is still there on request: one screen, the camera still, slams and waves their old size', fixedArena.still && fixedArena.plain
     && fixedArena.bot.errors.length === 0 && fixedArena.bot.leaks.every(l => l <= 0), JSON.stringify(fixedArena));
 
-  const real = problems.filter(p => !/music\/|404|Failed to load resource|navigator\.vibrate/.test(p));
+  // The engine and the typefaces sit beside the game (launch track L9): nothing may come
+  // from another site, and nothing the page asks for may be absent. The bot is the test's
+  // own file, loaded from tools/.
+  const urls = [...asked.values()].filter(u => u !== BOT && !/^(data|blob|about):/.test(u));
+  const outside = urls.filter(u => !u.startsWith('file:'));
+  const kinds = ['.html', '.js', '.woff2', '.png', '.wav'].map(e => e + ' ' + new Set(urls.map(u => u.split('?')[0]).filter(u => u.endsWith(e))).size).join(', ');
+  check('the game fetches nothing from the internet, and every file it asks for is there', outside.length === 0 && missing.length === 0
+    && urls.some(u => /vendor\/phaser-[\d.]+\.min\.js$/.test(u)) && urls.some(u => /vendor\/fonts\/.+\.woff2$/.test(u)),
+    outside.concat(missing).slice(0, 6).join('; ') || kinds);
+  const real = problems.filter(p => !/navigator\.vibrate/.test(p));
   check('no page errors', real.length === 0, real.join('; '));
 } catch (e) {
   check('smoke test ran to the end', false, e.message);

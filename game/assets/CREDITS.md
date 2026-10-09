@@ -114,9 +114,18 @@ swap any sound.
 | **Yatra One** | titles, toasts, banners, large buttons | Catharsis Fonts — https://github.com/cathschmidt/yatra-one | SIL Open Font License 1.1 |
 | **Baloo 2** | all other text | Ek Type — https://github.com/EkType/Baloo2 | SIL Open Font License 1.1 |
 
-Both licences allow commercial use and embedding. The faces are loaded from Google Fonts
-today (`fonts.googleapis.com`); for the itch.io build they should be self-hosted in
-`game/assets/fonts/` with their `OFL.txt` files alongside.
+Both licences allow commercial use and embedding, and ask that the licence travel with
+the fonts. Since 2026-10-10 the faces are served from `game/vendor/fonts/`: the six
+`.woff2` files Google Fonts serves for them (Latin, extended Latin and Devanagari for
+each), downloaded that day from `fonts.gstatic.com`, with `OFL-baloo2.txt` and
+`OFL-yatraone.txt` from the google/fonts repository beside them.
+
+## Engine
+
+**Phaser 3.70.0**, copyright 2020 Richard Davey, Photon Storm Ltd., MIT licence
+(`game/vendor/phaser-LICENSE.md`). `game/vendor/phaser-3.70.0.min.js` is the published
+file, downloaded from cdnjs on 2026-10-10 and checked against the SHA-512 cdnjs publishes
+for it. `.gitattributes` keeps everything under `game/vendor/` byte for byte.
 
 ## Music (`music/`)
 
