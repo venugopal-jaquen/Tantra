@@ -52,6 +52,7 @@ Kept so a reversal is never mistaken for drift or an error.
 | 2026-10-05 | **A boss shows when it can be hurt.** §2.6. | The testing round (`design-document.md` §1.4) named the first boss as the likeliest place to lose a new player: he took 12% damage unless the phase bar matched a small glow at his feet, and one tip explained it. The founder chose all four proposals: the state drawn on the boss, a countdown, a first Gatekeeper who arrives open, and a softer penalty on level 1, which they set at 30%. |
 | 2026-10-05 | **Seven depths, with perks as the rewards.** §2.30. | The same round found nothing to earn by winning. The founder chose seven depths of the well as the spine, each harder than the last, and perks earned from bosses and depths as the rewards. This settles the "seven worlds" question as depths of the one well, and builds the perks pinned as P8. A daily descent was pinned for after the itch.io launch (P9). |
 | 2026-10-05 | **Characters move; Vritra is drawn.** §2.31. | The cast is stock art with no animation frames. The founder chose motion made in code and a serpent drawn in code for now, will make the characters themselves with image tools (`docs/character-art-guide.md`), and is not ready to commission an artist. |
+| 2026-10-10 | **A whole cast from free 3D models, drawn 30% larger.** §2.38. | Unhappy with the stock cast, the founder sent a screenshot of Asura (Ogre Head Studio) as the look they wanted and asked about packs to buy. None with an Indian subject exists; a free test of two rendered 3D figures was shown. "Yes for 30% larger. Why can't you generate such characters for the entire game characters without buying anything?" It can be done, so it was: all seven, from one free pack. Put up for their review; not merged. |
 | 2026-10-10 | **The title screen has its picture.** §2.21. | The founder made a picture with ChatGPT (a stepwell seen from above, lamps, a glowing pool) and was shown it behind the real title screen three ways. "Use fit 2 for the title screen." |
 | 2026-10-10 | **Tribute's summons quicken too; records are kept; badges are pinned.** §2.26, §2.37. | Told that toughness alone never threatens a player who is not touched, and asked three things, the founder answered: "1. Yes" (add the climb in speed), "2. Yes" (pin the cosmetics), "3. Yes start recording. Maybe let's design the badges tab separately in the profile section where we can keep simple badges for each kind of achievement." The cosmetics are pinned as P12 and the badges tab as P13 (`design-document.md`); neither is built. |
 | 2026-10-10 | **Tribute pays without end, and grows heavier.** §2.26, §2.36. | The first fix for a boss kept alive stopped his summons paying at tribute 15. The founder: "I don't agree with the circling a boss while killing his summons stops paying after a while. That could increase the farming potential for players looking to build before descending to the next level." Offered three ways, they picked the first: pay for as long as the boss lives, with the danger climbing. They added that this is a mechanic learnt by playing, as in Destiny 2, and that cosmetic drops for the profile screen could one day be hung on it; that idea is not pinned. |
@@ -909,6 +910,36 @@ Kept in the save from build 0.13 on, and shown nowhere yet. They exist so that t
 - A save from before records gains them empty. Reset save empties them.
 - The game already kept what else a badge might want: depths won, Vritra slain (`wins`), the deepest level reached, perks earned.
 - The playtest bot puts the save back as it found it, so its runs are not counted.
+
+### 2.38 The cast: rendered from free 3D models (2026-10-10)
+The seven figures were stock 2D art from four CraftPix packs: a child knight, four green goblins, a Viking and a caveman. The founder was unhappy with them, pointed to a 3D game for the look, and asked for the whole cast to be made without buying anything. `concept/cast-2026-10-10-full-*` shows the result.
+
+**How a figure is made** (`tools/3d/`, run by `tools/3d/cast.py`). One free pack supplies the bodies: KayKit Adventurers by Kay Lousberg, CC0, five rigged low-poly characters with 76 animations each. For each of ours: a body is chosen; its colour swatches are replaced (`recolour.py`); what it should not carry is hidden; simple pieces are built from spheres and cones and pinned to its bones (`pieces.py`); it may be stretched; Blender renders it from the game's angle, standing and through one walk cycle, from four sides; and the frames are packed into the same files the stock cast used, with a soft shadow under the feet. The game plays them with no new code.
+
+| In the game | Body | What was done to it |
+|---|---|---|
+| Hero | Rogue | warm skin, black hair, cream tunic, a saffron turban; runs |
+| Asura | Barbarian | storm-blue skin, black beard, red and gold, two horns, an axe |
+| Hexer | Mage | sallow green skin, a violet robe and cloak, a tall cap, a staff with a burning head |
+| Brute | Barbarian, a third wider | grey hide, a black hood with wide horns, a great axe: the buffalo |
+| Bloodseed | Rogue, hooded | crimson all over, a blade in each hand, buds swelling on its back |
+| Gatekeeper | Knight | ash skin, dark steel edged in gold, a red cloak, a spiked helm, a shield like a door |
+| Hoard Guardian | Barbarian, wider still | iron-dark with gold laid on: a flat gold helm like a lid, a gold collar, a round gold shield |
+
+Vritra is still the serpent drawn in code.
+
+**Rules kept.** The hero is the one warm, bright figure; everything hostile is cool or dark, so it stands off the sandstone. Enemies are antagonists and nothing revered (§2.12): no crown, no halo, no ring round a head; the Hoard Guardian's helm is flat on purpose, and a brow band tried on the Asura was removed because it read as a halo. The Asura's blue was chosen to stand off both the sandstone and the green water of level 2; blue is also the colour of several revered figures, which is why he is bearded, horned and armed and carries nothing of theirs. That judgement is the founder's to confirm.
+
+**Drawn 30% larger** (`CAST`). The founder: "Yes for 30% larger." Every figure's picture is drawn at 1.45 times its old size, which makes the figure itself 30% taller, because the new sheets leave a tenth of each cell for the shadow. Nothing about the fight changes: hit circles, reach and speed are as they were. Health bars, names and the timer over a boss sit higher to clear the taller figures; the hero's ring and the glow under a boss sit lower, at the feet. The sheets are larger too (cells of 192, stills of 160), since a phone draws a boss nearly 300 pixels tall.
+
+**What it cost.** Nothing. Blender is free and so is the pack; neither is in git (`tools/3d/README.md` says where each goes). The cast is 950 KB, about what the stock cast was.
+
+**Known limits, told to the founder.**
+- Five bodies of one build make seven figures. Size, colour, headgear and what they carry tell them apart; their shapes do not. A paid pack of different bodies would fix that.
+- The added pieces are simple solids. The turban is two flattened spheres; there is no ornament.
+- Only standing and walking are rendered. Attacks, hits and deaths are in the models and unused.
+- The Hexer and the Asura are small on the screen, as their hit circles always were.
+- One render came out solid red and was caught by eye, not by a check; it was rendered again.
 
 ### 2.20 Automated checks
 - **`tools/playtest-bot.js`** plays complete runs with game logic only (about 80x real time) and records per-sector balance figures, errors and leaked objects (§2.14). Since 2026-10-10 a profile can name a `style`, a player who does not play (§2.36), and **`tools/lazy-players.mjs`** runs those beside the one that does.

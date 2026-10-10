@@ -164,7 +164,7 @@ try {
   check('skipping the tutorial resumes the fight, stops the pauses, and says how to get them back', skipped.state === 'playing' && skipped.off === true && skipped.paused === false
     && /Replay tutorial/.test(skipped.tip || ''), JSON.stringify(skipped));
   check('HUD line clears the phase bar', run.hudBottom <= run.barTop + 1, `text bottom ${run.hudBottom}, bar top ${run.barTop}`);
-  check("the hero's health bar floats over his head", run.hp.dx === 0 && run.hp.dy === 35 && run.hp.w === 42, JSON.stringify(run.hp));
+  check("the hero's health bar floats over his head", run.hp.dx === 0 && run.hp.dy === 40 && run.hp.w === 42, JSON.stringify(run.hp));
 
   // Waves are held still for the checks that follow: a queue that never spawns, so a kill
   // is not a cleared wave unless a check empties the queue to make it one.
@@ -190,15 +190,15 @@ try {
       for (let i = 0; i < 80 && seen.size < need; i++) { await wait(30); const f = spr.frame.name; if (f % per) { seen.add(f % per); rows.add(Math.floor(f / per)); } }
       return { steps: seen.size, rows: [...rows].join() }; };
     const out = { sheets: WALKERS.filter(n => s.textures.exists(n + '-walk') && s.textures.get(n + '-walk').frameTotal - 1 === per * FACINGS.length).length, walkers: WALKERS.length,
-      vritra: s.textures.exists(CHARS.megaboss + '-walk'), onSheet: !!s.playerSprite.walks, size: Math.round(s.playerSprite.baseSX * WALK.cell / WALK.pad), standing: s.playerSprite.frame.name % per };
+      vritra: s.textures.exists(CHARS.megaboss + '-walk'), onSheet: !!s.playerSprite.walks, size: Math.round(s.playerSprite.baseSX * WALK.cell / WALK.pad), standing: s.playerSprite.frame.name % per, wants: Math.round(44 * CAST.scale) };
     s.setMoveTarget(330, 150); out.kiran = await stepsOf(s.playerSprite, 5); out.right = FACINGS.indexOf('right');
     for (let i = 0; i < 60 && s.pointerTarget; i++) await wait(40);
     await wait(320); out.stopped = s.playerSprite.frame.name % per;
     const e = s.spawnEnemyOfType('melee', 70, 330, 1), spr = s.enemySprites.get(e.id);
-    out.asura = await stepsOf(spr, 4); out.asuraSize = Math.round(spr.baseSX * WALK.cell / WALK.pad * 10) / 10; out.asuraWants = Math.round(e.radius * 28) / 10;
+    out.asura = await stepsOf(spr, 4); out.asuraSize = Math.round(spr.baseSX * WALK.cell / WALK.pad * 10) / 10; out.asuraWants = Math.round(e.radius * 28 * CAST.scale) / 10;
     e.speed = 0; await wait(320); out.asuraStopped = spr.frame.name % per;
     s.killEnemy(e); return out;`);
-  check('every character but Vritra has a walk sheet, and figures keep their size', legs.sheets === 7 && legs.walkers === 7 && !legs.vritra && legs.onSheet && legs.size === 44 && legs.asuraSize === legs.asuraWants, JSON.stringify(legs));
+  check('every character but Vritra has a walk sheet, and figures are drawn at the scale the cast is set to', legs.sheets === 7 && legs.walkers === 7 && !legs.vritra && legs.onSheet && legs.size === legs.wants && legs.wants === 64 && legs.asuraSize === legs.asuraWants, JSON.stringify(legs));
   check('the hero and his enemies step through their walk frames, and stand when they stop', legs.standing === 0 && legs.kiran.steps >= 5 && legs.kiran.rows === String(legs.right) && legs.stopped === 0
     && legs.asura.steps >= 4 && legs.asuraStopped === 0, JSON.stringify(legs));
 

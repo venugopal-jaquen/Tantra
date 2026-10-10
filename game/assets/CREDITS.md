@@ -2,76 +2,39 @@
 
 Provenance for every shipped asset, kept auditable ahead of store submission.
 
-## CraftPix — character roster (`chars/`)
+## KayKit — the cast (`chars/`)
 
-Source: https://craftpix.net/freebies/
-License: https://craftpix.net/file-licenses/
+Source: KayKit Character Pack: Adventurers 1.0, by Kay Lousberg (www.kaylousberg.com),
+https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 (fetched 2026-10-10)
+License: **Creative Commons Zero (CC0)**. Free for personal, educational and commercial
+use; credit is not required and is given here gladly.
 
-**Permitted:** use in any number of personal and commercial projects, modification,
-selling and distributing the game containing them. **Attribution is not required** —
-credited here voluntarily and for provenance.
-**Not permitted:** reselling the source files or slightly modified versions, shipping
-them so end users can extract the artwork, or using them to train AI/ML systems.
+The pack is five rigged, animated low-poly 3D characters. The seven figures in `chars/`
+are pictures rendered from them with Blender 4.5 LTS (blender.org, GPL; the program, not
+its output, is under that licence), after recolouring, hiding what a figure should not
+carry, and adding simple pieces built in code. `tools/3d/cast.py` holds every choice and
+remakes the files; `docs/requirements.md` §2.38 says which body became which figure.
+Nothing in them was made by an image generator.
 
-Four free packs, all **vector** and all 4-direction, chosen from one house style so the
-roster reads as a single set rather than four borrowed packs:
+| In-game | Files | Body |
+|---|---|---|
+| Hero | `kiran-*` (the hero's files keep their first name) | Rogue |
+| Asura | `asura-*` | Barbarian |
+| Hexer | `rakshasa-*` | Mage |
+| Brute | `mahish-*` | Barbarian |
+| Bloodseed | `raktabija-*` | Rogue, hooded |
+| Gatekeeper | `bakasura-*` | Knight |
+| Hoard Guardian | `nidhiraksha-*` | Barbarian |
 
-| Pack | Characters used |
-|---|---|
-| Free Warrior 4-direction Character Sprites | Warrior (clothes_1) |
-| Free Top-Down Goblin Character Sprite | Male Goblin, Chief Goblin, Female Goblin |
-| Free Top-Down Boss Character 4-Direction Pack | Giant Goblin, Viking Leader, Caveman Boss |
-| Free Medieval Bandit 4-Direction Character Pack | Assassin |
+Each figure is four stills of 160 px (`-front`, `-back`, `-left`, `-right`) and a walk
+sheet (`-walk.png`): four rows by facing, a standing frame and eight walk frames, cells of
+192 px, a 255-colour palette. `vritra-*` are four empty pictures: the serpent is drawn in
+code and its still is never shown.
 
-### Walk sheets (2026-10-05)
-
-`chars/<name>-walk.png`, one for each character but Vritra, are built from the same
-packs by `tools/extract-walk.py`: the first idle frame and eight frames of the pack's
-walk cycle for each of the four facings, reduced to 112 px cells and a 255-colour
-palette. Same licence, same terms as the stills. The packs' attack, hurt, dying and idle
-animations are not used.
-
-### Roster mapping
-
-Sanskrit names per `docs/requirements.md` §2.12. The art is European fantasy and carries
-no Indian visual signifier — **the naming and gameplay carry the identity, the art does
-not.** This is a deliberate, documented trade to ship on itch.io, not an oversight;
-§2.13 records the intent to commission custom art if the game finds an audience.
-
-| In-game | Devanagari | Role | Source character |
-|---|---|---|---|
-| `kiran-*`       | किरण      | Player | Warrior |
-| `asura-*`       | असुर      | Melee | Male Goblin |
-| `rakshasa-*`    | राक्षस     | Ranged | Chief Goblin |
-| `raktabija-*`   | रक्तबीज    | Splitter | Female Goblin |
-| `mahish-*`      | महिष      | Tank | Giant Goblin |
-| `bakasura-*`    | बकासुर     | Semi-boss | Viking Leader |
-| `nidhiraksha-*` | निधि-रक्षा | Sector boss | Caveman Boss |
-| `vritra-*`      | वृत्र       | Mega boss | Assassin |
-
-**Renamed 2026-09-24** after a naming audit (see `docs/requirements.md` §2.12): Yaksha, Dwarapal
-and Kalachakra are revered or benevolent in living traditions and should not be cast as
-enemies; Bheda was an abstract noun where Raktabija - whose every drop of blood rose as a new
-demon - *is* the splitter mechanic. Files were renamed to match (`git mv`), not copied.
-
-Several are closer than "close enough": **Mahish** literally means buffalo (Mahishasura
-is the buffalo demon), so a heavy horned brute fits; **Nidhi-Raksha** means treasure guardian;
-**Bakasura** demanded tribute before anyone could pass, which is what a gatekeeper does; and
-**Raktabija** multiplying from spilled blood is exactly what the splitter does.
-
-### How these files were produced
-
-Each source pack ships ~480×480 frames across full animation sets — roughly 870 MB of
-raw downloads for four packs. Shipping that is out of the question for a mobile web
-game, so per character the first `Idle` frame of each of the four facings was taken,
-trimmed to its alpha bounding box, scaled to fit a 96×96 tile, and re-centred.
-
-96px is deliberate: entities draw at roughly 24–46px, so this keeps retina headroom
-without paying for detail nobody sees. Result: 32 sprites, ~432 KB total.
-
-The raw zips live in `incoming/` and are **gitignored** — only the derived sprites
-belong in version control. `tools/extract-chars.py` regenerates them from fresh downloads; see its
-docstring for the three steps.
+**Until 2026-10-10** the cast was stock 2D art from four free CraftPix packs (a warrior,
+goblins, a Viking, a caveman), under the CraftPix file licence. None of it ships now. The
+packs still sit in `incoming/` and `tools/extract-chars.py` and `tools/extract-walk.py`
+still remake that cast from them.
 
 ## Kenney — sound effects (`sfx/`)
 

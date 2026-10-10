@@ -21,8 +21,9 @@ def solid(name, kind, colour, loc, scale=(1, 1, 1), rot=(0, 0, 0), bone="head", 
     ob.location = loc; ob.scale = scale; ob.rotation_euler = tuple(math.radians(v) for v in rot)
     return ob
 
-SAFFRON, DEEP, GOLD, HORN = (1.0, 0.42, 0.06), (0.86, 0.26, 0.03), (1.0, 0.72, 0.12), (0.93, 0.86, 0.66)
+SAFFRON, DEEP, GOLD, HORN = (1.0, 0.42, 0.06), (0.86, 0.26, 0.03), (1.0, 0.6, 0.07), (0.93, 0.86, 0.66)
 BRONZE, DARK_BRONZE, VIOLET, BUD = (0.85, 0.55, 0.16), (0.42, 0.24, 0.08), (0.22, 0.1, 0.32), (1.0, 0.22, 0.32)
+STEEL = (0.13, 0.19, 0.33)
 
 def turban():
     # The hero. A wound cloth: a broad wrap, a smaller turn of it sitting higher, a knot at the front, a tail behind.
@@ -55,20 +56,22 @@ def seeds():
     solid("bud_head", "sphere", BUD, (0.22, 0.2, 2.14), (0.15, 0.15, 0.15), seg=10, rings=6)
 
 def helm():
-    # The Gatekeeper. A domed helm with a spike and a guard for the neck, the face left open.
-    solid("dome", "sphere", BRONZE, (0, 0.04, 2.0), (0.6, 0.61, 0.34))
-    solid("spike", "cone", GOLD, (0, 0.04, 2.56), (0.07, 0.07, 0.62), seg=8)
-    solid("spike_base", "sphere", GOLD, (0, 0.04, 2.3), (0.14, 0.14, 0.1))
-    solid("neck", "sphere", DARK_BRONZE, (0, 0.4, 1.62), (0.5, 0.22, 0.42))
-    solid("nose", "cone", GOLD, (0, -0.56, 1.8), (0.045, 0.045, 0.42), tip=1.0, seg=6)
+    # The Gatekeeper. A domed helm of dark steel with a gold rim and spike and a guard for the neck; the face is left open.
+    solid("dome", "sphere", STEEL, (0, 0.0, 1.99), (0.64, 0.66, 0.4))
+    solid("rim", "cone", GOLD, (0, 0.0, 1.88), (0.645, 0.665, 0.07), tip=1.0, seg=18)
+    solid("spike", "cone", GOLD, (0, 0.0, 2.62), (0.075, 0.075, 0.6), seg=8)
+    solid("spike_base", "sphere", GOLD, (0, 0.0, 2.36), (0.15, 0.15, 0.1))
+    solid("neck", "sphere", STEEL, (0, 0.4, 1.62), (0.5, 0.22, 0.42))
 
 def vault():
-    # The Hoard Guardian. A shut helm with a slit to see through and two short down-turned horns: a strongbox with legs.
-    solid("mask", "sphere", GOLD, (0, 0.0, 1.72), (0.62, 0.6, 0.6))
-    solid("slit", "cone", (0.05, 0.02, 0.0), (0, -0.5, 1.78), (0.3, 0.16, 0.07), tip=1.0, seg=8)
-    solid("rivet", "sphere", DARK_BRONZE, (0, -0.6, 1.46), (0.09, 0.07, 0.11))
+    # The Hoard Guardian. A strongbox with legs: a flat-topped gold helm like a lid, a heavy gold
+    # collar, a gold boss on each shoulder. Nothing pointed upward: it must not read as a crown.
+    solid("lid", "cone", GOLD, (0, 0.03, 2.1), (0.62, 0.62, 0.3), tip=0.92, seg=16)
+    solid("lid_band", "cone", DARK_BRONZE, (0, 0.03, 1.94), (0.64, 0.64, 0.08), tip=1.0, seg=16)
+    solid("lid_stud", "sphere", DARK_BRONZE, (0, -0.6, 2.1), (0.08, 0.06, 0.1))
+    solid("collar", "cone", GOLD, (0, 0.0, 1.3), (0.52, 0.46, 0.16), tip=0.86, bone="chest", seg=16)
     for side in (-1, 1):
-        solid("vhorn" + str(side), "cone", DARK_BRONZE, (side * 0.66, 0.0, 1.9), (0.14, 0.14, 0.5), rot=(0, side * 118, 0), seg=10)
+        solid("boss" + str(side), "sphere", GOLD, (side * 0.52, 0.0, 1.22), (0.24, 0.24, 0.2), bone="chest", seg=12, rings=7)
 
 SETS = {"turban": turban, "horns": horns, "buffalo": buffalo, "hexhat": hexhat, "seeds": seeds, "helm": helm, "vault": vault}
 for name in [n for n in PIECES.split(",") if n]:

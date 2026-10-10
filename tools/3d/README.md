@@ -1,9 +1,17 @@
-# 3D characters rendered to sprites (a test, 2026-10-10)
+# 3D characters rendered to sprites (2026-10-10)
 
 Roadmap L14. The founder is unhappy with the stock 2D cast and pointed to the look of a 3D
 game. This folder is the route tried for that: take rigged, animated low-poly 3D models,
 recolour them, add simple pieces, and render them from the game's camera into the same
-sprite files the game already plays. Nothing here is used by the game yet.
+sprite files the game already plays. The whole cast is now made this way
+(`docs/requirements.md` §2.38):
+
+    python tools/3d/cast.py <the pack's folder>             all seven, rendered and packed into game/assets/chars
+    python tools/3d/cast.py <the pack's folder> asura       one of them
+    python tools/3d/cast.py <the pack's folder> --look      a quick front and side of each, packed nowhere
+
+`cast.py` holds every choice for every figure. The single steps it runs are below. Look
+at what comes out: one render once came out solid red, and nothing checks for that.
 
 What it needs, neither of which is in git:
 - Blender 4.5 LTS, unpacked to `tools/_blender/b45/` (from blender.org; 900 MB).
