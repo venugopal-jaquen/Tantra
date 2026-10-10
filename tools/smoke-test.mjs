@@ -596,12 +596,12 @@ try {
   // Teaching pauses (requirements 2.35): five ideas stop the fight once each, the subject
   // lit and a panel beside it; everything else stays a tip in the corner.
   const lessons = await page(`const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
-    const keep = { tips: settings.tips, seen: session.hintsSeen, off: session.lessonsOff, best: session.bestSector, taught: session.gateTaught };
+    const keep = { tips: settings.tips, seen: session.hintsSeen, off: session.lessonsOff, best: session.bestSector, taught: session.gateTaught, slam: session.slamTaught };
     const until = async (id, ms = 4000) => { for (let i = 0; i < ms / 25 && !(s.state === 'lesson' && s.lessonShown === id); i++) await wait(25); return s.state === 'lesson' && s.lessonShown === id; };
     const press = async which => { await wait(LESSON.hold + 80); if (s.lessonPanel) s.lessonPanel[which].emit('pointerdown'); await wait(60); };
     const now = () => { s.lessonClosedAt = undefined; };          // forget the last lesson, so the next need not wait
     const words = () => s.overlay.filter(o => o.type === 'Text').map(t => t.text).join(' | ');
-    settings.tips = true; session.hintsSeen = {}; session.lessonsOff = false; session.bestSector = 3;
+    settings.tips = true; session.hintsSeen = {}; session.lessonsOff = false; session.bestSector = 3; session.slamTaught = false;
     s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.clearBanner();
     s.enemies.slice().forEach(e => { e.speed = 0; });
 
@@ -645,10 +645,13 @@ try {
     const at = s.overlay.findIndex(o => o.type === 'Text' && o.text === 'REPLAY TUTORIAL'); s.overlay[at - 1].emit('pointerdown');
     out.replay = at > 0 && session.lessonsOff === false && LESSONS.every(id => !session.hintsSeen[id]) && s.overlay[at].text === 'IT WILL PLAY AGAIN';
     s.closeOverlay(); s.showPauseMenu(); s.resumeGame();
+    // replayed, the slam is taught again, but at its ordinary pace: the slow one is given once (2.36)
+    now(); boss.slamTimer = 0; out.again = await until('slam'); out.once = !!boss.slam && boss.slam.dur === SLAM.circle.windup && session.slamTaught === true;
+    await press('ok'); boss.slamTimer = 1e9; boss.slam = null; if (boss.telegraphGfx) { boss.telegraphGfx.destroy(); boss.telegraphGfx = null; }
     settings.tips = false; s.hint('move', 'move tip'); await wait(120); out.off = s.state === 'playing' && s.lessonWait.length === 0;
     settings.tips = true; s.silent = true; s.hint('move', 'move tip'); out.bot = s.lessonWait.length === 0; s.silent = false;
 
-    settings.tips = keep.tips; session.hintsSeen = keep.seen; session.lessonsOff = keep.off; session.bestSector = keep.best; session.gateTaught = keep.taught; saveSession(); saveSettings();
+    settings.tips = keep.tips; session.hintsSeen = keep.seen; session.lessonsOff = keep.off; session.bestSector = keep.best; session.gateTaught = keep.taught; session.slamTaught = keep.slam; saveSession(); saveSettings();
     s.endRun(false); ${press}; await wait(150);
     return out;`);
   check('a lesson freezes the fight, is pinned to the screen, and its panel sits clear of what it points at', lessons.move && lessons.frozen && lessons.pinned && lessons.fits, JSON.stringify(lessons));
@@ -656,6 +659,64 @@ try {
   check('lessons keep a few seconds apart, and the other tips never stop the fight', lessons.waits && lessons.loot && lessons.quiet, JSON.stringify(lessons));
   check('the boss timer, the slam and the + button each get a lesson; the slam taught takes twice as long', lessons.core && lessons.breath && lessons.slam && lessons.grace && lessons.lit && lessons.boon, JSON.stringify(lessons));
   check('skipping turns the five into corner tips; How to play arms them again; Settings and the bot switch them off', lessons.skipped && lessons.fallback && lessons.replay && lessons.off && lessons.bot, JSON.stringify(lessons));
+  check('a replayed slam lesson does not slow the slam a second time', lessons.again && lessons.once, JSON.stringify(lessons));
+
+  // Free rides (requirements 2.36): the runner is run down, and a boss kept alive stops paying.
+  const rides = await page(`const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
+    const tips = settings.tips; settings.tips = false;
+    s.startRun(); ${FREEZE} s.clearBanner(); s.player.iframes = 1e9;
+    [...s.enemies].forEach(e => s.killEnemy(e));
+    const b = s.arenaBounds, p = s.player, speedOf = async e => { const x = e.x, y = e.y, t = performance.now(); await wait(400); return Math.round(Math.hypot(e.x - x, e.y - y) / ((performance.now() - t) / 1000)); };
+    const foe = (type, x, y) => { const e = s.spawnEnemyOfType(type, x, y, 1); e.speed = 0; e.hp = e.maxHp = 1e6; return e; };
+    p.x = b.centerX; p.y = b.y + 60;
+
+    // nothing chasing: there is no lull to count, however long he runs
+    s.setMoveTarget(b.centerX, b.bottom - 40); await wait(250); out.idle = s.lullMs === 0 && !s.hunted;
+    // one Asura far behind, and he runs on: after six seconds it sprints faster than he can run, and reddens
+    p.y = b.y + 330; s.setMoveTarget(b.centerX, b.bottom - 40);
+    const a = foe('melee', b.centerX, b.y + 30);                         // well out of his reach, so no blow of his clears the count
+    s.lullMs = HUNT.after - 120; await wait(260);
+    out.begun = s.hunted === true && s.hunts === 1 && s.enemySprites.get(a.id).tintTopLeft === HUNT.tint;
+    out.sprint = await speedOf(a); out.heroSpeed = 200; out.pace = Math.round(s.huntPace);
+    // he stops: it walks, and is still hunting; he runs again: it sprints again
+    s.pointerTarget = null; await wait(120); out.walk = await speedOf(a); out.still = s.hunted === true;
+    s.setMoveTarget(b.centerX, b.bottom - 40); await wait(120); out.again = await speedOf(a);
+    // caught: a blow landed on him ends it, and the six seconds start over
+    p.iframes = 0; p.hp = p.maxHp; s.damagePlayer(1, a, 'melee'); p.iframes = 1e9;
+    out.caught = s.hunted === false && s.lullMs === 0 && s.enemySprites.get(a.id).tintTopLeft !== HUNT.tint;
+    // a blow struck by him keeps the lull at nothing; making for the nearest of them is not running away
+    s.lullMs = 3000; s.damageEnemy(a, 0.001); out.fights = s.lullMs === 0;
+    p.x = b.centerX; p.y = b.bottom - 60; a.x = b.centerX; a.y = b.y + 60; s.pointerTarget = null; await wait(60);
+    s.lullMs = HUNT.after - 120; s.setMoveTarget(a.x, a.y + 60); await wait(300); out.toward = s.hunted === false && s.lullMs >= HUNT.after;
+    s.pointerTarget = null; s.killEnemy(a);
+    // a Hexer and a boss are not a pack: neither can run him down, and neither starts the count
+    const h = foe('ranged', b.centerX, b.y + 30); h.fireTimer = 1e9;
+    s.setMoveTarget(b.centerX, b.y + 200); await wait(250); out.hexer = s.lullMs === 0; s.pointerTarget = null; s.killEnemy(h);
+
+    // a boss kept alive: what he summons pays until his tribute is paid in full, and nothing after
+    const boss = s.spawnGatekeeper(); boss.speed = 0; boss.slamTimer = 1e9; boss.summonTimer = 1e9; boss.tribute = s.tributeAt.gold - 1;
+    const sum = () => { const e = s.spawnEnemyOfType('melee', boss.x + 60, boss.y + 80, s.depth); e.speed = 0; e.summonedBy = boss.id; return e; };
+    const s1 = sum(), s2 = sum(), s3 = sum(), g0 = s.runGold, t0 = s.tejas;
+    s.killEnemy(s1); const g1 = s.runGold, drops = s.pickups.length;
+    for (let i = 0; i < 40; i++) s.killEnemy(sum());                       // forty more: at 18% a drop, some would have dropped
+    s.killEnemy(s2); s.killEnemy(s3);
+    out.milk = { paid: g1 > g0, after: s.runGold - g1, tribute: boss.tribute, cap: s.tributeAt.gold, drops: s.pickups.length - drops, label: boss.nameLabel.text };
+    s.killEnemy(boss);
+
+    // taking a Life Gem off cannot leave him on no health
+    const gem = { type: 'trinket', rarity: 'common', effect: 'vitality', name: 'Copper Life Gem', hpBonus: 20, rechargeMs: 0, reflectPct: 0, speedBonus: 0, regenPerSec: 0 };
+    const shoes = { type: 'trinket', rarity: 'common', effect: 'swift', name: 'Copper Swift Sandals', hpBonus: 0, rechargeMs: 0, reflectPct: 0, speedBonus: 25, regenPerSec: 0 };
+    s.applyLoot(gem, false); p.hp = 10; s.applyLoot(shoes, false); out.floor = p.hp;
+    settings.tips = tips;
+    s.endRun(false); ${press}; await wait(150);
+    return out;`);
+  check('a runner is run down: after six seconds of running with nothing attacked the pack sprints while he runs, walks while he stands, and stops when it catches him',
+    rides.idle && rides.begun && rides.pace === 270 && rides.sprint > 230 && rides.sprint < 310 && rides.walk < 15 && rides.still && rides.again > 230 && rides.caught, JSON.stringify(rides));
+  check('fighting is never running: a blow struck clears the count, heading for the nearest enemy does not start a chase, and Hexers and bosses do not count',
+    rides.fights && rides.toward && rides.hexer, JSON.stringify(rides));
+  check('what a boss summons pays until his tribute is paid in full, and nothing after', rides.milk.paid && rides.milk.after === 0 && rides.milk.tribute === rides.milk.cap
+    && rides.milk.drops === 0 && /tribute paid in full$/.test(rides.milk.label), JSON.stringify(rides.milk));
+  check('taking a Life Gem off never leaves the hero on no health', rides.floor === 1, String(rides.floor));
 
   // The hero is named by the player (requirements 2.32).
   const nick = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};

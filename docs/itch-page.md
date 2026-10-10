@@ -1,6 +1,6 @@
 # The itch.io page: what to upload, what to paste, what to tick
 
-Prepared 2026-10-10 for build 0.9 and rebuilt the same day as 0.10 with the teaching pauses (launch track L9, `design-document.md` §1.2). Everything
+Prepared 2026-10-10 for build 0.9 and rebuilt the same day as 0.11 with the teaching pauses and the free rides closed (launch track L9, `design-document.md` §1.2). Everything
 here is ready to use except where it says otherwise. The upload itself is the founder's:
 creating the itch.io account and signing in cannot be done for them.
 
@@ -17,7 +17,7 @@ creating the itch.io account and signing in cannot be done for them.
 
 | File | What it is | Where it goes |
 |---|---|---|
-| `dist/anantarya-0.10-itch.zip` | The game: 89 files, 2.5 MB. Made by `python tools/build-itch.py` | Uploads |
+| `dist/anantarya-0.11-itch.zip` | The game: 89 files, 2.5 MB. Made by `python tools/build-itch.py` | Uploads |
 | `store/itch/cover-draft.png` | Cover, 630 by 500. **A draft: it carries the working title** | Cover image |
 | `store/itch/1-title.png` | The title screen, the well part filled | Screenshots, in this order |
 | `store/itch/2-drowned-steps.png` | A fight on level 2 | |

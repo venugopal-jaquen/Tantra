@@ -14,6 +14,13 @@
  * depth: 1..7 pins the depth of the well a profile plays (default 1), and perks: [...]
  * the perks it wears (default none).
  *
+ * style: names a player who does not play (requirements 2.36): 'lap' runs round the
+ * walls and never stops, 'circle' runs a ring round the middle, 'corner' stands in one,
+ * 'still' never moves, 'stutter' runs the walls but stops for a moment whenever the pack
+ * begins to run it down, and 'milk' plays properly but will not kill a Gatekeeper, only
+ * what he summons. None of them reads a slam or a bolt. They are there to be compared with
+ * the player above: if one does as well, the game has a hole in it.
+ *
  * Usage (browser console, with the game open):
  *   const s = document.createElement('script'); s.src = '../tools/playtest-bot.js';
  *   document.head.appendChild(s);
@@ -124,6 +131,35 @@
     s.pointerTarget = m < 0.05 ? null : { x: p.x + vx / m * 9, y: p.y + vy / m * 9 };
   }
 
+  // ---------- players who do not play (requirements 2.36) ----------
+  // The point one step ahead on a ring round the arena: the walls themselves when `inset`
+  // is small, a ring round the middle when it is large.
+  function ahead(inset, step) {
+    const s = S(), p = s.player, b = s.arenaBounds, hw = b.width / 2 - inset, hh = b.height / 2 - inset;
+    const a = Math.atan2((p.y - b.centerY) / hh, (p.x - b.centerX) / hw) + step;
+    const c = Math.cos(a), sn = Math.sin(a), k = 1 / Math.max(Math.abs(c), Math.abs(sn));
+    return { x: b.centerX + c * k * hw, y: b.centerY + sn * k * hh };
+  }
+  const lazy = {
+    still()  { S().pointerTarget = null; },
+    corner() { const s = S(), b = s.arenaBounds; s.pointerTarget = { x: b.x + 18, y: b.bottom - 18 }; },
+    lap()    { S().pointerTarget = ahead(24, 0.22); },
+    stutter() { const s = S(); if (s.hunted && !(lazy.wait > 0)) lazy.wait = 40; if (lazy.wait > 0) { lazy.wait--; s.pointerTarget = null; } else lazy.lap(); },
+    circle() { const s = S(), b = s.arenaBounds; s.pointerTarget = ahead(Math.min(b.width, b.height) * 0.27, 0.3); },
+    // Plays as the player above does, until a Gatekeeper comes: then it keeps away from
+    // him, far enough that what he summons is always the nearer target, and lives off that.
+    milk() {
+      const s = S(), p = s.player, boss = s.enemies.find(e => e.type === 'gatekeeper');
+      if (!boss) return steer();
+      const d = Math.hypot(p.x - boss.x, p.y - boss.y) || 1, want = (boss.slamRadius || 78) * (s.slamReach ? s.slamReach() : 1) + 70;
+      if (d < want) { s.pointerTarget = { x: p.x + (p.x - boss.x) / d * 40 + (boss.y - p.y) / d * 25, y: p.y + (p.y - boss.y) / d * 40 + (p.x - boss.x) / d * 25 }; return; }
+      steer();
+      // steer() walks toward the nearest enemy when out of range; never let that be the boss
+      const near = s.enemies.reduce((a, e) => !a || Math.hypot(e.x - p.x, e.y - p.y) < Math.hypot(a.x - p.x, a.y - p.y) ? e : a, null);
+      if (near === boss) s.pointerTarget = ahead(40, 0.2);
+    }
+  };
+
   // ---------- one run ----------
   function sectorRec(s) {
     return { sector: s.sector, secs: 0, dmg: 0, maxHp: Math.round(s.player.maxHp), minHpPct: 100,
@@ -155,7 +191,7 @@
     baseline = countChildren();
     const pinned = JSON.stringify(session);
     s.startRun();
-    cur = { profile, base: baseline, pinned, frames: 0, sectors: [sectorRec(s)], result: null, lastHit: null, capFrames: profile.capMin * 60 * 60 };
+    cur = { profile, base: baseline, pinned, frames: 0, sectors: [sectorRec(s)], result: null, lastHit: null, capFrames: profile.capMin * 60 * 60, gold: 0, wave: 0, tribute: 0 };
 
     // instrument (on the instance, removed at the end of the run)
     const od = s.damagePlayer.bind(s);
@@ -205,7 +241,10 @@
   function frame() {
     const s = S();
     if (s.state === 'playing') {
-      steer();
+      (lazy[cur.profile.style] || steer)();
+      cur.gold = s.runGold; cur.wave = s.wave;
+      const boss = s.enemies.find(e => e.isBoss); if (boss && boss.tribute > cur.tribute) cur.tribute = boss.tribute;
+      cur.hunts = s.hunts || 0;
       if (s.tejasBtn && s.tejas >= 100 && s.tejasActive <= 0) s.activateTejas();
       // Boons wait on the + button now; the bot spends each one as soon as it is earned.
       if (s.boonQueue && s.boonQueue.length && cur.profile.boons === false) { s.boonQueue.length = 0; s.refreshBoonButton(); }
@@ -265,6 +304,7 @@
       S().silent = false; S().autoPause = true;
       return { errors: [...new Set(errors)], runs: results.map(r => ({
         profile: r.profile.name, depth: r.profile.depth || 1, result: r.result, finalSector: r.finalSector, gameMin: r.gameMin, leak: r.leak, boons: r.boons,
+        style: r.profile.style || 'plays', gold: r.gold, wave: r.wave, tribute: r.tribute, hunts: r.hunts || 0,
         sectors: r.sectors.map(x => ({
           S: x.sector, min: +(x.secs / 60).toFixed(1), maxHp: x.maxHp,
           hpLostPct: Math.round(100 * x.dmg / x.maxHp), minHpPct: x.minHpPct, kills: x.kills,

@@ -569,7 +569,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.10 (2026-10-10)';
+const BUILD = '0.11 (2026-10-10)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -685,8 +685,9 @@ const MARGIN = 30, HUD_H = 76;
 const ARENA_SCALES = { fixed: 1, wide: 1.6 };
 const ARENA_MODE = 'wide';
 const ARENA_SCALE = (() => {
-  const q = new URLSearchParams(location.search).get('arena'), n = parseFloat(q);
-  return ARENA_SCALES[q] || (n >= 1 && n <= 2.2 ? n : ARENA_SCALES[ARENA_MODE]);
+  // Named arenas only. Any size from 1 to 2.2 could be asked for while the wide arena was
+  // being tried out; a bigger arena is an easier game, so that is gone (requirements 2.36).
+  return ARENA_SCALES[new URLSearchParams(location.search).get('arena')] || ARENA_SCALES[ARENA_MODE];
 })();
 const CAMERA_EASE = 0.012;                 // how fast the camera closes on the hero, per millisecond
 
@@ -805,6 +806,7 @@ const session = {                    // SAVE_KEY is defined with the loading scr
   wellFullSeen: false,  // the "well is full" ending has been shown
   gateTaught: false,    // the first Gatekeeper, who arrives vulnerable, has been met
   lessonsOff: false,    // the player skipped the teaching pauses: those five ideas come as corner tips
+  slamTaught: false,    // the one slow slam a player is taught on has been given
   nickname: '',         // what the player calls themselves (requirements 2.32); empty = unnamed
   depthsWon: 0,         // depths of the well won, 0..7 (requirements 2.30)
   depthBest: 0,         // level bosses beaten, at best, on the depth now being attempted: 0..2
@@ -854,7 +856,7 @@ if (!session.hintsSeen) session.hintsSeen = {};
 function resetSession() {
   Object.assign(session, { metaGold: 0, vitalityLevel: 0, powerLevel: 0, bestSector: 0,
                            tejasUnlocked: false, hintsSeen: {}, water: 0, wins: 0, wellFullSeen: false, gateTaught: false,
-                           depthsWon: 0, depthBest: 0, depthPick: 0, perks: {}, perksOn: [], nickname: '', lessonsOff: false });
+                           depthsWon: 0, depthBest: 0, depthPick: 0, perks: {}, perksOn: [], nickname: '', lessonsOff: false, slamTaught: false });
   saveSession();
 }
 
@@ -2251,6 +2253,14 @@ const HELD_TIPS = ['tribute', 'satchel'];
 // the panel's buttons ignore taps (real time: the fight stopped under a moving thumb),
 // and `slamGrace` how much longer the slam being taught takes to land.
 const LESSONS = ['move', 'loot', 'boon', 'core', 'slam'];
+// No rest for a runner (requirements 2.36). Nothing in the well is as fast as the hero, so
+// a player who simply ran round the walls could be touched by nothing, for as long as they
+// liked. After `after` ms of running with nothing attacked, whatever is chasing sprints
+// at `pace` times the hero's own speed whenever he runs, until one of them lands a blow
+// or they are all dead. They walk while he stands: turning to fight is always allowed,
+// but standing for a moment and running on is not a way out. A player who is fighting
+// never meets this.
+const HUNT = { on: true, after: 6000, pace: 1.35, tint: 0xff9a80 };
 const LESSON = { gap: 4000, patience: 10000, hold: 550, slamGrace: 2, dim: 0.8 };
 
 class LootScene extends Phaser.Scene {
@@ -3095,7 +3105,7 @@ class LootScene extends Phaser.Scene {
   addTribute(boss) {
     const t = boss.tribute = (boss.tribute || 0) + 1;
     const next = [this.tributeAt.item, this.tributeAt.boon, this.tributeAt.gold].find(n => n > t);
-    if (boss.nameLabel) boss.nameLabel.setText(`${boss.baseName} · tribute ${t}${next ? '/' + next : ''}`)
+    if (boss.nameLabel) boss.nameLabel.setText(`${boss.baseName} · tribute ${next ? t + '/' + next : 'paid in full'}`)
       .setColor(t >= this.tributeAt.item ? '#ffd23c' : '#fffbef');
     const earned = { [this.tributeAt.item]: 'AN EXTRA ITEM', [this.tributeAt.boon]: 'A BOON', [this.tributeAt.gold]: `A ${N.metals.epic.toUpperCase()} BOON` }[t];
     if (earned) {
@@ -3516,7 +3526,7 @@ class LootScene extends Phaser.Scene {
           label(cx - 60, cy + 62, 'phase ring', '#c8a96e', 8);
         } },
       { title: 'BOSSES',
-        body: `A boss resists most damage outside its own phase. The timer over its head counts down to when it opens. A shielded boss can't be hurt at all: kill the gold-glowing ${N.enemies.melee} anchoring the shield. Bosses summon ${N.enemies.melee}: each one you kill first is tribute. ${this.tributeAt.item} earns an item, ${this.tributeAt.boon} a boon, ${this.tributeAt.gold} a ${N.metalGloss.epic || N.metals.epic.toLowerCase()} boon - but the summons speed up.`,
+        body: `A boss resists most damage outside its own phase. The timer over its head counts down to when it opens. A shielded boss can't be hurt at all: kill the gold-glowing ${N.enemies.melee} anchoring the shield. Bosses summon ${N.enemies.melee}: each one you kill first is tribute. ${this.tributeAt.item} earns an item, ${this.tributeAt.boon} a boon, ${this.tributeAt.gold} a ${N.metalGloss.epic || N.metals.epic.toLowerCase()} boon - but the summons speed up, and past that they pay nothing.`,
         draw: (cx, cy) => {
           const gr = g(); gr.setDepth(101.5);
           gr.fillStyle(PHASE_DEFS.surge.color, 0.35); gr.fillEllipse(cx - 70, cy + 32, 72, 26);
@@ -3654,6 +3664,31 @@ class LootScene extends Phaser.Scene {
     if (this.hintBox) { this.hintBox.forEach(o => o.destroy()); this.hintBox = null; }
   }
 
+  // ---------- NO REST FOR A RUNNER (requirements 2.36) ----------
+  beginHunt() {
+    this.hunted = true;
+    this.hunts++;
+    this.paintHunt(true);
+    this.showToast('THE PACK RUNS YOU DOWN - TURN AND FIGHT', '#ff9a80');
+    this.sfx('slam-warn', { rate: 1.4, vol: 0.7 });
+    this.hint('hunted', 'Run for long without fighting and the pack runs you down. Turn and fight: they only sprint while you run.');
+  }
+
+  endHunt() {
+    this.hunted = false;
+    this.lullMs = 0;
+    this.paintHunt(false);
+  }
+
+  // The chasers redden while they sprint, so the change of pace has a cause the eye can find.
+  paintHunt(on) {
+    this.enemies.forEach(e => {
+      if (e.isBoss || e.isRanged || e.isElite || e.isKeyAdd) return;      // the ones whose colour already means something
+      const spr = this.enemySprites.get(e.id);
+      if (spr) { if (on) spr.setTint(HUNT.tint); else spr.clearTint(); }
+    });
+  }
+
   // ---------- TEACHING PAUSES (requirements 2.35) ----------
   // The founder, 2026-10-10: "the game pauses and a popup is highlighted explaining a
   // particular concept. This can be skipped but happens first time the player is playing."
@@ -3725,7 +3760,12 @@ class LootScene extends Phaser.Scene {
     session.hintsSeen[id] = true;
     saveSession();
     // The slam being taught winds up afresh, and slowly: time to read, and then to move.
-    if (id === 'slam') { spot.boss.slam.t = 0; spot.boss.slam.dur = SLAM[spot.boss.slam.type].windup * LESSON.slamGrace; }
+    // Once only: REPLAY TUTORIAL shows the lesson again, but not a slow slam every time.
+    if (id === 'slam') {
+      spot.boss.slam.t = 0;
+      spot.boss.slam.dur = SLAM[spot.boss.slam.type].windup * (session.slamTaught ? 1 : LESSON.slamGrace);
+      session.slamTaught = true; saveSession();
+    }
     // A boss just explained holds his first slam until its own lesson can follow: otherwise
     // it would land, untaught, inside the few seconds that two lessons are kept apart.
     if (id === 'core' && !session.hintsSeen.slam) spot.boss.slamTimer = Math.max(spot.boss.slamTimer, LESSON.gap + 600);
@@ -4233,6 +4273,7 @@ class LootScene extends Phaser.Scene {
   // the Vritra transition live here, so the auto-attack and Tejas can never disagree.
   // Returns true if the enemy died.
   damageEnemy(e, dmg) {
+    this.lullMs = 0;                 // a blow struck, whatever it does: the hero is in the fight (2.36)
     if (!e || e.hp <= 0) return false;
     if (e.shieldOn) return false;
     const scale = this.weakScale(e);
@@ -4941,6 +4982,8 @@ class LootScene extends Phaser.Scene {
     this.powerShown = 0;
     this.boonQueue = [];       // boons earned and not yet chosen (2.24)
     this.lessonWait = [];      // lessons asked for and not yet shown (2.35)
+    this.lullMs = 0;           // how long the hero has run without attacking anything (2.36)
+    this.hunted = false; this.huntPace = 0; this.hunts = 0;
     this.lessonClosedAt = undefined;
     this.boonTribute = 0;
     this.choiceBoonTxt = null;
@@ -5599,6 +5642,7 @@ class LootScene extends Phaser.Scene {
     // landed five hits in the same instant - a one-frame death that reads as unfair, not
     // hard. Slams are exempt: they are telegraphed, so standing in one should always cost.
     if (kind !== 'slam' && this.player.iframes > 0) return false;
+    if (this.hunted && kind !== 'slam' && source) this.endHunt();     // caught: blocked or not, the chase is over
     if (this.player.guardCharge > 0) {
       this.player.guardCharge--;
       if (kind !== 'slam') this.player.iframes = IFRAMES_MS;
@@ -5671,12 +5715,14 @@ class LootScene extends Phaser.Scene {
     if (enemy.telegraphGfx) { enemy.telegraphGfx.destroy(); enemy.telegraphGfx = null; }
     this.enemies.splice(this.enemies.indexOf(enemy), 1);
 
-    this.addGold(enemy.goldDrop);
+    // What a boss summons is worth something only until his tribute is paid in full
+    // (requirements 2.36). Past that a boss left alive was an endless, nearly safe supply
+    // of Nidhi and items: a bot that would not kill the first Gatekeeper took 480 in tribute.
+    const lord = enemy.summonedBy ? this.enemies.find(e => e.id === enemy.summonedBy) : null;   // tribute counts only while its boss still stands
+    const spent = !!lord && (lord.tribute || 0) >= this.tributeAt.gold;
+    if (!spent) this.addGold(enemy.goldDrop);
     this.gainTejas(enemy);
-    if (enemy.summonedBy) {                      // tribute counts only while its boss still stands
-      const boss = this.enemies.find(e => e.id === enemy.summonedBy);
-      if (boss) this.addTribute(boss);
-    }
+    if (lord && !spent) this.addTribute(lord);
     if (this.boonRank('hunger') && this.phase === 'eclipse') this.healPlayer(BOONS.hunger.n);
     if (enemy.poison && this.boonLive('rot')) this.spreadPoison(enemy);
     if (enemy.isMega) { this.sfx('boss-fall'); this.sfx('toll', { rate: 0.8 }); }
@@ -5756,7 +5802,7 @@ class LootScene extends Phaser.Scene {
       this.bossRewards(enemy);
     } else if (enemy.isElite) {
       this.spawnLootPickup(enemy.x, enemy.y, 'epic');
-    } else if (waveJustCleared || Phaser.Math.Between(0,100) < (this.perkOn('eye') ? PERKS.eye.n : 18)) {
+    } else if (waveJustCleared || (!spent && Phaser.Math.Between(0,100) < (this.perkOn('eye') ? PERKS.eye.n : 18))) {
       this.spawnLootPickup(enemy.x, enemy.y);
     }
     if (waveJustCleared) this.afterWaveClear();
@@ -5848,7 +5894,7 @@ class LootScene extends Phaser.Scene {
       if (this.player.trinket) this.stashItem(this.player.trinket);
       this.player.trinket = item;
       this.player.maxHp += (item.hpBonus - oldHpBonus);
-      this.player.hp = Math.min(this.player.maxHp, this.player.hp + (item.hpBonus - oldHpBonus));
+      this.player.hp = Math.max(1, Math.min(this.player.maxHp, this.player.hp + (item.hpBonus - oldHpBonus)));   // taking a Life Gem off never leaves him on nothing
       this.player.shieldCharge = 0;
       this.player.shieldRechargeTimer = item.effect === 'aegis' ? item.rechargeMs : 0;
       this.showToast(`${tag}Equipped: ${item.name}`, isMystery ? '#ffd23c' : '#2fbf71');
@@ -6107,6 +6153,12 @@ class LootScene extends Phaser.Scene {
     // By intent, not by position: being shoved by an enemy is still standing your ground.
     this.moving = !!(dx || dy || this.pointerTarget);
     this.stillMs = this.moving ? 0 : this.stillMs + delta;
+    // No rest for a runner (2.36). The lull is counted only while something is chasing;
+    // any blow the hero strikes ends it (damageEnemy).
+    const chased = this.enemies.some(e => !e.isBoss && !e.isRanged), px0 = this.player.x, py0 = this.player.y;
+    this.lullMs = chased ? this.lullMs + delta : 0;
+    if (this.hunted && !chased) this.endHunt();
+    this.huntPace = this.hunted && this.moving ? moveSpeed * HUNT.pace : 0;
     if (this.pointerTarget) {
       // Walk toward the finger at exactly the speed the keys give. This used to close 45%
       // of the gap every frame - anywhere in the arena in about a tenth of a second. That
@@ -6124,6 +6176,20 @@ class LootScene extends Phaser.Scene {
     }
     this.player.x = Phaser.Math.Clamp(this.player.x, this.arenaBounds.x+15, this.arenaBounds.right-15);
     this.player.y = Phaser.Math.Clamp(this.player.y, this.arenaBounds.y+15, this.arenaBounds.bottom-15);
+
+    // The hunt begins (2.36) - but not while he is making for the nearest of them: that
+    // is going to the fight, not leaving it.
+    if (!this.hunted && HUNT.on && this.moving && this.lullMs >= HUNT.after) {
+      let near = null, nd = 1e9;
+      for (const e of this.enemies) {
+        if (e.isBoss || e.isRanged) continue;
+        const d = Math.hypot(e.x - px0, e.y - py0);
+        if (d < nd) { nd = d; near = e; }
+      }
+      const mx = this.player.x - px0, my = this.player.y - py0, ml = Math.hypot(mx, my);
+      const toward = near && ml > 0.01 && nd > 0.01 ? (mx * (near.x - px0) + my * (near.y - py0)) / (ml * nd) : 0;
+      if (near && toward < 0.5) this.beginHunt();
+    }
 
     // block walking through enemies - push the player back out of any overlap
     for (const enemy of this.enemies) {
@@ -6248,9 +6314,10 @@ class LootScene extends Phaser.Scene {
         this.updateBossGate(enemy, time);
         if (enemy.serpent) this.updateSerpent(enemy, time, delta);
       } else {
-        // melee / tank / splitter: chase and hit on contact
-        enemy.x += (edx/edist) * enemy.speed * dt;
-        enemy.y += (edy/edist) * enemy.speed * dt;
+        // melee / tank / splitter: chase and hit on contact. A hunted runner is run down (2.36).
+        const pace = Math.max(enemy.speed, this.huntPace);
+        enemy.x += (edx/edist) * pace * dt;
+        enemy.y += (edy/edist) * pace * dt;
         if (edist < (15 + enemy.radius) && enemy.hitCooldown <= 0) {
           enemy.hitCooldown = 420;
           this.enemyLunge(enemy);
