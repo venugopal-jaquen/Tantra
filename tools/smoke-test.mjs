@@ -693,14 +693,20 @@ try {
     const h = foe('ranged', b.centerX, b.y + 30); h.fireTimer = 1e9;
     s.setMoveTarget(b.centerX, b.y + 200); await wait(250); out.hexer = s.lullMs === 0; s.pointerTarget = null; s.killEnemy(h);
 
-    // a boss kept alive: what he summons pays until his tribute is paid in full, and nothing after
-    const boss = s.spawnGatekeeper(); boss.speed = 0; boss.slamTimer = 1e9; boss.summonTimer = 1e9; boss.tribute = s.tributeAt.gold - 1;
-    const sum = () => { const e = s.spawnEnemyOfType('melee', boss.x + 60, boss.y + 80, s.depth); e.speed = 0; e.summonedBy = boss.id; return e; };
-    const s1 = sum(), s2 = sum(), s3 = sum(), g0 = s.runGold, t0 = s.tejas;
-    s.killEnemy(s1); const g1 = s.runGold, drops = s.pickups.length;
-    for (let i = 0; i < 40; i++) s.killEnemy(sum());                       // forty more: at 18% a drop, some would have dropped
-    s.killEnemy(s2); s.killEnemy(s3);
-    out.milk = { paid: g1 > g0, after: s.runGold - g1, tribute: boss.tribute, cap: s.tributeAt.gold, drops: s.pickups.length - drops, label: boss.nameLabel.text };
+    // a boss kept alive: tribute pays for as long as he lives, and past the gold boon it grows heavier
+    const boss = s.spawnGatekeeper(); boss.speed = 0; boss.slamTimer = 1e9; boss.summonTimer = 1e9;
+    const gold = s.tributeAt.gold, plain = s.spawnEnemyOfType('melee', boss.x + 60, boss.y + 80, s.depth, false), base = { hp: plain.maxHp, dmg: plain.dmg };
+    s.killEnemy(plain);
+    const summon = async () => { const had = new Set(s.enemies); boss.summonTimer = 0; await wait(90);
+      const got = s.enemies.filter(e => !had.has(e) && e.summonedBy === boss.id); got.forEach(e => { e.speed = 0; }); return got; };
+    const near = (x, y) => Math.abs(x - y) < 1e-6;
+    boss.tribute = gold; const light = await summon();                          // at the gold boon: as they always were
+    boss.tribute = gold + 2 * TRIBUTE.step; const heavy = await summon();       // ten past it: two steps heavier
+    const g0 = s.runGold, t0 = boss.tribute; [...light, ...heavy].forEach(e => s.killEnemy(e));
+    out.milk = { light: light.length === 2 && light.every(e => near(e.maxHp, base.hp) && near(e.dmg, base.dmg)),
+      heavy: heavy.length === 2 && heavy.every(e => near(e.maxHp / base.hp, 1 + 2 * TRIBUTE.heavier) && near(e.dmg / base.dmg, 1 + 2 * TRIBUTE.heavier) && e.hp === e.maxHp),
+      weight: [s.tributeWeight({ tribute: gold + TRIBUTE.step - 1 }), s.tributeWeight({ tribute: gold + TRIBUTE.step }), s.tributeWeight({ tribute: gold + 20 * TRIBUTE.step })],
+      pays: s.runGold > g0 && boss.tribute === t0 + 4, label: boss.nameLabel.text, want: boss.baseName + ' · tribute ' + (t0 + 4) };
     s.killEnemy(boss);
 
     // taking a Life Gem off cannot leave him on no health
@@ -714,8 +720,9 @@ try {
     rides.idle && rides.begun && rides.pace === 270 && rides.sprint > 230 && rides.sprint < 310 && rides.walk < 15 && rides.still && rides.again > 230 && rides.caught, JSON.stringify(rides));
   check('fighting is never running: a blow struck clears the count, heading for the nearest enemy does not start a chase, and Hexers and bosses do not count',
     rides.fights && rides.toward && rides.hexer, JSON.stringify(rides));
-  check('what a boss summons pays until his tribute is paid in full, and nothing after', rides.milk.paid && rides.milk.after === 0 && rides.milk.tribute === rides.milk.cap
-    && rides.milk.drops === 0 && /tribute paid in full$/.test(rides.milk.label), JSON.stringify(rides.milk));
+  check('tribute pays for as long as a boss lives, and past the gold boon his summons grow 12% tougher and harder-hitting for every five, without end',
+    rides.milk.light && rides.milk.heavy && rides.milk.pays && rides.milk.label === rides.milk.want
+    && rides.milk.weight.map(w => w.toFixed(2)).join() === '1.00,1.12,3.40', JSON.stringify(rides.milk));
   check('taking a Life Gem off never leaves the hero on no health', rides.floor === 1, String(rides.floor));
 
   // The hero is named by the player (requirements 2.32).
