@@ -569,7 +569,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.14 (2026-10-10)';
+const BUILD = '0.15 (2026-10-10)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -703,7 +703,7 @@ const WIDE = {
   creeps: [1, 3],         // extra enemies in a wave: at least, at most
   creepsPerSector: 1      // the most rises by this for each level after the first
 };
-const HP_BAR = { w: 42, h: 5, up: 35 };   // the hero's health bar: its size, and how far over his middle it floats
+const HP_BAR = { w: 42, h: 5, up: 35 };   // the hero's health bar: its size, and how far over the stock figure's middle it floats (HERO_BAR_UP)
 const GATEKEEPER_WAVE = 3;
 const MEGA_BOSS_SECTOR = 3;
 
@@ -1399,6 +1399,27 @@ const FACINGS = ['front', 'back', 'left', 'right'];
 // size it was. Built by tools/extract-walk.py. Vritra has none: he is drawn in code.
 const WALK = { frames: 8, cell: 112, pad: 112 / 96 };
 const WALKERS = Object.keys(CHARS).filter(k => k !== 'megaboss').map(k => CHARS[k]);
+// Art made for this game comes one figure at a time (requirements 2.39), so a figure named
+// here has files of its own while the others keep the stock ones: stills of `still` pixels
+// and a walk sheet with cells of `cell`, both cut by tools/cut-turnaround.py. `scale` is
+// how much larger than the stock figure it is drawn. These figures stand as people do,
+// half as wide as they are tall, where the stock cast are squat: at the stock size they
+// are slivers on a phone. Nothing about the fight changes with the size: hit circles,
+// reach and speed are as they were.
+const ART = {
+  kiran: { still: 160, cell: 192, scale: 1.5 },
+  asura: { still: 160, cell: 192, scale: 1.7 }
+};
+const STOCK_ART = { still: 96, cell: WALK.cell, scale: 1 };
+const artOf = char => ART[char] || STOCK_ART;
+// A larger figure stands on the same spot, so its head is higher and its feet lower than
+// the stock figure's would be at the same `size` (what charSprite is asked for). By how
+// much: a cut still has the head 42% of its height above the middle, the feet 44% below.
+const artRise = (char, size) => (artOf(char).scale - 1) * size * 0.42;
+const artDrop = (char, size) => (artOf(char).scale - 1) * size * 0.44;
+const HERO_SIZE = 44;                                                           // the hero's figure, before `scale`
+const HERO_BAR_UP = HP_BAR.up + Math.round(artRise(CHARS.player, HERO_SIZE));   // his health bar clears his head
+const HERO_RING_DOWN = 16 + Math.round(artDrop(CHARS.player, HERO_SIZE));       // his stance ring lies at his feet
 const INV_MAX = 8;   // satchel capacity; oldest falls out past this
 
 // Shown above every enemy. These are the Sanskrit *type* names, not proper nouns -
@@ -2296,7 +2317,7 @@ class LootScene extends Phaser.Scene {
       }
     }
     for (const name of WALKERS) {
-      this.load.spritesheet(`${name}-walk`, `assets/chars/${name}-walk.png`, { frameWidth: WALK.cell, frameHeight: WALK.cell });
+      this.load.spritesheet(`${name}-walk`, `assets/chars/${name}-walk.png`, { frameWidth: artOf(name).cell, frameHeight: artOf(name).cell });
     }
     this.load.image('bg_stars', 'assets/bg-stars.png');
     this.load.image('title_art', 'assets/title-art.jpg');
@@ -3936,12 +3957,21 @@ class LootScene extends Phaser.Scene {
     this.tweens.add({ targets: g, alpha: 0, scale: 1.35, duration: 210, onComplete: () => g.destroy() });
   }
 
+  // How far over an enemy's middle its bars and name begin, and how far under it the
+  // floor is, whatever art it has.
+  headUp(e) { return e.radius + artRise(e.char, e.radius * 2.8); }
+  feetDown(e) { return e.radius * 0.55 + artDrop(e.char, e.radius * 2.8); }
+
   // A character's sprite: its walk sheet where it has one, its still otherwise. `size` is
-  // how large the standing figure is drawn, whichever it is.
+  // how large the standing stock figure is drawn, whichever it is; art of the game's own
+  // is drawn larger by its `scale` (ART).
   charSprite(char, x, y, size) {
-    if (!this.textures.exists(`${char}-walk`)) return this.add.image(x, y, `${char}-front`).setDisplaySize(size, size);
-    const spr = this.add.image(x, y, `${char}-walk`, 0).setDisplaySize(size * WALK.pad, size * WALK.pad);
-    spr.walks = true;
+    const art = artOf(char), drawn = size * art.scale, pad = art.cell / art.still;
+    const walks = this.textures.exists(`${char}-walk`);
+    const spr = walks ? this.add.image(x, y, `${char}-walk`, 0).setDisplaySize(drawn * pad, drawn * pad)
+                      : this.add.image(x, y, `${char}-front`).setDisplaySize(drawn, drawn);
+    spr.walks = walks;
+    spr.figure = size;
     return spr;
   }
 
@@ -3963,7 +3993,7 @@ class LootScene extends Phaser.Scene {
   // the stride. `a` carries the state (the enemy itself, or playerAnim). Returns how far
   // the sprite should be lifted off its spot this frame.
   animate(spr, a, delta, vx, vy, heavy, crouch) {
-    if (spr.baseSX === undefined) { spr.baseSX = spr.scaleX; spr.baseSY = spr.scaleY; spr.strideLen = spr.displayWidth / (spr.walks ? WALK.pad : 1) * 2.4; }
+    if (spr.baseSX === undefined) { spr.baseSX = spr.scaleX; spr.baseSY = spr.scaleY; spr.strideLen = (spr.figure || spr.displayWidth) * 2.4; }
     if (a.gait === undefined) { a.gait = Math.random() * 6.28; a.age = a.age || 0; }
     a.age += delta;
     const speed = Math.hypot(vx, vy), moving = speed > 12, rate = heavy ? 0.0085 : 0.0135;
@@ -4274,7 +4304,7 @@ class LootScene extends Phaser.Scene {
       }
     }
     const secs = Math.max(1, Math.ceil((open ? this.phaseTimeLeft : this.phaseWait(e.weakPhase)) / 1000));
-    const ab = this.arenaBounds, top = (e.nameLabel ? e.nameLabel.y : e.y - e.radius - 26) - 13;
+    const ab = this.arenaBounds, top = (e.nameLabel ? e.nameLabel.y : e.y - this.headUp(e) - 26) - 13;
     e.gateLabel.setVisible(true).setText(open ? `VULNERABLE  ${secs}s` : `RESISTS  \u00B7  opens in ${secs}s`).setColor(open ? '#ffe27a' : '#b9c2d6');
     const half = e.gateLabel.width / 2 + 2;
     e.gateLabel.setPosition(Phaser.Math.Clamp(e.x, ab.x + half, ab.right - half), Math.max((this.trackY ? this.trackY + this.camOff.y : ab.y) + 28, top));
@@ -4302,7 +4332,7 @@ class LootScene extends Phaser.Scene {
   resistFx(e) {
     if (this.silent || this.time.now - (e.resistAt || -1e9) < 480) return;
     e.resistAt = this.time.now;
-    const t = this.add.text(e.x + Phaser.Math.Between(-18, 18), e.y - e.radius - 2, 'RESISTS', { resolution: RES, fontSize: '9px', color: '#b9c2d6', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 }).setOrigin(0.5).setDepth(41);
+    const t = this.add.text(e.x + Phaser.Math.Between(-18, 18), e.y - this.headUp(e) - 2, 'RESISTS', { resolution: RES, fontSize: '9px', color: '#b9c2d6', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 }).setOrigin(0.5).setDepth(41);
     this.tweens.add({ targets: t, y: t.y - 20, alpha: 0, duration: 620, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
   }
 
@@ -5085,18 +5115,18 @@ class LootScene extends Phaser.Scene {
     };
     this.playerFacing = 'front';
     this.playerAnim = { age: 1e6 };       // the state of the hero's motion (see animate)
-    this.playerSprite = this.charSprite(CHARS.player, this.player.x, this.player.y, 44);
+    this.playerSprite = this.charSprite(CHARS.player, this.player.x, this.player.y, HERO_SIZE);
     // The ring stays a vector circle: it is the phase-colour tell, and must not inherit ship art.
     // Stance ring at the hero's feet, not a circle around the body - a ring around a
     // character sprite reads as a bubble, but on the floor it reads as a stance and
     // leaves the silhouette clean. This is the Cosmic Cycle phase tell.
-    this.playerRing = this.add.ellipse(this.player.x, this.player.y + 16, 34, 13, 0xffffff, 0)
+    this.playerRing = this.add.ellipse(this.player.x, this.player.y + HERO_RING_DOWN, 34, 13, 0xffffff, 0)
       .setStrokeStyle(2, PHASE_DEFS.drift.color, 0.9);
     this.boonFx = this.add.graphics();   // tells for Hold Your Ground and Read the Slam
 
     // HP bar: over the hero's head, where the eyes already are in a fight (2026-10-06). It
     // used to run across the top of the screen. It follows him every frame (see update).
-    const barX = this.player.x - HP_BAR.w / 2, barY = this.player.y - HP_BAR.up, barW = HP_BAR.w, barH = HP_BAR.h;
+    const barX = this.player.x - HP_BAR.w / 2, barY = this.player.y - HERO_BAR_UP, barW = HP_BAR.w, barH = HP_BAR.h;
     this.hpBarBg = this.add.rectangle(barX, barY, barW, barH, 0x2a0f04).setOrigin(0,0.5).setStrokeStyle(1.5, 0x1a0600).setDepth(40);
     this.hpBarFill = this.add.rectangle(barX, barY, barW, barH, 0x2fbf71).setOrigin(0,0.5).setDepth(40);
     this.hpBarW = barW;
@@ -5310,7 +5340,7 @@ class LootScene extends Phaser.Scene {
     const big = !!enemy.isBoss;
     const w = big ? Math.max(58, enemy.radius * 2.4) : Math.max(22, enemy.radius * 1.9);
     const h = big ? 6 : 3.5;
-    const y = enemy.y - enemy.radius - (big ? 18 : 13);
+    const y = enemy.y - this.headUp(enemy) - (big ? 18 : 13);
     enemy.hpBarW = w;
     enemy.hpBarH = h;
     enemy.hpBarBg = this.add.rectangle(enemy.x, y, w, h, FORGE.deep, 0.8)
@@ -5458,9 +5488,9 @@ class LootScene extends Phaser.Scene {
   addShieldBar(enemy) {
     const w = Math.max(58, enemy.radius * 2.4);
     enemy.shieldBarW = w;
-    enemy.shieldBarBg = this.add.rectangle(enemy.x, enemy.y - enemy.radius - 27, w, 5, FORGE.deep, 0.8)
+    enemy.shieldBarBg = this.add.rectangle(enemy.x, enemy.y - this.headUp(enemy) - 27, w, 5, FORGE.deep, 0.8)
       .setStrokeStyle(1, 0x000000, 0.45);
-    enemy.shieldBarFill = this.add.rectangle(enemy.x - w/2, enemy.y - enemy.radius - 27, w, 5, 0x9fd8ff)
+    enemy.shieldBarFill = this.add.rectangle(enemy.x - w/2, enemy.y - this.headUp(enemy) - 27, w, 5, 0x9fd8ff)
       .setOrigin(0, 0.5);
   }
 
@@ -5493,7 +5523,7 @@ class LootScene extends Phaser.Scene {
     const spr = this.charSprite(enemy.char, x, y, enemy.radius * 2.8);
     // The weak-phase core sits UNDER the sprite as a glow pool, so Dwarapal's
     // silhouette stays readable while the colour tell is still unmistakable.
-    const core = this.add.circle(x, y + enemy.radius * 0.55, 14, PHASE_DEFS[weakPhase].color, 0.85);
+    const core = this.add.circle(x, y + this.feetDown(enemy), 14, PHASE_DEFS[weakPhase].color, 0.85);
     core.setDepth(spr.depth - 1);
     this.tweens.add({ targets: core, alpha: 0.45, duration: 500, yoyo: true, repeat: -1 });
     this.enemySprites.set(enemy.id, spr);
@@ -5545,7 +5575,7 @@ class LootScene extends Phaser.Scene {
     }
 
     if (enemy.bossPhase === 'timing') {
-      const core = this.add.circle(x, y + enemy.radius * 0.55, 16, PHASE_DEFS[weakPhase].color, 0.85);
+      const core = this.add.circle(x, y + this.feetDown(enemy), 16, PHASE_DEFS[weakPhase].color, 0.85);
       core.setDepth(spr.depth - 1);
       this.tweens.add({ targets: core, alpha: 0.45, duration: 500, yoyo: true, repeat: -1 });
       this.enemyCores.set(enemy.id, core);
@@ -6265,7 +6295,7 @@ class LootScene extends Phaser.Scene {
     this.aimCamera(false, delta);
     const lift = this.animate(this.playerSprite, this.playerAnim, delta, (this.player.x - prevX) / dt, (this.player.y - prevY) / dt, false, 0);
     this.playerSprite.setPosition(this.player.x, this.player.y - lift);
-    this.playerRing.setPosition(this.player.x, this.player.y + 16);
+    this.playerRing.setPosition(this.player.x, this.player.y + HERO_RING_DOWN);
     // Ring carries the live phase colour, so the player reads Cycle timing off their own feet.
     this.playerRing.setStrokeStyle(2, PHASE_DEFS[this.phase].color, 0.9);
 
@@ -6356,7 +6386,7 @@ class LootScene extends Phaser.Scene {
       } else if (enemy.isBoss) {
         if (this.updateBoss(enemy, edx, edy, edist, dt, delta)) return;   // true = player died
         const core = this.enemyCores.get(enemy.id);
-        if (core) core.setPosition(enemy.x, enemy.y + enemy.radius * 0.55);
+        if (core) core.setPosition(enemy.x, enemy.y + this.feetDown(enemy));
         const ring = this.enemyRings.get(enemy.id);
         if (ring) ring.setPosition(enemy.x, enemy.y);
         if (enemy.orbiters) {
@@ -6423,10 +6453,10 @@ class LootScene extends Phaser.Scene {
         const floor = (this.trackY ? this.trackY + this.camOff.y : this.arenaBounds.y) + 14, ab = this.arenaBounds, half = enemy.nameLabel.width / 2 + 2;
         // Kept inside the arena: a boss's label grows once it carries a tribute count.
         enemy.nameLabel.setPosition(half * 2 >= ab.width ? ab.centerX : Phaser.Math.Clamp(enemy.x, ab.x + half, ab.right - half),
-                                    Math.max(floor, enemy.y - enemy.radius - topBar - 8));
+                                    Math.max(floor, enemy.y - this.headUp(enemy) - topBar - 8));
       }
       if (enemy.shieldBarFill) {
-        const sy = enemy.y - enemy.radius - 27;
+        const sy = enemy.y - this.headUp(enemy) - 27;
         const left = (enemy.keyAddIds ? enemy.keyAddIds.length : 0) / (enemy.shieldMax || 1);
         enemy.shieldBarBg.setPosition(enemy.x, sy);
         enemy.shieldBarFill.x = enemy.x - enemy.shieldBarW/2;
@@ -6435,7 +6465,7 @@ class LootScene extends Phaser.Scene {
       }
       if (enemy.shieldParts) enemy.shieldParts.forEach(pt => pt.setPosition(enemy.x, enemy.y));
       if (enemy.hpBarBg) {
-        const by = enemy.y - enemy.radius - (enemy.isBoss ? 18 : 13);
+        const by = enemy.y - this.headUp(enemy) - (enemy.isBoss ? 18 : 13);
         const pct = Math.max(0, enemy.hp / enemy.maxHp);
         enemy.hpBarBg.setPosition(enemy.x, by);
         enemy.hpBarFill.x = enemy.x - enemy.hpBarW/2;
@@ -6582,7 +6612,7 @@ class LootScene extends Phaser.Scene {
 
     // --- HP bar update ---
     const hpPct = Math.max(0, this.player.hp/this.player.maxHp);
-    const hbX = this.player.x - HP_BAR.w / 2, hbY = this.player.y - HP_BAR.up;
+    const hbX = this.player.x - HP_BAR.w / 2, hbY = this.player.y - HERO_BAR_UP;
     this.hpBarBg.setPosition(hbX, hbY); this.hpBarFill.setPosition(hbX, hbY); this.bloodBar.setPosition(hbX, hbY - HP_BAR.h / 2 - 2);
     this.hpBarFill.width = this.hpBarW * hpPct;
     this.hpBarFill.fillColor = hpPct > 0.5 ? 0x2fbf71 : (hpPct > 0.25 ? 0xffd23c : 0xff5c5c);

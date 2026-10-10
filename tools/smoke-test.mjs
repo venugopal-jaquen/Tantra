@@ -146,7 +146,7 @@ try {
   // ---------- 3. a run in real time: HUD, the first lesson, banner ----------
   await page(`game.scene.keys.LootScene.startRun();`);
   await sleep(1500); await shot('3-run-start');
-  const run = await page(`const s = game.scene.keys.LootScene; return { state: s.state, tip: s.hintBox ? s.hintBox[1].text : null, hudBottom: Math.round(s.hudText.y + s.hudText.height), barTop: Math.round(s.phaseBarBg.y - s.phaseBarBg.height / 2), hp: { dx: Math.round(s.hpBarBg.x + s.hpBarBg.width / 2 - s.player.x), dy: Math.round(s.player.y - s.hpBarBg.y), w: s.hpBarBg.width } };`);
+  const run = await page(`const s = game.scene.keys.LootScene; return { state: s.state, tip: s.hintBox ? s.hintBox[1].text : null, hudBottom: Math.round(s.hudText.y + s.hudText.height), barTop: Math.round(s.phaseBarBg.y - s.phaseBarBg.height / 2), hp: { dx: Math.round(s.hpBarBg.x + s.hpBarBg.width / 2 - s.player.x), dy: Math.round(s.player.y - s.hpBarBg.y), w: s.hpBarBg.width, wants: HERO_BAR_UP } };`);
   // The first of the teaching pauses (requirements 2.35): once the level's banner has gone,
   // a new player's first run stops to say how to move.
   const first = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms));
@@ -164,7 +164,7 @@ try {
   check('skipping the tutorial resumes the fight, stops the pauses, and says how to get them back', skipped.state === 'playing' && skipped.off === true && skipped.paused === false
     && /Replay tutorial/.test(skipped.tip || ''), JSON.stringify(skipped));
   check('HUD line clears the phase bar', run.hudBottom <= run.barTop + 1, `text bottom ${run.hudBottom}, bar top ${run.barTop}`);
-  check("the hero's health bar floats over his head", run.hp.dx === 0 && run.hp.dy === 35 && run.hp.w === 42, JSON.stringify(run.hp));
+  check("the hero's health bar floats over his head", run.hp.dx === 0 && run.hp.dy === run.hp.wants && run.hp.dy >= 35 && run.hp.w === 42, JSON.stringify(run.hp));
 
   // Waves are held still for the checks that follow: a queue that never spawns, so a kill
   // is not a cleared wave unless a check empties the queue to make it one.
@@ -190,15 +190,22 @@ try {
       for (let i = 0; i < 80 && seen.size < need; i++) { await wait(30); const f = spr.frame.name; if (f % per) { seen.add(f % per); rows.add(Math.floor(f / per)); } }
       return { steps: seen.size, rows: [...rows].join() }; };
     const out = { sheets: WALKERS.filter(n => s.textures.exists(n + '-walk') && s.textures.get(n + '-walk').frameTotal - 1 === per * FACINGS.length).length, walkers: WALKERS.length,
-      vritra: s.textures.exists(CHARS.megaboss + '-walk'), onSheet: !!s.playerSprite.walks, size: Math.round(s.playerSprite.baseSX * WALK.cell / WALK.pad), standing: s.playerSprite.frame.name % per };
+      vritra: s.textures.exists(CHARS.megaboss + '-walk'), onSheet: !!s.playerSprite.walks, size: Math.round(s.playerSprite.baseSX * artOf(CHARS.player).still), wants: Math.round(HERO_SIZE * artOf(CHARS.player).scale), standing: s.playerSprite.frame.name % per };
     s.setMoveTarget(330, 150); out.kiran = await stepsOf(s.playerSprite, 5); out.right = FACINGS.indexOf('right');
     for (let i = 0; i < 60 && s.pointerTarget; i++) await wait(40);
     await wait(320); out.stopped = s.playerSprite.frame.name % per;
     const e = s.spawnEnemyOfType('melee', 70, 330, 1), spr = s.enemySprites.get(e.id);
-    out.asura = await stepsOf(spr, 4); out.asuraSize = Math.round(spr.baseSX * WALK.cell / WALK.pad * 10) / 10; out.asuraWants = Math.round(e.radius * 28) / 10;
+    out.asura = await stepsOf(spr, 4); out.asuraSize = Math.round(spr.baseSX * artOf(e.char).still * 10) / 10; out.asuraWants = Math.round(e.radius * 28 * artOf(e.char).scale) / 10;
     e.speed = 0; await wait(320); out.asuraStopped = spr.frame.name % per;
     s.killEnemy(e); return out;`);
-  check('every character but Vritra has a walk sheet, and figures keep their size', legs.sheets === 7 && legs.walkers === 7 && !legs.vritra && legs.onSheet && legs.size === 44 && legs.asuraSize === legs.asuraWants, JSON.stringify(legs));
+  check('every character but Vritra has a walk sheet, and each figure is drawn at the size its art asks for', legs.sheets === 7 && legs.walkers === 7 && !legs.vritra && legs.onSheet && legs.size === legs.wants && legs.wants >= 44 && legs.asuraSize === legs.asuraWants, JSON.stringify(legs));
+  // Art of the game's own (requirements 2.39): a figure named in ART has files cut to its own size.
+  const own = await page(`const s = game.scene.keys.LootScene;
+    return { figures: Object.keys(ART).map(name => ({ name, cell: s.textures.get(name + '-walk').get(0).width, frames: s.textures.get(name + '-walk').frameTotal - 1,
+        still: s.textures.get(name + '-front').get().width, wantsCell: ART[name].cell, wantsStill: ART[name].still })),
+      ring: Math.round(s.playerRing.y - s.player.y), ringWants: HERO_RING_DOWN };`);
+  check("art of the game's own is cut to its own size: four rows of nine cells, stills to match, and the stance ring at the hero's feet",
+    own.figures.length >= 2 && own.figures.every(f => f.cell === f.wantsCell && f.frames === 36 && f.still === f.wantsStill) && own.ring === own.ringWants && own.ring >= 16, JSON.stringify(own));
   check('the hero and his enemies step through their walk frames, and stand when they stop', legs.standing === 0 && legs.kiran.steps >= 5 && legs.kiran.rows === String(legs.right) && legs.stopped === 0
     && legs.asura.steps >= 4 && legs.asuraStopped === 0, JSON.stringify(legs));
 
