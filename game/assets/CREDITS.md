@@ -2,7 +2,40 @@
 
 Provenance for every shipped asset, kept auditable ahead of store submission.
 
+## The founder's own characters (`chars/`)
+
+Since 2026-10-10 all seven figures are the founder's own designs, made at their direction
+with ChatGPT's image generation: one turnaround picture each (front, back and right
+side), kept as they came in `incoming/well-delver/`. **They are AI-generated, and the
+itch.io page says so.** OpenAI's terms give the person who made a picture the rights to
+it, including to use it commercially; that is to be read again on OpenAI's own page in
+the pre-launch pass, as for the title picture.
+
+| In-game | Files | Turnaround |
+|---|---|---|
+| Hero | `kiran-*` (the hero's files keep their first name) | `hero-turnaround.png` |
+| Asura | `asura-*` | `asura-turnaround.png` |
+| Hexer | `rakshasa-*` | `hexer-turnaround.png` |
+| Brute | `mahish-*` | `brute-turnaround.png` |
+| Bloodseed | `raktabija-*` | `bloodseed-turnaround.png` |
+| Gatekeeper | `bakasura-*` | `gatekeeper-turnaround.png` |
+| Hoard Guardian | `nidhiraksha-*` | `guardian-turnaround.png` |
+
+`tools/cut-turnaround.py` makes the game's files from a turnaround: four stills and a
+sheet (for each facing a standing cell, eight of a walk and three of a strike; a
+255-colour palette). The left view is the right view mirrored. Every walk and strike cell
+is made from the standing picture, by bending it and by turning what the figure holds in
+its hand; no other picture was generated for them. `docs/requirements.md` §2.39, §2.41.
+`vritra-*` are the stock stills of an unseen stand-in: the serpent is drawn in code.
+`kiran-portrait.png` is the hero's front view at the full size of the picture, for the
+profile. `kiran-zone-*.png` and `kiran-portrait-zone-*.png` are masks, not pictures: which
+pixels are the hero's head-wrap, tunic, trousers and weapon strap (§2.42).
+
 ## CraftPix — character roster (`chars/`)
+
+**No figure in the game comes from these packs any more** (see above); only the unseen
+stand-in for Vritra does. The packs still sit in `incoming/` and `tools/extract-chars.py`
+and `tools/extract-walk.py` still remake that cast from them.
 
 Source: https://craftpix.net/freebies/
 License: https://craftpix.net/file-licenses/
@@ -40,8 +73,8 @@ not.** This is a deliberate, documented trade to ship on itch.io, not an oversig
 
 | In-game | Devanagari | Role | Source character |
 |---|---|---|---|
-| `kiran-*`       | किरण      | Player | Warrior |
-| `asura-*`       | असुर      | Melee | Male Goblin |
+| `kiran-*`       | किरण      | Player | Warrior until 2026-10-10; now the founder's own |
+| `asura-*`       | असुर      | Melee | Male Goblin until 2026-10-10; now the founder's own |
 | `rakshasa-*`    | राक्षस     | Ranged | Chief Goblin |
 | `raktabija-*`   | रक्तबीज    | Splitter | Female Goblin |
 | `mahish-*`      | महिष      | Tank | Giant Goblin |

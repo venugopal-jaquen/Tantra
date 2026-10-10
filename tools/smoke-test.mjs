@@ -146,7 +146,7 @@ try {
   // ---------- 3. a run in real time: HUD, the first lesson, banner ----------
   await page(`game.scene.keys.LootScene.startRun();`);
   await sleep(1500); await shot('3-run-start');
-  const run = await page(`const s = game.scene.keys.LootScene; return { state: s.state, tip: s.hintBox ? s.hintBox[1].text : null, hudBottom: Math.round(s.hudText.y + s.hudText.height), barTop: Math.round(s.phaseBarBg.y - s.phaseBarBg.height / 2), hp: { dx: Math.round(s.hpBarBg.x + s.hpBarBg.width / 2 - s.player.x), dy: Math.round(s.player.y - s.hpBarBg.y), w: s.hpBarBg.width } };`);
+  const run = await page(`const s = game.scene.keys.LootScene; return { state: s.state, tip: s.hintBox ? s.hintBox[1].text : null, hudBottom: Math.round(s.hudText.y + s.hudText.height), barTop: Math.round(s.phaseBarBg.y - s.phaseBarBg.height / 2), hp: { dx: Math.round(s.hpBarBg.x + s.hpBarBg.width / 2 - s.player.x), dy: Math.round(s.player.y - s.hpBarBg.y), w: s.hpBarBg.width, wants: HERO_BAR_UP } };`);
   // The first of the teaching pauses (requirements 2.35): once the level's banner has gone,
   // a new player's first run stops to say how to move.
   const first = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms));
@@ -164,7 +164,7 @@ try {
   check('skipping the tutorial resumes the fight, stops the pauses, and says how to get them back', skipped.state === 'playing' && skipped.off === true && skipped.paused === false
     && /Replay tutorial/.test(skipped.tip || ''), JSON.stringify(skipped));
   check('HUD line clears the phase bar', run.hudBottom <= run.barTop + 1, `text bottom ${run.hudBottom}, bar top ${run.barTop}`);
-  check("the hero's health bar floats over his head", run.hp.dx === 0 && run.hp.dy === 35 && run.hp.w === 42, JSON.stringify(run.hp));
+  check("the hero's health bar floats over his head", run.hp.dx === 0 && run.hp.dy === run.hp.wants && run.hp.dy >= 35 && run.hp.w === 42, JSON.stringify(run.hp));
 
   // Waves are held still for the checks that follow: a queue that never spawns, so a kill
   // is not a cleared wave unless a check empties the queue to make it one.
@@ -185,20 +185,45 @@ try {
   // Walk frames: every character but Vritra has a sheet; a standing figure shows the first
   // cell of its facing's row, a moving one steps through the rest, and the figure is the
   // size it was as a still.
-  const legs = await page(`const s = game.scene.keys.LootScene, per = WALK.frames + 1, wait = ms => new Promise(r => setTimeout(r, ms));
+  const legs = await page(`const s = game.scene.keys.LootScene, per = artOf(CHARS.player).per, wait = ms => new Promise(r => setTimeout(r, ms));
+    // Which walk cell a sprite shows: 0 standing, 1 to 8 a step. The strike cells that follow the walk are not steps.
+    const walkCell = spr => { const c = spr.frame.name % per; return c > WALK.frames ? 0 : c; };
     const stepsOf = async (spr, need) => { const seen = new Set(), rows = new Set();
-      for (let i = 0; i < 80 && seen.size < need; i++) { await wait(30); const f = spr.frame.name; if (f % per) { seen.add(f % per); rows.add(Math.floor(f / per)); } }
+      for (let i = 0; i < 80 && seen.size < need; i++) { await wait(30); const c = walkCell(spr); if (c) { seen.add(c); rows.add(Math.floor(spr.frame.name / per)); } }
       return { steps: seen.size, rows: [...rows].join() }; };
-    const out = { sheets: WALKERS.filter(n => s.textures.exists(n + '-walk') && s.textures.get(n + '-walk').frameTotal - 1 === per * FACINGS.length).length, walkers: WALKERS.length,
-      vritra: s.textures.exists(CHARS.megaboss + '-walk'), onSheet: !!s.playerSprite.walks, size: Math.round(s.playerSprite.baseSX * WALK.cell / WALK.pad), standing: s.playerSprite.frame.name % per };
+    const out = { sheets: WALKERS.filter(n => s.textures.exists(n + '-walk') && s.textures.get(n + '-walk').frameTotal - 1 >= per * FACINGS.length).length, walkers: WALKERS.length,
+      vritra: s.textures.exists(CHARS.megaboss + '-walk'), onSheet: !!s.playerSprite.walks, size: Math.round(s.playerSprite.baseSX * artOf(CHARS.player).still), wants: Math.round(HERO_SIZE * artOf(CHARS.player).scale), standing: walkCell(s.playerSprite) };
     s.setMoveTarget(330, 150); out.kiran = await stepsOf(s.playerSprite, 5); out.right = FACINGS.indexOf('right');
     for (let i = 0; i < 60 && s.pointerTarget; i++) await wait(40);
-    await wait(320); out.stopped = s.playerSprite.frame.name % per;
+    await wait(320); out.stopped = walkCell(s.playerSprite);
     const e = s.spawnEnemyOfType('melee', 70, 330, 1), spr = s.enemySprites.get(e.id);
-    out.asura = await stepsOf(spr, 4); out.asuraSize = Math.round(spr.baseSX * WALK.cell / WALK.pad * 10) / 10; out.asuraWants = Math.round(e.radius * 28) / 10;
-    e.speed = 0; await wait(320); out.asuraStopped = spr.frame.name % per;
+    out.asura = await stepsOf(spr, 4); out.asuraSize = Math.round(spr.baseSX * artOf(e.char).still * 10) / 10; out.asuraWants = Math.round(e.radius * 28 * artOf(e.char).scale) / 10;
+    e.speed = 0; await wait(320); out.asuraStopped = walkCell(spr);
     s.killEnemy(e); return out;`);
-  check('every character but Vritra has a walk sheet, and figures keep their size', legs.sheets === 7 && legs.walkers === 7 && !legs.vritra && legs.onSheet && legs.size === 44 && legs.asuraSize === legs.asuraWants, JSON.stringify(legs));
+  check('every character but Vritra has a walk sheet, and each figure is drawn at the size its art asks for', legs.sheets === 7 && legs.walkers === 7 && !legs.vritra && legs.onSheet && legs.size === legs.wants && legs.wants >= 44 && legs.asuraSize === legs.asuraWants, JSON.stringify(legs));
+  // Art of the game's own (requirements 2.39): a figure named in ART has files cut to its own size.
+  const own = await page(`const s = game.scene.keys.LootScene;
+    return { figures: Object.keys(ART).map(name => ({ name, per: ART[name].per, cell: s.textures.get(name + '-walk').get(0).width, frames: s.textures.get(name + '-walk').frameTotal - 1,
+        still: s.textures.get(name + '-front').get().width, wantsCell: ART[name].cell, wantsStill: ART[name].still })),
+      ring: Math.round(s.playerRing.y - s.player.y), ringWants: HERO_RING_DOWN };`);
+  check("art of the game's own is cut to its own size: standing, walking and striking cells for each facing, stills to match, and the stance ring at the hero's feet",
+    own.figures.length === 7 && own.figures.every(f => f.cell === f.wantsCell && f.frames >= 4 * f.per && f.frames < 4 * f.per + 12 && f.per === 12 && f.still === f.wantsStill) && own.ring === own.ringWants && own.ring >= 16, JSON.stringify(own));
+  // Striking (requirements 2.41): a figure turns to what it strikes at and goes through its strike cells.
+  const acts = await page(`const s = game.scene.keys.LootScene, per = artOf(CHARS.player).per, wait = ms => new Promise(r => setTimeout(r, ms));
+    const cellOf = spr => spr.frame.name % per, rowOf = spr => Math.floor(spr.frame.name / per), out = {};
+    // One Asura stood close on the hero's right, and nothing else in the fight touched.
+    const was = s.player.iframes; s.player.iframes = 1e9; s.pointerTarget = null;
+    const foe = s.spawnEnemyOfType('melee', s.player.x + 44, s.player.y, 1); foe.speed = 0; foe.dmg = 0; foe.maxHp = foe.hp = 1e6;
+    const seen = new Set(), rows = new Set();
+    for (let i = 0; i < 90; i++) { await wait(16); const c = cellOf(s.playerSprite); if (c > WALK.frames) { seen.add(c - WALK.frames - 1); rows.add(rowOf(s.playerSprite)); } }
+    out.hero = { cells: [...seen].sort().join(), rows: [...rows].join(), right: FACINGS.indexOf('right') };
+    foe.x = s.arenaBounds.right - 20; foe.y = s.arenaBounds.bottom - 20;         // out of reach: nothing left to strike
+    const far = !s.enemies.some(e => Math.hypot(e.x - s.player.x, e.y - s.player.y) < 200);
+    await wait(450); out.rests = !far || (!s.playerAnim.act && cellOf(s.playerSprite) <= WALK.frames);
+    s.killEnemy(foe); s.player.iframes = was;
+    return out;`);
+  check('the hero strikes with every attack, turned to what he strikes at, and rests when there is nothing to strike',
+    acts.hero.cells.length >= 3 && acts.hero.rows.split(',').includes(String(acts.hero.right)) && acts.rests, JSON.stringify(acts));
   check('the hero and his enemies step through their walk frames, and stand when they stop', legs.standing === 0 && legs.kiran.steps >= 5 && legs.kiran.rows === String(legs.right) && legs.stopped === 0
     && legs.asura.steps >= 4 && legs.asuraStopped === 0, JSON.stringify(legs));
 
@@ -307,11 +332,13 @@ try {
     // Waits are on the event, not the clock: a headless page can stall for a moment.
     const until = async (test, ms) => { for (let i = 0; i < ms / 40 && !test(); i++) await new Promise(r => setTimeout(r, 40)); };
     await until(() => e.slam && e.slam.touched, 1500);
-    const touched = !!(e.slam && e.slam.touched), hp = p.hp;
+    const touched = !!(e.slam && e.slam.touched), hp = p.hp, bossSpr = s.enemySprites.get(e.id), per = artOf(e.char).per;
+    const wound = { held: !!(e.act && e.act.held), cell: bossSpr.frame.name % per - WALK.frames - 1 };
     p.x = s.arenaBounds.x + 20; p.y = s.arenaBounds.bottom - 20;
     await until(() => !e.slam, 3000);
     await new Promise(r => setTimeout(r, 120));
-    const out = { touched, buff: Math.round(s.slamBuffMs), mult: +s.dmgMult().toFixed(2), unhurt: p.hp >= hp, arc: s.boonFx.commandBuffer.length > 0 };
+    const loosed = { held: !!(e.act && e.act.held), cell: e.act ? e.act.cell : -1 };
+    const out = { wound, loosed, touched, buff: Math.round(s.slamBuffMs), mult: +s.dmgMult().toFixed(2), unhurt: p.hp >= hp, arc: s.boonFx.commandBuffer.length > 0 };
     // Hold Your Ground: the gold ring shows only while it is live.
     s.boons = { ground: 1 }; s.slamBuffMs = 0; s.stillMs = 0;
     await until(() => s.stillMs >= 200 && s.boonFx.commandBuffer.length > 0, 2500);
@@ -321,6 +348,8 @@ try {
     out.walking = s.boonFx.commandBuffer.length === 0 && s.dmgMult() === 1; s.pointerTarget = null;
     s.boons = {}; s.killEnemy(e);
     return out;`);
+  check('a boss stays drawn back for as long as its slam is warned of, even if it lands a blow meanwhile, and lets go when the slam lands',
+    read.wound.held && read.wound.cell === 0 && !read.loosed.held, JSON.stringify({ wound: read.wound, loosed: read.loosed }));
   check('reading a slam makes the next hits harder', read.touched && read.buff > 3000 && read.mult === 1.5 && read.unhurt, JSON.stringify(read));
   check('timed boons show on the hero while they are live', read.arc && read.planted && read.walking, JSON.stringify(read));
 
@@ -970,13 +999,27 @@ try {
   check('bot runs in the wide arena raise no errors and leak nothing', wide2.bot.errors.length === 0 && wide2.bot.leaks.every(l => l <= 0), wide2.bot.errors.join('; ') + ' ' + wide2.bot.runs);
   await shot('10-wide-hub');
 
+  // The profile shows the hero's portrait, cut at the full size of the picture (requirements 2.42).
+  const portrait = await page(`const s = game.scene.keys.LootScene; s.showHub(); s.showProfile(() => s.closeOverlay());
+    const pic = s.overlay.find(o => o.type === 'Image' && o.texture.key === CHARS.player + '-portrait'), still = s.textures.get(CHARS.player + '-front').getSourceImage().height;
+    const out = pic ? { source: pic.texture.getSourceImage().height, still, tall: Math.round(pic.displayHeight), feet: Math.round(pic.y), wants: [PORTRAIT.tall, PORTRAIT.feet], plain: !Object.keys(WORN).length } : null;
+    s.closeOverlay(); return out;`);
+  check('the profile shows the hero from a portrait three times the size of the still, standing where the ring is',
+    portrait && portrait.source >= 3 * portrait.still && portrait.tall === portrait.wants[0] && portrait.feet === portrait.wants[1] && portrait.plain, JSON.stringify(portrait));
+
   // ---------- 10. the fixed arena, on request: one screen, the camera still, nothing made harder ----------
-  await send('Page.navigate', { url: PAGE + '?arena=fixed' });
+  // The same load wears two dyes, to try the slots (requirements 2.42).
+  await send('Page.navigate', { url: PAGE + '?arena=fixed&wear=head:saffron,legs:indigo' });
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
   const fixedArena = await page(`settings.sfx = 0; settings.tips = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));
     const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
+    out.worn = (() => { const name = CHARS.player, c = s.textures.get(name + '-portrait').getSourceImage(), x = c.getContext && c.getContext('2d');
+      const at = (fx, fy) => x ? [...x.getImageData(Math.round(c.width * fx), Math.round(c.height * fy), 1, 1).data].slice(0, 3) : [];
+      return { canvas: !!x, band: at(0.543, 0.093), tunic: at(0.518, 0.324), leg: at(0.369, 0.759), frames: s.textures.get(name + '-walk').frameTotal - 1,
+        still: s.textures.get(name + '-front').getSourceImage().width, wantsStill: ART[name].still, zonesKept: s.textures.exists(name + '-zone-head') }; })();
     s.startRun(); s.player.iframes = 1e9; s.setMoveTarget(9999, 9999); await wait(1500);
+    out.worn.sprite = { walks: !!s.playerSprite.walks, canvas: !!s.playerSprite.texture.getSourceImage().getContext };
     out.still = ARENA_SCALE === 1 && s.camOff.x === 0 && s.camOff.y === 0 && s.cameras.main.scrollX === 0 && s.cameras.main.scrollY === 0
       && Phaser.Geom.Rectangle.Equals(s.arenaBounds, s.viewBounds) && s.farFx === null;
     out.plain = s.slamReach() === 1 && (s.waveExtra || 0) === 0 && s.floorLayers[0].displayWidth === 340;
@@ -990,6 +1033,9 @@ try {
     out.bot = { errors: rep.errors, runs: rep.runs.map(r => r.profile + ': level ' + r.finalSector + ', leak ' + r.leak).join('; '), leaks: rep.runs.map(r => r.leak) };
     return out;`);
   console.log('      fixed arena bot: ' + fixedArena.bot.runs);
+  { const w = fixedArena.worn, [br, bg, bb] = w.band, [tr, tg, tb] = w.tunic, [lr, lg, lb] = w.leg;
+    check('worn pieces are laid into the hero through their zones: a saffron head-wrap and indigo trousers, the tunic untouched, in the portrait and on the sheet the hero walks on',
+      w.canvas && br > bb + 60 && br > bg && lb > lr + 20 && tr > 200 && tg > 170 && tb > 120 && tr > tb && w.frames >= 48 && w.still === w.wantsStill && !w.zonesKept && w.sprite.walks && w.sprite.canvas, JSON.stringify(w)); }
   check('the fixed arena is still there on request: one screen, the camera still, slams and waves their old size', fixedArena.still && fixedArena.plain
     && fixedArena.bot.errors.length === 0 && fixedArena.bot.leaks.every(l => l <= 0), JSON.stringify(fixedArena));
 
