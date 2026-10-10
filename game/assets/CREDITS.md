@@ -2,26 +2,37 @@
 
 Provenance for every shipped asset, kept auditable ahead of store submission.
 
-## The founder's own characters (`chars/kiran-*`, `chars/asura-*`)
+## The founder's own characters (`chars/`)
 
-Since 2026-10-10 the hero and the Asura are the founder's own designs, made at their
-direction with ChatGPT's image generation: one turnaround picture each (front, back and
-right side), kept as they came in `incoming/well-delver/`. **They are AI-generated, and
-the itch.io page says so.** OpenAI's terms give the person who made a picture the rights
-to it, including to use it commercially; that is to be read again on OpenAI's own page in
+Since 2026-10-10 all seven figures are the founder's own designs, made at their direction
+with ChatGPT's image generation: one turnaround picture each (front, back and right
+side), kept as they came in `incoming/well-delver/`. **They are AI-generated, and the
+itch.io page says so.** OpenAI's terms give the person who made a picture the rights to
+it, including to use it commercially; that is to be read again on OpenAI's own page in
 the pre-launch pass, as for the title picture.
 
-`tools/cut-turnaround.py` makes the game's files from a turnaround: four stills of 160 px
-and a walk sheet (four rows by facing, a standing frame and eight walk frames, cells of
-192 px, a 255-colour palette). The left view is the right view mirrored. The walk frames
-are made from the standing picture: bent a little at a time from the front and back, the
-legs cut free and swung from the side. No other picture was generated for them.
-`docs/requirements.md` §2.39.
+| In-game | Files | Turnaround |
+|---|---|---|
+| Hero | `kiran-*` (the hero's files keep their first name) | `hero-turnaround.png` |
+| Asura | `asura-*` | `asura-turnaround.png` |
+| Hexer | `rakshasa-*` | `hexer-turnaround.png` |
+| Brute | `mahish-*` | `brute-turnaround.png` |
+| Bloodseed | `raktabija-*` | `bloodseed-turnaround.png` |
+| Gatekeeper | `bakasura-*` | `gatekeeper-turnaround.png` |
+| Hoard Guardian | `nidhiraksha-*` | `guardian-turnaround.png` |
+
+`tools/cut-turnaround.py` makes the game's files from a turnaround: four stills and a
+sheet (for each facing a standing cell, eight of a walk and three of a strike; a
+255-colour palette). The left view is the right view mirrored. Every walk and strike cell
+is made from the standing picture, by bending it and by turning what the figure holds in
+its hand; no other picture was generated for them. `docs/requirements.md` §2.39, §2.41.
+`vritra-*` are the stock stills of an unseen stand-in: the serpent is drawn in code.
 
 ## CraftPix — character roster (`chars/`)
 
-**The hero and the Asura no longer come from these packs** (see above); the other five
-figures still do.
+**No figure in the game comes from these packs any more** (see above); only the unseen
+stand-in for Vritra does. The packs still sit in `incoming/` and `tools/extract-chars.py`
+and `tools/extract-walk.py` still remake that cast from them.
 
 Source: https://craftpix.net/freebies/
 License: https://craftpix.net/file-licenses/

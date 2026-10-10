@@ -65,6 +65,29 @@ Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the cond
 
 **Immediate priority (2026-10-02): the goal and ending are built; the founder is playing the reference games before deciding the rest of §1.3 (gameplay depth, the names, seven worlds).** A slide deck of the whole loop and every mechanic was made for that review; it closes with the gaps found (no stated goal, no ending, an unreadable sector track), three options for sector names, and a split of what to fix before launch against what can wait. Sector names are not yet changed. Still open on the launch track: music (L5), the title screen verdict (L2), activating the feedback form (L10), the real-device check (L8), the final name (L1) and the itch.io page (L9). M7 is effectively closed for the POC; its remainder is L2 plus the post-launch P4.
 
+### 1.2.1 The visual redesign: what is in and what is left (2026-10-10)
+The founder: "What we are aiming with PR18 is a comprehensive visual redesign which I think will be the last big step before launch on itch.io." Everything below is on the branch `well-delver-cast` (pull request 18), which is not merged until the redesign is whole. While it is being tried, changes are tested and shown but the itch.io package is not rebuilt.
+
+| # | Part | State | What it needs |
+|---|---|---|---|
+| V1 | The cast: seven figures | ✅ in (`requirements.md` §2.39, §2.41) | The founder's eye on the look and the new size |
+| V2 | Walking and striking | ✅ in, made from one pose each | Painted poses would replace them cell for cell; optional |
+| V3 | The supercharge | ✅ in (§2.40) | Their verdict |
+| V4 | Weapon beams, hit marks, the Hexer's bolt, slam landings | ✅ in (§2.41) | Their verdict |
+| V5 | **Floors** | Pictures made by the founder; tried by hand under a fight and they work | To be built in: each picture cut into floor and steps, the game's lamps moved to the picture's, warnings and loot checked on each |
+| V6 | **Vritra** | ❓ Drawn by code; the picture is a coiled, hooded cobra | A decision: repaint the moving serpent in the picture's colours (recommended), or stand the picture in the arena. And whether a crested, jewelled cobra is too close to what is revered |
+| V7 | **Loot:** weapon and trinket drops, and the same icons in the satchel and profile | Eleven flat glyphs in the old look | Redrawn faceted in code, or painted by ChatGPT from a prompt |
+| V8 | What is drawn round a boss and an elite: shield, anchors, timer ring, core; a split; a death | Old look | Redrawn faceted |
+| V9 | Slam warnings | Kept as they are | Nothing: they are the game's language and the floors were made round them |
+| V10 | Screens: title, profile, how-to cards, loading card, boon cards, HUD | Not yet looked at beside the new art | A pass over each at phone size; expected to be icons and sizes only |
+| V11 | **Feel at the new size** | ❓ Figures are half as large again and their hit circles are not | A decision on growing the circles with them; bot runs if they change. The one-screen arena is crowded |
+| V12 | Sharper originals | ❓ Brute, Bloodseed, Guardian and Vritra are small in their pictures | Ask ChatGPT for each again, filling the frame |
+| V13 | **A phone** | ❗ Not done | Memory and speed on a mid-range Android, and the iPhone. Needs a way to play this branch without merging it |
+| V14 | The store page | Old pictures | Five screenshots, the GIF and the cover taken again once the look is settled; the text, the AI disclosure and the credits |
+| V15 | Merge, package, security checklist, release | Last | L9, L11 |
+
+**Flags raised with the founder** (theirs to settle): the three cultural points in `requirements.md` §2.41; that the cast has two finishes (flat-faceted for the hero, Asura and Hexer; finely painted for the other four); that the unmerged `title-art` branch also calls itself build 0.15 and holds a title layout that was not chosen.
+
 ## 1.3 Open design questions (2026-10-02)
 
 After first playing the merged build, the founder paused changes to settle three things. Nothing below is decided or built.

@@ -83,10 +83,9 @@ Typefaces
   SIL Open Font License 1.1: vendor/fonts/OFL-baloo2.txt, vendor/fonts/OFL-yatraone.txt
 
 Characters
-  The hero and the Asura are the maker's own designs, made with ChatGPT.
-  The others are from CraftPix.net free character packs, used under the CraftPix file
-  licence (https://craftpix.net/file-licenses/). The artwork may not be taken out of
-  this game and reused or resold.
+  The maker's own designs, made with ChatGPT. One unseen stand-in is from a
+  CraftPix.net free character pack, used under the CraftPix file licence
+  (https://craftpix.net/file-licenses/).
 
 Sound effects and the ember texture
   Kenney (https://kenney.nl), CC0 1.0 Universal.
