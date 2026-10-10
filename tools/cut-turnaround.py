@@ -10,9 +10,13 @@ asked for and keep consistent (docs/character-art-guide.md). From it this writes
 game/assets/chars/ unless --out says otherwise:
 
   <name>-front.png, -back.png, -left.png, -right.png    stills of STILL pixels
-  <name>-walk.png                                       four rows by facing, a standing
-                                                        frame and FRAMES of a walk, cells
-                                                        of CELL pixels
+  <name>-walk.png                                       for each facing in turn, PER cells
+                                                        of CELL pixels: standing, FRAMES of
+                                                        a walk, then ACTS of a strike
+                                                        (drawing back, striking, coming out
+                                                        of it). The cells run on from row
+                                                        to row, COLS to a row, so that the
+                                                        sheet is never wider than 2048.
 
 The three figures are found by the clear columns between them, not by cutting the picture
 in thirds, so a blade that reaches across a third cannot leave a piece of itself in its
@@ -31,8 +35,27 @@ darker copy of it. It reads as stepping at the size a phone shows it. It is not 
 animation and will not pass for it up close; a figure whose tool can supply real walk
 frames should use them instead.
 
-A file beside the turnaround with the same name and .json may say where a figure's cuff
-is, as a part of its height: {"cuff": 0.84}. Without one it is CUFF.
+The strike is made the same way as the walk, by bending the standing picture: the figure
+rears and leans back, then throws its weight forward and down, then comes out of it. It
+stands for a thrust, a throw, a cast and a slam alike. An arm cannot be moved on its own
+in a picture that has only one pose, but what the hand holds can: if the figure's file
+says where its staff or spear is, that is taken out of the picture, turned in the hand
+and put back for each strike cell, so a staff is lifted and driven down and a spear is
+levelled and thrust. No new picture is made; these are the same pixels, moved.
+
+A file beside the turnaround with the same name and .json may say, for that figure:
+  "cuff": 0.84          where the cuff is, as a part of the side view's height (CUFF)
+  "legs": [0.1, 0.7]    which columns of the side view can be legs, as parts of its
+                        width; a staff planted on the ground outside them is left alone
+  "still": 224, "cell": 256    larger files, for a figure the game draws large
+  "rear": 12            a beast: in a strike it rears this many degrees on its hind feet
+  "props": {"front": {...}, "back": {...}, "right": {...}}    what it holds, in each view:
+      "boxes": [[x0, y0, x1, y1], ...], "polys": [[[x, y], ...], ...] and
+      "bands": [[[x0, y0], [x1, y1], width], ...] mark it out, as parts of the view's width
+      and height (a band's width as a part of the height). A band may cross the body; the
+      body is mended behind it. "pivot": [x, y] is the hand. "turn": three angles in
+      degrees, anticlockwise, and "shift": three [dx, dy] as parts of the height, are
+      where it goes in the three strike cells.
 
 --frames saves every walk frame as its own picture, and the legs as they were found.
 """
@@ -46,6 +69,11 @@ OUT = os.path.join(REPO, "game", "assets", "chars")
 STILL = 160      # a still; the game is told this size in ART (the game file)
 CELL = 192       # a walk cell: the still plus room for a stride
 FRAMES = 8       # walk frames per facing, as for every other sheet
+ACTS = 3         # strike cells per facing, after the walk: drawing back, striking, coming out of it
+PER = 1 + FRAMES + ACTS      # cells per facing; the game is told this in ART too
+# How each strike cell bends the figure, as parts of its height: the head rises by, the
+# shoulders widen by, the head goes forward by, the body drops by.
+POSES = [(0.10, 0.08, -0.09, -0.02), (-0.09, 0.10, 0.15, 0.08), (-0.04, 0.04, 0.06, 0.03)]
 COLOURS = 255    # the sheet is saved with a palette
 TALL = 0.86      # how much of a still's height the tallest view fills
 FEET = 0.94      # where in a still the feet stand
@@ -109,10 +137,10 @@ def smooth(t):
     t = max(0.0, min(1.0, t))
     return t * t * (3 - 2 * t)
 
-def bend(fig, source):
+def bend(fig, source, pad=None):
     """The figure redrawn with every point taken from where `source(x, y)` says, on a
     mesh fine enough that the bending shows no joins. Room is left all round."""
-    pad = round(fig.height * 0.08)
+    if pad is None: pad = round(fig.height * 0.08)
     big = Image.new("RGBA", (fig.width + 2 * pad, fig.height + 2 * pad), (0, 0, 0, 0))
     big.paste(fig, (pad, pad))
     big = big.convert("RGBa")                    # colour weighed by alpha, so edges do not fringe
@@ -147,13 +175,91 @@ def stride(fig, i, mid):
         return x - over, y + up
     return bend(fig, source)
 
-def legs(fig, cuff):
+def lift(fig, spec):
+    """What a figure holds, taken out of its hand: (the figure without it, the thing
+    alone). Where a band of it lay across the body, the body is mended from either side."""
+    w, h = fig.size
+    mask = Image.new("L", (w, h), 0)
+    d = ImageDraw.Draw(mask)
+    for x0, y0, x1, y1 in spec.get("boxes", []): d.rectangle((x0 * w, y0 * h, x1 * w - 1, y1 * h - 1), fill=255)
+    for poly in spec.get("polys", []): d.polygon([(x * w, y * h) for x, y in poly], fill=255)
+    for (ax, ay), (bx, by), wide in spec.get("bands", []): d.line((ax * w, ay * h, bx * w, by * h), fill=255, width=max(1, round(wide * h)))
+    alpha = fig.getchannel("A")
+    piece = fig.copy()
+    piece.putalpha(ImageChops.multiply(alpha, mask))
+    body = fig.copy()
+    body.putalpha(ImageChops.multiply(alpha, ImageChops.invert(mask.filter(ImageFilter.MaxFilter(3)))))
+    src, out = fig.load(), body.load()
+    for (ax, ay), (bx, by), wide in spec.get("bands", []):
+        ax, ay, bx, by, half = ax * w, ay * h, bx * w, by * h, wide * h / 2 + 3
+        length = math.hypot(bx - ax, by - ay) or 1
+        ux, uy = (bx - ax) / length, (by - ay) / length
+        nx, ny = -uy, ux
+        def at(x, y):
+            x, y = round(x), round(y)
+            return src[x, y] if 0 <= x < w and 0 <= y < h else (0, 0, 0, 0)
+        for i in range(round(length) + 1):
+            for j in range(-round(half), round(half) + 1):
+                x, y = round(ax + ux * i + nx * j), round(ay + uy * i + ny * j)
+                if not (0 <= x < w and 0 <= y < h) or out[x, y][3] > 0: continue
+                # What lies just outside the band on either side, at this point along it.
+                one, two = at(x + nx * (half - j + 1), y + ny * (half - j + 1)), at(x - nx * (half + j + 1), y - ny * (half + j + 1))
+                if one[3] < 128 and two[3] < 128: continue
+                if one[3] < 128: one = two
+                if two[3] < 128: two = one
+                t = (j + half) / (2 * half)
+                out[x, y] = tuple(round(two[c] * (1 - t) + one[c] * t) for c in range(3)) + (255,)
+    return body, piece
+
+def strike(fig, facing, k, mid, prop=None, rear=0):
+    """Strike cell k of ACTS for one view. Seen from the side the figure leans back and
+    then throws itself forward; seen from the front or the back, where forward is toward
+    us or away, it swells or shrinks a little instead. What it holds turns in its hand
+    (`prop`), and a beast rears on its hind feet (`rear` degrees)."""
+    w, h = fig.size
+    hip = h * HIP
+    rise, wide, forward, drop = POSES[k]
+    way = {"right": 1, "left": -1}.get(facing, 0)
+    if rear: forward, rise = forward * 0.3, rise * (1 if way else 1.6)
+    near = {"front": 0.5, "back": -0.5}.get(facing, 0) * forward
+    leg = lambda y: smooth((y - hip) / (h - hip))            # 0 at the hip, 1 at the sole
+    def source(x, y):
+        up = max(0.0, min(1.0, (hip - y) / hip))             # 1 at the crown, 0 at the hip
+        shoulders = math.exp(-((y / h - 0.28) / 0.2) ** 2)
+        grow = 1 + wide * shoulders + near * up
+        return mid + (x - mid) / grow - way * forward * h * smooth(up), y + rise * h * up - drop * h * (1 - leg(y))
+    body, piece = lift(fig, prop) if prop else (fig, None)
+    whole = source
+    if rear and way:
+        # On its hind feet: the whole picture turned about them, before anything else.
+        angle = math.radians((rear, -rear / 4, 0)[k]) * way
+        cx, cy, co, si = w * (0.15 if way > 0 else 0.85), h, math.cos(angle), math.sin(angle)
+        whole = lambda x, y: source(cx + (x - cx) * co - (y - cy) * si, cy + (x - cx) * si + (y - cy) * co)
+    bent, pad = bend(body, whole, round(h * (0.24 if prop or rear else 0.08)))
+    if piece:
+        px, py = prop["pivot"][0] * w, prop["pivot"][1] * h
+        sx, sy = source(px, py)                               # where the bending took the hand, near enough
+        dx, dy = prop["shift"][k]
+        held = Image.new("RGBA", bent.size, (0, 0, 0, 0))
+        held.paste(piece, (pad, pad))
+        held = held.rotate(prop["turn"][k], Image.BICUBIC, center=(px + pad, py + pad))
+        moved = Image.new("RGBA", bent.size, (0, 0, 0, 0))
+        moved.paste(held, (round(px - sx + dx * h), round(py - sy + dy * h)))
+        bent.alpha_composite(moved)
+    return bent, pad
+
+def legs(fig, cuff, columns=None):
     """The legs of a side view, cut free of the body: (body, near leg, far leg, the row
     they are cut at, whether two were found). A leg is whatever, below the cuff, is joined
-    to the ground; what hangs there without reaching it stays with the body."""
+    to the ground; what hangs there without reaching it stays with the body. `columns`
+    keeps the search to part of the picture's width."""
     w, h = fig.size
     top = round(h * cuff)
     solid = fig.getchannel("A").point(lambda v: 255 if v > 96 else 0)
+    if columns:
+        only = Image.new("L", (w, h), 0)
+        only.paste(solid.crop((round(w * columns[0]), 0, round(w * columns[1]), h)), (round(w * columns[0]), 0))
+        solid = only
     px = solid.load()
     seen = bytearray(w * h)
     stack = [(x, y) for y in range(h - max(2, h // 40), h) for x in range(w) if px[x, y]]
@@ -261,6 +367,7 @@ def place(pic, size, scale, cx_in_pic, feet_in_pic, shade):
     return out
 
 def main():
+    global STILL, CELL
     args = sys.argv[1:]
     def opt(name):
         if name in args:
@@ -271,51 +378,71 @@ def main():
     path, name = args
     if os.path.isfile(os.path.splitext(path)[0] + ".json"):
         hints = json.load(open(os.path.splitext(path)[0] + ".json", encoding="utf-8"))
+    STILL, CELL = hints.get("still", STILL), hints.get("cell", CELL)
+    cols = min(PER * 4, 2048 // CELL)
     sheet = clean(Image.open(path))
     boxes = figures(sheet)
     if len(boxes) != 3:
         fail(f"expected three figures in a row (front, back, right side) and found {len(boxes)}: {boxes}")
     views = dict(zip(("front", "back", "right"), (sheet.crop(b) for b in boxes)))
     views["left"] = views["right"].transpose(Image.FLIP_LEFT_RIGHT)
-    scale = STILL * TALL / max(v.height for v in views.values())
-    widest = max(v.width for v in views.values()) * scale
-    if widest > STILL * 0.98: fail(f"the widest view would be {widest:.0f} pixels across in a still of {STILL}")
+    # One scale for all three views: the tallest fills TALL of a still, unless the widest
+    # would then not fit across it (a beast on four legs is wider than it is tall).
+    tallest, widest = max(v.height for v in views.values()), max(v.width for v in views.values())
+    scale = min(STILL * TALL / tallest, STILL * 0.96 / widest)
     os.makedirs(out, exist_ok=True)
     if frames_dir: os.makedirs(frames_dir, exist_ok=True)
 
     # The side view walks facing right; facing left is those frames mirrored.
     side = views["right"]
-    parts = legs(side, hints.get("cuff", CUFF))
+    parts = legs(side, hints.get("cuff", CUFF), hints.get("legs"))
     strides = [side_stride(parts, i, side.height) for i in range(FRAMES)]
+    props, rear = hints.get("props", {}), hints.get("rear", 0)
+    blows = [strike(side, "right", k, middle(side), props.get("right"), rear) for k in range(ACTS)]
     if frames_dir:
         found = Image.new("RGBA", side.size, (90, 60, 40, 255))
         found.alpha_composite(parts[0])
         for leg, tint in ((parts[2], (60, 120, 255)), (parts[1], (255, 70, 60))):
             found.paste(Image.new("RGBA", side.size, tint + (255,)), (0, 0), leg.getchannel("A").point(lambda v: v // 2))
         found.save(os.path.join(frames_dir, f"{name}-legs.png"))
-    walk = Image.new("RGBA", (CELL * (FRAMES + 1), CELL * 4), (0, 0, 0, 0))
+        for view, spec in props.items():
+            body, piece = lift(views[view], spec)
+            shown = Image.new("RGBA", body.size, (90, 60, 40, 255))
+            shown.alpha_composite(body)
+            shown.paste(Image.new("RGBA", body.size, (80, 255, 120, 255)), (0, 0), piece.getchannel("A").point(lambda v: v * 2 // 3))
+            shown.save(os.path.join(frames_dir, f"{name}-holds-{view}.png"))
+    walk = Image.new("RGBA", (CELL * cols, CELL * -(-PER * 4 // cols)), (0, 0, 0, 0))
     for row, facing in enumerate(("front", "back", "left", "right")):
         fig = views[facing]
         mid = middle(fig)
         # The shadow is as wide as the stance, taken from the lowest tenth of the figure.
         low = fig.getchannel("A").crop((0, round(fig.height * 0.9), fig.width, fig.height)).getbbox()
-        shade = max(STILL * 0.2, min(STILL * 0.5, (low[2] - low[0]) * scale * 1.15))
+        shade = max(STILL * 0.2, min(STILL * 0.62, (low[2] - low[0]) * scale * 1.15))
         still = place(fig, STILL, scale, mid, fig.height, shade)
         still.save(os.path.join(out, f"{name}-{facing}.png"), optimize=True)
-        walk.alpha_composite(place(fig, CELL, scale, mid, fig.height, shade), (0, row * CELL))
+        def put(k, cell, label):
+            at = row * PER + k
+            walk.alpha_composite(cell, (at % cols * CELL, at // cols * CELL))
+            if frames_dir and label: cell.save(os.path.join(frames_dir, f"{name}-{facing}-{label}.png"))
+        put(0, place(fig, CELL, scale, mid, fig.height, shade), None)
         for i in range(FRAMES):
             if facing in ("front", "back"): bent, pad = stride(fig, i, mid)
             else:
                 bent, pad = strides[i]
                 if facing == "left": bent = bent.transpose(Image.FLIP_LEFT_RIGHT)
-            cell = place(bent, CELL, scale, mid + pad, fig.height + pad, shade)
-            walk.alpha_composite(cell, ((i + 1) * CELL, row * CELL))
-            if frames_dir: cell.save(os.path.join(frames_dir, f"{name}-{facing}-{i}.png"))
+            put(1 + i, place(bent, CELL, scale, mid + pad, fig.height + pad, shade), str(i))
+        for k in range(ACTS):
+            if facing in ("front", "back"): bent, pad = strike(fig, facing, k, mid, props.get(facing), rear)
+            else:
+                bent, pad = blows[k]
+                if facing == "left": bent = bent.transpose(Image.FLIP_LEFT_RIGHT)
+            put(1 + FRAMES + k, place(bent, CELL, scale, mid + pad, fig.height + pad, shade), "act" + str(k))
     # A palette keeps the sheet small. Colour is picked with the alpha weighed in, so the
     # soft edge of a figure does not spend colours on what can barely be seen.
     walk.quantize(COLOURS, method=Image.FASTOCTREE, dither=Image.NONE).save(os.path.join(out, f"{name}-walk.png"), optimize=True)
     sizes = {f: os.path.getsize(os.path.join(out, f"{name}-{f}.png")) // 1024 for f in ("front", "back", "left", "right", "walk")}
-    print(f"{name}: three figures at {boxes}, scaled by {scale:.3f}; side view: {'two legs' if parts[4] else 'one leg, doubled'}, cut at {parts[3] / side.height:.2f}; files in KB {sizes}")
+    print(f"{name}: still {STILL}, cell {CELL}, {PER} cells a facing, {cols} to a row; the figure stands {tallest * scale / STILL:.2f} of a still tall and {widest * scale / STILL:.2f} wide, "
+          f"from {tallest} pixels; side view: {'two legs' if parts[4] else 'one leg, doubled'}, cut at {parts[3] / side.height:.2f}; files in KB {sizes}")
 
 if __name__ == "__main__":
     main()

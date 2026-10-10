@@ -795,6 +795,10 @@ const TEJAS_FX = {
   chain:       [0xbaf4f2, 0x2a9db5],     // the hero's own teal, struck bright
   executioner: [0xf7d264, 0xa66f1c]      // gold, bronze in its shade
 };
+// What each weapon's ordinary strike is drawn in. The plain weapon is the hero's own teal.
+const WEAPON_FX = Object.assign({}, TEJAS_FX, { none: [0xeafcf4, 0x2fa7a0] });
+const HEX_FX = [0xf0b8ff, 0x8a3fc0];       // the Hexer's bolt: violet, which nothing of the hero's uses
+const SLAM_FX = [0xff8a5a, 0xb5301a];      // where a boss's slam lands: the red of its warning
 
 // Persists across page reloads via localStorage (falls back to in-memory if unavailable, e.g. private browsing)
 // The well's depths and the perks worn (requirements 2.30). These sit above the save
@@ -1415,16 +1419,36 @@ const WALKERS = Object.keys(CHARS).filter(k => k !== 'megaboss').map(k => CHARS[
 // half as wide as they are tall, where the stock cast are squat: at the stock size they
 // are slivers on a phone. Nothing about the fight changes with the size: hit circles,
 // reach and speed are as they were.
+// `per` is how many cells a sheet has for each facing: one standing, WALK.frames walking
+// and, in art cut for this game, ACT.cells of a strike (requirements 2.41). `tall` is how
+// much of a still the figure fills, where that is not the usual 0.86: a beast on four
+// legs is cut to fit the width.
+// `wide` is how much of a still the figure's widest view fills. The scales are half as
+// large again as they were first set (the founder, 2026-10-10: "the new characters are
+// looking too small in game.. Make their size 50% bigger"); the hit circles are not.
 const ART = {
-  kiran: { still: 160, cell: 192, scale: 1.5 },
-  asura: { still: 160, cell: 192, scale: 1.7 }
+  kiran:       { still: 224, cell: 256, per: 12, scale: 2.25, wide: 0.46 },
+  asura:       { still: 160, cell: 192, per: 12, scale: 2.55, wide: 0.58 },
+  rakshasa:    { still: 160, cell: 192, per: 12, scale: 3.2, wide: 0.5 },
+  mahish:      { still: 192, cell: 224, per: 12, scale: 2.25, wide: 0.87 },
+  raktabija:   { still: 160, cell: 192, per: 12, scale: 2.55, tall: 0.8, wide: 0.96 },
+  bakasura:    { still: 224, cell: 256, per: 12, scale: 2.6, wide: 0.56 },
+  nidhiraksha: { still: 224, cell: 256, per: 12, scale: 2.2, tall: 0.75, wide: 0.96 }
 };
-const STOCK_ART = { still: 96, cell: WALK.cell, scale: 1 };
+// Figures are drawn in the order they stand, the one nearest the top of the floor first,
+// so that whoever is nearer the bottom of the screen is in front. They keep to a band of
+// their own just under everything else in the fight (bars, names, rings, beams, loot),
+// which is drawn over them as it always was.
+const sortDepth = feetY => -0.5 + feetY / 20000;
+const STOCK_ART = { still: 96, cell: WALK.cell, per: WALK.frames + 1, scale: 1 };
 const artOf = char => ART[char] || STOCK_ART;
+// A strike: how long a figure is drawn back, strikes, and comes out of it, in ms.
+const ACT = { cells: 3, back: 70, strike: 100, out: 70 };
 // A larger figure stands on the same spot, so its head is higher and its feet lower than
 // the stock figure's would be at the same `size` (what charSprite is asked for). By how
-// much: a cut still has the head 42% of its height above the middle, the feet 44% below.
-const artRise = (char, size) => (artOf(char).scale - 1) * size * 0.42;
+// much: a cut still has its feet 44% of its height below the middle, and its head as far
+// above the middle as the figure is tall, less that; the stock figure's head was 42% up.
+const artRise = (char, size) => { const a = ART[char]; return a ? a.scale * size * ((a.tall || 0.86) - 0.44) - size * 0.42 : 0; };
 const artDrop = (char, size) => (artOf(char).scale - 1) * size * 0.44;
 const HERO_SIZE = 44;                                                           // the hero's figure, before `scale`
 const HERO_BAR_UP = HP_BAR.up + Math.round(artRise(CHARS.player, HERO_SIZE));   // his health bar clears his head
@@ -2699,9 +2723,9 @@ class LootScene extends Phaser.Scene {
     this.fxFade(star, { scale: star.scale * 2.4, angle: star.angle + 45, alpha: 0 }, 240);
   }
 
-  // The slam: the floor tips up in twelve faces, cracks run out from the blow, and slabs
-  // of it jump along them.
-  slamFx(x, y, r, c) {
+  // The slam, the hero's or a boss's: the floor tips up in twelve faces, cracks run out
+  // from the blow, and slabs of it jump along them.
+  slamFx(x, y, r, c, cracks = 7) {
     const at = (a, d) => ({ x: Math.cos(a) * d, y: Math.sin(a) * d }), spin = Math.random() * 6.28, n = 12;
     const g = this.add.graphics({ x, y }).setDepth(Z.fx);
     for (let i = 0; i < n; i++) {
@@ -2711,8 +2735,8 @@ class LootScene extends Phaser.Scene {
     }
     g.lineStyle(2.5, c[0], 0.9);
     g.strokePoints(Array.from({ length: n }, (_, i) => at(spin + i / n * Math.PI * 2, r)), true);
-    for (let i = 0; i < 7; i++) {
-      const a = spin + (i + Math.random() * 0.6) / 7 * Math.PI * 2, len = r * (0.55 + Math.random() * 0.4);
+    for (let i = 0; i < cracks; i++) {
+      const a = spin + (i + Math.random() * 0.6) / cracks * Math.PI * 2, len = r * (0.55 + Math.random() * 0.4);
       g.fillStyle(0x2a0f04, 0.7); g.fillPoints([at(a - 0.14, 10), at(a + 0.14, 10), at(a, len)], true);      // the crack
       g.fillStyle(c[0], 0.95); g.fillPoints([at(a + 0.14, 10), at(a + 0.2, 10), at(a, len)], true);          // its lit edge
       const slab = this.fxPiece('fx_slab', x + Math.cos(a) * len * 0.8, y + Math.sin(a) * len * 0.8, 11 + Math.random() * 5, c).setRotation((Math.random() - 0.5) * 0.8);
@@ -2749,7 +2773,7 @@ class LootScene extends Phaser.Scene {
 
   // Lightning: a bolt in hard angles, a dark band with a bright one laid along it and a
   // facet at every turn, and one short fork.
-  boltFx(g, x1, y1, x2, y2, c) {
+  boltFx(g, x1, y1, x2, y2, c, thick = 1) {
     const zig = (ax, ay, bx, by, sway) => {
       const len = Math.hypot(bx - ax, by - ay) || 1, n = Math.max(2, Math.round(len / 24)), nx = -(by - ay) / len, ny = (bx - ax) / len, pts = [{ x: ax, y: ay }];
       for (let i = 1; i < n; i++) {
@@ -2769,10 +2793,10 @@ class LootScene extends Phaser.Scene {
     };
     const draw = (pts, thick) => { band(pts, 4.5 * thick, c[1], 0.85); band(pts, 2.2 * thick, c[0], 1); band(pts, 0.8 * thick, 0xffffff, 0.95); };
     const main = zig(x1, y1, x2, y2, 11);
-    draw(main, 1);
+    draw(main, thick);
     if (main.length > 3) {
       const from = main[1 + Math.floor(Math.random() * (main.length - 2))], a = Math.atan2(y2 - y1, x2 - x1) + (Math.random() < 0.5 ? 0.8 : -0.8), reach = 20 + Math.random() * 12;
-      draw(zig(from.x, from.y, from.x + Math.cos(a) * reach, from.y + Math.sin(a) * reach, 5), 0.5);
+      draw(zig(from.x, from.y, from.x + Math.cos(a) * reach, from.y + Math.sin(a) * reach, 5), 0.5 * thick);
     }
   }
 
@@ -3997,7 +4021,7 @@ class LootScene extends Phaser.Scene {
     }
     const e = this.enemies.find(e => e.slam && e.slam.t > 140 && seen(e.x, e.y, 0));     // once the red zone is drawn
     if (!e) return null;
-    const sl = e.slam, holes = [{ x: e.x - ox, y: e.y - oy, r: e.radius + 18 }];
+    const sl = e.slam, holes = [{ x: e.x - ox, y: e.y - oy, r: this.girth(e) + 18 }];
     if (sl.type === 'circle') holes[0].r = sl.r + 10;
     else if (sl.type === 'line') for (let d = 0; d <= sl.len; d += sl.w * 0.55) holes.push({ x: sl.x + Math.cos(sl.a) * d - ox, y: sl.y + Math.sin(sl.a) * d - oy, r: sl.w * 0.85 });
     else sl.blobs.forEach(bl => holes.push({ x: bl.x - ox, y: bl.y - oy, r: bl.r + 8 }));
@@ -4165,6 +4189,9 @@ class LootScene extends Phaser.Scene {
   // How far over an enemy's middle its bars and name begin, and how far under it the
   // floor is, whatever art it has.
   headUp(e) { return e.radius + artRise(e.char, e.radius * 2.8); }
+  // How far out from an enemy's middle a ring drawn round it must be to clear what is
+  // drawn of it: its hit circle for stock art, most of its half-width for the game's own.
+  girth(e) { const a = ART[e.char]; return a ? Math.max(e.radius, e.radius * 2.8 * a.scale * (a.wide || 0.5) * 0.45) : e.radius; }
   feetDown(e) { return e.radius * 0.55 + artDrop(e.char, e.radius * 2.8); }
 
   // A character's sprite: its walk sheet where it has one, its still otherwise. `size` is
@@ -4177,14 +4204,16 @@ class LootScene extends Phaser.Scene {
                       : this.add.image(x, y, `${char}-front`).setDisplaySize(drawn, drawn);
     spr.walks = walks;
     spr.figure = size;
-    return spr;
+    return spr.setDepth(sortDepth(y));
   }
 
   // Turns a character to a facing, and on a walk sheet shows the step that animate() has
   // reached: 0 is standing, 1 to WALK.frames the stride. `a` is the state animate() keeps.
   pose(spr, char, facing, a) {
     if (spr.walks) {
-      const frame = FACINGS.indexOf(facing) * (WALK.frames + 1) + (a.step || 0);
+      // A figure in the middle of a strike faces what it strikes at and shows the strike.
+      const per = artOf(char).per, acting = a.act && per > WALK.frames + 1;
+      const frame = FACINGS.indexOf(acting ? a.act.facing : facing) * per + (acting ? WALK.frames + 1 + a.act.cell : (a.step || 0));
       if (spr.frame.name !== frame) spr.setFrame(frame);
     } else if (spr.posed !== facing) {
       spr.posed = facing;
@@ -4213,19 +4242,42 @@ class LootScene extends Phaser.Scene {
       else if (a.walkHold > 0) a.walkHold -= delta;
       a.step = a.walkHold > 0 ? 1 + Math.floor((a.walk || 0) * WALK.frames) % WALK.frames : 0;
     } else if (moving) { sy += 0.055 * stride * k; sx -= 0.04 * stride * k; lift = Math.abs(stride) * (heavy ? 1.6 : 2.8); }
+    // A strike runs through its three cells and is over. One that is held stays drawn
+    // back until release() lets it go: a boss winding up a slam.
+    if (a.act) {
+      if (!a.act.held) a.act.t += delta;
+      a.act.cell = a.act.t < ACT.back ? 0 : a.act.t < ACT.back + ACT.strike ? 1 : 2;
+      if (a.act.t >= ACT.back + ACT.strike + ACT.out) a.act = null;
+    }
     if (!moving) { const breath = Math.sin(a.gait * 2) * 0.02; sy += breath; sx -= breath * 0.6; }
     if (a.squash > 0) { a.squash -= delta; const q = Math.max(0, a.squash / 140); sx += 0.17 * q; sy -= 0.15 * q; }
     if (a.punch > 0) { a.punch -= delta; const q = Math.max(0, a.punch / 90); sx += 0.07 * q; sy += 0.07 * q; }
-    if (crouch > 0) { sy -= 0.12 * crouch; sx += 0.09 * crouch; }
+    // Winding up a slam: a figure with strike cells is already drawn back, and rises as
+    // it gathers; one without them crouches, as it always did.
+    const gathering = crouch > 0 && a.act && a.act.held && spr.walks;
+    if (gathering) { sy += 0.12 * crouch; sx += 0.05 * crouch; lift += 7 * crouch; }
+    else if (crouch > 0) { sy -= 0.12 * crouch; sx += 0.09 * crouch; }
     if (a.age < 220) { const q = a.age / 220, pop = 0.55 + 0.45 * (1 - Math.pow(1 - q, 3)); sx *= pop; sy *= pop; }
     spr.setScale(spr.baseSX * sx, spr.baseSY * sy);
-    spr.setRotation(moving ? Phaser.Math.Clamp(vx / 260, -1, 1) * (spr.walks ? 0.06 : 0.1) : 0);
+    let turn = moving ? Phaser.Math.Clamp(vx / 260, -1, 1) * (spr.walks ? 0.06 : 0.1) : 0;
+    if (gathering) turn += Math.sin(a.age / 24) * 0.035 * Math.max(0, crouch - 0.55) / 0.45;      // he shakes with it at the last
+    spr.setRotation(turn);
     return lift;
   }
+
+  // A figure strikes toward a point (requirements 2.41): it turns that way and goes
+  // through the strike cells of its sheet: drawing back, striking, coming out of it. The
+  // same three serve a thrust, a throw, a cast and a slam. `a` is the state animate()
+  // keeps (an enemy, or playerAnim). A `held` strike stays drawn back until release().
+  act(a, fromX, fromY, toX, toY, held) {
+    a.act = { t: 0, cell: 0, facing: facingFor(toX - fromX, toY - fromY), held: !!held };
+  }
+  release(a) { if (a.act && a.act.held) { a.act.held = false; a.act.t = ACT.back; } }
 
   // The attacker visibly lunges at you. Stored as an offset rather than tweened, because
   // the update loop re-positions every sprite from its logical position each frame.
   enemyLunge(e) {
+    if (!(e.act && e.act.held)) this.act(e, e.x, e.y, this.player.x, this.player.y);     // a blow in passing does not break a wind-up
     const d = Math.hypot(this.player.x - e.x, this.player.y - e.y) || 1;
     e.lunge = { t: 0, dur: 200, dx: (this.player.x - e.x) / d, dy: (this.player.y - e.y) / d,
                 amp: Math.min(16, 6 + e.radius * 0.5) };
@@ -4288,6 +4340,7 @@ class LootScene extends Phaser.Scene {
       const cap = Math.min(7, 4 + Math.floor((e.tribute || 0) / 5));
       this.hint('tribute', `Bosses summon ${N.enemies.melee}. Each one you kill before the boss falls is tribute: ${this.tributeAt.item} earns an extra item, ${this.tributeAt.boon} a boon. But the summons speed up.`);
       if (this.enemies.length < 16 && alive < cap) {
+        if (!e.slam) this.act(e, 0, 0, 0, 1);          // he calls them: the same strike, turned to face us
         const b = this.arenaBounds;
         for (let i = 0; i < 2; i++) {
           const a = Math.random() * Math.PI * 2;
@@ -4341,6 +4394,9 @@ class LootScene extends Phaser.Scene {
     // Reusing telegraphGfx means killEnemy and run cleanup already destroy it.
     e.telegraphGfx = this.add.graphics().setDepth(Z.telegraph);
     e.slam = slam;
+    // He draws back for as long as the warning runs, facing where it will land.
+    if (type === 'line') this.act(e, 0, 0, Math.cos(slam.a), Math.sin(slam.a), true);
+    else this.act(e, e.x, e.y, this.player.x, this.player.y, true);
     SLAM_WARN[type].forEach(([ms, rate]) => {
       if (ms) this.time.delayedCall(ms, () => this.sfx('slam-warn', { rate }));
       else this.sfx('slam-warn', { rate });
@@ -4393,12 +4449,14 @@ class LootScene extends Phaser.Scene {
   resolveSlam(e) {
     const s = e.slam;
     e.slam = null;
+    this.release(e);              // the blow itself: out of the wind-up and down
+    e.squash = 140;
     if (e.telegraphGfx) { e.telegraphGfx.destroy(); e.telegraphGfx = null; }
     e.slamTimer = e.slamCooldown + Phaser.Math.Between(-250, 350);
 
-    if (s.type === 'circle') this.shockwave(s.x, s.y, s.r, 0xff6a3d);
+    if (s.type === 'circle') this.slamFx(s.x, s.y, s.r, SLAM_FX);
     else if (s.type === 'line') this.lineImpact(s);
-    else s.blobs.forEach(bl => this.shockwave(bl.x, bl.y, bl.r, 0xff6a3d));
+    else s.blobs.forEach(bl => this.slamFx(bl.x, bl.y, bl.r, SLAM_FX, 4));
     const hit = this.inSlam(s, this.player.x, this.player.y);   // one hit per slam, not per blob
     this.shake(230, SLAM[s.type].shake);
     this.sfx('slam-land', { rate: e.isMega ? 0.8 : 1 });
@@ -4429,20 +4487,6 @@ class LootScene extends Phaser.Scene {
     return (flat + this.player.maxHp * pct * pctScale) * PHASE_DEFS[this.phase].enemyDmgMult;
   }
 
-  shockwave(x, y, r, colour) {
-    const flash = this.add.circle(x, y, r, colour, 0.38).setDepth(Z.fx);
-    this.tweens.add({ targets: flash, alpha: 0, duration: 260, onComplete: () => flash.destroy() });
-    const ring = this.add.circle(x, y, r * 0.5, 0x000000, 0).setStrokeStyle(4, colour, 0.95).setDepth(Z.fx);
-    this.tweens.add({ targets: ring, scale: 2.4, alpha: 0, duration: 340, ease: 'Cubic.easeOut',
-                      onComplete: () => ring.destroy() });
-    for (let i = 0; i < 8; i++) {                       // stone chips thrown outward
-      const a = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
-      const chip = this.add.circle(x, y, 2.5, 0xe8a868, 0.9).setDepth(Z.fx);
-      this.tweens.add({ targets: chip, x: x + Math.cos(a) * r * 1.1, y: y + Math.sin(a) * r * 1.1,
-                        alpha: 0, duration: 380, ease: 'Cubic.easeOut', onComplete: () => chip.destroy() });
-    }
-  }
-
   lineImpact(s) {
     const g = this.add.graphics().setDepth(Z.fx);
     const c = Math.cos(s.a), sn = Math.sin(s.a), hw = s.w / 2;
@@ -4454,7 +4498,7 @@ class LootScene extends Phaser.Scene {
     g.lineTo(s.x + sn*hw, s.y - c*hw);
     g.closePath(); g.fillPath();
     this.tweens.add({ targets: g, alpha: 0, duration: 300, onComplete: () => g.destroy() });
-    for (let t = 0.15; t < 1; t += 0.2) this.shockwave(s.x + c * s.len * t, s.y + sn * s.len * t, 18, 0xff6a3d);
+    for (let t = 0.15; t < 1; t += 0.2) this.slamFx(s.x + c * s.len * t, s.y + sn * s.len * t, 20, SLAM_FX, 2);
   }
 
   // Bosses with an exposed weak core take full damage only in the matching phase.
@@ -4513,7 +4557,7 @@ class LootScene extends Phaser.Scene {
     e.gateLabel.setVisible(true).setText(open ? `VULNERABLE  ${secs}s` : `RESISTS  \u00B7  opens in ${secs}s`).setColor(open ? '#ffe27a' : '#b9c2d6');
     const half = e.gateLabel.width / 2 + 2;
     e.gateLabel.setPosition(Phaser.Math.Clamp(e.x, ab.x + half, ab.right - half), Math.max((this.trackY ? this.trackY + this.camOff.y : ab.y) + 28, top));
-    const g = e.gateFx, r = e.radius + 9;
+    const g = e.gateFx, r = this.girth(e) + 9;
     g.clear();
     if (open) {                                   // a bright ring breathing in his colour, and rays
       const pulse = 0.5 + 0.5 * Math.sin(time / 130);
@@ -4766,67 +4810,47 @@ class LootScene extends Phaser.Scene {
   // felt identical to use. Each effect now has its own beam shape and colour, which is
   // also free build feedback: you can see what you're holding without reading the HUD.
   drawWeaponBeam(x1, y1, x2, y2, effect) {
-    const fx = this.attackFx;
-    const ang = Math.atan2(y2 - y1, x2 - x1);
-    const len = Math.hypot(x2 - x1, y2 - y1);
-
+    const fx = this.attackFx, c = WEAPON_FX[effect] || WEAPON_FX.none;
+    const len = Math.hypot(x2 - x1, y2 - y1) || 1, ux = (x2 - x1) / len, uy = (y2 - y1) / len;
+    const at = (along, off) => ({ x: x1 + ux * along - uy * off, y: y1 + uy * along + ux * off });
+    // A blade of two faces lying along the line from `a` to `b`, widest at `belly`: one
+    // face in the light, the other in shade, like everything else the cast is made of.
+    const blade = (a, b, belly, half) => {
+      fx.fillStyle(c[0], 0.95); fx.fillPoints([at(a, 0), at(belly, half), at(b, 0)], true);
+      fx.fillStyle(c[1], 0.95); fx.fillPoints([at(a, 0), at(belly, -half), at(b, 0)], true);
+    };
+    const gem = (along, off, r) => {
+      fx.fillStyle(c[0], 0.95); fx.fillPoints([at(along - r, off), at(along, off + r), at(along + r, off)], true);
+      fx.fillStyle(c[1], 0.95); fx.fillPoints([at(along - r, off), at(along, off - r), at(along + r, off)], true);
+    };
     switch (effect) {
-      case 'venom': {            // sickly, dripping - beads of poison along the path
-        fx.lineStyle(2, 0x7fdd3c, 0.75);
-        fx.lineBetween(x1, y1, x2, y2);
-        fx.fillStyle(0x7fdd3c, 0.9);
-        for (let t = 0.25; t < 1; t += 0.25) {
-          const px = x1 + (x2 - x1) * t, py = y1 + (y2 - y1) * t;
-          fx.fillCircle(px, py + Math.sin(t * 9) * 3, 2.6);
-        }
+      case 'venom':              // a thin dart, with drops shaken off it to either side
+        blade(10, len, len * 0.7, 2.6);
+        for (let i = 1; i <= 3; i++) gem(len * (0.18 + i * 0.2), i % 2 ? 5 : -5, 2.6);
         break;
-      }
-      case 'vampiric': {         // crimson draw, thicker at the victim end
-        fx.lineStyle(4, 0xc4331f, 0.55); fx.lineBetween(x1, y1, x2, y2);
-        fx.lineStyle(1.5, 0xff8080, 0.95); fx.lineBetween(x1, y1, x2, y2);
-        fx.fillStyle(0xff8080, 0.9); fx.fillCircle(x2, y2, 4);
+      case 'vampiric':           // drawn off the victim: widest where it leaves him
+        blade(len, 8, len * 0.86, 5);
+        gem(len, 0, 4);
         break;
-      }
-      case 'chain': {            // jagged arc rather than a straight line
-        fx.lineStyle(2, 0x4dd0ff, 0.95);
-        fx.beginPath(); fx.moveTo(x1, y1);
-        const steps = Math.max(3, Math.round(len / 22));
-        for (let i = 1; i < steps; i++) {
-          const t = i / steps;
-          const off = (i % 2 ? 1 : -1) * Phaser.Math.Between(4, 9);
-          fx.lineTo(x1 + (x2-x1)*t + Math.cos(ang + Math.PI/2) * off,
-                    y1 + (y2-y1)*t + Math.sin(ang + Math.PI/2) * off);
-        }
-        fx.lineTo(x2, y2); fx.strokePath();
+      case 'chain':              // a bolt in hard angles, as the supercharge's is, but finer
+        this.boltFx(fx, x1, y1, x2, y2, c, 0.62);
         break;
-      }
-      case 'executioner': {      // heavy gold wedge - widens toward the target
-        const n = ang + Math.PI/2;
-        fx.fillStyle(FORGE.gold, 0.6);
-        fx.beginPath();
-        fx.moveTo(x1 + Math.cos(n)*1.5, y1 + Math.sin(n)*1.5);
-        fx.lineTo(x2 + Math.cos(n)*7,   y2 + Math.sin(n)*7);
-        fx.lineTo(x2 - Math.cos(n)*7,   y2 - Math.sin(n)*7);
-        fx.lineTo(x1 - Math.cos(n)*1.5, y1 - Math.sin(n)*1.5);
-        fx.closePath(); fx.fillPath();
+      case 'executioner':        // a cleaver: a heavy wedge that widens to the blow
+        blade(6, len, len * 0.92, 8.5);
+        gem(len, 0, 5);
         break;
-      }
-      default: {                 // plain weapon: clean, quick, unremarkable on purpose
-        fx.lineStyle(2, FORGE.cool, 0.8);
-        fx.lineBetween(x1, y1, x2, y2);
-      }
+      default:                   // the plain weapon: a lance, quick and clean
+        blade(12, len, len * 0.8, 3.2);
+        gem(len, 0, 3);
     }
   }
 
   // Short-lived burst where a hit lands. Destroys itself, so it needs no bookkeeping
   // in the run-cleanup path.
   impactBurst(x, y, colour) {
-    const ring = this.add.circle(x, y, 5, colour, 0.55);
-    this.tweens.add({
-      targets: ring, scale: 2.4, alpha: 0,
-      duration: 180, ease: 'Cubic.easeOut',
-      onComplete: () => ring.destroy()
-    });
+    const shade = Phaser.Display.Color.IntegerToColor(colour).darken(38).color;
+    const star = this.fxPiece('fx_star', x, y, 9, [colour, shade]).setRotation(Math.random() * 1.5);
+    this.fxFade(star, { scale: star.scale * 2.2, angle: star.angle + 50, alpha: 0 }, 180);
   }
 
   // ---------- LOOT ICONS ----------
@@ -5764,7 +5788,7 @@ class LootScene extends Phaser.Scene {
     enemy.facing = 'front';
     const spr = this.charSprite(enemy.char, x, y, enemy.radius * 2.8);
     this.enemySprites.set(enemy.id, spr);
-    const outerRing = this.add.circle(x, y, enemy.radius + 10, 0x000000, 0).setStrokeStyle(2, isMega ? 0xc23cff : FORGE.gold, 0.5);
+    const outerRing = this.add.circle(x, y, this.girth(enemy) + 10, 0x000000, 0).setStrokeStyle(2, isMega ? 0xc23cff : FORGE.gold, 0.5);
     this.enemyRings.set(enemy.id, outerRing);
     this.addHpBar(enemy);
     this.addNameLabel(enemy);
@@ -5830,7 +5854,7 @@ class LootScene extends Phaser.Scene {
     }
     // Shield: a breathing inner dome plus two counter-rotating rings. The old flat
     // circle gave no sense that it was holding anything back.
-    const r = boss.radius + 8;
+    const r = this.girth(boss) + 8;
     const dome = this.add.circle(boss.x, boss.y, r, 0x9fd8ff, 0.16);
     const ringA = this.add.circle(boss.x, boss.y, r + 3, 0x000000, 0).setStrokeStyle(2, 0x9fd8ff, 0.75);
     const ringB = this.add.circle(boss.x, boss.y, r + 9, 0x000000, 0).setStrokeStyle(1.5, FORGE.cool, 0.45);
@@ -6499,7 +6523,7 @@ class LootScene extends Phaser.Scene {
 
     this.aimCamera(false, delta);
     const lift = this.animate(this.playerSprite, this.playerAnim, delta, (this.player.x - prevX) / dt, (this.player.y - prevY) / dt, false, 0);
-    this.playerSprite.setPosition(this.player.x, this.player.y - lift);
+    this.playerSprite.setPosition(this.player.x, this.player.y - lift).setDepth(sortDepth(this.player.y + HERO_RING_DOWN));
     this.playerRing.setPosition(this.player.x, this.player.y + HERO_RING_DOWN);
     // Ring carries the live phase colour, so the player reads Cycle timing off their own feet.
     this.playerRing.setStrokeStyle(2, PHASE_DEFS[this.phase].color, 0.9);
@@ -6574,11 +6598,11 @@ class LootScene extends Phaser.Scene {
         if (enemy.fireTimer <= 0 && edist <= enemy.preferredRange + 60) {
           enemy.fireTimer = enemy.fireInterval;
           const pdx = edx/edist, pdy = edy/edist;
-          // Yaksha's bolt: an elongated shard pointed along its travel, with a soft
-          // halo behind it. A plain dot was hard to pick out against the forge floor.
-          const halo = this.add.circle(enemy.x, enemy.y, 8, FORGE.flame, 0.25);
-          const shard = this.add.ellipse(enemy.x, enemy.y, 14, 5, FORGE.gold)
-            .setRotation(Math.atan2(pdy, pdx));
+          // The Hexer's bolt: a faceted shard, point first, with a star turning behind
+          // it, in his own violet, which nothing of the hero's is drawn in.
+          const halo = this.fxPiece('fx_star', enemy.x, enemy.y, 13, HEX_FX, 0).setAlpha(0.75);
+          const shard = this.fxPiece('fx_shard', enemy.x, enemy.y, 17, HEX_FX, 0).setRotation(Math.atan2(pdy, pdx) - Math.PI / 2);
+          this.act(enemy, enemy.x, enemy.y, this.player.x, this.player.y);
           const proj = {
             x: enemy.x, y: enemy.y,
             vx: pdx * enemy.projSpeed, vy: pdy * enemy.projSpeed,
@@ -6638,10 +6662,11 @@ class LootScene extends Phaser.Scene {
           if (k >= 1) enemy.lunge = null;
           else { const push = Math.sin(k * Math.PI) * enemy.lunge.amp; ox = enemy.lunge.dx * push; oy = enemy.lunge.dy * push; }
         }
+        if (enemy.act && enemy.act.held && !enemy.slam) this.release(enemy);
         const lift = this.animate(spr, enemy, delta, (enemy.x - (enemy.lastX === undefined ? enemy.x : enemy.lastX)) / dt,
           (enemy.y - (enemy.lastY === undefined ? enemy.y : enemy.lastY)) / dt, !!enemy.isBoss, enemy.slam ? Math.min(1, enemy.slam.t / enemy.slam.dur) : 0);
         enemy.lastX = enemy.x; enemy.lastY = enemy.y;
-        spr.setPosition(enemy.x + ox, enemy.y + oy - lift);
+        spr.setPosition(enemy.x + ox, enemy.y + oy - lift).setDepth(sortDepth(enemy.y + this.feetDown(enemy)));
         // 4-direction art is never turned to face - the facing frame is swapped instead.
         // Face the player, which is also the direction almost every enemy is moving.
         if (enemy.char) {
@@ -6689,7 +6714,7 @@ class LootScene extends Phaser.Scene {
       const p = this.projectiles[i];
       p.x += p.vx * dt; p.y += p.vy * dt;
       p.sprite.setPosition(p.x, p.y);
-      if (p.halo) p.halo.setPosition(p.x, p.y);
+      if (p.halo) { p.halo.setPosition(p.x, p.y); p.halo.rotation += 0.25; }
 
       const pdist = Math.hypot(p.x - this.player.x, p.y - this.player.y);
       const offscreen = !Phaser.Geom.Rectangle.Contains(this.worldBounds, p.x, p.y);
@@ -6733,6 +6758,7 @@ class LootScene extends Phaser.Scene {
       if (inRange.length) {
         this.atkTimer = this.player.weapon.atkSpeed / this.attackRate();
         this.playerAnim.punch = 90;
+        this.act(this.playerAnim, this.player.x, this.player.y, inRange[0].e.x, inRange[0].e.y);
         this.attackFx.clear();
         const wfx = this.player.weapon.effect;
         this.sfx(inRange.every(o => o.e.shieldOn || this.weakScale(o.e) < 1) ? 'hit-blocked'
