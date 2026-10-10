@@ -8,10 +8,12 @@ Run inside Blender, headless:
   --texture FILE      use this picture in place of the model's own texture (a recolour)
   --hide A,B          hide objects whose names contain any of these (helmet, cape, ...)
   --anims SPEC        name:frames pairs, e.g. Idle:1,Walking_A:8,1H_Melee_Attack_Chop:5
-  --size N            frame size in pixels (default 256)
-  --elev DEG          camera height above the ground plane, in degrees (default 48)
+  --size N            frame size in pixels (default 384)
+  --elev DEG          camera height above the ground plane, in degrees (default 30)
   --engine NAME       eevee (default) or cycles
-  --pieces NAME       a set of simple added pieces from pieces.py beside this file: turban, horns
+  --pieces NAME,...   sets of simple added pieces from pieces.py beside this file (turban, horns, ...)
+  --stretch X,Y,Z     scale the whole figure: 1.3,1.25,1 is a third wider, a quarter deeper, as tall
+  --only FACINGS      render only these facings, e.g. front,right (a quick look)
 Each facing is rendered by turning the character, never the light, so every sprite is lit
 from the same side of the screen.
 """
@@ -24,9 +26,10 @@ ap.add_argument("--glb", required=True); ap.add_argument("--out", default="")
 ap.add_argument("--list", action="store_true")
 ap.add_argument("--texture"); ap.add_argument("--hide", default="")
 ap.add_argument("--anims", default="Idle:1,Walking_A:8")
-ap.add_argument("--size", type=int, default=256); ap.add_argument("--elev", type=float, default=48)
-ap.add_argument("--engine", default="eevee"); ap.add_argument("--pieces")
-ap.add_argument("--zoom", type=float, default=1.75)
+ap.add_argument("--size", type=int, default=384); ap.add_argument("--elev", type=float, default=30)
+ap.add_argument("--engine", default="eevee"); ap.add_argument("--pieces", default="")
+ap.add_argument("--zoom", type=float, default=1.6)
+ap.add_argument("--stretch", default="1,1,1"); ap.add_argument("--only", default="")
 a = ap.parse_args(argv)
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -62,6 +65,9 @@ if a.pieces:
     extra = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pieces.py")
     exec(compile(open(extra, encoding="utf-8").read(), extra, "exec"), {"bpy": bpy, "arm": arm, "scene": scene, "Vector": Vector, "math": math, "PIECES": a.pieces})
 
+arm.scale = tuple(float(v) for v in a.stretch.split(","))
+bpy.context.view_layer.update()
+
 # The swatch textures are tiny gradients: no filtering artefacts wanted, no shine either.
 for m in bpy.data.materials:
     if m.node_tree:
@@ -71,15 +77,11 @@ for m in bpy.data.materials:
                 if "Specular IOR Level" in n.inputs: n.inputs["Specular IOR Level"].default_value = 0.1
                 n.inputs["Metallic"].default_value = 0.0
 
-# How tall the figure stands, for the camera.
-lo = Vector((1e9,) * 3); hi = Vector((-1e9,) * 3)
-for o in meshes:
-    if o.hide_render: continue
-    for c in o.bound_box:
-        w = o.matrix_world @ Vector(c)
-        lo = Vector(map(min, lo, w)); hi = Vector(map(max, hi, w))
-height = hi.z - lo.z
-target = Vector((0, 0, lo.z + height * 0.5))
+# One frame for every figure: these models all stand 2.2 tall before any stretch, so the
+# camera is set for that and never for what a figure carries or wears. Sizes between
+# characters then come out true, and nothing a figure swings can change its scale.
+height = 2.2
+target = Vector((0, 0, 1.2))
 
 cam_data = bpy.data.cameras.new("cam"); cam_data.type = "ORTHO"; cam_data.ortho_scale = height * a.zoom
 cam = bpy.data.objects.new("cam", cam_data); scene.collection.objects.link(cam); scene.camera = cam
@@ -124,6 +126,7 @@ for spec in a.anims.split(","):
         ad.action_slot = act.slots[0]
     f0, f1 = act.frame_range
     for facing, deg in FACINGS.items():
+        if a.only and facing not in a.only.split(","): continue
         pivot.rotation_euler = (0, 0, math.radians(deg))
         for i in range(count):
             scene.frame_set(int(round(f0 + (f1 - f0) * i / count)) if count > 1 else int(f0))

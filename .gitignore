@@ -17,3 +17,4 @@ dist/
 tools/_blender/
 # Title pictures being tried, as they came from the tool. The one chosen is added on purpose.
 game/assets/incoming/title-candidate-*
+tools/3d/_work/
