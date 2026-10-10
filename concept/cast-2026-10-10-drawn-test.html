@@ -1,0 +1,117 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: #7a4622; font-family: sans-serif; }
+  .row { display: flex; gap: 24px; padding: 24px; align-items: flex-end; }
+  .cell { text-align: center; color: #fffbef; font-size: 18px; }
+  svg { display: block; }
+  .o { stroke: #2a0800; stroke-width: 6; stroke-linejoin: round; stroke-linecap: round; }
+  .t { stroke: #2a0800; stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; fill: none; }
+  .dot { fill: #fff3d6; }
+</style></head><body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- THE HERO: a lamp-bearer. Saffron turban, cream tunic, gold sash, a short bright blade. -->
+    <g id="hero">
+      <ellipse cx="128" cy="238" rx="54" ry="10" fill="#2a0800" opacity=".28"/>
+      <!-- back arm -->
+      <path class="o" fill="#9a5f30" d="M104 142 q-22 16 -18 40 q10 8 18 -2 q-2 -16 12 -26 z"/>
+      <!-- legs -->
+      <path class="o" fill="#8c2f1b" d="M100 182 h26 v40 q-13 10 -26 0 z"/>
+      <path class="o" fill="#a43a20" d="M128 182 h28 v40 q-14 10 -28 0 z"/>
+      <ellipse class="o" cx="112" cy="228" rx="18" ry="9" fill="#3a1608"/>
+      <ellipse class="o" cx="146" cy="228" rx="19" ry="9" fill="#3a1608"/>
+      <!-- tunic -->
+      <path class="o" fill="#f4e3c1" d="M94 132 q34 -14 68 0 l6 58 q-40 12 -80 0 z"/>
+      <path class="o" fill="#ffc93c" d="M90 164 q38 10 78 0 l1 14 q-40 10 -80 0 z"/>
+      <circle class="dot" cx="104" cy="191" r="3"/><circle class="dot" cx="118" cy="194" r="3"/><circle class="dot" cx="132" cy="194" r="3"/><circle class="dot" cx="146" cy="193" r="3"/><circle class="dot" cx="159" cy="190" r="3"/>
+      <!-- head -->
+      <circle class="o" cx="128" cy="88" r="46" fill="#b9763f"/>
+      <path class="o" fill="#b9763f" d="M168 80 q14 8 6 18 q-6 4 -12 0 z"/>
+      <!-- eye, brow, mouth -->
+      <path class="o" style="stroke-width:4" fill="#fffbef" d="M132 86 q14 -14 28 0 q-14 12 -28 0 z"/>
+      <circle cx="149" cy="86" r="6.5" fill="#2a0800"/>
+      <path class="t" d="M130 70 q16 -10 32 -2"/>
+      <path class="t" d="M146 112 q10 6 20 0"/>
+      <!-- turban -->
+      <path class="o" fill="#ff9d2e" d="M80 84 q-6 -52 48 -54 q54 -2 50 46 q-50 -22 -98 8 z"/>
+      <path class="t" d="M92 62 q34 -26 78 -6"/>
+      <path class="o" fill="#ff8323" d="M84 80 q-20 14 -14 44 q12 4 16 -6 q-6 -16 8 -30 z"/>
+      <circle class="o" cx="160" cy="54" r="8" fill="#ffd23c" style="stroke-width:4"/>
+      <!-- front arm and blade -->
+      <path class="o" fill="#dfe9f2" d="M186 150 l44 -34 q6 14 -6 24 l-30 22 z"/>
+      <path class="o" fill="#ffd23c" d="M176 146 l14 -8 l10 14 l-14 8 z" style="stroke-width:4"/>
+      <path class="o" fill="#b9763f" d="M146 138 q24 -4 40 14 q0 12 -12 12 q-10 -10 -28 -8 z"/>
+    </g>
+
+    <!-- ASURA: rank and file. Teal skin against the warm stone, tusks, one horn, a club. -->
+    <g id="asura">
+      <ellipse cx="128" cy="238" rx="58" ry="10" fill="#2a0800" opacity=".28"/>
+      <!-- club, held high behind -->
+      <path class="o" fill="#6b4226" d="M70 150 l-22 -70 q4 -22 22 -16 q14 10 6 28 l12 52 z"/>
+      <path class="o" fill="#1f6f69" d="M92 140 q-24 6 -26 26 q8 10 20 4 q2 -10 16 -14 z"/>
+      <!-- legs -->
+      <path class="o" fill="#1f6f69" d="M98 196 h26 v26 q-13 8 -26 0 z"/>
+      <path class="o" fill="#2f8f86" d="M128 196 h28 v26 q-14 8 -28 0 z"/>
+      <ellipse class="o" cx="110" cy="228" rx="19" ry="9" fill="#174f4b"/>
+      <ellipse class="o" cx="146" cy="228" rx="20" ry="9" fill="#174f4b"/>
+      <!-- belly -->
+      <ellipse class="o" cx="126" cy="168" rx="44" ry="38" fill="#2f8f86"/>
+      <!-- loincloth -->
+      <path class="o" fill="#5a2a78" d="M86 182 q40 14 82 0 l-6 26 q-36 10 -70 0 z"/>
+      <circle class="dot" cx="100" cy="204" r="3"/><circle class="dot" cx="114" cy="207" r="3"/><circle class="dot" cx="128" cy="208" r="3"/><circle class="dot" cx="142" cy="207" r="3"/><circle class="dot" cx="155" cy="204" r="3"/>
+      <!-- mane -->
+      <path class="o" fill="#3a1d52" d="M92 46 l-26 -6 l12 22 l-24 4 l18 18 l-20 12 l26 8 l-10 20 l28 -10 z"/>
+      <!-- head -->
+      <circle class="o" cx="130" cy="88" r="50" fill="#37a79c"/>
+      <path class="o" fill="#37a79c" d="M170 78 q22 10 14 30 q-10 8 -22 2 z"/>
+      <!-- horn -->
+      <path class="o" fill="#fff3d6" d="M126 44 q-4 -30 26 -38 q-8 22 6 36 z"/>
+      <!-- eye, brow -->
+      <path class="o" style="stroke-width:4" fill="#ffd23c" d="M132 82 q16 -12 30 2 q-16 12 -30 -2 z"/>
+      <ellipse cx="150" cy="83" rx="4" ry="7" fill="#2a0800"/>
+      <path class="o" fill="#2a0800" d="M126 66 l40 8 l-2 -10 z" style="stroke-width:3"/>
+      <!-- mouth and tusks -->
+      <path class="o" fill="#3a0d12" d="M140 112 q20 12 42 0 q-6 18 -24 18 q-14 0 -18 -18 z"/>
+      <path class="o" fill="#fffbef" d="M146 118 l6 -20 l8 20 z" style="stroke-width:4"/>
+      <path class="o" fill="#fffbef" d="M166 118 l5 -16 l7 14 z" style="stroke-width:4"/>
+      <!-- front arm -->
+      <path class="o" fill="#37a79c" d="M140 146 q26 4 34 26 q-2 12 -14 10 q-8 -14 -24 -14 z"/>
+      <!-- necklace -->
+      <circle class="dot" cx="104" cy="140" r="4"/><circle class="dot" cx="116" cy="147" r="4"/><circle class="dot" cx="130" cy="150" r="4"/><circle class="dot" cx="144" cy="147" r="4"/>
+    </g>
+
+    <!-- BRUTE: the buffalo. Twice the bulk, wide horns, slow. -->
+    <g id="brute">
+      <ellipse cx="128" cy="240" rx="80" ry="12" fill="#2a0800" opacity=".28"/>
+      <path class="o" fill="#4a3a5c" d="M70 150 q-34 10 -34 44 q10 12 26 4 q0 -18 22 -26 z"/>
+      <path class="o" fill="#4a3a5c" d="M84 200 h36 v24 q-18 8 -36 0 z"/>
+      <path class="o" fill="#5f4b76" d="M130 200 h40 v24 q-20 8 -40 0 z"/>
+      <ellipse class="o" cx="100" cy="230" rx="26" ry="10" fill="#2c2238"/>
+      <ellipse class="o" cx="152" cy="230" rx="27" ry="10" fill="#2c2238"/>
+      <ellipse class="o" cx="122" cy="162" rx="64" ry="50" fill="#5f4b76"/>
+      <path class="o" fill="#8c2f1b" d="M62 184 q60 18 122 0 l-8 26 q-54 12 -106 0 z"/>
+      <circle class="dot" cx="84" cy="206" r="3.5"/><circle class="dot" cx="104" cy="210" r="3.5"/><circle class="dot" cx="124" cy="211" r="3.5"/><circle class="dot" cx="144" cy="210" r="3.5"/><circle class="dot" cx="164" cy="206" r="3.5"/>
+      <!-- horns: wide, sweeping -->
+      <path class="o" fill="#fff3d6" d="M96 64 q-52 -8 -62 -52 q30 26 70 24 z"/>
+      <path class="o" fill="#fff3d6" d="M160 58 q46 -10 58 -48 q-28 24 -62 22 z"/>
+      <!-- head, low and forward -->
+      <ellipse class="o" cx="134" cy="92" rx="52" ry="46" fill="#735c8e"/>
+      <path class="o" fill="#8a72a6" d="M150 96 q40 -6 48 20 q-2 22 -30 22 q-22 0 -18 -42 z"/>
+      <circle cx="184" cy="112" r="4" fill="#2a0800"/><circle cx="170" cy="118" r="4" fill="#2a0800"/>
+      <path class="o" fill="#ffd23c" d="M160 126 q10 18 22 2" style="fill:none;stroke:#ffd23c;stroke-width:6"/>
+      <path class="o" style="stroke-width:4" fill="#ff5c3c" d="M124 80 q14 -10 28 2 q-14 10 -28 -2 z"/>
+      <circle cx="140" cy="81" r="5" fill="#2a0800"/>
+      <path class="o" fill="#2a0800" d="M118 66 l38 6 l-2 -10 z" style="stroke-width:3"/>
+      <path class="o" fill="#735c8e" d="M148 152 q34 2 44 30 q-2 14 -18 12 q-8 -18 -30 -18 z"/>
+    </g>
+  </defs>
+</svg>
+<div class="row">
+  <div class="cell"><svg width="256" height="256" viewBox="0 0 256 256"><use href="#hero"/></svg>Hero</div>
+  <div class="cell"><svg width="256" height="256" viewBox="0 0 256 256"><use href="#asura"/></svg>Asura</div>
+  <div class="cell"><svg width="256" height="256" viewBox="0 0 256 256"><use href="#brute"/></svg>Brute</div>
+  <div class="cell"><svg width="132" height="132" viewBox="0 0 256 256"><use href="#hero"/></svg><svg width="132" height="132" viewBox="0 0 256 256"><use href="#asura"/></svg>phone size</div>
+  <div class="cell"><svg width="150" height="150" viewBox="0 0 256 256"><use href="#brute"/></svg><svg width="132" height="132" viewBox="0 0 256 256" style="transform:scaleX(-1)"><use href="#asura"/></svg>&nbsp;</div>
+</div>
+</body></html>
