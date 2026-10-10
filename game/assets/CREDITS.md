@@ -160,3 +160,7 @@ than stars in space.
 The rest of that pass — `player.png`, `enemy-melee/ranged/tank/splitter.png` — was
 removed when the CraftPix roster landed. Those were sci-fi ships and grey meteors on
 dark purple and satisfied none of the Cosmic Forge direction.
+
+## Title picture (`title-art.jpg`)
+
+Made by the founder with ChatGPT (OpenAI), 2026-10-10: a stepwell seen from above. Its shadows are lifted in the upper half for the game. Generative AI: itch.io's disclosure for graphics is **yes** while this is in the build.

@@ -1382,11 +1382,11 @@ const CONVERGENCE_INTERVAL = 90000;
 // assets/chars/ with four facing frames: -front, -back, -left, -right.
 // Art is CraftPix (commercial use, no attribution) - see assets/CREDITS.md.
 const CHARS = {
-  melee:    'asura',        // असुर     — power-seeking antagonists of the devas
+  melee:    'wellasura',    // Well Delver playtest: replacement readability candidate
   ranged:   'rakshasa',     // राक्षस    — shape-shifting demons famed for sorcery (maya)
   tank:     'mahish',       // महिष    — the buffalo demon
   splitter: 'raktabija',    // रक्तबीज  — every drop of his blood rose as a new demon
-  player:   'kiran',        // the hero's art keeps its first file name; the player names the hero (2.32)
+  player:   'wellhero',     // Well Delver playtest: replacement readability candidate
   gatekeeper:  'bakasura',    // बकासुर   — demanded tribute before anyone could pass
   sectorboss:  'nidhiraksha', // निधि-रक्षा — treasure guardian (descriptive, not a figure)
   megaboss:    'vritra'       // वृत्र     — the serpent who hoarded the world's waters
@@ -1398,7 +1398,8 @@ const FACINGS = ['front', 'back', 'left', 'right'];
 // clips, and a sheet is drawn larger by the same amount (pad), which leaves the figure the
 // size it was. Built by tools/extract-walk.py. Vritra has none: he is drawn in code.
 const WALK = { frames: 8, cell: 112, pad: 112 / 96 };
-const WALKERS = Object.keys(CHARS).filter(k => k !== 'megaboss').map(k => CHARS[k]);
+// The pair has still art only. Final walk sheets are a later production step.
+const WALKERS = Object.keys(CHARS).filter(k => !['megaboss', 'player', 'melee'].includes(k)).map(k => CHARS[k]);
 const INV_MAX = 8;   // satchel capacity; oldest falls out past this
 
 // Shown above every enemy. These are the Sanskrit *type* names, not proper nouns -
@@ -2289,7 +2290,8 @@ class LootScene extends Phaser.Scene {
     // 8 characters x 4 facings. Texture key is "<char>-<facing>", e.g. "asura-left".
     for (const name of Object.values(CHARS)) {
       for (const f of FACINGS) {
-        this.load.image(`${name}-${f}`, `assets/chars/${name}-${f}.png`);
+        const testStill = name === 'wellhero' || name === 'wellasura';
+        this.load.image(`${name}-${f}`, `assets/chars/${testStill ? name : `${name}-${f}`}.png`);
       }
     }
     for (const name of WALKERS) {

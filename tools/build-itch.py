@@ -28,7 +28,7 @@ PAGE = "loot-chase-v0.1.html"
 # folders stops the build, so a stray file can never ride along unnoticed.
 TAKE = [("assets/chars", ".png"), ("assets/sfx", ".wav"), ("vendor", ".js"), ("vendor", ".md"),
         ("vendor/fonts", ".woff2"), ("vendor/fonts", ".txt")]
-SINGLE = ["assets/bg-stars.png"]
+SINGLE = ["assets/bg-stars.png", "assets/title-art.jpg"]
 # Addresses the page may name. The first is the feedback form's mail relay (requirements
 # 2.22); the second is the name of the SVG format inside a drawn background, not a request.
 ALLOWED = ["https://formsubmit.co/ajax/", "http://www.w3.org/2000/svg"]
