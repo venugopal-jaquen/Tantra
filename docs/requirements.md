@@ -52,6 +52,7 @@ Kept so a reversal is never mistaken for drift or an error.
 | 2026-10-05 | **A boss shows when it can be hurt.** §2.6. | The testing round (`design-document.md` §1.4) named the first boss as the likeliest place to lose a new player: he took 12% damage unless the phase bar matched a small glow at his feet, and one tip explained it. The founder chose all four proposals: the state drawn on the boss, a countdown, a first Gatekeeper who arrives open, and a softer penalty on level 1, which they set at 30%. |
 | 2026-10-05 | **Seven depths, with perks as the rewards.** §2.30. | The same round found nothing to earn by winning. The founder chose seven depths of the well as the spine, each harder than the last, and perks earned from bosses and depths as the rewards. This settles the "seven worlds" question as depths of the one well, and builds the perks pinned as P8. A daily descent was pinned for after the itch.io launch (P9). |
 | 2026-10-05 | **Characters move; Vritra is drawn.** §2.31. | The cast is stock art with no animation frames. The founder chose motion made in code and a serpent drawn in code for now, will make the characters themselves with image tools (`docs/character-art-guide.md`), and is not ready to commission an artist. |
+| 2026-10-10 | **The supercharge is drawn in the new look; floors get a full prompt.** §2.40. | The founder: "For the next few cycles focus only on making changes and testing.. You don't need to regenerate the itch.io package until I specifically mention. There will be some trial and errors." They asked for a comprehensive prompt for the backgrounds, and then for "animation/graphics for the supercharged player powers (chain lightning, AOE damage etc.)" to "match the new visual styling that we have now". A first version of all five; theirs to try and change. |
 | 2026-10-10 | **This look is the cast.** §2.39. | Shown the two in the game, the founder: "Yes, this is the look for the cast. You can close the relevant PR." "ChatGPT made the pictures." "Wait until we get the entire characters.. I will also try to get the background images generated to match the character arts." And of the walk: "The stepping walk looks a bit odd in the side-view animation. Can we fix that?" The rendered cast's pull request was closed, the side walk was made again, and what to give ChatGPT for the other five and for floors was written down (`docs/art-brief-for-chatgpt.md`). |
 | 2026-10-10 | **The founder's own hero and Asura, fitted to the game.** §2.39. | The founder had the two designed with another AI tool and pasted its handoff: "Check this out and see how you can integrate with the main code. If this looks good, I will get the other characters designed similarly." The designs were kept as they are; how they were cut and how large they are drawn were changed, because as delivered the hero was about 20 pixels wide in a fight. Put up for their review; not merged. |
 | 2026-10-10 | **The title screen has its picture.** §2.21. | The founder made a picture with ChatGPT (a stepwell seen from above, lamps, a glowing pool) and was shown it behind the real title screen three ways. "Use fit 2 for the title screen." |
@@ -947,6 +948,27 @@ The founder had the hero and the Asura designed with ChatGPT, in a look its note
 - The left view is a mirror, so the spear and the blade change hands when a figure turns.
 - Taller figures overlap more in a crowd, and the game draws them in the order they arrived, not nearest last.
 - The profile screen enlarges a 160-pixel still; a larger portrait cut from the same turnaround would be sharper there.
+
+### 2.40 The supercharge, drawn in the look of the cast (2026-10-10)
+A first version, made while the look is being tried out; expect it to change. Nothing about what a power does has changed: reach, damage, timing and sound are as they were. Only what is drawn.
+
+**The idea.** The cast is low-poly: flat faces, one in the light and the next in shade. The powers were soft circles and thin lines, which belonged to the old look. Now every effect is built from the same few faceted pieces (a long shard, a chip, a four-pointed star, a lump of seven faces, a slab of floor), made once in white and greys and tinted with a form's two colours, the lit one and the shaded one (`TEJAS_FX`). What lies on the floor is drawn under the figures; what flies is drawn over them. No soft glows.
+
+| Form | What is drawn |
+|---|---|
+| Any, switching on | Shards thrown out from the feet, a star opening over the hero, chips in the air |
+| Any, while it lasts | A garland of facets on the floor at the power's reach, turning slowly (it was a faint circle) |
+| Fire nova | Two rows of flame tongues thrown out along the floor to the reach, a fine many-sided ring ahead of them, a star at the centre |
+| Poison cloud | Seven lumps that keep to the hero and wander round him; chips off whatever is poisoned |
+| Blood drain | Chips off whatever is struck, and shards that fly from it to the hero; a small star when they arrive |
+| Chain lightning | A bolt in hard angles: a dark band, a bright one along it, a white core, a facet at every turn, one short fork; a star where it lands |
+| Ground slam | The floor tips up in twelve faces and is gone, cracks run out from the blow with one lit edge each, slabs jump along them; a star on whoever it finishes |
+
+**Kept in check.** In a crowd only the first eight hits of a pulse are drawn. Pieces remove themselves; the bot's runs leak nothing. The colours are brighter than the cast's because level 1's sandstone swallowed the first, more muted fire.
+
+**Not done.** The ordinary weapon beams and hit marks still have the old look. No power has a sound of its own beyond what it had.
+
+**Floors.** `docs/art-brief-for-chatgpt.md` §2 is now a full prompt for the three floors, to be sent with three pictures of the floors as the game paints them today (`concept/floors-2026-10-10-as-painted-level-N.jpg`): each floor inside its band of steps, the layout to keep.
 
 ### 2.20 Automated checks
 - **`tools/playtest-bot.js`** plays complete runs with game logic only (about 80x real time) and records per-sector balance figures, errors and leaked objects (§2.14). Since 2026-10-10 a profile can name a `style`, a player who does not play (§2.36), and **`tools/lazy-players.mjs`** runs those beside the one that does.

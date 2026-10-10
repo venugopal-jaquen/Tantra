@@ -138,52 +138,134 @@ Make ONE character first, the Hexer, and show me before making the rest.
 
 ## 2. The three floors
 
-The founder means to try floors generated to match the characters. Today the three
-floors are painted by code (`requirements.md` §2.10), and parts of them move. A picture
-replaces the still part of a floor; what moves can be drawn over it. A floor is not a
-scene: the game looks straight down on it and fights happen all over it, so most
-pictures an image tool makes by default cannot be used. This box asks for one that can.
+The founder means to have the floors generated to match the characters, and asked for a
+full prompt. Today the three floors are painted by code (`requirements.md` §2.10) and
+parts of them move. A picture replaces the still part; lamps, glows and water light are
+drawn over it by the game, as now.
+
+A floor is not a scene. The game looks straight down on it and the whole fight happens
+on top of it, so most pictures an image tool makes by default cannot be used. The prompt
+spends most of its length on that.
+
+**Attach these with it:** the hero and Asura turnarounds (the look), and the three
+pictures of the floors as the game paints them now (the layout to keep):
+`concept/floors-2026-10-10-as-painted-level-1.jpg`, `-2.jpg`, `-3.jpg`. Each is the floor
+inside its band of steps, with nothing drawn on top.
 
 ```text
-I also want the game's three floors repainted to match the Well Delver characters. The
-game is played looking straight down on a floor, and the characters stand on it.
+I want the three floors of my game repainted to match the Well Delver characters you
+made for it (the hero and the Asura). Attached:
+- the hero and Asura turnarounds: the look to match;
+- three pictures, level 1, level 2 and level 3: the floors as the game draws them today.
+  They are the layout to keep.
 
-RULES FOR EVERY FLOOR
-- The view is straight down from above, like a plan. No horizon, no walls standing up,
-  no perspective, nothing tall.
-- Portrait 3:5, at least 1020 x 1692 pixels. Larger is better. No transparency.
-- The whole picture is floor that can be walked on. A carved border round the edge is
-  welcome.
-- The middle two thirds must be calm: low contrast, no objects, no strong lines. Fights
-  happen there and the characters must stand out. Detail belongs at the edges and in the
-  corners.
-- A step darker and less saturated than the characters. No large areas of cream, bright
-  teal or bright orange: those are the hero's and the Asura's colours.
-- No loose coins, gems or other small bright things lying in the open: in a fight they
-  look like something to pick up. Keep them heaped against the edges.
-- Even light from above. No spotlight, no long shadows.
-- No characters, no text, no symbols, no shadows of people. No religious symbols: no Om,
-  swastika, trident, deity or idol.
-- The same low-poly, painted look and materials as the characters: sandstone, old water,
-  bronze, gold.
+WHAT A FLOOR IS IN THIS GAME (read this first)
+The game is a fight seen from straight above. The player's character and up to twenty
+enemies move all over the floor. On top of the floor the game draws red and orange
+warning shapes where a boss is about to strike, small glinting loot with a label, health
+bars, a coloured ring under the hero, fire, lightning and poison, and numbers. The floor
+has one job: to be a place, and to stay out of the way of all of that. A beautiful
+picture that competes with the fight is a failure here.
 
-THE THREE (each is a place in the story, and is already in the game in a plainer style)
-Level 1, the court: a sunlit court at the top of a stepwell, paved in irregular
-sandstone round a large carved sun. Patterned sunlight falls across one corner through
-carved stone screens. Marigold petals are strewn at the edges.
+WHAT TO MAKE
+One picture for each level, three in all. Each shows the floor together with the band of
+steps that surrounds it, exactly as the attached pictures do.
+- Portrait, 2:3, at least 1024 x 1536 pixels. Larger if you can.
+- PNG, no transparency.
+- The band of steps is the same thickness on all four sides, about 7% of the picture's
+  width. Everything inside it is floor.
+- Keep the layout of the attached picture for that level: the same things, in the same
+  places, at the same size. Repaint it; do not rearrange it.
 
-Level 2, the flooded landing: dark green-teal water standing over four drowned stone
-steps, each darker than the last. Lotus pads, a few fish and small floating clay lamps
-near the edges, and the long faint shadow of a huge serpent in the deep.
+THE VIEW
+- Straight down from directly above, like a plan or a map. The floor lies flat to the
+  picture. No horizon, no vanishing point, no tilt, no wall rising, no side of anything.
+- The steps round the edge are seen from above too: nested bands, lit a little
+  differently on each side so they read as steps.
+- Anything standing on the steps (lamps, pots) is also seen from above.
 
-Level 3, the hoard: the vault at the bottom of the well. Dark brown stone. A great
-serpent cast in bronze is laid into the floor round the whole room like a border. Gold
-is heaped in the four corners. In the middle, a round gold-rimmed grate with water
-glowing beneath it.
+SCALE (the same in all three pictures)
+- A person standing on the floor would be about one tenth of the picture's width tall.
+- Paving slabs are one to two persons across.
+- In the open floor, no pattern finer than a person's head. On a phone it turns to noise.
 
-Save as game/assets/incoming/well-delver/floor-1.png, floor-2.png and floor-3.png. Make
-level 1 first and show me before making the others.
+THE CALM MIDDLE (the most important rule)
+The fight area is everything more than about a tenth of the width in from the steps. In
+it:
+- Tones stay in a narrow range. No patch much lighter or darker than what is round it.
+  Carving reads as soft, shallow relief, not as lines.
+- Nothing that looks solid or tall: no pillars, pots, statues, rubble, railings. The
+  floor has no obstacles, and nothing may look like one.
+- Nothing small and bright: no loose coins, gems, sparks or glints, no heaps of petals.
+  They look like loot to pick up.
+- No red or orange circles, rings or discs, and no bright straight bands. The game warns
+  of attacks with exactly those shapes.
+- No arrows, paths, footprints, lettering, or anything that reads as a sign.
+Richness belongs in the outer tenth, in the corners and on the steps.
+
+TONE AND COLOUR (so the characters stand out)
+- The hero is cream, teal and terracotta. The Asura is dark indigo and rust orange. The
+  floor must be clearly different from both, everywhere they can stand.
+- A middle to middle-dark tone overall: darker than the hero's cream clothes, lighter
+  than the Asura's skin. Never near white, never near black.
+- Less saturated than the characters. They must be the brightest, most colourful things
+  on the screen.
+- Level 1: a deep, reddish sandstone, a clear step darker than the hero's cream. Not
+  pale, not yellow.
+- Level 2: dark, greyed green-teal water, darker and duller than the hero's teal scarf.
+- Level 3: dark brown stone. Gold only as thin inlay and at the edges.
+- Light soft and even, from above and a little from the upper left, the same in all
+  three. No spotlight, no vignette, no fog, no bloom, no lens effects: the game adds its
+  own edge shading, lamp flicker and glows.
+- No shadow falling across the floor from anything outside the picture, except level 1's
+  patterned sunlight, which must be faint.
+
+THE LOOK
+The same as the characters: stylised low-poly 3D look, faceted planes, painted, matte.
+Stone that looks cut and worn; water as flat, faceted planes; bronze and gold aged, not
+mirror-bright. The three must look like three levels of one building, by one hand.
+
+THE THREE LEVELS (a stepwell in India, gone down one level at a time)
+Level 1, the court. The top of the well, in daylight. Irregular sandstone paving round
+one large carved sun medallion, set a little below the middle. Sunlight through two
+arched screens of pierced stone falls as a faint lattice across the upper left. A carved
+quarter-fan in each corner. A few marigold petals, at the edges only. Steps of the same
+sandstone, with small brass pots of marigolds standing on them.
+
+Level 2, the flooded landing. Water stands over the floor. Four drowned steps go down
+toward the middle, each ring darker than the last, so the middle is the deepest and
+darkest. Lotus leaves with a few pink flowers, three or four small fish and six small
+floating clay lamps, all near the edges. In the deep middle, the long faint shadow of a
+huge serpent under the water: a hint, barely darker than the water round it. The steps
+are wet grey-green stone with moss.
+
+Level 3, the hoard. The vault at the bottom of the well. Dark brown stone with a thin
+gold lattice inlaid in it. A great serpent of aged bronze is laid into the floor as a
+border just inside the steps, all the way round, its head at the top with two small red
+eyes. Gold and gems heaped in the four corners only. In the middle, one round grate with
+a gold rim, and dark water glowing teal beneath its bars. Steps of dark stone edged with
+gold, a few coins lying on them.
+
+NEVER
+No people, characters or creatures other than those named. No text. No religious symbols
+or figures: no Om, swastika, trident, idol, deity, shrine, temple bell or sacred diagram.
+The sun on level 1 is a plain carved sun. No photorealism. No frame, caption, watermark
+or anything like a game's buttons and bars.
+
+WHERE TO SAVE
+game/assets/incoming/well-delver/floor-1.png, floor-2.png and floor-3.png, at the full
+size they were made. Do not change any other file, and do not run any git command.
+
+HOW TO WORK
+Make level 1 only, first, and show me. Tell me its size in pixels and anything in the
+layout you changed. I will try it in the game with the characters standing on it before
+you make the other two.
 ```
+
+**What will be checked when one comes back:** that the hero in cream can be found on it
+at a glance, that a slam warning and a loot drop still read, and that the band of steps
+can be told from the floor. The first one usually fails on brightness; expect a second
+try.
 
 ## 3. What comes back, and what happens to it
 
@@ -191,7 +273,7 @@ level 1 first and show me before making the others.
 |---|---|---|
 | `<name>-turnaround.png` | `game/assets/incoming/well-delver/` | Cuts it into stills and a walk sheet, sets its size in the game, shows it on all three floors |
 | `<name>-walk-side.png` | the same | If the four figures match the turnaround, the side walk is made from them and not from the still |
-| `floor-N.png` | the same | Fits it to the arena and shows the cast on it beside today's floor |
+| `floor-N.png` | the same | Cuts it into the floor and its band of steps, fits both to the arena, puts the game's own lamps and glows over it, and shows the cast on it beside today's floor |
 
 File names in the game keep their first names (`requirements.md` §2.12): hexer is
 `rakshasa`, brute is `mahish`, bloodseed is `raktabija`, gatekeeper is `bakasura`,
