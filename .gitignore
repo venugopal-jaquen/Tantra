@@ -12,3 +12,6 @@ game/assets/incoming/music/
 
 # What tools/build-itch.py makes: the folder and zip for itch.io. Rebuilt on demand.
 dist/
+
+# Blender, used by the character-render test to turn 3D models into sprites (900 MB; from blender.org).
+tools/_blender/
