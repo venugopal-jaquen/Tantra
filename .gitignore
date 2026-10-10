@@ -9,3 +9,6 @@ game/assets/incoming/extracted/
 # Music as downloaded. tools/convert-music.py writes the trimmed, levelled copies
 # the game plays into game/assets/music/, and those are what belong in git.
 game/assets/incoming/music/
+
+# What tools/build-itch.py makes: the folder and zip for itch.io. Rebuilt on demand.
+dist/

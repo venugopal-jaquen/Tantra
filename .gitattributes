@@ -2,3 +2,5 @@
 * text=auto eol=lf
 *.html text eol=lf
 *.md   text eol=lf
+# Other people's files, kept byte for byte as published (the engine's checksum depends on it).
+game/vendor/** -text

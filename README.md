@@ -28,8 +28,8 @@ See `docs/design-document.md` for the full milestone table.
 
 ## Running the game locally
 
-Open `game/loot-chase-v0.1.html` directly in a browser — no build step, no install. Phaser loads
-from CDN.
+Open `game/loot-chase-v0.1.html` directly in a browser — no build step, no install. The engine
+and the typefaces are in `game/vendor/`, so it runs with no connection.
 
 To serve it over HTTP instead (needed if you want `localStorage` to behave exactly as it will in
 production):

@@ -61,3 +61,12 @@ lines to life.
 | 18 | Add security headers | Yes | A content security policy in the page that allows only the game's own files and the few outside hosts it needs. itch.io serves the game in a frame with its own headers: test inside it |
 | 19 | Force HTTPS | Yes | Every outside address in the page is https; confirm, and confirm the GitHub Pages site enforces it |
 | 20 | Scan dependencies | Yes | One dependency, the Phaser engine, plus two typefaces, loaded from other hosts. The itch.io build is to carry its own copies (L9); check the engine version for known flaws, and if anything is still fetched from another host, pin it with an integrity hash |
+
+## What has changed since (not a run of the list)
+
+- **2026-10-10.** The engine and the two typefaces now sit beside the game
+  (`requirements.md` §2.34), so nothing is loaded from another host. For line 20 that
+  leaves one dependency to check for known flaws, Phaser 3.70.0, already pinned by being
+  a file whose checksum was verified. For line 18 it means the content security policy
+  can allow the game's own files and one outside host, the feedback relay, and nothing
+  else. The smoke test now fails if the page fetches anything from the internet.
