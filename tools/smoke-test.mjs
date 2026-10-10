@@ -548,11 +548,15 @@ try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({ metaGold: 40, vitalityLevel: 1, powerLevel: 0, bestSector: 3, wins: 2, water: 8, hintsSeen: {} })); loadSession(); const winner = read();
     localStorage.setItem(SAVE_KEY, JSON.stringify({ metaGold: 5, vitalityLevel: 0, powerLevel: 0, bestSector: 3, wins: 0, water: 2, hintsSeen: {} })); loadSession(); const founder = read();
     localStorage.setItem(SAVE_KEY, JSON.stringify({ metaGold: 0, vitalityLevel: 0, powerLevel: 0, bestSector: 1, wins: 0, water: 0, hintsSeen: {} })); loadSession(); const fresh = read();
+    const bare = JSON.stringify(session.records);
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ metaGold: 0, records: { tribute: { gatekeeper: 7 }, runs: 3 } })); loadSession(); const part = JSON.stringify(session.records);
     localStorage.setItem(SAVE_KEY, keep); Object.assign(session, JSON.parse(now));
-    return { winner, founder, fresh, back: session.depthsWon };`);
+    return { winner, founder, fresh, back: session.depthsWon, bare, part };`);
   check('an older save is carried into the depths with what it had earned', old.winner.won === 1 && old.winner.water === 5 && old.winner.perks === 'eye,guard,scale' && old.winner.worn === 2
     && old.founder.won === 0 && old.founder.best === 2 && old.founder.water === 2 && old.founder.perks === 'eye,guard'
     && old.fresh.won === 0 && old.fresh.water === 0 && old.fresh.perks === '' && old.back === 2, JSON.stringify(old));
+  check('an older save gains empty records, and a save that has some keeps them', old.bare === '{"tribute":{},"bosses":{},"runs":0,"slain":0,"bestHaul":0}'
+    && old.part === '{"tribute":{"gatekeeper":7},"bosses":{},"runs":3,"slain":0,"bestHaul":0}', old.bare + ' ' + old.part);
 
   // Each depth bites (founder, 2026-10-06): +4% enemy health a depth, and strays. Depth 1 has neither.
   const bite = await page(`const s = game.scene.keys.LootScene, out = {}, real = Object.getPrototypeOf(s).buildWave;
@@ -664,7 +668,9 @@ try {
   // Free rides (requirements 2.36): the runner is run down, and a boss kept alive stops paying.
   const rides = await page(`const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
     const tips = settings.tips; settings.tips = false;
+    const was = { records: JSON.stringify(session.records), gold: session.metaGold }, rec = session.records;
     s.startRun(); ${FREEZE} s.clearBanner(); s.player.iframes = 1e9;
+    out.rec = { runs: rec.runs === JSON.parse(was.records).runs + 1 };
     [...s.enemies].forEach(e => s.killEnemy(e));
     const b = s.arenaBounds, p = s.player, speedOf = async e => { const x = e.x, y = e.y, t = performance.now(); await wait(400); return Math.round(Math.hypot(e.x - x, e.y - y) / ((performance.now() - t) / 1000)); };
     const foe = (type, x, y) => { const e = s.spawnEnemyOfType(type, x, y, 1); e.speed = 0; e.hp = e.maxHp = 1e6; return e; };
@@ -695,34 +701,42 @@ try {
 
     // a boss kept alive: tribute pays for as long as he lives, and past the gold boon it grows heavier
     const boss = s.spawnGatekeeper(); boss.speed = 0; boss.slamTimer = 1e9; boss.summonTimer = 1e9;
-    const gold = s.tributeAt.gold, plain = s.spawnEnemyOfType('melee', boss.x + 60, boss.y + 80, s.depth, false), base = { hp: plain.maxHp, dmg: plain.dmg };
+    const gold = s.tributeAt.gold, plain = s.spawnEnemyOfType('melee', boss.x + 60, boss.y + 80, s.depth, false), base = { hp: plain.maxHp, dmg: plain.dmg, speed: plain.speed };
+    rec.tribute.gatekeeper = 0; const slain0 = rec.slain, fallen0 = rec.bosses.gatekeeper || 0;
     s.killEnemy(plain);
     const summon = async () => { const had = new Set(s.enemies); boss.summonTimer = 0; await wait(90);
-      const got = s.enemies.filter(e => !had.has(e) && e.summonedBy === boss.id); got.forEach(e => { e.speed = 0; }); return got; };
+      const got = s.enemies.filter(e => !had.has(e) && e.summonedBy === boss.id); got.forEach(e => { e.pace = e.speed; e.speed = 0; }); return got; };
     const near = (x, y) => Math.abs(x - y) < 1e-6;
     boss.tribute = gold; const light = await summon();                          // at the gold boon: as they always were
     boss.tribute = gold + 2 * TRIBUTE.step; const heavy = await summon();       // ten past it: two steps heavier
     const g0 = s.runGold, t0 = boss.tribute; [...light, ...heavy].forEach(e => s.killEnemy(e));
-    out.milk = { light: light.length === 2 && light.every(e => near(e.maxHp, base.hp) && near(e.dmg, base.dmg)),
-      heavy: heavy.length === 2 && heavy.every(e => near(e.maxHp / base.hp, 1 + 2 * TRIBUTE.heavier) && near(e.dmg / base.dmg, 1 + 2 * TRIBUTE.heavier) && e.hp === e.maxHp),
+    out.milk = { light: light.length === 2 && light.every(e => near(e.maxHp, base.hp) && near(e.dmg, base.dmg) && near(e.pace, base.speed)),
+      heavy: heavy.length === 2 && heavy.every(e => near(e.maxHp / base.hp, 1 + 2 * TRIBUTE.heavier) && near(e.dmg / base.dmg, 1 + 2 * TRIBUTE.heavier) && e.hp === e.maxHp
+        && near(e.pace / base.speed, 1 + 2 * TRIBUTE.faster)),
+      pace: [s.tributePace({ tribute: gold + TRIBUTE.step }), s.tributePace({ tribute: gold + 40 * TRIBUTE.step })],
       weight: [s.tributeWeight({ tribute: gold + TRIBUTE.step - 1 }), s.tributeWeight({ tribute: gold + TRIBUTE.step }), s.tributeWeight({ tribute: gold + 20 * TRIBUTE.step })],
       pays: s.runGold > g0 && boss.tribute === t0 + 4, label: boss.nameLabel.text, want: boss.baseName + ' · tribute ' + (t0 + 4) };
-    s.killEnemy(boss);
+    out.rec.tribute = rec.tribute.gatekeeper === t0 + 4; out.rec.slain = rec.slain === slain0 + 5;
+    s.killEnemy(boss); out.rec.fallen = rec.bosses.gatekeeper === fallen0 + 1;
 
     // taking a Life Gem off cannot leave him on no health
     const gem = { type: 'trinket', rarity: 'common', effect: 'vitality', name: 'Copper Life Gem', hpBonus: 20, rechargeMs: 0, reflectPct: 0, speedBonus: 0, regenPerSec: 0 };
     const shoes = { type: 'trinket', rarity: 'common', effect: 'swift', name: 'Copper Swift Sandals', hpBonus: 0, rechargeMs: 0, reflectPct: 0, speedBonus: 25, regenPerSec: 0 };
     s.applyLoot(gem, false); p.hp = 10; s.applyLoot(shoes, false); out.floor = p.hp;
     settings.tips = tips;
-    s.endRun(false); ${press}; await wait(150);
+    rec.bestHaul = 0; s.runGold = 1000; s.endRun(false); out.rec.haul = rec.bestHaul === Math.floor(1000 * DEATH_KEEP) && rec.bestHaul > 0;
+    session.records = JSON.parse(was.records); session.metaGold = was.gold; saveSession();
+    ${press}; await wait(150);
     return out;`);
   check('a runner is run down: after six seconds of running with nothing attacked the pack sprints while he runs, walks while he stands, and stops when it catches him',
     rides.idle && rides.begun && rides.pace === 270 && rides.sprint > 230 && rides.sprint < 310 && rides.walk < 15 && rides.still && rides.again > 230 && rides.caught, JSON.stringify(rides));
   check('fighting is never running: a blow struck clears the count, heading for the nearest enemy does not start a chase, and Hexers and bosses do not count',
     rides.fights && rides.toward && rides.hexer, JSON.stringify(rides));
-  check('tribute pays for as long as a boss lives, and past the gold boon his summons grow 12% tougher and harder-hitting for every five, without end',
+  check('tribute pays for as long as a boss lives, and past the gold boon his summons grow 12% tougher and harder-hitting and 4% faster for every five, without end',
     rides.milk.light && rides.milk.heavy && rides.milk.pays && rides.milk.label === rides.milk.want
-    && rides.milk.weight.map(w => w.toFixed(2)).join() === '1.00,1.12,3.40', JSON.stringify(rides.milk));
+    && rides.milk.weight.map(w => w.toFixed(2)).join() === '1.00,1.12,3.40' && rides.milk.pace.map(w => w.toFixed(2)).join() === '1.04,2.60', JSON.stringify(rides.milk));
+  check('records are kept: runs begun, enemies slain, bosses fallen, the most tribute taken and the best haul banked',
+    rides.rec.runs && rides.rec.slain && rides.rec.fallen && rides.rec.tribute && rides.rec.haul, JSON.stringify(rides.rec));
   check('taking a Life Gem off never leaves the hero on no health', rides.floor === 1, String(rides.floor));
 
   // The hero is named by the player (requirements 2.32).

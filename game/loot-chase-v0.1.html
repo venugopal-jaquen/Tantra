@@ -569,7 +569,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.12 (2026-10-10)';
+const BUILD = '0.13 (2026-10-10)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -794,6 +794,11 @@ const DEPTH_MAX = 7, DEPTH_WATER = WATER.boss * 2 + WATER.final, DEPTH_GOLD = 0.
 const DEPTH_HEALTH = 0.04;                    // and +4% enemy health (founder, 2026-10-06)
 const PERK_SLOTS = 2;
 
+// tribute: the most taken from each kind of boss; bosses: how many of each kind have fallen;
+// runs begun, enemies slain, and the most Nidhi banked from one run.
+function newRecords() { return { tribute: {}, bosses: {}, runs: 0, slain: 0, bestHaul: 0 }; }
+function bossKind(e) { return e.isMega ? 'megaboss' : e.type; }
+
 const session = {                    // SAVE_KEY is defined with the loading screen
   metaGold: 0,
   vitalityLevel: 0,   // +10% max HP per level
@@ -807,6 +812,10 @@ const session = {                    // SAVE_KEY is defined with the loading scr
   gateTaught: false,    // the first Gatekeeper, who arrives vulnerable, has been met
   lessonsOff: false,    // the player skipped the teaching pauses: those five ideas come as corner tips
   slamTaught: false,    // the one slow slam a player is taught on has been given
+  // Records (requirements 2.37): kept from the first build that has them, shown nowhere
+  // yet. They are what badges will be given for (design-document P13), and a feat that
+  // was not counted on the day cannot be counted later.
+  records: newRecords(),
   nickname: '',         // what the player calls themselves (requirements 2.32); empty = unnamed
   depthsWon: 0,         // depths of the well won, 0..7 (requirements 2.30)
   depthBest: 0,         // level bosses beaten, at best, on the depth now being attempted: 0..2
@@ -829,6 +838,7 @@ function loadSession() {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
     if (saved) {
       Object.assign(session, saved);
+      session.records = Object.assign(newRecords(), saved.records);       // a save from before records, or from before one of them
       // A save from before the depths: what it had already done is honoured.
       if (saved.depthsWon === undefined) {
         session.depthsWon = saved.wins > 0 ? 1 : 0;
@@ -856,7 +866,7 @@ if (!session.hintsSeen) session.hintsSeen = {};
 function resetSession() {
   Object.assign(session, { metaGold: 0, vitalityLevel: 0, powerLevel: 0, bestSector: 0,
                            tejasUnlocked: false, hintsSeen: {}, water: 0, wins: 0, wellFullSeen: false, gateTaught: false,
-                           depthsWon: 0, depthBest: 0, depthPick: 0, perks: {}, perksOn: [], nickname: '', lessonsOff: false, slamTaught: false });
+                           depthsWon: 0, depthBest: 0, depthPick: 0, perks: {}, perksOn: [], nickname: '', lessonsOff: false, slamTaught: false, records: newRecords() });
   saveSession();
 }
 
@@ -1234,10 +1244,13 @@ const WAVE_SHAPES = {
 // adds to its tribute, paid when the boss falls: an extra item, then a boon pick, then a
 // gold one. The price of waiting: each summons comes sooner than the last (`quicken`,
 // down to `fastest` ms), and more of them may stand at once.
-// `step` and `heavier`: past the gold boon the pay never stops, so neither does the price.
-// Every `step` more tribute makes what the boss summons `heavier` tougher and harder-hitting,
-// with no ceiling (requirements 2.26, 2.36; founder, 2026-10-10).
-const TRIBUTE = { item: 5, boon: 10, gold: 15, quicken: 0.92, fastest: 3500, step: 5, heavier: 0.12 };
+// `step`, `heavier` and `faster`: past the gold boon the pay never stops, so neither does
+// the price. Every `step` more tribute makes what the boss summons `heavier` tougher and
+// harder-hitting and `faster` quicker on its feet, with no ceiling (requirements 2.26,
+// 2.36; founder, 2026-10-10). The speed is what makes it end: toughness alone never
+// troubled a player who was not touched, and the first Gatekeeper's summons run as fast
+// as a hero with no boons at about tribute 215. Deeper bosses reach that sooner.
+const TRIBUTE = { item: 5, boon: 10, gold: 15, quicken: 0.92, fastest: 3500, step: 5, heavier: 0.12, faster: 0.04 };
 
 // DEPTHS (requirements 2.30). The well is won seven times over. Slaying Vritra wins the
 // depth you are on: a step of the well fills and the next depth opens. Each depth keeps
@@ -3077,6 +3090,7 @@ class LootScene extends Phaser.Scene {
   // being attempted - water. A depth already won pays Nidhi and nothing else.
   bossRewards(e) {
     this.lastWater = 0;
+    session.records.bosses[bossKind(e)] = (session.records.bosses[bossKind(e)] || 0) + 1;
     if (e.type === 'gatekeeper') { this.earnPerk('guard'); return; }
     const frontier = this.tier === session.depthsWon + 1 && session.depthsWon < DEPTH_MAX, before = wellWater();
     if (!e.isMega) {
@@ -3106,7 +3120,11 @@ class LootScene extends Phaser.Scene {
 
   // ---------- TRIBUTE (requirements 2.26) ----------
   addTribute(boss) {
-    const t = boss.tribute = (boss.tribute || 0) + 1, gold = this.tributeAt.gold;
+    const t = boss.tribute = (boss.tribute || 0) + 1, gold = this.tributeAt.gold, kind = bossKind(boss);
+    if (t > (session.records.tribute[kind] || 0)) {
+      session.records.tribute[kind] = t;
+      if (t % TRIBUTE.step === 0) saveSession();          // a record is kept even if the tab is closed before the run ends
+    }
     const next = [this.tributeAt.item, this.tributeAt.boon, gold].find(n => n > t);
     if (boss.nameLabel) boss.nameLabel.setText(`${boss.baseName} · tribute ${t}${next ? '/' + next : ''}`)
       .setColor(t >= this.tributeAt.item ? '#ffd23c' : '#fffbef');
@@ -3123,9 +3141,9 @@ class LootScene extends Phaser.Scene {
 
   // How much tougher and harder-hitting a boss's next summons are for the tribute already
   // taken from him: 1 until the gold boon, then a step up for every five more, without end.
-  tributeWeight(boss) {
-    return 1 + TRIBUTE.heavier * Math.floor(Math.max(0, (boss.tribute || 0) - this.tributeAt.gold) / TRIBUTE.step);
-  }
+  tributeSteps(boss) { return Math.floor(Math.max(0, (boss.tribute || 0) - this.tributeAt.gold) / TRIBUTE.step); }
+  tributeWeight(boss) { return 1 + TRIBUTE.heavier * this.tributeSteps(boss); }
+  tributePace(boss) { return 1 + TRIBUTE.faster * this.tributeSteps(boss); }
 
   // ---------- PAUSE ----------
   buildPauseButton() {
@@ -4040,7 +4058,7 @@ class LootScene extends Phaser.Scene {
             this.depth, false);
           m.summonedBy = e.id;
           const weight = this.tributeWeight(e);
-          if (weight > 1) { m.hp = m.maxHp = m.maxHp * weight; m.dmg *= weight; }
+          if (weight > 1) { m.hp = m.maxHp = m.maxHp * weight; m.dmg *= weight; m.speed *= this.tributePace(e); }
         }
       }
     }
@@ -4998,6 +5016,7 @@ class LootScene extends Phaser.Scene {
     this.boonQueue = [];       // boons earned and not yet chosen (2.24)
     this.lessonWait = [];      // lessons asked for and not yet shown (2.35)
     this.lullMs = 0;           // how long the hero has run without attacking anything (2.36)
+    session.records.runs++;
     this.hunted = false; this.huntPace = 0; this.hunts = 0;
     this.lessonClosedAt = undefined;
     this.boonTribute = 0;
@@ -5732,6 +5751,7 @@ class LootScene extends Phaser.Scene {
 
     this.addGold(enemy.goldDrop);
     this.gainTejas(enemy);
+    session.records.slain++;
     // Tribute counts only while its boss still stands. It is paid for as long as he does:
     // what keeps a boss from being an endless safe supply is its weight (tributeWeight).
     const lord = enemy.summonedBy ? this.enemies.find(e => e.id === enemy.summonedBy) : null;
@@ -5993,6 +6013,7 @@ class LootScene extends Phaser.Scene {
     this.playMusic('hub');
     const banked = victory ? this.runGold : Math.floor(this.runGold * DEATH_KEEP);
     session.metaGold += banked;
+    session.records.bestHaul = Math.max(session.records.bestHaul, banked);
     if (this.sector > (session.bestSector || 0)) session.bestSector = this.sector;
     saveSession();
 
