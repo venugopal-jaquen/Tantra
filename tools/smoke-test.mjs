@@ -140,11 +140,26 @@ try {
   else check('music is switched off and loads nothing', music.started === false && Object.keys(music.tracks).length === 0, JSON.stringify(music));
   await shot('2-title');
 
-  // ---------- 3. a run in real time: HUD, first tip, banner ----------
+  // ---------- 3. a run in real time: HUD, the first lesson, banner ----------
   await page(`game.scene.keys.LootScene.startRun();`);
   await sleep(1500); await shot('3-run-start');
   const run = await page(`const s = game.scene.keys.LootScene; return { state: s.state, tip: s.hintBox ? s.hintBox[1].text : null, hudBottom: Math.round(s.hudText.y + s.hudText.height), barTop: Math.round(s.phaseBarBg.y - s.phaseBarBg.height / 2), hp: { dx: Math.round(s.hpBarBg.x + s.hpBarBg.width / 2 - s.player.x), dy: Math.round(s.player.y - s.hpBarBg.y), w: s.hpBarBg.width } };`);
-  check('first tip shows during the first run', !!run.tip, run.tip || 'none');
+  // The first of the teaching pauses (requirements 2.35): once the level's banner has gone,
+  // a new player's first run stops to say how to move.
+  const first = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms));
+    for (let i = 0; i < 160 && s.state !== 'lesson'; i++) await wait(25);
+    const out = { state: s.state, shown: s.lessonShown, banner: (s.banner || []).some(t => t.active), tip: !!s.hintBox,
+      text: (s.overlay || []).filter(o => o.type === 'Text').map(t => t.text).join(' | ') };
+    return out;`);
+  check('a first run stops to teach moving, once the banner has gone', first.state === 'lesson' && first.shown === 'move' && !first.banner && !first.tip
+    && /TUTORIAL \| MOVING \| .*choosing where to stand/.test(first.text) && /GOT IT \| skip the tutorial/.test(first.text), JSON.stringify(first));
+  await sleep(700); await shot('3b-first-lesson');
+  // The checks that follow were written for a fight that never stops itself, so the pauses
+  // are skipped here, as a player may; they have a section of their own further down.
+  const skipped = await page(`const s = game.scene.keys.LootScene; s.lessonPanel.skip.emit('pointerdown'); await new Promise(r => setTimeout(r, 150));
+    return { state: s.state, off: session.lessonsOff, paused: s.time.paused, tip: s.hintBox ? s.hintBox[1].text : null };`);
+  check('skipping the tutorial resumes the fight, stops the pauses, and says how to get them back', skipped.state === 'playing' && skipped.off === true && skipped.paused === false
+    && /Replay tutorial/.test(skipped.tip || ''), JSON.stringify(skipped));
   check('HUD line clears the phase bar', run.hudBottom <= run.barTop + 1, `text bottom ${run.hudBottom}, bar top ${run.barTop}`);
   check("the hero's health bar floats over his head", run.hp.dx === 0 && run.hp.dy === 35 && run.hp.w === 42, JSON.stringify(run.hp));
 
@@ -577,6 +592,70 @@ try {
     s.endRun(false); ${press}; await new Promise(r => setTimeout(r, 150));
     return out;`);
   check('the tribute and satchel tips wait until a player has reached level 2', held.level1 === false && held.others === true && held.level2 === true && held.later === true, JSON.stringify(held));
+
+  // Teaching pauses (requirements 2.35): five ideas stop the fight once each, the subject
+  // lit and a panel beside it; everything else stays a tip in the corner.
+  const lessons = await page(`const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
+    const keep = { tips: settings.tips, seen: session.hintsSeen, off: session.lessonsOff, best: session.bestSector, taught: session.gateTaught };
+    const until = async (id, ms = 4000) => { for (let i = 0; i < ms / 25 && !(s.state === 'lesson' && s.lessonShown === id); i++) await wait(25); return s.state === 'lesson' && s.lessonShown === id; };
+    const press = async which => { await wait(LESSON.hold + 80); if (s.lessonPanel) s.lessonPanel[which].emit('pointerdown'); await wait(60); };
+    const now = () => { s.lessonClosedAt = undefined; };          // forget the last lesson, so the next need not wait
+    const words = () => s.overlay.filter(o => o.type === 'Text').map(t => t.text).join(' | ');
+    settings.tips = true; session.hintsSeen = {}; session.lessonsOff = false; session.bestSector = 3;
+    s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.clearBanner();
+    s.enemies.slice().forEach(e => { e.speed = 0; });
+
+    // moving: the fight is frozen, everything is pinned to the screen, the panel is on it and clear of the subject
+    s.hint('move', 'move tip'); out.move = await until('move');
+    const L = s.lessonPanel;
+    out.frozen = s.time.paused === true && s.tweens.paused === true && s.pointerTarget === null;
+    out.pinned = s.overlay.length > 8 && s.overlay.every(o => o.scrollFactorX === 0) && s.overlay[0].type === 'RenderTexture';
+    out.panel = [Math.round(L.top), Math.round(L.bottom), Math.round(L.holeTop), Math.round(L.holeBottom)];
+    out.fits = L.top >= 8 && L.bottom <= H - 8 && (L.top >= L.holeBottom || L.bottom <= L.holeTop);
+    L.ok.emit('pointerdown'); out.early = s.state;                 // a tap already on its way is ignored
+    await press('ok'); out.resumed = s.state === 'playing' && s.time.paused === false && s.tweens.paused === false && s.overlay.length === 0 && session.hintsSeen.move === true;
+
+    // the next lesson waits for a few seconds of play
+    s.spawnLootPickup(s.player.x + 40, s.player.y, 'common'); await wait(450);
+    out.waits = s.state === 'playing' && s.lessonWait.map(l => l.id).join() === 'loot';
+    now(); out.loot = await until('loot') && /LOOT \\| Walk over a drop/.test(words()); await press('ok');
+
+    // the other tips never stop the fight
+    now(); s.hint('ranged', 'ranged tip'); await wait(120);
+    out.quiet = s.state === 'playing' && s.hintShowing === 'ranged'; s.hintQueue = []; s.dismissHint();
+
+    // the timer over a boss, then his first slam: it winds up afresh and takes twice as long, and the hero is lit too
+    const boss = s.spawnGatekeeper(); boss.speed = 0; boss.summonTimer = 1e9; boss.slamTypes = ['circle'];
+    now(); out.core = await until('core') && /THE TIMER OVER A BOSS/.test(words()) && (boss.gateOpen ? /open now/ : /counts down to when he opens/).test(words());
+    out.breath = boss.slam === null && boss.slamTimer >= LESSON.gap;            // his first slam is held back for its own lesson
+    await press('ok');
+    now(); boss.slamTimer = 0; out.slam = await until('slam');
+    out.grace = !!boss.slam && boss.slam.t === 0 && boss.slam.dur === SLAM.circle.windup * LESSON.slamGrace && /A SLAM IS COMING/.test(words());
+    out.lit = !!s.lessonPanel && s.lessonPanel.holes === 2;          // the zone, and the hero
+    await press('ok'); boss.slamTimer = 1e9; boss.slam = null; if (boss.telegraphGfx) { boss.telegraphGfx.destroy(); boss.telegraphGfx = null; }
+
+    // the + button; skipping stops the pauses, and those ideas then come as corner tips
+    now(); s.queueBoon(); out.boon = await until('boon') && /A BOON IS WAITING/.test(words());
+    await press('skip'); out.skipped = s.state === 'playing' && session.lessonsOff === true && s.lessonWait.length === 0;
+    await wait(450); s.hintQueue = []; s.dismissHint(); session.hintsSeen = {};
+    s.hint('slam', 'slam tip', true); await wait(120); out.fallback = s.state === 'playing' && s.hintShowing === 'slam'; s.hintQueue = []; s.dismissHint();
+
+    // How to play brings them back; the Tutorial switch in Settings turns them off
+    s.pauseGame(); s.showHowTo(0, () => s.showPauseMenu());
+    const at = s.overlay.findIndex(o => o.type === 'Text' && o.text === 'REPLAY TUTORIAL'); s.overlay[at - 1].emit('pointerdown');
+    out.replay = at > 0 && session.lessonsOff === false && LESSONS.every(id => !session.hintsSeen[id]) && s.overlay[at].text === 'IT WILL PLAY AGAIN';
+    s.closeOverlay(); s.showPauseMenu(); s.resumeGame();
+    settings.tips = false; s.hint('move', 'move tip'); await wait(120); out.off = s.state === 'playing' && s.lessonWait.length === 0;
+    settings.tips = true; s.silent = true; s.hint('move', 'move tip'); out.bot = s.lessonWait.length === 0; s.silent = false;
+
+    settings.tips = keep.tips; session.hintsSeen = keep.seen; session.lessonsOff = keep.off; session.bestSector = keep.best; session.gateTaught = keep.taught; saveSession(); saveSettings();
+    s.endRun(false); ${press}; await wait(150);
+    return out;`);
+  check('a lesson freezes the fight, is pinned to the screen, and its panel sits clear of what it points at', lessons.move && lessons.frozen && lessons.pinned && lessons.fits, JSON.stringify(lessons));
+  check('a lesson ignores a tap already on its way, then one tap carries on', lessons.early === 'lesson' && lessons.resumed, JSON.stringify(lessons));
+  check('lessons keep a few seconds apart, and the other tips never stop the fight', lessons.waits && lessons.loot && lessons.quiet, JSON.stringify(lessons));
+  check('the boss timer, the slam and the + button each get a lesson; the slam taught takes twice as long', lessons.core && lessons.breath && lessons.slam && lessons.grace && lessons.lit && lessons.boon, JSON.stringify(lessons));
+  check('skipping turns the five into corner tips; How to play arms them again; Settings and the bot switch them off', lessons.skipped && lessons.fallback && lessons.replay && lessons.off && lessons.bot, JSON.stringify(lessons));
 
   // The hero is named by the player (requirements 2.32).
   const nick = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
