@@ -127,6 +127,9 @@ try {
   await sleep(900);
   const hub = await page(`const s = game.scene.keys.LootScene; return { state: s.state, title: s.uiObjects.find(o => o.type === 'Text').text, families: [...new Set(s.uiObjects.filter(o => o.type === 'Text').map(o => o.style.fontFamily.split(',')[0]))] };`);
   check('Begin opens the title screen', hub.state === 'hub', JSON.stringify(hub));
+  const art = await page(`const s = game.scene.keys.LootScene, im = s.uiObjects.find(o => o.type === 'Image' && o.texture.key === 'title_art');
+    return { there: !!im, w: im && Math.round(im.displayWidth), y: im && Math.round(im.y), shaft: s.menu.g.visible, pool: WELL.cy };`);
+  check('the title screen shows the title picture, moved up so its pool lies under the way in', art.there && art.w === 400 && art.y === 250 && art.shaft === false, JSON.stringify(art));
   await sleep(1300);
   const music = await page(`return { on: MUSIC_ON, started: Music.inited, tracks: Object.fromEntries(Object.entries(Music.tracks).map(([k, t]) => [k, t.dead ? 'missing' : (t.el.duration ? Math.round(t.el.duration) + 's' : 'loading')])) };`);
   const fxSound = await page(`const s = game.scene.keys.LootScene, was = settings.sfx;
@@ -548,11 +551,15 @@ try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({ metaGold: 40, vitalityLevel: 1, powerLevel: 0, bestSector: 3, wins: 2, water: 8, hintsSeen: {} })); loadSession(); const winner = read();
     localStorage.setItem(SAVE_KEY, JSON.stringify({ metaGold: 5, vitalityLevel: 0, powerLevel: 0, bestSector: 3, wins: 0, water: 2, hintsSeen: {} })); loadSession(); const founder = read();
     localStorage.setItem(SAVE_KEY, JSON.stringify({ metaGold: 0, vitalityLevel: 0, powerLevel: 0, bestSector: 1, wins: 0, water: 0, hintsSeen: {} })); loadSession(); const fresh = read();
+    const bare = JSON.stringify(session.records);
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ metaGold: 0, records: { tribute: { gatekeeper: 7 }, runs: 3 } })); loadSession(); const part = JSON.stringify(session.records);
     localStorage.setItem(SAVE_KEY, keep); Object.assign(session, JSON.parse(now));
-    return { winner, founder, fresh, back: session.depthsWon };`);
+    return { winner, founder, fresh, back: session.depthsWon, bare, part };`);
   check('an older save is carried into the depths with what it had earned', old.winner.won === 1 && old.winner.water === 5 && old.winner.perks === 'eye,guard,scale' && old.winner.worn === 2
     && old.founder.won === 0 && old.founder.best === 2 && old.founder.water === 2 && old.founder.perks === 'eye,guard'
     && old.fresh.won === 0 && old.fresh.water === 0 && old.fresh.perks === '' && old.back === 2, JSON.stringify(old));
+  check('an older save gains empty records, and a save that has some keeps them', old.bare === '{"tribute":{},"bosses":{},"runs":0,"slain":0,"bestHaul":0}'
+    && old.part === '{"tribute":{"gatekeeper":7},"bosses":{},"runs":3,"slain":0,"bestHaul":0}', old.bare + ' ' + old.part);
 
   // Each depth bites (founder, 2026-10-06): +4% enemy health a depth, and strays. Depth 1 has neither.
   const bite = await page(`const s = game.scene.keys.LootScene, out = {}, real = Object.getPrototypeOf(s).buildWave;
@@ -596,12 +603,12 @@ try {
   // Teaching pauses (requirements 2.35): five ideas stop the fight once each, the subject
   // lit and a panel beside it; everything else stays a tip in the corner.
   const lessons = await page(`const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
-    const keep = { tips: settings.tips, seen: session.hintsSeen, off: session.lessonsOff, best: session.bestSector, taught: session.gateTaught };
+    const keep = { tips: settings.tips, seen: session.hintsSeen, off: session.lessonsOff, best: session.bestSector, taught: session.gateTaught, slam: session.slamTaught };
     const until = async (id, ms = 4000) => { for (let i = 0; i < ms / 25 && !(s.state === 'lesson' && s.lessonShown === id); i++) await wait(25); return s.state === 'lesson' && s.lessonShown === id; };
     const press = async which => { await wait(LESSON.hold + 80); if (s.lessonPanel) s.lessonPanel[which].emit('pointerdown'); await wait(60); };
     const now = () => { s.lessonClosedAt = undefined; };          // forget the last lesson, so the next need not wait
     const words = () => s.overlay.filter(o => o.type === 'Text').map(t => t.text).join(' | ');
-    settings.tips = true; session.hintsSeen = {}; session.lessonsOff = false; session.bestSector = 3;
+    settings.tips = true; session.hintsSeen = {}; session.lessonsOff = false; session.bestSector = 3; session.slamTaught = false;
     s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.clearBanner();
     s.enemies.slice().forEach(e => { e.speed = 0; });
 
@@ -645,10 +652,13 @@ try {
     const at = s.overlay.findIndex(o => o.type === 'Text' && o.text === 'REPLAY TUTORIAL'); s.overlay[at - 1].emit('pointerdown');
     out.replay = at > 0 && session.lessonsOff === false && LESSONS.every(id => !session.hintsSeen[id]) && s.overlay[at].text === 'IT WILL PLAY AGAIN';
     s.closeOverlay(); s.showPauseMenu(); s.resumeGame();
+    // replayed, the slam is taught again, but at its ordinary pace: the slow one is given once (2.36)
+    now(); boss.slamTimer = 0; out.again = await until('slam'); out.once = !!boss.slam && boss.slam.dur === SLAM.circle.windup && session.slamTaught === true;
+    await press('ok'); boss.slamTimer = 1e9; boss.slam = null; if (boss.telegraphGfx) { boss.telegraphGfx.destroy(); boss.telegraphGfx = null; }
     settings.tips = false; s.hint('move', 'move tip'); await wait(120); out.off = s.state === 'playing' && s.lessonWait.length === 0;
     settings.tips = true; s.silent = true; s.hint('move', 'move tip'); out.bot = s.lessonWait.length === 0; s.silent = false;
 
-    settings.tips = keep.tips; session.hintsSeen = keep.seen; session.lessonsOff = keep.off; session.bestSector = keep.best; session.gateTaught = keep.taught; saveSession(); saveSettings();
+    settings.tips = keep.tips; session.hintsSeen = keep.seen; session.lessonsOff = keep.off; session.bestSector = keep.best; session.gateTaught = keep.taught; session.slamTaught = keep.slam; saveSession(); saveSettings();
     s.endRun(false); ${press}; await wait(150);
     return out;`);
   check('a lesson freezes the fight, is pinned to the screen, and its panel sits clear of what it points at', lessons.move && lessons.frozen && lessons.pinned && lessons.fits, JSON.stringify(lessons));
@@ -656,6 +666,81 @@ try {
   check('lessons keep a few seconds apart, and the other tips never stop the fight', lessons.waits && lessons.loot && lessons.quiet, JSON.stringify(lessons));
   check('the boss timer, the slam and the + button each get a lesson; the slam taught takes twice as long', lessons.core && lessons.breath && lessons.slam && lessons.grace && lessons.lit && lessons.boon, JSON.stringify(lessons));
   check('skipping turns the five into corner tips; How to play arms them again; Settings and the bot switch them off', lessons.skipped && lessons.fallback && lessons.replay && lessons.off && lessons.bot, JSON.stringify(lessons));
+  check('a replayed slam lesson does not slow the slam a second time', lessons.again && lessons.once, JSON.stringify(lessons));
+
+  // Free rides (requirements 2.36): the runner is run down, and a boss kept alive stops paying.
+  const rides = await page(`const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
+    const tips = settings.tips; settings.tips = false;
+    const was = { records: JSON.stringify(session.records), gold: session.metaGold }, rec = session.records;
+    s.startRun(); ${FREEZE} s.clearBanner(); s.player.iframes = 1e9;
+    out.rec = { runs: rec.runs === JSON.parse(was.records).runs + 1 };
+    [...s.enemies].forEach(e => s.killEnemy(e));
+    const b = s.arenaBounds, p = s.player, speedOf = async e => { const x = e.x, y = e.y, t = performance.now(); await wait(400); return Math.round(Math.hypot(e.x - x, e.y - y) / ((performance.now() - t) / 1000)); };
+    const foe = (type, x, y) => { const e = s.spawnEnemyOfType(type, x, y, 1); e.speed = 0; e.hp = e.maxHp = 1e6; return e; };
+    p.x = b.centerX; p.y = b.y + 60;
+
+    // nothing chasing: there is no lull to count, however long he runs
+    s.setMoveTarget(b.centerX, b.bottom - 40); await wait(250); out.idle = s.lullMs === 0 && !s.hunted;
+    // one Asura far behind, and he runs on: after six seconds it sprints faster than he can run, and reddens
+    p.y = b.y + 330; s.setMoveTarget(b.centerX, b.bottom - 40);
+    const a = foe('melee', b.centerX, b.y + 30);                         // well out of his reach, so no blow of his clears the count
+    s.lullMs = HUNT.after - 120; await wait(260);
+    out.begun = s.hunted === true && s.hunts === 1 && s.enemySprites.get(a.id).tintTopLeft === HUNT.tint;
+    out.sprint = await speedOf(a); out.heroSpeed = 200; out.pace = Math.round(s.huntPace);
+    // he stops: it walks, and is still hunting; he runs again: it sprints again
+    s.pointerTarget = null; await wait(120); out.walk = await speedOf(a); out.still = s.hunted === true;
+    s.setMoveTarget(b.centerX, b.bottom - 40); await wait(120); out.again = await speedOf(a);
+    // caught: a blow landed on him ends it, and the six seconds start over
+    p.iframes = 0; p.hp = p.maxHp; s.damagePlayer(1, a, 'melee'); p.iframes = 1e9;
+    out.caught = s.hunted === false && s.lullMs === 0 && s.enemySprites.get(a.id).tintTopLeft !== HUNT.tint;
+    // a blow struck by him keeps the lull at nothing; making for the nearest of them is not running away
+    s.lullMs = 3000; s.damageEnemy(a, 0.001); out.fights = s.lullMs === 0;
+    p.x = b.centerX; p.y = b.bottom - 60; a.x = b.centerX; a.y = b.y + 60; s.pointerTarget = null; await wait(60);
+    s.lullMs = HUNT.after - 120; s.setMoveTarget(a.x, a.y + 60); await wait(300); out.toward = s.hunted === false && s.lullMs >= HUNT.after;
+    s.pointerTarget = null; s.killEnemy(a);
+    // a Hexer and a boss are not a pack: neither can run him down, and neither starts the count
+    const h = foe('ranged', b.centerX, b.y + 30); h.fireTimer = 1e9;
+    s.setMoveTarget(b.centerX, b.y + 200); await wait(250); out.hexer = s.lullMs === 0; s.pointerTarget = null; s.killEnemy(h);
+
+    // a boss kept alive: tribute pays for as long as he lives, and past the gold boon it grows heavier
+    const boss = s.spawnGatekeeper(); boss.speed = 0; boss.slamTimer = 1e9; boss.summonTimer = 1e9;
+    const gold = s.tributeAt.gold, plain = s.spawnEnemyOfType('melee', boss.x + 60, boss.y + 80, s.depth, false), base = { hp: plain.maxHp, dmg: plain.dmg, speed: plain.speed };
+    rec.tribute.gatekeeper = 0; const slain0 = rec.slain, fallen0 = rec.bosses.gatekeeper || 0;
+    s.killEnemy(plain);
+    const summon = async () => { const had = new Set(s.enemies); boss.summonTimer = 0; await wait(90);
+      const got = s.enemies.filter(e => !had.has(e) && e.summonedBy === boss.id); got.forEach(e => { e.pace = e.speed; e.speed = 0; }); return got; };
+    const near = (x, y) => Math.abs(x - y) < 1e-6;
+    boss.tribute = gold; const light = await summon();                          // at the gold boon: as they always were
+    boss.tribute = gold + 2 * TRIBUTE.step; const heavy = await summon();       // ten past it: two steps heavier
+    const g0 = s.runGold, t0 = boss.tribute; [...light, ...heavy].forEach(e => s.killEnemy(e));
+    out.milk = { light: light.length === 2 && light.every(e => near(e.maxHp, base.hp) && near(e.dmg, base.dmg) && near(e.pace, base.speed)),
+      heavy: heavy.length === 2 && heavy.every(e => near(e.maxHp / base.hp, 1 + 2 * TRIBUTE.heavier) && near(e.dmg / base.dmg, 1 + 2 * TRIBUTE.heavier) && e.hp === e.maxHp
+        && near(e.pace / base.speed, 1 + 2 * TRIBUTE.faster)),
+      pace: [s.tributePace({ tribute: gold + TRIBUTE.step }), s.tributePace({ tribute: gold + 40 * TRIBUTE.step })],
+      weight: [s.tributeWeight({ tribute: gold + TRIBUTE.step - 1 }), s.tributeWeight({ tribute: gold + TRIBUTE.step }), s.tributeWeight({ tribute: gold + 20 * TRIBUTE.step })],
+      pays: s.runGold > g0 && boss.tribute === t0 + 4, label: boss.nameLabel.text, want: boss.baseName + ' · tribute ' + (t0 + 4) };
+    out.rec.tribute = rec.tribute.gatekeeper === t0 + 4; out.rec.slain = rec.slain === slain0 + 5;
+    s.killEnemy(boss); out.rec.fallen = rec.bosses.gatekeeper === fallen0 + 1;
+
+    // taking a Life Gem off cannot leave him on no health
+    const gem = { type: 'trinket', rarity: 'common', effect: 'vitality', name: 'Copper Life Gem', hpBonus: 20, rechargeMs: 0, reflectPct: 0, speedBonus: 0, regenPerSec: 0 };
+    const shoes = { type: 'trinket', rarity: 'common', effect: 'swift', name: 'Copper Swift Sandals', hpBonus: 0, rechargeMs: 0, reflectPct: 0, speedBonus: 25, regenPerSec: 0 };
+    s.applyLoot(gem, false); p.hp = 10; s.applyLoot(shoes, false); out.floor = p.hp;
+    settings.tips = tips;
+    rec.bestHaul = 0; s.runGold = 1000; s.endRun(false); out.rec.haul = rec.bestHaul === Math.floor(1000 * DEATH_KEEP) && rec.bestHaul > 0;
+    session.records = JSON.parse(was.records); session.metaGold = was.gold; saveSession();
+    ${press}; await wait(150);
+    return out;`);
+  check('a runner is run down: after six seconds of running with nothing attacked the pack sprints while he runs, walks while he stands, and stops when it catches him',
+    rides.idle && rides.begun && rides.pace === 270 && rides.sprint > 230 && rides.sprint < 310 && rides.walk < 15 && rides.still && rides.again > 230 && rides.caught, JSON.stringify(rides));
+  check('fighting is never running: a blow struck clears the count, heading for the nearest enemy does not start a chase, and Hexers and bosses do not count',
+    rides.fights && rides.toward && rides.hexer, JSON.stringify(rides));
+  check('tribute pays for as long as a boss lives, and past the gold boon his summons grow 12% tougher and harder-hitting and 4% faster for every five, without end',
+    rides.milk.light && rides.milk.heavy && rides.milk.pays && rides.milk.label === rides.milk.want
+    && rides.milk.weight.map(w => w.toFixed(2)).join() === '1.00,1.12,3.40' && rides.milk.pace.map(w => w.toFixed(2)).join() === '1.04,2.60', JSON.stringify(rides.milk));
+  check('records are kept: runs begun, enemies slain, bosses fallen, the most tribute taken and the best haul banked',
+    rides.rec.runs && rides.rec.slain && rides.rec.fallen && rides.rec.tribute && rides.rec.haul, JSON.stringify(rides.rec));
+  check('taking a Life Gem off never leaves the hero on no health', rides.floor === 1, String(rides.floor));
 
   // The hero is named by the player (requirements 2.32).
   const nick = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
