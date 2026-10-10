@@ -569,7 +569,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.9 (2026-10-10)';
+const BUILD = '0.10 (2026-10-10)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -804,6 +804,7 @@ const session = {                    // SAVE_KEY is defined with the loading scr
   wins: 0,              // times the final boss has been slain
   wellFullSeen: false,  // the "well is full" ending has been shown
   gateTaught: false,    // the first Gatekeeper, who arrives vulnerable, has been met
+  lessonsOff: false,    // the player skipped the teaching pauses: those five ideas come as corner tips
   nickname: '',         // what the player calls themselves (requirements 2.32); empty = unnamed
   depthsWon: 0,         // depths of the well won, 0..7 (requirements 2.30)
   depthBest: 0,         // level bosses beaten, at best, on the depth now being attempted: 0..2
@@ -853,7 +854,7 @@ if (!session.hintsSeen) session.hintsSeen = {};
 function resetSession() {
   Object.assign(session, { metaGold: 0, vitalityLevel: 0, powerLevel: 0, bestSector: 0,
                            tejasUnlocked: false, hintsSeen: {}, water: 0, wins: 0, wellFullSeen: false, gateTaught: false,
-                           depthsWon: 0, depthBest: 0, depthPick: 0, perks: {}, perksOn: [], nickname: '' });
+                           depthsWon: 0, depthBest: 0, depthPick: 0, perks: {}, perksOn: [], nickname: '', lessonsOff: false });
   saveSession();
 }
 
@@ -2243,6 +2244,14 @@ function pickEnemyType(wave) {
 
 // Tips held back until a player has reached level 2 (design-document 1.4, "thin the first run").
 const HELD_TIPS = ['tribute', 'satchel'];
+// Teaching pauses (requirements 2.35). Five ideas are worth stopping the fight for, once
+// each: moving, loot, the + button, the timer over a boss, and slams. Every other tip
+// stays a quiet line in the corner. `gap` is the play that must pass between two of them,
+// `patience` how long one waits for its moment before giving up unseen, `hold` how long
+// the panel's buttons ignore taps (real time: the fight stopped under a moving thumb),
+// and `slamGrace` how much longer the slam being taught takes to land.
+const LESSONS = ['move', 'loot', 'boon', 'core', 'slam'];
+const LESSON = { gap: 4000, patience: 10000, hold: 550, slamGrace: 2, dim: 0.8 };
 
 class LootScene extends Phaser.Scene {
   constructor() { super('LootScene'); }
@@ -2343,6 +2352,7 @@ class LootScene extends Phaser.Scene {
 
     this.buildPauseButton();
     const escape = () => {
+      if (this.state === 'lesson') return this.closeLesson();
       if (this.state === 'boon') return this.closeBoons();   // the picks keep
       if (this.state === 'playing') this.pauseGame();
       else if (this.state === 'paused') this.resumeGame();
@@ -2352,6 +2362,8 @@ class LootScene extends Phaser.Scene {
     // Dota's habit: + spends a waiting boon. (= is the same key without Shift.)
     this.input.keyboard.on('keydown', e => { if (e.key === '+' || e.key === '=' || e.key === 'b' || e.key === 'B') this.openBoons(); });
     this.input.keyboard.on('keydown-P', escape);
+    this.input.keyboard.on('keydown-ENTER', () => this.closeLesson());
+    this.input.keyboard.on('keydown-SPACE', () => this.closeLesson());
     // Switching apps or tabs mid-fight pauses the run, so nobody comes back to a death
     // they never saw. The playtest bot turns this off (it runs in a hidden pane).
     this.autoPause = true;
@@ -2629,8 +2641,8 @@ class LootScene extends Phaser.Scene {
   // Tells the music what the Cosmic Cycle is doing: the phase colours whatever track is
   // playing while a run is live, and pausing ducks it rather than cutting it.
   refreshMusic() {
-    const inRun = this.state === 'playing' || this.state === 'paused' || this.state === 'boon';
-    Music.colour(inRun ? this.phase : null, this.state === 'paused' || this.state === 'boon');
+    const held = this.state === 'paused' || this.state === 'boon' || this.state === 'lesson';
+    Music.colour(held || this.state === 'playing' ? this.phase : null, held);
   }
 
   // ---------- BOONS (requirements 2.24) ----------
@@ -3356,9 +3368,9 @@ class LootScene extends Phaser.Scene {
     toggleRow(y, 'Reduce flashing', `softer hit flash, no ${N.supercharge} flash`, 'reduceFlash'); y += 42;
     toggleRow(y, 'Damage numbers', null, 'dmgNumbers'); y += 42;
     if (navigator.vibrate) { toggleRow(y, 'Vibration', null, 'vibrate'); y += 42; }
-    toggleRow(y, 'Tutorial tips', 'short hints the first time things happen', 'tips'); y += 40;
-    const replay = this.ovButton(left + 244, y, 112, 24, 'show tips again', 0x2a0f04, () => {
-      session.hintsSeen = {}; saveSession();
+    toggleRow(y, 'Tutorial', 'pauses and hints the first time things happen', 'tips'); y += 40;
+    const replay = this.ovButton(left + 244, y, 112, 24, 'show it all again', 0x2a0f04, () => {
+      session.hintsSeen = {}; session.lessonsOff = false; saveSession();
       settings.tips = true; saveSettings();
       replay.t.setText('done');
     }, { size: 10, color: '#c8a96e' });
@@ -3416,7 +3428,14 @@ class LootScene extends Phaser.Scene {
       i === page ? FORGE.gold : 0x6b4a2e, 1), 102));
     if (page > 0) this.ovButton(cx - 128, dotsY, 58, 32, '<', 0x3a1a08, () => this.showHowTo(page - 1, onBack), { sound: 'ui-page', size: 16 });
     if (page < cards.length - 1) this.ovButton(cx + 128, dotsY, 58, 32, '>', 0x7a3a0a, () => this.showHowTo(page + 1, onBack), { sound: 'ui-page', size: 16, stroke: FORGE.gold });
-    this.ovButton(cx, 614, 180, 38, page < cards.length - 1 ? 'CLOSE' : 'GOT IT', 0x5c2a05, () => onBack(), { stroke: FORGE.gold });
+    // The teaching pauses, armed again: each plays the next time its moment comes.
+    const again = this.ovButton(cx - 84, 614, 156, 38, 'REPLAY TUTORIAL', 0x3a1a08, () => {
+      LESSONS.forEach(id => { delete session.hintsSeen[id]; });
+      session.lessonsOff = false; saveSession();
+      settings.tips = true; saveSettings();
+      again.t.setText('IT WILL PLAY AGAIN');
+    }, { size: 11 });
+    this.ovButton(cx + 84, 614, 156, 38, page < cards.length - 1 ? 'CLOSE' : 'GOT IT', 0x5c2a05, () => onBack(), { stroke: FORGE.gold });
   }
 
   howToCards(touch) {
@@ -3580,6 +3599,7 @@ class LootScene extends Phaser.Scene {
     // The first level has enough to learn. What can wait, waits until the player has got
     // to level 2: it is not marked as seen, so it comes back the next time it applies.
     if (HELD_TIPS.includes(id) && this.sector < 2 && (session.bestSector || 0) < 2) return;
+    if (LESSONS.includes(id) && !session.lessonsOff) return this.askLesson(id);
     this.hintQueue = this.hintQueue || [];
     if (this.hintShowing === id || this.hintQueue.some(q => q.id === id)) return;
     const entry = { id, text, at: this.time.now };
@@ -3628,9 +3648,168 @@ class LootScene extends Phaser.Scene {
 
   clearHints() {
     this.hintQueue = [];
+    this.lessonWait = [];
     this.hintShowing = null;
     if (this.hintTimer) { this.hintTimer.remove(false); this.hintTimer = null; }
     if (this.hintBox) { this.hintBox.forEach(o => o.destroy()); this.hintBox = null; }
+  }
+
+  // ---------- TEACHING PAUSES (requirements 2.35) ----------
+  // The founder, 2026-10-10: "the game pauses and a popup is highlighted explaining a
+  // particular concept. This can be skipped but happens first time the player is playing."
+  // A lesson is asked for where its tip used to be, and waits for its moment: the thing
+  // itself on the screen, and the last lesson a few seconds gone. One that waits too long
+  // is dropped unseen, and comes back the next time that thing happens.
+  askLesson(id) {
+    this.lessonWait = this.lessonWait || [];
+    if (!this.lessonWait.some(l => l.id === id)) this.lessonWait.push({ id, at: this.time.now });
+  }
+
+  pollLessons() {
+    const q = this.lessonWait, now = this.time.now;
+    if (!q || !q.length) return;
+    for (let i = q.length - 1; i >= 0; i--) if (now - q[i].at > LESSON.patience) q.splice(i, 1);
+    if (now - (this.lessonClosedAt === undefined ? -1e9 : this.lessonClosedAt) < LESSON.gap) return;
+    const order = q.slice().sort((a, b) => (b.id === 'slam') - (a.id === 'slam'));   // a slam will not wait its turn
+    for (const l of order) {
+      const spot = this.lessonSpot(l.id);
+      if (spot) { q.splice(q.indexOf(l), 1); this.openLesson(l.id, spot); return; }
+    }
+  }
+
+  // Where a lesson's subject is on the screen, as circles to leave lit. Null while it is
+  // not there to be shown.
+  lessonSpot(id) {
+    const ox = this.camOff.x, oy = this.camOff.y, v = this.viewBounds, p = this.player;
+    const seen = (x, y, m) => x - ox > v.x + m && x - ox < v.right - m && y - oy > v.y + m && y - oy < v.bottom - m;
+    if (id === 'move') {                                     // once the level's banner has gone
+      return (this.banner || []).some(t => t.active) ? null : { ring: true, holes: [{ x: p.x - ox, y: p.y - oy - 8, r: 46 }] };
+    }
+    if (id === 'loot') {
+      const k = this.pickups.find(k => !k.isMystery && seen(k.x, k.y, 24));
+      return k ? { ring: true, holes: [{ x: k.x - ox, y: k.y - oy - 9, r: 40 }] } : null;
+    }
+    if (id === 'boon') {                                     // once the button has finished arriving
+      const b = this.boonUI && this.boonQueue.length ? this.boonUI.btn : null;
+      return b && b.scale < 1.02 ? { ring: true, holes: [{ x: b.x, y: b.y, r: 40 }] } : null;
+    }
+    if (id === 'core') {                                     // once the timer is over his head
+      const e = this.enemies.find(e => e.type === 'gatekeeper' && e.gateLabel && e.gateLabel.visible && this.time.now - e.gateBorn > 900 && seen(e.x, e.y, 0));
+      if (!e) return null;
+      const top = Math.min(e.gateLabel.y, e.nameLabel ? e.nameLabel.y : 1e9) - 12, bottom = e.y + e.radius * 1.5 + 8;   // near the top wall his name sits above the timer
+      return { ring: true, boss: e, holes: [{ x: e.x - ox, y: (top + bottom) / 2 - oy, r: Math.max((bottom - top) / 2 + 6, e.gateLabel.width / 2 + 10) }] };
+    }
+    const e = this.enemies.find(e => e.slam && e.slam.t > 140 && seen(e.x, e.y, 0));     // once the red zone is drawn
+    if (!e) return null;
+    const sl = e.slam, holes = [{ x: e.x - ox, y: e.y - oy, r: e.radius + 18 }];
+    if (sl.type === 'circle') holes[0].r = sl.r + 10;
+    else if (sl.type === 'line') for (let d = 0; d <= sl.len; d += sl.w * 0.55) holes.push({ x: sl.x + Math.cos(sl.a) * d - ox, y: sl.y + Math.sin(sl.a) * d - oy, r: sl.w * 0.85 });
+    else sl.blobs.forEach(bl => holes.push({ x: bl.x - ox, y: bl.y - oy, r: bl.r + 8 }));
+    holes.push({ x: p.x - ox, y: p.y - oy - 6, r: 34 });     // and the hero: where you stand is the question
+    return { boss: e, holes };
+  }
+
+  lessonCopy(id, spot) {
+    const touch = this.sys.game.device.input.touch;
+    const stand = 'You strike on your own: your whole job is choosing where to stand.';
+    if (id === 'move') return { title: 'MOVING', body: (touch ? 'Tap where you want to go, or hold and drag. ' : 'Move with WASD or the arrow keys, or click where you want to go. ') + stand };
+    if (id === 'loot') return { title: 'LOOT', body: 'Walk over a drop to pick it up. It is equipped at once, with no menu. Copper is common, silver is better and gold is best.' };
+    if (id === 'boon') return { title: 'A BOON IS WAITING', body: 'Every wave you clear earns a boon. ' + (touch ? 'Tap +' : 'Press + or click the button') + ' whenever you like: the fight waits while you choose one of three.' };
+    if (id === 'core') return { title: 'THE TIMER OVER A BOSS', body: spot.boss.gateOpen
+      ? 'A boss can only be hurt properly some of the time. This one is open now, and the timer over his head shows for how long. When it runs out he resists most of your damage until it counts down again.'
+      : 'A boss resists most of your damage most of the time. The timer over his head counts down to when he opens: that is when to strike.' };
+    return { title: 'A SLAM IS COMING', body: 'The red zone shows where it will land. The bright fill grows, and when it reaches the edge it hits. Get out of the red.' };
+  }
+
+  openLesson(id, spot) {
+    session.hintsSeen[id] = true;
+    saveSession();
+    // The slam being taught winds up afresh, and slowly: time to read, and then to move.
+    if (id === 'slam') { spot.boss.slam.t = 0; spot.boss.slam.dur = SLAM[spot.boss.slam.type].windup * LESSON.slamGrace; }
+    // A boss just explained holds his first slam until its own lesson can follow: otherwise
+    // it would land, untaught, inside the few seconds that two lessons are kept apart.
+    if (id === 'core' && !session.hintsSeen.slam) spot.boss.slamTimer = Math.max(spot.boss.slamTimer, LESSON.gap + 600);
+    this.state = 'lesson';
+    this.pointerTarget = null;
+    this.time.paused = true;
+    this.tweens.pauseAll();
+    this.refreshMusic();
+    this.sfx('ui-open');
+    this.lessonOpenedAt = performance.now();
+    this.lessonShown = id;
+    this.showLesson(id, spot);
+  }
+
+  showLesson(id, spot) {
+    const copy = this.lessonCopy(id, spot);
+    this.closeOverlay();
+    this.overlay = [];
+    // The dim, with the subject left lit: a dark sheet with soft-edged holes rubbed out of it.
+    if (!this.textures.exists('spot')) {
+      const tex = this.textures.createCanvas('spot', 128, 128), c = tex.getContext(), gr = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+      gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.7, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = gr; c.fillRect(0, 0, 128, 128); tex.refresh();
+    }
+    const sheet = this.ov(this.add.renderTexture(0, 0, W, H).setOrigin(0, 0), 100);
+    sheet.fill(0x120400, LESSON.dim);
+    const rub = this.make.image({ key: 'spot', add: false });
+    spot.holes.forEach(h => { rub.setPosition(h.x, h.y).setDisplaySize(h.r * 2.6, h.r * 2.6); sheet.erase(rub); });
+    rub.destroy();
+    this.ov(this.add.zone(W / 2, H / 2, W, H).setInteractive(), 100.5);     // nothing underneath can be tapped
+    const h0 = spot.holes[0];
+    const ring = spot.ring ? this.ov(this.add.circle(h0.x, h0.y, h0.r, 0x000000, 0).setStrokeStyle(2, FORGE.gold, 0.95), 101) : null;
+
+    // The panel goes on whichever side of the subject has more room, and points at it.
+    const cx = W / 2, pw = 330, wrap = pw - 40;
+    const head = this.ovText(cx, 0, 'TUTORIAL', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5, 0);
+    const title = this.ovText(cx, 0, copy.title, { fontSize: '18px', color: '#ffd23c', fontStyle: 'bold', align: 'center', wordWrap: { width: wrap } }).setOrigin(0.5, 0);
+    const body = this.ovText(cx, 0, copy.body, { fontSize: '13px', color: '#f0dcc0', align: 'left', lineSpacing: 4, wordWrap: { width: wrap } }).setOrigin(0.5, 0);
+    const ph = 14 + head.height + 4 + title.height + 8 + body.height + 16 + 40 + 6 + 24 + 10;
+    const top = Math.min(...spot.holes.map(h => h.y - h.r)), bottom = Math.max(...spot.holes.map(h => h.y + h.r));
+    const below = H - 10 - bottom >= top - 10;
+    const py = below ? Math.min(H - 10 - ph / 2, bottom + 24 + ph / 2) : Math.max(10 + ph / 2, top - 24 - ph / 2);
+    const pt = py - ph / 2, g = this.ovPanel(cx, py, pw, ph, { alpha: 0.96 });
+    const edge = below ? pt : pt + ph, room = below ? pt - bottom : top - (pt + ph);
+    if (room >= 10) {
+      const ax = Phaser.Math.Clamp(spot.holes[0].x, cx - pw / 2 + 30, cx + pw / 2 - 30);
+      g.fillStyle(FORGE.gold, 0.9); g.fillTriangle(ax - 9, edge, ax + 9, edge, ax, edge + (below ? -10 : 10));
+    }
+    let y = pt + 14;
+    head.setY(y); y += head.height + 4;
+    title.setY(y); y += title.height + 8;
+    body.setY(y); y += body.height + 16;
+    const ok = this.ovButton(cx, y + 20, 210, 40, 'GOT IT', 0x7a3a0a, () => this.closeLesson(), { stroke: FORGE.gold, size: 15, sound: null });
+    const skip = this.ovButton(cx, y + 58, 170, 24, 'skip the tutorial', 0x2a0f04, () => this.closeLesson(true), { size: 10, color: '#c8a96e', sound: null });
+    this.lessonPanel = { top: pt, bottom: pt + ph, holeTop: top, holeBottom: bottom, holes: spot.holes.length, ok: ok.bg, skip: skip.bg, ring, labels: [ok.t, skip.t] };
+    this.breatheLesson();
+  }
+
+  // Tweens and timers are stopped with the fight, so the little that moves here is moved
+  // by hand, once a frame: the ring breathes, and the buttons take a moment to wake, so
+  // a tap already on its way does not answer for the player.
+  breatheLesson() {
+    const L = this.lessonPanel, age = performance.now() - this.lessonOpenedAt;
+    if (!L) return;
+    if (L.ring) { const k = 0.5 + 0.5 * Math.sin(age / 220); L.ring.setScale(1 + 0.1 * k).setAlpha(1 - 0.55 * k); }
+    const awake = Phaser.Math.Clamp((age - LESSON.hold + 250) / 250, 0, 1);
+    L.labels.forEach(t => t.setAlpha(0.25 + 0.75 * awake));
+  }
+
+  // Skipping stops the pauses, not the teaching: the same five ideas then come as tips in
+  // the corner, as they always did. How to play brings the pauses back.
+  closeLesson(skip) {
+    if (this.state !== 'lesson' || performance.now() - this.lessonOpenedAt < LESSON.hold) return;
+    if (skip) { session.lessonsOff = true; delete session.hintsSeen.skipped; saveSession(); this.lessonWait = []; }
+    this.closeOverlay();
+    this.lessonPanel = null;
+    this.state = 'playing';
+    this.time.paused = false;
+    this.tweens.resumeAll();
+    this.lessonClosedAt = this.time.now;
+    if (this.tejasKeys) Object.values(this.tejasKeys).forEach(k => k.reset());     // Space closed the lesson; it must not also loose Tejas
+    this.sfx(skip ? 'ui-close' : 'ui-confirm');
+    this.refreshMusic();
+    if (skip) this.hint('skipped', 'Tutorial skipped. To see it again: How to play, then Replay tutorial.');
   }
 
   // ---------- HIT FEEDBACK ----------
@@ -4761,6 +4940,8 @@ class LootScene extends Phaser.Scene {
     this.slamBuffMs = 0;   // Read the Slam
     this.powerShown = 0;
     this.boonQueue = [];       // boons earned and not yet chosen (2.24)
+    this.lessonWait = [];      // lessons asked for and not yet shown (2.35)
+    this.lessonClosedAt = undefined;
     this.boonTribute = 0;
     this.choiceBoonTxt = null;
     this.lastShape = null;     // the last wave's shape (2.25)
@@ -5840,7 +6021,10 @@ class LootScene extends Phaser.Scene {
   update(time, delta) {
     Music.tick(delta);
     if (this.menu) this.drawWell(time);
+    if (this.state === 'lesson') this.breatheLesson();
     if (this.state !== 'playing') return;
+    this.pollLessons();
+    if (this.state !== 'playing') return;   // a lesson has stopped the fight
     const dt = delta / 1000;
 
     if (this.tejasBtn) {
