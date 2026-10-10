@@ -106,8 +106,8 @@ words the game keeps (Asura, Vritra, Nidhi, Tejas), no hero's name, nothing sacr
 > Feedback button on the title screen and after every run. Every message is read.
 >
 > Made by one person with an AI coding assistant. The hero and the Asura are my own
-> designs, made with an AI image tool; other characters by CraftPix, sound effects by
-> Kenney, engine by Phaser.
+> designs, made with ChatGPT; other characters by CraftPix, sound effects by Kenney,
+> engine by Phaser.
 
 Two lines above are the founder's to confirm, because they speak for them: "Every
 message is read" and "Made by one person with an AI coding assistant".
@@ -121,7 +121,7 @@ it is; players can filter on it, and a wrong answer is worse than a filtered pag
 |---|---|---|
 | Code | Yes | The game's code was written with an AI assistant |
 | Text and dialogue | Yes | The in-game text was drafted with an AI assistant and edited by the founder |
-| Graphics | **Yes**, since build 0.14 | The title screen's picture was made by the founder with ChatGPT. Since build 0.15 the hero and the Asura are the founder's designs, made with an AI image tool; the other characters are CraftPix stock art. Floors, effects and the serpent are drawn by code |
+| Graphics | **Yes**, since build 0.14 | The title screen's picture was made by the founder with ChatGPT. Since build 0.15 the hero and the Asura are the founder's designs, made with ChatGPT; the other characters are CraftPix stock art until theirs are made the same way. Floors, effects and the serpent are drawn by code |
 | Sound | No | Kenney's recorded effects. Music, if bought later, is to be checked the same way |
 
 ## 5. After the upload, while the page is still a draft

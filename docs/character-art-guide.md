@@ -162,8 +162,11 @@ what the tool can hold steady, and sets the style for the other six.
 
 ## 6. The first two are in, and what to ask for next (2026-10-10)
 
-The hero and the Asura were designed with an AI tool as turnarounds and are in the game
-(`requirements.md` §2.39). One command makes a figure's files from its turnaround:
+The hero and the Asura were designed with ChatGPT as turnarounds and are in the game
+(`requirements.md` §2.39). **This look is the cast** (the founder, 2026-10-10), and the
+other five are to be made the same way. **The prompt to paste into ChatGPT for them is
+`docs/art-brief-for-chatgpt.md`**; what follows is the reasoning behind it. One command
+makes a figure's files from its turnaround:
 
     python tools/cut-turnaround.py game/assets/incoming/well-delver/hero-turnaround.png kiran
 
@@ -187,12 +190,15 @@ two taught:
    weapon, one strong colour that no one else wears. Judge each one the size of a
    fingernail before sending it.
 6. **Arms a little away from the body and legs a little apart,** as the Asura stands.
-   The walk is made by bending the standing picture, and it bends best when the legs are
-   two clear shapes. A robe to the ground (the Hexer, perhaps) will glide, not step,
-   which suits a sorcerer.
-7. **If the tool can do it, ask also for two more pictures of the side view: mid-stride
-   with the near leg forward, and with the far leg forward.** Same size, same place. With
-   those the walk can be real steps, not bent ones. It is the one thing the first two lack.
+   The walk is made from the standing picture, and it works best when the legs are two
+   clear shapes. **In the side view, nothing in front of the legs below the knee:** the
+   side walk swings the lower legs, and a spear or a cloth hanging across them has to be
+   left behind. A robe to the ground (the Hexer, perhaps) will glide, not step, which
+   suits a sorcerer.
+7. **If the tool can do it, ask also for the side view in four poses of a walk:** near
+   leg forward, legs passing, far leg forward, legs passing. Same size, same place. With
+   those the walk can be real steps, not made ones. It is the one thing the first two
+   lack, and it is only worth having if the figure stays the same from pose to pose.
 8. **Size against the hero.** Say how tall each one is beside the hero: an Asura about as
    tall, a Brute half as tall again and twice as wide, the Gatekeeper and the Hoard
    Guardian taller still. The game sets the drawn size, but a figure designed to be large
@@ -202,5 +208,6 @@ What each of the five must read as is in section 3. The rule there holds for eve
 them: nothing anyone reveres, so no crown, no halo, no third eye, no sacred mark, no
 weapon or pose that belongs to a figure of worship.
 
-**Say which tool made them.** It goes in the credits, and its terms for commercial use
-are read before release.
+**Say which tool made them.** The first two are ChatGPT's. If another tool makes a later
+one, say so: it goes in the credits, and its terms for commercial use are read before
+release.

@@ -5,15 +5,17 @@ Provenance for every shipped asset, kept auditable ahead of store submission.
 ## The founder's own characters (`chars/kiran-*`, `chars/asura-*`)
 
 Since 2026-10-10 the hero and the Asura are the founder's own designs, made at their
-direction with an AI image tool: one turnaround picture each (front, back and right side),
-kept as they came in `incoming/well-delver/`. **They are AI-generated, and the itch.io
-page says so.** Which tool made them, and its terms for commercial use, are to be written
-here before release.
+direction with ChatGPT's image generation: one turnaround picture each (front, back and
+right side), kept as they came in `incoming/well-delver/`. **They are AI-generated, and
+the itch.io page says so.** OpenAI's terms give the person who made a picture the rights
+to it, including to use it commercially; that is to be read again on OpenAI's own page in
+the pre-launch pass, as for the title picture.
 
 `tools/cut-turnaround.py` makes the game's files from a turnaround: four stills of 160 px
 and a walk sheet (four rows by facing, a standing frame and eight walk frames, cells of
 192 px, a 255-colour palette). The left view is the right view mirrored. The walk frames
-are the standing picture bent a little at a time; no other picture was generated for them.
+are made from the standing picture: bent a little at a time from the front and back, the
+legs cut free and swung from the side. No other picture was generated for them.
 `docs/requirements.md` §2.39.
 
 ## CraftPix — character roster (`chars/`)
