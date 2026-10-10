@@ -27,6 +27,9 @@ sheet (for each facing a standing cell, eight of a walk and three of a strike; a
 is made from the standing picture, by bending it and by turning what the figure holds in
 its hand; no other picture was generated for them. `docs/requirements.md` §2.39, §2.41.
 `vritra-*` are the stock stills of an unseen stand-in: the serpent is drawn in code.
+`kiran-portrait.png` is the hero's front view at the full size of the picture, for the
+profile. `kiran-zone-*.png` and `kiran-portrait-zone-*.png` are masks, not pictures: which
+pixels are the hero's head-wrap, tunic, trousers and weapon strap (§2.42).
 
 ## CraftPix — character roster (`chars/`)
 

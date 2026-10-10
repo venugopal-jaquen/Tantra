@@ -49,6 +49,16 @@ A file beside the turnaround with the same name and .json may say, for that figu
                         width; a staff planted on the ground outside them is left alone
   "still": 224, "cell": 256    larger files, for a figure the game draws large
   "rear": 12            a beast: in a strike it rears this many degrees on its hind feet
+  "slots": {"front": [[slot, area, colour], ...], "back": [...], "right": [...]}
+                        what it wears (requirements 2.42). Each rule gives a slot ("head",
+                        "chest", "legs", "holster", or "body" for bare skin), an area as a
+                        box [x0, y0, x1, y1] or a list of points, and a colour: "teal",
+                        "dark", "cream", "terra", "brown" or "any". A pixel goes to the
+                        first rule it fits. With slots the cutter also writes, for each
+                        slot, <name>-zone-<slot>.png (the sheet's layout, clear except where
+                        that slot is) and a full-size <name>-portrait.png with its own
+                        <name>-portrait-zone-<slot>.png. The game recolours or replaces
+                        what is worn through them, in every cell.
   "props": {"front": {...}, "back": {...}, "right": {...}}    what it holds, in each view:
       "boxes": [[x0, y0, x1, y1], ...], "polys": [[[x, y], ...], ...] and
       "bands": [[[x0, y0], [x1, y1], width], ...] mark it out, as parts of the view's width
@@ -248,11 +258,49 @@ def strike(fig, facing, k, mid, prop=None, rear=0):
         bent.alpha_composite(moved)
     return bent, pad
 
-def legs(fig, cuff, columns=None):
+SLOTS = ("head", "chest", "legs", "holster")
+# How a colour is told, in hue, saturation and value from 0 to 255. The hero is lit warm:
+# cream cloth, skin and terracotta lie close together in hue, so every rule has an area too.
+COLOURS_OF = {
+    "teal":  lambda h, s, v: 106 <= h <= 145 and s >= 90,
+    "dark":  lambda h, s, v: v <= 92,
+    "cream": lambda h, s, v: 18 <= h <= 36 and v >= 90,
+    "terra": lambda h, s, v: 3 <= h <= 14 and s >= 150 and v >= 125,
+    "brown": lambda h, s, v: 3 <= h <= 30 and v <= 140,
+    "any":   lambda h, s, v: True,
+}
+
+def slot_masks(fig, rules, weapon=None):
+    """Which pixels of one view belong to each slot: a mask for each of SLOTS. What the
+    figure holds (`weapon`, a mask) is none of them."""
+    w, h = fig.size
+    hsv, alpha = fig.convert("RGB").convert("HSV").load(), fig.getchannel("A").load()
+    held = weapon.load() if weapon else None
+    areas = []
+    for slot, area, colour in rules:
+        mask = Image.new("L", (w, h), 0)
+        if isinstance(area[0], (int, float)): ImageDraw.Draw(mask).rectangle((area[0] * w, area[1] * h, area[2] * w, area[3] * h), fill=255)
+        else: ImageDraw.Draw(mask).polygon([(x * w, y * h) for x, y in area], fill=255)
+        areas.append((slot, mask.load(), COLOURS_OF[colour]))
+    out = {slot: Image.new("L", (w, h), 0) for slot in SLOTS}
+    px = {slot: im.load() for slot, im in out.items()}
+    for y in range(h):
+        for x in range(w):
+            if alpha[x, y] < 40 or (held and held[x, y] > 128): continue
+            hh, ss, vv = hsv[x, y]
+            for slot, inside, test in areas:
+                if inside[x, y] and test(hh, ss, vv):
+                    if slot in px: px[slot][x, y] = 255
+                    break
+    # Specks are smoothed away, and the edge of each mask softened by a pixel.
+    return {slot: im.filter(ImageFilter.MedianFilter(7)).filter(ImageFilter.GaussianBlur(0.8)) for slot, im in out.items()}
+
+def legs(fig, cuff, columns=None, paint=None):
     """The legs of a side view, cut free of the body: (body, near leg, far leg, the row
     they are cut at, whether two were found). A leg is whatever, below the cuff, is joined
     to the ground; what hangs there without reaching it stays with the body. `columns`
-    keeps the search to part of the picture's width."""
+    keeps the search to part of the picture's width. The legs are found in `fig`; with
+    `paint`, a picture of the same size, it is that picture which is cut along them."""
     w, h = fig.size
     top = round(h * cuff)
     solid = fig.getchannel("A").point(lambda v: 255 if v > 96 else 0)
@@ -311,6 +359,7 @@ def legs(fig, cuff, columns=None):
         ImageDraw.Draw(mask).rectangle((0, 0, w, top - 1), fill=0)
         return mask
     near, far = grown(near), grown(far)
+    fig = paint or fig
     alpha = fig.getchannel("A")
     def part(mask, light=1.0):
         # A few rows over the cut come too, unmoved, so that no seam shows under the body.
@@ -360,7 +409,7 @@ def place(pic, size, scale, cx_in_pic, feet_in_pic, shade):
     x = round(size / 2 - cx_in_pic * scale)
     y = round(still_feet - feet_in_pic * scale)
     out = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    out.alpha_composite(shadow(size, size / 2, still_feet - 1, shade))
+    if shade: out.alpha_composite(shadow(size, size / 2, still_feet - 1, shade))
     layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     layer.paste(small, (x, y))
     out.alpha_composite(layer)
@@ -393,13 +442,48 @@ def main():
     os.makedirs(out, exist_ok=True)
     if frames_dir: os.makedirs(frames_dir, exist_ok=True)
 
-    # The side view walks facing right; facing left is those frames mirrored.
-    side = views["right"]
-    parts = legs(side, hints.get("cuff", CUFF), hints.get("legs"))
-    strides = [side_stride(parts, i, side.height) for i in range(FRAMES)]
     props, rear = hints.get("props", {}), hints.get("rear", 0)
-    blows = [strike(side, "right", k, middle(side), props.get("right"), rear) for k in range(ACTS)]
+    cuff, columns = hints.get("cuff", CUFF), hints.get("legs")
+    mids = {facing: middle(views[facing]) for facing in views}
+
+    def sheet(paint, shaded, label=None):
+        """The walk sheet and the four stills for one set of views: the figure itself, or
+        a layer of it. Every bend is worked out from the figure, whatever is painted."""
+        side = paint["right"]
+        parts = legs(views["right"], cuff, columns, side)
+        strides = [side_stride(parts, i, side.height) for i in range(FRAMES)]
+        blows = [strike(side, "right", k, mids["right"], props.get("right"), rear) for k in range(ACTS)]
+        walk, stills = Image.new("RGBA", (CELL * cols, CELL * -(-PER * 4 // cols)), (0, 0, 0, 0)), {}
+        for row, facing in enumerate(("front", "back", "left", "right")):
+            fig, mid = paint[facing], mids[facing]
+            shade = 0
+            if shaded:      # the shadow is as wide as the stance, taken from the lowest tenth of the figure
+                low = fig.getchannel("A").crop((0, round(fig.height * 0.9), fig.width, fig.height)).getbbox()
+                shade = max(STILL * 0.2, min(STILL * 0.62, (low[2] - low[0]) * scale * 1.15))
+            stills[facing] = place(fig, STILL, scale, mid, fig.height, shade)
+            def put(k, cell, tag):
+                at = row * PER + k
+                walk.alpha_composite(cell, (at % cols * CELL, at // cols * CELL))
+                if frames_dir and label and tag: cell.save(os.path.join(frames_dir, f"{label}-{facing}-{tag}.png"))
+            put(0, place(fig, CELL, scale, mid, fig.height, shade), None)
+            for i in range(FRAMES):
+                if facing in ("front", "back"): bent, pad = stride(fig, i, mid)
+                else:
+                    bent, pad = strides[i]
+                    if facing == "left": bent = bent.transpose(Image.FLIP_LEFT_RIGHT)
+                put(1 + i, place(bent, CELL, scale, mid + pad, fig.height + pad, shade), str(i))
+            for k in range(ACTS):
+                if facing in ("front", "back"): bent, pad = strike(fig, facing, k, mid, props.get(facing), rear)
+                else:
+                    bent, pad = blows[k]
+                    if facing == "left": bent = bent.transpose(Image.FLIP_LEFT_RIGHT)
+                put(1 + FRAMES + k, place(bent, CELL, scale, mid + pad, fig.height + pad, shade), "act" + str(k))
+        return walk, stills, parts
+
+    walk, stills, parts = sheet(views, True, name)
+    for facing, still in stills.items(): still.save(os.path.join(out, f"{name}-{facing}.png"), optimize=True)
     if frames_dir:
+        side = views["right"]
         found = Image.new("RGBA", side.size, (90, 60, 40, 255))
         found.alpha_composite(parts[0])
         for leg, tint in ((parts[2], (60, 120, 255)), (parts[1], (255, 70, 60))):
@@ -411,38 +495,48 @@ def main():
             shown.alpha_composite(body)
             shown.paste(Image.new("RGBA", body.size, (80, 255, 120, 255)), (0, 0), piece.getchannel("A").point(lambda v: v * 2 // 3))
             shown.save(os.path.join(frames_dir, f"{name}-holds-{view}.png"))
-    walk = Image.new("RGBA", (CELL * cols, CELL * -(-PER * 4 // cols)), (0, 0, 0, 0))
-    for row, facing in enumerate(("front", "back", "left", "right")):
-        fig = views[facing]
-        mid = middle(fig)
-        # The shadow is as wide as the stance, taken from the lowest tenth of the figure.
-        low = fig.getchannel("A").crop((0, round(fig.height * 0.9), fig.width, fig.height)).getbbox()
-        shade = max(STILL * 0.2, min(STILL * 0.62, (low[2] - low[0]) * scale * 1.15))
-        still = place(fig, STILL, scale, mid, fig.height, shade)
-        still.save(os.path.join(out, f"{name}-{facing}.png"), optimize=True)
-        def put(k, cell, label):
-            at = row * PER + k
-            walk.alpha_composite(cell, (at % cols * CELL, at // cols * CELL))
-            if frames_dir and label: cell.save(os.path.join(frames_dir, f"{name}-{facing}-{label}.png"))
-        put(0, place(fig, CELL, scale, mid, fig.height, shade), None)
-        for i in range(FRAMES):
-            if facing in ("front", "back"): bent, pad = stride(fig, i, mid)
-            else:
-                bent, pad = strides[i]
-                if facing == "left": bent = bent.transpose(Image.FLIP_LEFT_RIGHT)
-            put(1 + i, place(bent, CELL, scale, mid + pad, fig.height + pad, shade), str(i))
-        for k in range(ACTS):
-            if facing in ("front", "back"): bent, pad = strike(fig, facing, k, mid, props.get(facing), rear)
-            else:
-                bent, pad = blows[k]
-                if facing == "left": bent = bent.transpose(Image.FLIP_LEFT_RIGHT)
-            put(1 + FRAMES + k, place(bent, CELL, scale, mid + pad, fig.height + pad, shade), "act" + str(k))
     # A palette keeps the sheet small. Colour is picked with the alpha weighed in, so the
     # soft edge of a figure does not spend colours on what can barely be seen.
     walk.quantize(COLOURS, method=Image.FASTOCTREE, dither=Image.NONE).save(os.path.join(out, f"{name}-walk.png"), optimize=True)
-    sizes = {f: os.path.getsize(os.path.join(out, f"{name}-{f}.png")) // 1024 for f in ("front", "back", "left", "right", "walk")}
+    made = ["front", "back", "left", "right", "walk"]
+
+    # What it wears (requirements 2.42): each slot's pixels, as a layer that has been
+    # through every bend the figure has, and a portrait at the full size of the picture.
+    if hints.get("slots"):
+        worn = {}
+        for view in ("front", "back", "right"):
+            weapon = lift(views[view], props[view])[1].getchannel("A") if view in props else None
+            worn[view] = slot_masks(views[view], hints["slots"][view], weapon)
+        tints = {"head": (60, 220, 255), "chest": (255, 90, 200), "legs": (120, 255, 90), "holster": (255, 230, 60)}
+        def layer(view, slot):      # white, as clear as the mask and never less clear than the figure
+            mask = worn[view][slot] if view != "left" else worn["right"][slot].transpose(Image.FLIP_LEFT_RIGHT)
+            im = Image.new("RGBA", views[view].size, (255, 255, 255, 0))
+            im.putalpha(ImageChops.multiply(mask, views[view].getchannel("A")))
+            return im
+        for slot in SLOTS:
+            zone = sheet({view: layer(view, slot) for view in views}, False)[0]
+            Image.merge("LA", (Image.new("L", zone.size, 255), zone.getchannel("A"))).save(os.path.join(out, f"{name}-zone-{slot}.png"), optimize=True)
+            made.append("zone-" + slot)
+        front, edge = views["front"], round(views["front"].height * 0.04)
+        def framed(im):
+            big = Image.new(im.mode, (front.width + 2 * edge, front.height + 2 * edge), 0)
+            big.paste(im, (edge, edge))
+            return big
+        framed(front).save(os.path.join(out, f"{name}-portrait.png"), optimize=True)
+        made.append("portrait")
+        for slot in SLOTS:
+            mask = framed(layer("front", slot).getchannel("A"))
+            Image.merge("LA", (Image.new("L", mask.size, 255), mask)).save(os.path.join(out, f"{name}-portrait-zone-{slot}.png"), optimize=True)
+        if frames_dir:
+            for view in ("front", "back", "right"):
+                shown = Image.new("RGBA", views[view].size, (60, 40, 26, 255))
+                shown.alpha_composite(views[view])
+                for slot in SLOTS:
+                    shown.paste(Image.new("RGBA", shown.size, tints[slot] + (255,)), (0, 0), worn[view][slot].point(lambda v: v * 3 // 5))
+                shown.save(os.path.join(frames_dir, f"{name}-wears-{view}.png"))
+    sizes = {f: os.path.getsize(os.path.join(out, f"{name}-{f}.png")) // 1024 for f in made}
     print(f"{name}: still {STILL}, cell {CELL}, {PER} cells a facing, {cols} to a row; the figure stands {tallest * scale / STILL:.2f} of a still tall and {widest * scale / STILL:.2f} wide, "
-          f"from {tallest} pixels; side view: {'two legs' if parts[4] else 'one leg, doubled'}, cut at {parts[3] / side.height:.2f}; files in KB {sizes}")
+          f"from {tallest} pixels; side view: {'two legs' if parts[4] else 'one leg, doubled'}, cut at {parts[3] / views['right'].height:.2f}; files in KB {sizes}")
 
 if __name__ == "__main__":
     main()

@@ -85,6 +85,7 @@ The founder: "What we are aiming with PR18 is a comprehensive visual redesign wh
 | V13 | **A phone** | ❗ Not done | Memory and speed on a mid-range Android, and the iPhone. Needs a way to play this branch without merging it |
 | V14 | The store page | Old pictures | Five screenshots, the GIF and the cover taken again once the look is settled; the text, the AI disclosure and the credits |
 | V15 | Merge, package, security checklist, release | Last | L9, L11 |
+| V16 | The hero's portrait, and the hero in parts for cosmetics | ✅ in (`requirements.md` §2.42): a full-size portrait on the profile; four slots (head, chest, legs, holster) that follow the hero through every cell; dyes as stand-ins, by the address only | A first real piece from ChatGPT (a helmet, say) to build the replacing of a slot against. Earning and equipping stay pinned (P12, P13) |
 
 **Flags raised with the founder** (theirs to settle): the three cultural points in `requirements.md` §2.41; that the cast has two finishes (flat-faceted for the hero, Asura and Hexer; finely painted for the other four); that the unmerged `title-art` branch also calls itself build 0.15 and holds a title layout that was not chosen.
 

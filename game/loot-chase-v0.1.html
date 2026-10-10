@@ -1440,6 +1440,25 @@ const ART = {
 // their own just under everything else in the fight (bars, names, rings, beams, loot),
 // which is drawn over them as it always was.
 const sortDepth = feetY => -0.5 + feetY / 20000;
+// What the hero wears (requirements 2.42). The hero's picture is known in four parts, the
+// slots: tools/cut-turnaround.py writes a "zone" for each, the pixels of that part in
+// every cell of the sheet and in the portrait. A piece worn in a slot is drawn through
+// its zone, so it walks and strikes with the figure and shows on the profile and in the
+// fight alike. Nothing in the game hands pieces out yet (the pinned cosmetics, P12): the
+// only pieces are `dyes`, the same cloth in another colour, and the only way to wear one
+// is the address, for trying the slots out: ?wear=head:saffron,legs:indigo
+const WEAR = {
+  slots: ['head', 'chest', 'legs', 'holster'],
+  dyes: { saffron: 0xf0a030, indigo: 0x4a50c8, crimson: 0xc22a3a, moss: 0x5c9a38, ash: 0x8c8c98, gold: 0xe6c040, rose: 0xe070a0, ink: 0x30364a }
+};
+const WORN = (() => {
+  const worn = {};
+  (new URLSearchParams(location.search).get('wear') || '').split(',').forEach(pair => {
+    const [slot, piece] = pair.split(':');
+    if (WEAR.slots.includes(slot) && WEAR.dyes[piece] !== undefined) worn[slot] = piece;
+  });
+  return worn;
+})();
 const STOCK_ART = { still: 96, cell: WALK.cell, per: WALK.frames + 1, scale: 1 };
 const artOf = char => ART[char] || STOCK_ART;
 // A strike: how long a figure is drawn back, strikes, and comes out of it, in ms.
@@ -1450,6 +1469,9 @@ const ACT = { cells: 3, back: 70, strike: 100, out: 70 };
 // above the middle as the figure is tall, less that; the stock figure's head was 42% up.
 const artRise = (char, size) => { const a = ART[char]; return a ? a.scale * size * ((a.tall || 0.86) - 0.44) - size * 0.42 : 0; };
 const artDrop = (char, size) => (artOf(char).scale - 1) * size * 0.44;
+// The hero's portrait on the profile: how tall it is drawn, where its feet stand, and how
+// much of the picture's height is clear margin below them.
+const PORTRAIT = { tall: 172, feet: 281, edge: 0.037 };
 const HERO_SIZE = 44;                                                           // the hero's figure, before `scale`
 const HERO_BAR_UP = HP_BAR.up + Math.round(artRise(CHARS.player, HERO_SIZE));   // his health bar clears his head
 const HERO_RING_DOWN = 16 + Math.round(artDrop(CHARS.player, HERO_SIZE));       // his stance ring lies at his feet
@@ -2352,6 +2374,13 @@ class LootScene extends Phaser.Scene {
     for (const name of WALKERS) {
       this.load.spritesheet(`${name}-walk`, `assets/chars/${name}-walk.png`, { frameWidth: artOf(name).cell, frameHeight: artOf(name).cell });
     }
+    // The hero's portrait for the profile, at the full size of the picture it was cut from;
+    // and, only if something is worn, the zones it is worn through (see dressHero).
+    this.load.image(`${CHARS.player}-portrait`, `assets/chars/${CHARS.player}-portrait.png`);
+    Object.keys(WORN).forEach(slot => {
+      this.load.image(`${CHARS.player}-zone-${slot}`, `assets/chars/${CHARS.player}-zone-${slot}.png`);
+      this.load.image(`${CHARS.player}-portrait-zone-${slot}`, `assets/chars/${CHARS.player}-portrait-zone-${slot}.png`);
+    });
     this.load.image('bg_stars', 'assets/bg-stars.png');
     this.load.image('title_art', 'assets/title-art.jpg');
     for (const [key, def] of Object.entries(SFX)) {
@@ -2361,6 +2390,7 @@ class LootScene extends Phaser.Scene {
 
   create() {
     this.state = 'loading'; // loading -> hub -> playing -> ... -> summary -> hub
+    this.dressHero();
 
     // One door for typography: every this.add.text() call in this file picks up its
     // typeface here, so no call site has to name a font.
@@ -3240,7 +3270,12 @@ class LootScene extends Phaser.Scene {
     this.ov(this.add.image(cx, 232, 'softglow').setDisplaySize(230, 230).setTint(0xffa040).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD), 101);
     this.ov(this.add.ellipse(cx, 280, 100, 26, 0x000000, 0.3), 101);
     this.ov(this.add.ellipse(cx, 278, 92, 24, 0, 0).setStrokeStyle(2, live ? PHASE_DEFS[this.phase].color : FORGE.gold, 0.85), 101);
-    this.ov(this.add.image(cx, 216, `${CHARS.player}-front`).setDisplaySize(132, 132), 102);
+    // The portrait is cut at the full size of the hero's picture, three times what the
+    // still holds: this screen is where the hero is looked at, and where what is worn will show.
+    if (this.textures.exists(`${CHARS.player}-portrait`)) {
+      const pic = this.ov(this.add.image(cx, PORTRAIT.feet, `${CHARS.player}-portrait`).setOrigin(0.5, 1 - PORTRAIT.edge), 102);
+      pic.setDisplaySize(PORTRAIT.tall * pic.width / pic.height, PORTRAIT.tall);
+    } else this.ov(this.add.image(cx, 216, `${CHARS.player}-front`).setDisplaySize(132, 132), 102);
 
     // Tapping a slot says what is in it.
     const detail = this.ovText(cx, 322, '', { fontSize: '11px', color: '#f0dcc0', align: 'center', wordWrap: { width: 300 } }).setOrigin(0.5, 0);
@@ -4184,6 +4219,46 @@ class LootScene extends Phaser.Scene {
     g.lineStyle(1.8, 0xff5a3a, 0.9);
     g.beginPath(); g.arc(0, 0, 18, perp - 0.85, perp + 0.85); g.strokePath();
     this.tweens.add({ targets: g, alpha: 0, scale: 1.35, duration: 210, onComplete: () => g.destroy() });
+  }
+
+  // Dresses the hero in what is worn (requirements 2.42): redraws the sheet and the
+  // portrait once, with each worn piece laid in through its zone, and puts them in place
+  // of the loaded pictures, so nothing else in the game needs to know. The four stills are
+  // taken again from the standing cells of the new sheet. With nothing worn it does nothing.
+  dressHero() {
+    const worn = Object.entries(WORN), name = CHARS.player, art = ART[name];
+    if (!worn.length || !art || !this.textures.exists(`${name}-walk`)) return;
+    const canvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+    const dressed = (key, zones) => {
+      const src = this.textures.get(key).getSourceImage(), w = src.width, h = src.height;
+      const out = canvas(w, h), ctx = out.getContext('2d'), part = canvas(w, h), p = part.getContext('2d');
+      ctx.drawImage(src, 0, 0);
+      worn.forEach(([slot, piece]) => {
+        if (!this.textures.exists(`${zones}-${slot}`)) return;
+        // A dye: the figure, its colour changed and its light and shade kept, cut down to the slot.
+        p.globalCompositeOperation = 'copy'; p.drawImage(src, 0, 0);
+        p.globalCompositeOperation = 'color'; p.fillStyle = '#' + WEAR.dyes[piece].toString(16).padStart(6, '0'); p.fillRect(0, 0, w, h);
+        p.globalCompositeOperation = 'destination-in'; p.drawImage(this.textures.get(`${zones}-${slot}`).getSourceImage(), 0, 0);
+        p.drawImage(src, 0, 0);
+        ctx.drawImage(part, 0, 0);
+      });
+      return out;
+    };
+    const sheet = dressed(`${name}-walk`, `${name}-zone`);
+    this.textures.remove(`${name}-walk`);
+    Phaser.Textures.Parsers.SpriteSheet(this.textures.addCanvas(`${name}-walk`, sheet), 0, 0, 0, sheet.width, sheet.height, { frameWidth: art.cell, frameHeight: art.cell });
+    FACINGS.forEach((facing, row) => {
+      const at = row * art.per, cols = Math.floor(sheet.width / art.cell), edge = (art.cell - art.still) / 2, still = canvas(art.still, art.still);
+      still.getContext('2d').drawImage(sheet, at % cols * art.cell + edge, Math.floor(at / cols) * art.cell + edge, art.still, art.still, 0, 0, art.still, art.still);
+      this.textures.remove(`${name}-${facing}`);
+      this.textures.addCanvas(`${name}-${facing}`, still);
+    });
+    if (this.textures.exists(`${name}-portrait`)) {
+      const portrait = dressed(`${name}-portrait`, `${name}-portrait-zone`);
+      this.textures.remove(`${name}-portrait`);
+      this.textures.addCanvas(`${name}-portrait`, portrait);
+    }
+    worn.forEach(([slot]) => [`${name}-zone-${slot}`, `${name}-portrait-zone-${slot}`].forEach(key => this.textures.exists(key) && this.textures.remove(key)));
   }
 
   // How far over an enemy's middle its bars and name begin, and how far under it the

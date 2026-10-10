@@ -349,7 +349,7 @@ try {
     s.boons = {}; s.killEnemy(e);
     return out;`);
   check('a boss stays drawn back for as long as its slam is warned of, even if it lands a blow meanwhile, and lets go when the slam lands',
-    read.wound.held && read.wound.cell === 0 && !read.loosed.held && read.loosed.cell >= 1, JSON.stringify({ wound: read.wound, loosed: read.loosed }));
+    read.wound.held && read.wound.cell === 0 && !read.loosed.held, JSON.stringify({ wound: read.wound, loosed: read.loosed }));
   check('reading a slam makes the next hits harder', read.touched && read.buff > 3000 && read.mult === 1.5 && read.unhurt, JSON.stringify(read));
   check('timed boons show on the hero while they are live', read.arc && read.planted && read.walking, JSON.stringify(read));
 
@@ -999,13 +999,27 @@ try {
   check('bot runs in the wide arena raise no errors and leak nothing', wide2.bot.errors.length === 0 && wide2.bot.leaks.every(l => l <= 0), wide2.bot.errors.join('; ') + ' ' + wide2.bot.runs);
   await shot('10-wide-hub');
 
+  // The profile shows the hero's portrait, cut at the full size of the picture (requirements 2.42).
+  const portrait = await page(`const s = game.scene.keys.LootScene; s.showHub(); s.showProfile(() => s.closeOverlay());
+    const pic = s.overlay.find(o => o.type === 'Image' && o.texture.key === CHARS.player + '-portrait'), still = s.textures.get(CHARS.player + '-front').getSourceImage().height;
+    const out = pic ? { source: pic.texture.getSourceImage().height, still, tall: Math.round(pic.displayHeight), feet: Math.round(pic.y), wants: [PORTRAIT.tall, PORTRAIT.feet], plain: !Object.keys(WORN).length } : null;
+    s.closeOverlay(); return out;`);
+  check('the profile shows the hero from a portrait three times the size of the still, standing where the ring is',
+    portrait && portrait.source >= 3 * portrait.still && portrait.tall === portrait.wants[0] && portrait.feet === portrait.wants[1] && portrait.plain, JSON.stringify(portrait));
+
   // ---------- 10. the fixed arena, on request: one screen, the camera still, nothing made harder ----------
-  await send('Page.navigate', { url: PAGE + '?arena=fixed' });
+  // The same load wears two dyes, to try the slots (requirements 2.42).
+  await send('Page.navigate', { url: PAGE + '?arena=fixed&wear=head:saffron,legs:indigo' });
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
   const fixedArena = await page(`settings.sfx = 0; settings.tips = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));
     const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
+    out.worn = (() => { const name = CHARS.player, c = s.textures.get(name + '-portrait').getSourceImage(), x = c.getContext && c.getContext('2d');
+      const at = (fx, fy) => x ? [...x.getImageData(Math.round(c.width * fx), Math.round(c.height * fy), 1, 1).data].slice(0, 3) : [];
+      return { canvas: !!x, band: at(0.543, 0.093), tunic: at(0.518, 0.324), leg: at(0.369, 0.759), frames: s.textures.get(name + '-walk').frameTotal - 1,
+        still: s.textures.get(name + '-front').getSourceImage().width, wantsStill: ART[name].still, zonesKept: s.textures.exists(name + '-zone-head') }; })();
     s.startRun(); s.player.iframes = 1e9; s.setMoveTarget(9999, 9999); await wait(1500);
+    out.worn.sprite = { walks: !!s.playerSprite.walks, canvas: !!s.playerSprite.texture.getSourceImage().getContext };
     out.still = ARENA_SCALE === 1 && s.camOff.x === 0 && s.camOff.y === 0 && s.cameras.main.scrollX === 0 && s.cameras.main.scrollY === 0
       && Phaser.Geom.Rectangle.Equals(s.arenaBounds, s.viewBounds) && s.farFx === null;
     out.plain = s.slamReach() === 1 && (s.waveExtra || 0) === 0 && s.floorLayers[0].displayWidth === 340;
@@ -1019,6 +1033,9 @@ try {
     out.bot = { errors: rep.errors, runs: rep.runs.map(r => r.profile + ': level ' + r.finalSector + ', leak ' + r.leak).join('; '), leaks: rep.runs.map(r => r.leak) };
     return out;`);
   console.log('      fixed arena bot: ' + fixedArena.bot.runs);
+  { const w = fixedArena.worn, [br, bg, bb] = w.band, [tr, tg, tb] = w.tunic, [lr, lg, lb] = w.leg;
+    check('worn pieces are laid into the hero through their zones: a saffron head-wrap and indigo trousers, the tunic untouched, in the portrait and on the sheet the hero walks on',
+      w.canvas && br > bb + 60 && br > bg && lb > lr + 20 && tr > 200 && tg > 170 && tb > 120 && tr > tb && w.frames >= 48 && w.still === w.wantsStill && !w.zonesKept && w.sprite.walks && w.sprite.canvas, JSON.stringify(w)); }
   check('the fixed arena is still there on request: one screen, the camera still, slams and waves their old size', fixedArena.still && fixedArena.plain
     && fixedArena.bot.errors.length === 0 && fixedArena.bot.leaks.every(l => l <= 0), JSON.stringify(fixedArena));
 

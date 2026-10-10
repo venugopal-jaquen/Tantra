@@ -267,12 +267,50 @@ at a glance, that a slam warning and a loot drop still read, and that the band o
 can be told from the floor. The first one usually fails on brightness; expect a second
 try.
 
-## 3. What comes back, and what happens to it
+## 3. A piece for the hero to wear
+
+The hero's picture is in four parts, each of which can be replaced: head, chest, legs,
+and the strap the weapon hangs from (`requirements.md` §2.42). A piece is not drawn on
+its own. It is made by changing one thing in the hero's own picture, so that it sits
+exactly where the old one sat, in all three views. Attach `hero-turnaround.png` and send
+this, with the two bracketed lines filled in. One piece to a picture.
+
+```text
+Attached is the turnaround of the hero of my game: the same character from the front,
+the back and the right side, 1774 x 887 pixels, on a transparent background.
+
+Make a copy of this picture with ONE thing changed:
+[replace the teal head-wrap and scarf with a bronze helmet that has a neck guard]
+
+RULES (another tool cuts the changed part out and lays it over the original, so they matter)
+- The picture stays exactly 1774 x 887 pixels, with a transparent background.
+- The three figures stay exactly where they are: the same pose, the same size, the same
+  place in the picture. Do not redraw the character; change the one thing.
+- Change nothing else: not the face, the body, the other clothes, the spear, the colours
+  or the light.
+- The new piece shows in all three views as the same object.
+- It covers at least what the old piece covered where it meets the body (the neck, the
+  waist, the ankles). Nothing is painted underneath it.
+- It stays close to the body: nothing wider than the shoulders or taller than a hand above
+  the head, and nothing that reaches into the next view.
+- The same look as the rest: faceted planes, matte cloth, leather, aged bronze.
+- No crown, halo, sacred mark or symbol of any faith.
+
+Save it as game/assets/incoming/well-delver/pieces/[head-bronze-helm].png, at full size.
+Do not change any other file, and do not run any git command.
+Tell me what you changed and anything you could not keep exactly as it was.
+```
+
+The four names to use in the file name are `head`, `chest`, `legs` and `holster`. Make one
+piece first: the way the game lays a new shape into a slot is built against it.
+
+## 4. What comes back, and what happens to it
 
 | Picture | Where | What Claude does with it |
 |---|---|---|
 | `<name>-turnaround.png` | `game/assets/incoming/well-delver/` | Cuts it into stills and a walk sheet, sets its size in the game, shows it on all three floors |
 | `<name>-walk-side.png` | the same | If the four figures match the turnaround, the side walk is made from them and not from the still |
+| `pieces/<slot>-<name>.png` | the same | Cuts the changed slot out, bends it as the hero is bent, and shows it on the profile and in a fight |
 | `floor-N.png` | the same | Cuts it into the floor and its band of steps, fits both to the arena, puts the game's own lamps and glows over it, and shows the cast on it beside today's floor |
 
 File names in the game keep their first names (`requirements.md` §2.12): hexer is
