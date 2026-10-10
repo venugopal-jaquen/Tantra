@@ -17,7 +17,7 @@ creating the itch.io account and signing in cannot be done for them.
 
 | File | What it is | Where it goes |
 |---|---|---|
-| `dist/anantarya-0.13-itch.zip` | The game: 89 files, 2.5 MB. Made by `python tools/build-itch.py` | Uploads |
+| `dist/anantarya-0.14-itch.zip` | The game: 90 files, 2.7 MB. Made by `python tools/build-itch.py` | Uploads |
 | `store/itch/cover-draft.png` | Cover, 630 by 500. **A draft: it carries the working title** | Cover image |
 | `store/itch/1-title.png` | The title screen, the well part filled | Screenshots, in this order |
 | `store/itch/2-drowned-steps.png` | A fight on level 2 | |
@@ -120,7 +120,7 @@ it is; players can filter on it, and a wrong answer is worse than a filtered pag
 |---|---|---|
 | Code | Yes | The game's code was written with an AI assistant |
 | Text and dialogue | Yes | The in-game text was drafted with an AI assistant and edited by the founder |
-| Graphics | No, today | Characters are CraftPix stock art; floors, effects and the serpent are drawn by code. **This becomes Yes the day a generated title picture or generated hero art goes in** |
+| Graphics | **Yes**, since build 0.14 | The title screen's picture was made by the founder with ChatGPT. Characters are CraftPix stock art; floors, effects and the serpent are drawn by code |
 | Sound | No | Kenney's recorded effects. Music, if bought later, is to be checked the same way |
 
 ## 5. After the upload, while the page is still a draft

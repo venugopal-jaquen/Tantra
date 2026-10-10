@@ -569,7 +569,7 @@ const Loader = (() => {
 })();
 Loader.setProgress(0.04);
 
-const BUILD = '0.13 (2026-10-10)';
+const BUILD = '0.14 (2026-10-10)';
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -2213,6 +2213,9 @@ const FLOORS = FLOOR_SETS[new URLSearchParams(location.search).get('floors')] ||
 
 // The title screen's view down the shaft: nested square tiers shrinking toward a glowing
 // floor. `period` is the time to sink one tier; `twist` turns each tier a little more.
+// The title picture: how far it is moved up so its pool lies under the way in, and where
+// below the ledge it fades into the dark.
+const TITLE_ART = { up: 100, fadeFrom: 545, fadeOver: 60 };
 const WELL = { cy: 300, size: 540, k: 0.8, tiers: 17, steps: 5, period: 5200, twist: 0.07, shade: [1.0, 0.8, 0.6, 0.86] };
 const WELL_STOPS = [[0, 244, 184, 104], [2.5, 232, 150, 66], [5, 204, 108, 38], [7.5, 158, 68, 20], [9.5, 124, 44, 10], [11.5, 190, 78, 14], [13.5, 255, 166, 52], [16, 255, 240, 176]];
 function wellColour(depth, shade) {
@@ -2296,6 +2299,7 @@ class LootScene extends Phaser.Scene {
       this.load.spritesheet(`${name}-walk`, `assets/chars/${name}-walk.png`, { frameWidth: WALK.cell, frameHeight: WALK.cell });
     }
     this.load.image('bg_stars', 'assets/bg-stars.png');
+    this.load.image('title_art', 'assets/title-art.jpg');
     for (const [key, def] of Object.entries(SFX)) {
       for (const f of def.files || [key]) this.load.audio(f, `assets/sfx/${f}.wav`);
     }
@@ -4483,6 +4487,7 @@ class LootScene extends Phaser.Scene {
   // the descent never ends.
   drawWell(time) {
     const g = this.menu.g, cx = W / 2, cy = WELL.cy;
+    if (!g.visible) { this.menu.embers.tilePositionY += 0.5; return; }     // the title picture stands in for the drawn shaft
     const t = (time / WELL.period) % 1, sway = Math.sin(time / 4300) * 0.06;
     const corners = (r, a) => {
       const c = Math.cos(a) * r, sn = Math.sin(a) * r;
@@ -4792,6 +4797,21 @@ class LootScene extends Phaser.Scene {
     const veil = this.add.image(cx, H / 2, 'menuveil').setDisplaySize(W, H).setDepth(10.5);
     this.uiObjects.push(g, embers, glow, veil);
     this.menu = { g, embers };
+    // The title picture (requirements 2.21; the founder's own, 2026-10-10, "fit 2"): a stepwell
+    // seen from above, lit by lamps. It is moved up so that its glowing pool lies under the
+    // way in, and below the ledge it fades into the dark the menu sits on. The embers and the
+    // glow still move over it. If the file is missing, the shaft drawn in code shows instead.
+    if (this.textures.exists('title_art')) {
+      g.setVisible(false);
+      const art = this.add.image(cx, H / 2 - TITLE_ART.up, 'title_art').setDepth(10.1);
+      art.setDisplaySize(W, W * art.height / art.width);
+      const fade = this.add.graphics().setDepth(10.15);
+      fade.fillGradientStyle(FORGE.deep, FORGE.deep, FORGE.deep, FORGE.deep, 0, 0, 1, 1);
+      fade.fillRect(0, TITLE_ART.fadeFrom, W, TITLE_ART.fadeOver);
+      fade.fillStyle(FORGE.deep, 1);
+      fade.fillRect(0, TITLE_ART.fadeFrom + TITLE_ART.fadeOver, W, H);
+      this.uiObjects.push(art, fade);
+    }
     this.tweens.add({ targets: glow, scale: glow.scale * 1.14, alpha: 0.78, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.drawWell(this.time.now);
 

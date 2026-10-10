@@ -127,6 +127,9 @@ try {
   await sleep(900);
   const hub = await page(`const s = game.scene.keys.LootScene; return { state: s.state, title: s.uiObjects.find(o => o.type === 'Text').text, families: [...new Set(s.uiObjects.filter(o => o.type === 'Text').map(o => o.style.fontFamily.split(',')[0]))] };`);
   check('Begin opens the title screen', hub.state === 'hub', JSON.stringify(hub));
+  const art = await page(`const s = game.scene.keys.LootScene, im = s.uiObjects.find(o => o.type === 'Image' && o.texture.key === 'title_art');
+    return { there: !!im, w: im && Math.round(im.displayWidth), y: im && Math.round(im.y), shaft: s.menu.g.visible, pool: WELL.cy };`);
+  check('the title screen shows the title picture, moved up so its pool lies under the way in', art.there && art.w === 400 && art.y === 250 && art.shaft === false, JSON.stringify(art));
   await sleep(1300);
   const music = await page(`return { on: MUSIC_ON, started: Music.inited, tracks: Object.fromEntries(Object.entries(Music.tracks).map(([k, t]) => [k, t.dead ? 'missing' : (t.el.duration ? Math.round(t.el.duration) + 's' : 'loading')])) };`);
   const fxSound = await page(`const s = game.scene.keys.LootScene, was = settings.sfx;

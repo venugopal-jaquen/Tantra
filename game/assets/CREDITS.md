@@ -160,3 +160,11 @@ than stars in space.
 The rest of that pass — `player.png`, `enemy-melee/ranged/tank/splitter.png` — was
 removed when the CraftPix roster landed. Those were sci-fi ships and grey meteors on
 dark purple and satisfied none of the Cosmic Forge direction.
+
+## Title picture (`title-art.jpg`)
+
+Made by the founder on 2026-10-10 with ChatGPT's image generation, from their own
+prompt: a stepwell seen from above, lit by lamps, with a glowing pool at the bottom and a
+small figure on the top ledge. 940 x 1672. It is AI-generated, and the itch.io page says
+so. OpenAI's terms give the person who made an image the rights to it, including to use
+it commercially; that is to be read again on OpenAI's own page in the pre-launch pass.
