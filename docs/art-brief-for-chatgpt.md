@@ -361,7 +361,186 @@ Do not change any other file, and do not run any git command.
 Tell me its size in pixels and anything you could not do as asked.
 ```
 
-## 5. What comes back, and what happens to it
+## 5. The other icons
+
+Asked for on 2026-10-11: "create a list of other visual icons (boons, drops etc) that
+needs to be redesigned and send a prompt for Chatgpt for that." Everything below is a
+flat white shape drawn by code today, coloured by the game. The only things that drop on
+the floor are the eleven loot icons of §4; treasure is paid straight to the count.
+
+| What | How many | Where it shows | Today |
+|---|---|---|---|
+| **Boons** | 18 | The three cards after every wave, the row of boons taken, the profile, the list of powers | Its own white shape each, coloured by its metal |
+| **Perks** | 8 | The profile, the pause screen, How to Play | Borrow a loot or boon shape, in violet |
+| **The five great powers** (Tejas) | 5 | The profile, the list of powers | Borrow the weapon's shape, in the power's colour |
+| **Signs for numbers** | 5 | The profile: health, shield, attack damage, attack speed, move speed | Borrow a loot or boon shape |
+| **Treasure and Power** | 2 | The top of the screen, the profile, the end of a run | A word and a number, no sign |
+| **Empty slot, locked** | 2 | "No trinket", "Tejas: dormant" | Borrow the unknown item's shape, in brown |
+| **Satchel** | 1 | Its tab at the edge of the screen | An arrowhead |
+| **The four phases** | 4 | The bar at the top, How to Play | A coloured bar and a word |
+
+The borrowing stops working once the loot icons are paintings: a painted dagger tinted
+orange is not "Fire". So each kind gets a shape of its own: boons are round tokens of
+their metal, perks are charms on a violet cord, signs are plain emblems. A boon's metal
+never changes, so it is painted in; nothing here needs the game to colour it.
+
+**Not pictures; drawn by the game and staying so:** the slam warnings, health bars, the
+ring at the hero's feet, the arrows to what is off screen, the pause and + buttons, the
+wave track, panels and buttons. What stands round a boss, and how enemies die and split,
+is redrawn in code in the faceted look (`requirements.md` §2.45).
+
+Attach the hero and Asura turnarounds and, once it is made, `loot-icons.png`.
+
+```text
+I need the rest of the icons for my game, in the same Well Delver look as the characters
+and the loot icons you made for it (attached: the hero and Asura turnarounds, and
+loot-icons.png, for the look).
+
+Another tool cuts your pictures into the game's icons. Your job is ONLY to make the six
+pictures described here. Do not cut them, shrink them or change any game file.
+
+WHAT TO MAKE
+Six PNG pictures, each 1536 x 1024 pixels with a transparent background. Each is a grid
+of equal cells with one icon in each cell, in the order given: left to right, top row
+first.
+
+RULES FOR ALL SIX (the cutting depends on each of these)
+- Each icon sits in the middle of its cell, fits inside a square about three quarters of
+  the cell's height, and has clear space all round. Nothing crosses into the next cell.
+- A truly transparent background. No lines between cells, no labels, no numbers, no
+  text, no ground shadow, no glow or haze.
+- Every icon must read when it is 16 pixels across on a phone: ONE bold, chunky shape,
+  two or three colours, no fine detail, no thin lines.
+- Every icon must be told apart at a glance from every other one, across all six
+  pictures, and from the eleven loot icons.
+- All seen from the same angle as the loot icons and lit the same way: warm light from
+  above.
+- The look of the characters: stylised low-poly 3D, faceted planes, painted, matte.
+- Nothing that people revere and no symbol of any faith: no trident, conch, discus,
+  lotus, Om, swastika, crescent and star, cross, halo, third eye, eye in a hand or a
+  triangle, no likeness of any deity. No skulls. No letters or numerals.
+
+Each of the four kinds has its own shape, so a player can tell what kind of thing an icon
+is before they can tell which one it is. Keep to these shapes.
+
+------------------------------------------------------------------------------------
+PICTURES 1, 2 AND 3: BOONS (18 in all). Grid: 3 columns, 2 rows.
+A boon is a power the hero picks up during a run. Every boon is a THICK ROUND TOKEN, like
+a heavy coin, tilted a little so its faceted edge shows. All six tokens in one picture
+are the same metal, the same size and the same tilt. On the face of each is ONE raised
+emblem that fills it, painted in the strong colour given. Only the emblem differs.
+
+PICTURE 1: six COPPER tokens (warm orange-brown copper). File: boons-copper.png
+ 1. Keen Edge (more damage): the point of a blade, upright, with a four-pointed glint
+    beside it. Hot orange.
+ 2. Quick Hands (faster attacks): two chevrons side by side, pointing right. Yellow.
+ 3. Long Reach (longer range): a long arrow leaving a dot, pointing up and to the right.
+    Aqua.
+ 4. Light Feet (faster on foot): one footprint. Leaf green.
+ 5. Iron Body (more health): a breastplate with a ridge down its middle. Crimson.
+ 6. Thick Hide (takes less damage): three overlapping scales. Slate blue.
+
+PICTURE 2: six SILVER tokens (pale, cool silver). File: boons-silver.png
+ 1. Hold Your Ground (stronger standing still): a spike driven point down into a flat
+    line of ground. Hot orange.
+ 2. Strike on the Run (faster while moving): an arrow pointing right with three speed
+    lines behind it. Yellow.
+ 3. Second Target (each attack hits one more enemy): one dot at the bottom with two
+    lines branching up to two rings. Aqua.
+ 4. Read the Slam (stepping out of danger makes the hero stronger): a ring with a bold
+    arrow leaving it, up and to the right. Red.
+ 5. Last Stand (stronger when nearly dead): a heart cracked down its middle, a flame
+    rising out of the crack. Crimson heart, orange flame.
+ 6. Greed (more treasure, at a price): a stack of three coins. Gold.
+
+PICTURE 3: six GOLD tokens (bright yellow gold). File: boons-gold.png
+The emblems here are dark or strongly coloured so that they stand out from the gold.
+ 1. Spreading Rot (poison passes on): one large drop with two small drops flying off it.
+    Green.
+ 2. Blood Shield (healing becomes a shield): the outline of a shield holding one drop.
+    Deep crimson.
+ 3. Forked Lightning: a lightning bolt that splits in two at its lower end. Teal blue.
+ 4. Clean Cut: a square block cut in two by one clean diagonal slash, the halves slipping
+    apart. Dark iron brown.
+ 5. Kindling (the hero's great power fills faster): a flame. Orange-red.
+ 6. Eclipse Hunger (kills heal during an eclipse): a dark disc with a thin bright rim of
+    light all round it, a sun fully covered. A whole disc: not a crescent. Dark red.
+
+------------------------------------------------------------------------------------
+PICTURE 4: PERKS (8). Grid: 4 columns, 2 rows. File: perks.png
+A perk is a keepsake won from a boss and kept for good. Every perk is a CHARM hanging
+from a short loop of VIOLET cord, knotted at the top. The cord is the same on all eight.
+ 1. Sentinel's Guard (blocks the first hit of each level): a small, tall, rectangular
+    bronze shield with a boss at its middle, like a door.
+ 2. Hoarder's Eye (more items drop): a polished amber cat's-eye gemstone, one bright slit
+    of light across it, in a gold claw setting. A stone, not a living eye.
+ 3. Serpent's Scale (takes less damage): one large indigo serpent scale edged in gold.
+ 4. Deep Lungs (more health): three air bubbles, one large and two small. Pale blue-green.
+ 5. Second Wind (survives one killing blow): a cream feather curled round a swirl of
+    wind.
+ 6. Quick Study (starts with a boon waiting): a rolled palm-leaf scroll tied with red
+    cord. No writing on it.
+ 7. Second Thoughts (one more reroll): one chunky bone die showing dots, a curved arrow
+    circling it.
+ 8. Tribute Taker (bosses pay sooner): a small drawstring purse, open, three gold coins
+    spilling out.
+
+------------------------------------------------------------------------------------
+PICTURE 5: SIGNS (12). Grid: 4 columns, 3 rows. File: signs.png
+Plain emblems on their own: no token under them, no cord. Each is ONE colour family,
+lighter at the top and darker at the bottom, as given.
+ 1. Treasure (the game's money): one gold coin stamped with three squares, one inside
+    another. No face and no writing on it.
+ 2. Power (how strong the hero is): a four-pointed star. Amber.
+ 3. Health: a heart. Red.
+ 4. Shield: a pointed kite shield. Pale blue. (The loot icon Aegis is a ROUND shield;
+    this one must not be round.)
+ 5. Attack damage: the same blade point and glint as on Keen Edge. Orange.
+ 6. Attack speed: the same two chevrons as on Quick Hands. Yellow.
+ 7. Move speed: the same footprint as on Light Feet. Green.
+The last five are the hero's five great powers. Their colours match effects already in
+the game, so keep to them:
+ 8. Fire: a flame. Gold-yellow (#FFDC64) at the tip to orange-red (#E8501A) at the base.
+ 9. Poison: a bubbling cloud of three lumps. Yellow-green (#CFE650) to leaf green
+    (#5A9433).
+10. Blood: one heavy drop. Coral (#FF8273) to deep crimson (#9C1F30).
+11. Lightning: one bolt, in hard angles. Pale aqua (#BAF4F2) to teal blue (#2A9DB5).
+12. Execution: a heavy axe blade falling edge down. Pale gold (#F7D264) to dark bronze
+    gold (#A66F1C).
+
+------------------------------------------------------------------------------------
+PICTURE 6: SCREEN ICONS (7). Grid: 4 columns, 2 rows. File: hud.png
+Objects and plain signs. The least pressing of the six: make it last.
+ 1. Satchel: a brown leather satchel with a flap and one buckle.
+ 2. Empty slot: an empty round setting, a ring with four claws and nothing in it. Dull
+    dark bronze.
+ 3. Locked: a chunky bronze padlock, closed.
+ 4. Calm: three gentle ripples of water. Sky blue (#4DD0FF).
+ 5. Surge: three bold arrows pointing up, side by side, the middle one tallest. Orange
+    (#FF8C42).
+ 6. Eclipse: the same covered sun as on Eclipse Hunger, a dark disc with a bright rim.
+    Dark red (#C4331F).
+ 7. Convergence: four arrowheads pointing in to one bright point at the middle. Cream
+    white (#FFFBEF).
+ 8. Leave this cell empty.
+
+------------------------------------------------------------------------------------
+WHERE TO SAVE, AND WHAT NOT TO TOUCH
+Save into game/assets/incoming/well-delver/icons/ under the six file names above, each
+at the full size it was made. Do not change any other file, and do not run any git
+command: another tool is working in this folder too.
+
+WHEN YOU ARE DONE, TELL ME
+- the files you made, and each one's size in pixels;
+- for each, whether the background is truly transparent and every icon is clear of its
+  neighbours;
+- which image model made them (it goes in the game's credits);
+- anything you could not do as asked.
+
+Make PICTURE 1 first, the six copper tokens, and show me before making the rest.
+```
+
+## 6. What comes back, and what happens to it
 
 | Picture | Where | What Claude does with it |
 |---|---|---|
@@ -369,6 +548,7 @@ Tell me its size in pixels and anything you could not do as asked.
 | `<name>-walk-side.png` | the same | If the four figures match the turnaround, the side walk is made from them and not from the still |
 | `pieces/<slot>-<name>.png` | the same | Cuts the changed slot out, bends it as the hero is bent, and shows it on the profile and in a fight |
 | `loot-icons.png` | the same | Cuts the eleven icons out, finds the grey metal in each for the game to colour copper, silver or gold, and puts them on the floor, in the satchel and on the profile |
+| `icons/boons-*.png`, `perks.png`, `signs.png`, `hud.png` | the same | Cuts each grid into its icons and puts them wherever the white shapes are now; the borrowed ones get their own |
 | `floor-N.png` | the same | **Done for the first three (2026-10-11):** laid on the arena with its steps round it, the game's lamps and glows moved to the picture's. A remade floor of the same name is put in the same way |
 
 File names in the game keep their first names (`requirements.md` §2.12): hexer is
