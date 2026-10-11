@@ -17,33 +17,26 @@
  * picture and for nothing else. Needs Chrome or Edge and Node 22+. No packages.
  */
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { findBrowser, MACHINE_FLAGS } from './find-browser.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = resolve(process.argv[2] || join(tmpdir(), 'anantarya-store'));
 const PAGE = pathToFileURL(resolve(process.argv[3] || join(REPO, 'dist', 'itch', 'index.html'))).href;
 const SCENES = (process.argv[4] || 'title,fight,boons,gate,guardian,vritra,cover,film').split(',');
 const PORT = 9333 + Math.floor(Math.random() * 500);
-const BROWSERS = [
-  'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-  'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'
-];
 const VIEW = { width: 400, height: 700 };      // the game's own size: one unit is one CSS pixel
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 mkdirSync(OUT, { recursive: true });
-const exe = BROWSERS.find(existsSync);
+const exe = findBrowser();
 if (!exe) { console.error('No Chrome or Edge found.'); process.exit(2); }
 const profile = mkdtempSync(join(tmpdir(), 'anantarya-profile-'));
 const browser = spawn(exe, [
-  '--headless=new', '--mute-audio', '--autoplay-policy=no-user-gesture-required', '--allow-file-access-from-files',
+  '--headless=new', ...MACHINE_FLAGS, '--mute-audio', '--autoplay-policy=no-user-gesture-required', '--allow-file-access-from-files',
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
   '--no-first-run', '--no-default-browser-check', `--window-size=${VIEW.width},${VIEW.height}`, 'about:blank'
 ], { stdio: 'ignore' });

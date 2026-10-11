@@ -14,32 +14,25 @@
  * Exit code 0 = every check passed.
  */
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { findBrowser, MACHINE_FLAGS } from './find-browser.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = resolve(process.argv[2] || join(tmpdir(), 'anantarya-smoke'));
 const PAGE = pathToFileURL(resolve(process.argv[3] || join(REPO, 'game', 'loot-chase-v0.1.html'))).href;
 const BOT = pathToFileURL(join(REPO, 'tools', 'playtest-bot.js')).href;
 const PORT = 9333 + Math.floor(Math.random() * 500);
-const BROWSERS = [
-  'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-  'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'
-];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 mkdirSync(OUT, { recursive: true });
-const exe = BROWSERS.find(existsSync);
+const exe = findBrowser();
 if (!exe) { console.error('No Chrome or Edge found.'); process.exit(2); }
 const profile = mkdtempSync(join(tmpdir(), 'anantarya-profile-'));
 const browser = spawn(exe, [
-  '--headless=new', '--mute-audio', '--autoplay-policy=no-user-gesture-required',
+  '--headless=new', ...MACHINE_FLAGS, '--mute-audio', '--autoplay-policy=no-user-gesture-required',
   '--allow-file-access-from-files',        // the game is loaded straight off disk
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
   '--no-first-run', '--no-default-browser-check', '--window-size=420,740', 'about:blank'
@@ -127,6 +120,11 @@ try {
   await sleep(900);
   const hub = await page(`const s = game.scene.keys.LootScene; return { state: s.state, title: s.uiObjects.find(o => o.type === 'Text').text, families: [...new Set(s.uiObjects.filter(o => o.type === 'Text').map(o => o.style.fontFamily.split(',')[0]))] };`);
   check('Begin opens the title screen', hub.state === 'hub', JSON.stringify(hub));
+  // A machine that draws without a graphics chip (the cloud machines) may run the game at a
+  // few frames a second. The checks that time a walk, a sound or a fight then fail there for
+  // that alone; say so, so that such a failure is not taken for the game's.
+  const fps = await page(`return Math.round(game.loop.actualFps);`);
+  if (fps < 30) console.log(`NOTE  the game runs at ${fps} frames a second on this machine: checks that time movement, sound or a fight may fail for that alone`);
   const art = await page(`const s = game.scene.keys.LootScene, im = s.uiObjects.find(o => o.type === 'Image' && o.texture.key === 'title_art'), h = TITLE_ART.hero;
     const src = im && im.texture.getSourceImage();
     // What of the menu lies on the hero: any words, the depth chooser, any button.
