@@ -82,8 +82,8 @@ Typefaces
   Yatra One. Copyright 2014 The Yatra Project Authors.
   SIL Open Font License 1.1: vendor/fonts/OFL-baloo2.txt, vendor/fonts/OFL-yatraone.txt
 
-Characters and floors
-  The maker's own designs, made with ChatGPT.
+Characters, floors and icons
+  The maker's own designs, generated with OpenAI's image generation in ChatGPT.
 
 Sound effects and the ember texture
   Kenney (https://kenney.nl), CC0 1.0 Universal.

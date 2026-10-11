@@ -24,9 +24,26 @@
   @font-face { font-family: "Yatra One"; font-style: normal; font-weight: 400; font-display: swap;
     src: url(vendor/fonts/yatraone-latin.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
   :root {
-    --deep: #2a0800; --bg: #3d1200; --panel: #4a1a04; --flame: #ff8c42; --gold: #ffd23c;
+    --deep: #2b1107; --bg: #3d1200; --panel: #4c2410; --flame: #ff8c42; --gold: #ffd23c;
     --bronze: #c8a96e; --cream: #fffbef; --tamra: #d9844a; --rajat: #d4dde6; --swarna: #ffc93c;
+    /* The material of the screens (requirements 2.47), the same on the page as in the
+       game: shadowed sandstone with cut corners, edged in worn bronze, lit from above. */
+    --stone: #57301a; --stone-low: #351a0c; --cut: #2a1208; --edge: #b88c4c; --edge-low: #6e4d22;
+    --lit: rgba(255,226,176,.45); --foot: rgba(20,6,0,.55);
   }
+  /* A slab. The element itself is the bronze edge, its corners cut; the stone lies inside
+     it on a layer of its own, cut the same and lit along its top. A cut shape can carry no
+     border and no outline, so the ring that shows where the keyboard is, is drawn inside. */
+  .card, .well, .fb-box, .fb-cancel {
+    position: relative; isolation: isolate; border: 0; border-radius: 0; box-shadow: none;
+    background: linear-gradient(var(--edge), var(--edge-low)); clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
+  }
+  .card::before, .well::before, .fb-box::before, .fb-cancel::before {
+    content: ""; position: absolute; inset: 2px; z-index: -1; --c: calc(var(--cc) - 1px); clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
+    background: linear-gradient(var(--lit), transparent 2px), linear-gradient(rgba(255,226,176,.08), transparent 46%), linear-gradient(var(--stone), var(--stone-low));
+  }
+  .card, .well, .fb-box { --c: .75em; --cc: .75em; }
+  .well::before { background: linear-gradient(var(--foot), transparent 3px), linear-gradient(var(--cut), #331709); }   /* cut in, where the card stands out */
   html, body {
     margin: 0; padding: 0; background: var(--deep);
     height: 100%; width: 100%; overflow: hidden;
@@ -68,14 +85,10 @@
 
   .card {
     width: 21em; max-width: 100%; box-sizing: border-box; padding: 1em 1.2em .8em;
-    /* Glass: the colours behind show through, blurred. */
-    background: linear-gradient(rgba(110,44,10,.5), rgba(48,14,2,.6));
-    -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
-    border: 1px solid rgba(255,220,160,.42); border-radius: 1.1em;
-    box-shadow: 0 .6em 2.4em rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.22), inset 0 0 0 1px rgba(255,255,255,.05);
     cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
   }
-  .card:focus-visible { outline: .12em solid var(--cream); outline-offset: .2em; }
+  .card:focus-visible { outline: 0; }
+  .card:focus-visible::before { box-shadow: inset 0 0 0 .14em var(--cream); }
   .card.in > * { animation: card-in .4s ease both; }
   @keyframes card-in { from { opacity: 0; transform: translateY(.4em); } to { opacity: 1; transform: none; } }
   .card-kind { font-size: .7em; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--flame); }
@@ -91,10 +104,7 @@
   /* How full the well is (requirements 2.19): the goal, on screen before the game loads. */
   .well {
     width: 21em; max-width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 1em;
-    padding: .55em 1em; text-align: left; background: linear-gradient(rgba(70,24,6,.42), rgba(34,8,0,.55));
-    -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
-    border: 1px solid rgba(255,220,160,.3); border-radius: 1.1em;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+    padding: .55em 1em; text-align: left;
   }
   .well-art { flex: none; width: 5.2em; height: 6.2em; }
   .well-wall { fill: #1c0803; stroke: var(--bronze); stroke-width: 1.6; stroke-linejoin: round; }
@@ -107,7 +117,7 @@
   .well-after { margin-top: .3em; font-size: .78em; line-height: 1.3; color: #f0dcc0; }
 
   .ldr-foot { width: 21em; max-width: 100%; min-height: 3.4em; display: flex; flex-direction: column; align-items: center; gap: .45em; }
-  .bar { width: 100%; height: .85em; box-sizing: border-box; border-radius: .5em; background: #2a0f04; border: 1px solid #6b4a2e; overflow: hidden; }
+  .bar { width: 100%; height: .85em; box-sizing: border-box; border-radius: .1em; background: var(--cut); border: 1px solid var(--edge-low); box-shadow: inset 0 2px 0 var(--foot); overflow: hidden; }
   /* Copper, then silver, then gold - the rarity ladder. The gradient is pinned to the
      full track, so the growing fill reveals each metal in turn. */
   .bar-fill {
@@ -117,14 +127,15 @@
   .bar-label { font-size: .72em; letter-spacing: .18em; text-transform: uppercase; color: var(--bronze); }
   .begin {
     display: none; font-family: "Yatra One", "Baloo 2", serif; font-size: 1.5em; line-height: 1;
-    color: var(--deep); background: linear-gradient(#ffd23c, #ff9d2e); border: 0; border-radius: .45em;
-    padding: .55em 1.9em .45em; cursor: pointer; -webkit-tap-highlight-color: transparent;
-    box-shadow: 0 .18em 0 #9a4a08, 0 0 1.2em rgba(255,170,60,.45);
+    color: var(--deep); background: linear-gradient(#ffe6a8 0, #ffcc48 9%, #f39a26 100%); border: 0; border-radius: 0;
+    --c: .34em; clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
+    padding: .55em 1.9em .5em; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    box-shadow: inset 0 -.17em 0 #9a4a08;
     animation: begin-pulse 1.7s ease-in-out infinite;
   }
-  .begin:active { transform: translateY(.12em); box-shadow: 0 .06em 0 #9a4a08; }
-  .begin:focus-visible { outline: .12em solid var(--cream); outline-offset: .18em; }
-  @keyframes begin-pulse { 50% { box-shadow: 0 .18em 0 #9a4a08, 0 0 2em rgba(255,190,80,.8); } }
+  .begin:active { transform: translateY(.08em); box-shadow: inset 0 -.06em 0 #9a4a08; }
+  .begin:focus-visible { outline: 0; box-shadow: inset 0 0 0 .13em var(--deep), inset 0 -.17em 0 #9a4a08; }
+  @keyframes begin-pulse { 50% { filter: brightness(1.16); } }
   #loader.ready .bar, #loader.ready .bar-label { display: none; }
   #loader.ready .begin { display: inline-block; }
   #loader.failed .bar { display: none; }
@@ -140,9 +151,7 @@
   #feedback[hidden], #namer[hidden] { display: none; }
   .fb-box {
     width: min(380px, 100%); box-sizing: border-box; padding: 18px 18px 16px; text-align: left;
-    background: linear-gradient(rgba(96,36,8,.62), rgba(44,12,2,.72)); border: 1px solid rgba(255,220,160,.45); border-radius: 18px;
-    -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
-    box-shadow: 0 10px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.22);
+    --c: 13px; --cc: 13px;
   }
   .fb-title { font-family: "Yatra One", "Baloo 2", serif; font-weight: 400; font-size: 26px; line-height: 1.1; color: var(--gold); margin: 0 0 4px; }
   .fb-sub { margin: 0 0 12px; font-size: 14px; line-height: 1.35; color: #f0dcc0; }
@@ -151,7 +160,7 @@
   /* 16px on the fields: anything smaller makes iOS zoom the page when one is focused. */
   #fb-text, #fb-email, #nm-text {
     width: 100%; box-sizing: border-box; margin: 0 0 12px; padding: 9px 10px; font: 16px/1.35 "Baloo 2", system-ui, sans-serif;
-    color: var(--cream); background: #2a0f04; border: 1px solid #6b4a2e; border-radius: 8px;
+    color: var(--cream); background: var(--cut); border: 1px solid var(--edge-low); border-radius: 2px; box-shadow: inset 0 2px 0 var(--foot);
   }
   #fb-text { resize: vertical; min-height: 110px; max-height: 40vh; }
   #fb-text:focus, #fb-email:focus, #nm-text:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: transparent; }
@@ -162,11 +171,14 @@
   .fb-note.fb-bad { color: #ff9a80; font-size: 13px; }
   .fb-note a { color: var(--gold); }
   .fb-actions { display: flex; gap: 10px; justify-content: flex-end; }
-  .fb-btn { font: 700 15px "Baloo 2", system-ui, sans-serif; border-radius: 8px; padding: 9px 20px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  .fb-cancel { color: var(--cream); background: #5c2a05; border: 1.5px solid rgba(200,169,110,.55); }
-  .fb-send { color: var(--deep); background: linear-gradient(#ffd23c, #ff9d2e); border: 0; }
+  .fb-btn { font: 700 15px "Baloo 2", system-ui, sans-serif; border: 0; border-radius: 0; padding: 9px 20px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .fb-cancel { color: var(--cream); --c: 6px; --cc: 6px; }
+  .fb-send { color: var(--deep); background: linear-gradient(#ffe6a8 0, #ffcc48 9%, #f39a26 100%); box-shadow: inset 0 -3px 0 #9a4a08; --c: 6px; clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c)); }
   .fb-send:disabled { opacity: .6; cursor: default; }
-  .fb-btn:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
+  .fb-btn:active { transform: translateY(1px); }
+  .fb-btn:focus-visible { outline: 0; }
+  .fb-send:focus-visible { box-shadow: inset 0 0 0 2px var(--deep), inset 0 -3px 0 #9a4a08; }
+  .fb-cancel:focus-visible::before { box-shadow: inset 0 0 0 2px var(--cream); }
 </style>
 </head>
 <body>
@@ -1488,15 +1500,27 @@ const Z = { floor: -10, tint: -8, telegraph: -5, fx: -4, hud: 55 };
 // "Cosmic Forge" palette, measured from concept/loot-chase-visual-forge-v2.html.
 // Warm throughout: the direction was rejected twice for reading too dark.
 const FORGE = {
-  deep:   0x2a0800,  // furthest back
+  deep:   0x2b1107,  // furthest back
   bg:     0x3d1200,  // arena floor
-  panel:  0x4a1a04,  // HUD chrome
+  panel:  0x4c2410,  // HUD chrome
   ember:  0xff6b1a,  // hot edge
   flame:  0xff8c42,  // forge orange
   gold:   0xffd23c,  // player-facing highlight, currency
   bronze: 0xc8a96e,  // tarnished trim
   cream:  0xfffbef,  // brightest
   cool:   0x4dd0ff   // the single cool accent (Shanti) - pops against everything
+};
+
+// The material of the screens (requirements 2.47): the stepwell's own, and the same on
+// the page (the CSS names beside each). See glass().
+const MAT = {
+  stone: 0x57301a,       // --stone: a panel's body, sandstone in shade
+  cut: 0x2a1208,         // --cut: what is cut into a panel: cards, slots, tracks
+  bronze: 0xb88c4c,      // --edge: the worn edge
+  bronzeDark: 0x6e4d22,  // --edge-low: its shaded side
+  amber: 0xf0b040,       // an edge that asks to be pressed, in place of bright gold
+  light: 0xffe2b0,       // --lit: the warm line along a top edge
+  shade: 0x140600        // --foot: the shadow under a foot
 };
 
 // Typography (requirements 2.18). Yatra One is a display face drawn from the hand-painted
@@ -2494,6 +2518,8 @@ class LootScene extends Phaser.Scene {
 
     // HUD chrome is drawn after the arena so it always wins the depth fight.
     this.hudPanel = this.add.rectangle(W/2, HUD_H/2, W, HUD_H, FORGE.panel);
+    this.hudEdge = this.add.graphics();
+    this.hudEdge.fillStyle(MAT.light, 0.3).fillRect(0, HUD_H - 3, W, 1).fillStyle(MAT.bronze, 0.95).fillRect(0, HUD_H - 2, W, 2).fillStyle(MAT.shade, 0.45).fillRect(0, HUD_H, W, 2.5);
     this.hudText = this.add.text(14, 2, '', { resolution: RES, fontSize: '13px', color: '#fffbef' });
     // The treasure carried, after the line, with its sign.
     this.goldText = this.add.text(14, 2, '', { resolution: RES, fontSize: '13px', color: '#ffd23c' });
@@ -2503,7 +2529,7 @@ class LootScene extends Phaser.Scene {
     // Power (2.28), at the right of the same line. Tapping it opens the profile.
     this.powerText = this.add.text(W - 14, 59, '', { resolution: RES, fontSize: '12px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(1, 0);
     const powerZone = this.add.zone(W - 52, 66, 104, 24).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.pauseGame('profile'));
-    this.fix(this.hudPanel, this.hudText, this.weaponText, this.powerText, powerZone, this.goldText, this.goldSign, this.powerSign);
+    this.fix(this.hudEdge, this.hudPanel, this.hudText, this.weaponText, this.powerText, powerZone, this.goldText, this.goldSign, this.powerSign);
 
     // input for movement (only acts while playing)
     this.pointerTarget = null;
@@ -3190,7 +3216,7 @@ class LootScene extends Phaser.Scene {
 
   hudOnTop(on) {
     if (ARENA_SCALE === 1) return;
-    this.hudPanel.setDepth(on ? Z.hud : 0);
+    this.hudPanel.setDepth(on ? Z.hud : 0); this.hudEdge.setDepth(on ? Z.hud + 0.5 : 0);
     [this.hudText, this.weaponText, this.powerText, this.goldText, this.goldSign, this.powerSign].forEach(o => o && o.setDepth(on ? Z.hud + 1 : 0));
   }
 
@@ -3540,10 +3566,11 @@ class LootScene extends Phaser.Scene {
     }
     // Power, the way Destiny sets it: small label, large number.
     this.ovText(right, 74, 'POWER', { fontSize: '9px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(1, 0);
-    if (this.painted) this.ov(this.icon(right - 40, 79, ['sign-power'], 11), 102);
     const num = this.ovText(right, 82, String(parts.total), { fontSize: '36px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(1, 0);
-    const dia = this.ov(this.add.graphics(), 102), dx = right - num.width - 13, dy = 106;
-    dia.fillStyle(FORGE.gold, 1); dia.fillPoints([{ x: dx, y: dy - 7 }, { x: dx + 7, y: dy }, { x: dx, y: dy + 7 }, { x: dx - 7, y: dy }], true);
+    // Beside the number, the sign of power: painted, or the diamond the game draws itself.
+    const dx = right - num.width - 15, dy = 106;
+    if (this.painted) this.ov(this.icon(dx, dy, ['sign-power'], 18), 102);
+    else { const dia = this.ov(this.add.graphics(), 102); dia.fillStyle(FORGE.gold, 1); dia.fillPoints([{ x: dx + 2, y: dy - 7 }, { x: dx + 9, y: dy }, { x: dx + 2, y: dy + 7 }, { x: dx - 5, y: dy }], true); }
 
     // The hero, lit from behind.
     this.ov(this.add.image(cx, 232, 'softglow').setDisplaySize(230, 230).setTint(0xffa040).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD), 101);
@@ -3875,24 +3902,52 @@ class LootScene extends Phaser.Scene {
     } catch (e) { return null; }
   }
 
-  // x, y is the centre. A dark translucent body, a faint sheen across the top, a
-  // coloured rim and a hairline of light inside it.
+  // x, y is the centre. One material for every screen (requirements 2.47): the stepwell's.
+  // A `panel` is a slab of shadowed sandstone with its corners cut, edged in worn bronze
+  // and lit from above as the figures are: a warm line along its top, a shadow under its
+  // foot. A `card` (a row, a slot, a choice) is cut into a panel: flatter, darker, thinly
+  // edged, in shade along its top. A `button` stands out of a panel as a panel stands out
+  // of the screen. An edge takes the colour of what it says: a metal, a state, a warning.
+  // What lies behind still shows through, blurred (frost): only the frame is new.
   glass(g, x, y, w, h, opts = {}) {
-    const r = opts.radius === undefined ? 16 : opts.radius, l = x - w / 2, t = y - h / 2;
-    g.fillStyle(opts.fill === undefined ? FORGE.deep : opts.fill, opts.alpha === undefined ? 0.58 : opts.alpha);
-    g.fillRoundedRect(l, t, w, h, r);
-    g.fillStyle(0xffffff, opts.sheen === undefined ? 0.045 : opts.sheen);
-    g.fillRoundedRect(l + 1, t + 1, w - 2, Math.min(h * 0.45, 140), { tl: r, tr: r, bl: 0, br: 0 });
-    g.lineStyle(1.5, opts.stroke === undefined ? FORGE.gold : opts.stroke, opts.strokeAlpha === undefined ? 0.6 : opts.strokeAlpha);
-    g.strokeRoundedRect(l, t, w, h, r);
-    g.lineStyle(1, 0xffffff, 0.14);
-    g.strokeRoundedRect(l + 1.5, t + 1.5, w - 3, h - 3, Math.max(0, r - 1.5));
+    const r = opts.radius === undefined ? 16 : opts.radius, kind = opts.kind || (r >= 14 ? 'panel' : 'card'), heavy = kind === 'panel';
+    const c = Math.min(heavy ? 11 : Math.max(3, r * 0.62), w / 4, h / 3.2), l = x - w / 2, t = y - h / 2, e = l + w, b = t + h;
+    // The eight corners, `i` inside the outline (outside it, if less than nothing).
+    const cut = (i = 0) => { const k = Math.max(0.5, c - i * 0.586);
+      return [{ x: l + i + k, y: t + i }, { x: e - i - k, y: t + i }, { x: e - i, y: t + i + k }, { x: e - i, y: b - i - k },
+              { x: e - i - k, y: b - i }, { x: l + i + k, y: b - i }, { x: l + i, y: b - i - k }, { x: l + i, y: t + i + k }]; };
+    const top = q => [q[7], q[0], q[1], q[2]], foot = q => [q[3], q[4], q[5], q[6]], outer = cut();
+    const stroke = opts.stroke === undefined ? MAT.bronze : opts.stroke === FORGE.gold ? MAT.amber : opts.stroke;
+    const sa = opts.strokeAlpha === undefined ? 0.85 : opts.strokeAlpha;
+    g.fillStyle(opts.fill === undefined ? (kind === 'card' ? MAT.cut : MAT.stone) : opts.fill, opts.alpha === undefined ? 0.62 : opts.alpha);
+    g.fillPoints(outer, true);
+    if (kind === 'card') {
+      g.lineStyle(2, MAT.shade, 0.32); g.strokePoints(top(cut(1.6)));
+      g.lineStyle(1, MAT.light, 0.1); g.strokePoints(foot(cut(1.2)));
+      g.lineStyle(1.3, stroke, sa); g.strokePoints(outer, true);
+      return g;
+    }
+    const band = t + Math.min(h * 0.42, 120);
+    g.fillStyle(MAT.light, (opts.sheen === undefined ? 0.045 : opts.sheen) * 0.7);
+    g.fillPoints([outer[7], outer[0], outer[1], outer[2], { x: e, y: band }, { x: l, y: band }], true);
+    g.lineStyle(heavy ? 2 : 1.6, MAT.shade, 0.55); g.strokePoints(foot(cut(-1.4)));
+    g.lineStyle(heavy ? 2.4 : 1.8, stroke, sa); g.strokePoints(outer, true);
+    g.lineStyle(1, MAT.light, heavy ? 0.42 : 0.5); g.strokePoints(top(cut(heavy ? 2 : 1.7)));
+    if (heavy) { g.lineStyle(1, MAT.bronzeDark, 0.8); g.strokePoints(cut(5), true); }
     return g;
+  }
+
+  // A button answers the finger: it dips for a moment. The tap has already been acted on,
+  // and the screen may have changed under it, so only a button still there is touched.
+  pressed(...parts) {
+    parts = parts.filter(o => o && o.active);
+    parts.forEach(o => o.setAlpha(0.66));
+    setTimeout(() => parts.forEach(o => { if (o.active) o.setAlpha(1); }), 120);
   }
 
   ovPanel(cx, cy, w, h, opts = {}) {
     const frosted = this.frostRT && this.frostRT.overlay && this.frostRT.overlay.visible;
-    return this.glass(this.ov(this.add.graphics()), cx, cy, w, h, Object.assign({ alpha: frosted ? 0.58 : 0.96 }, opts));
+    return this.glass(this.ov(this.add.graphics()), cx, cy, w, h, Object.assign({ kind: 'panel', alpha: frosted ? 0.66 : 0.97 }, opts));
   }
 
   // The same glass for the screens that are not overlays - the choice after a level, the
@@ -3902,7 +3957,7 @@ class LootScene extends Phaser.Scene {
     const frost = this.frost('ui', 78);
     this.uiObjects.push(this.add.rectangle(W / 2, H / 2, W, H, 0x120400, frost ? 0.3 : 0.5).setDepth(78.4));
     this.uiObjects.push(this.add.zone(W / 2, H / 2, W, H).setInteractive().setDepth(78.5));     // nothing underneath can be tapped
-    this.uiObjects.push(this.glass(this.add.graphics().setDepth(79), cx, cy, w, h, { stroke, strokeAlpha: 0.95, alpha: frost ? 0.6 : 0.96 }));
+    this.uiObjects.push(this.glass(this.add.graphics().setDepth(79), cx, cy, w, h, { kind: 'panel', stroke, strokeAlpha: 0.95, alpha: frost ? 0.68 : 0.97 }));
   }
   raiseUI() { this.uiObjects.forEach(o => { if (o.depth === 0) o.setDepth(o.type === 'Text' ? 81 : 80); }); }
 
@@ -3921,13 +3976,13 @@ class LootScene extends Phaser.Scene {
   // Callers that restyle the rectangle (the settings switches) restyle the drawing.
   ovButton(x, y, w, h, label, fill, onClick, opts = {}) {
     const g = this.ov(this.add.graphics()), look = { fill, stroke: opts.stroke || FORGE.bronze };
-    const paint = () => { g.clear(); this.glass(g, x, y, w, h, { fill: look.fill, alpha: 0.74, stroke: look.stroke, strokeAlpha: 0.9, radius: Math.min(11, h / 2), sheen: 0.09 }); };
+    const paint = () => { g.clear(); this.glass(g, x, y, w, h, { kind: 'button', fill: look.fill, alpha: 0.82, stroke: look.stroke, strokeAlpha: 0.9, radius: Math.min(11, h / 2), sheen: 0.09 }); };
     paint();
     const bg = this.ov(this.add.rectangle(x, y, w, h, 0xffffff, 0).setInteractive({ useHandCursor: true }));
     bg.setFillStyle = c => { look.fill = c; paint(); return bg; };
     bg.setStrokeStyle = (lw, c) => { look.stroke = c; paint(); return bg; };
     const t = this.ovText(x, y, label, { fontSize: (opts.size || 13) + 'px', color: opts.color || '#fffbef', fontStyle: 'bold' }).setOrigin(0.5);
-    bg.on('pointerdown', () => { if (opts.sound !== null) this.sfx(opts.sound || 'ui-click'); onClick(bg, t); });
+    bg.on('pointerdown', () => { if (opts.sound !== null) this.sfx(opts.sound || 'ui-click'); onClick(bg, t); this.pressed(g); });
     return { bg, t };
   }
 
@@ -5381,10 +5436,10 @@ class LootScene extends Phaser.Scene {
   }
 
   makeButton(x, y, w, h, label, color, onClick, opts = {}) {
-    const g = this.glass(this.add.graphics(), x, y, w, h, { fill: color, alpha: 0.8, stroke: opts.stroke || FORGE.bronze, strokeAlpha: opts.stroke ? 0.9 : 0.6, radius: Math.min(12, h / 2), sheen: 0.1 });
+    const g = this.glass(this.add.graphics(), x, y, w, h, { kind: 'button', fill: color, alpha: 0.86, stroke: opts.stroke || MAT.bronze, strokeAlpha: opts.stroke ? 0.9 : 0.75, radius: Math.min(12, h / 2), sheen: 0.1 });
     const bg = this.add.rectangle(x, y, w, h, 0xffffff, 0).setInteractive({ useHandCursor: true });
     const txt = this.add.text(x, y, label, { resolution: RES, fontSize: (opts.size || 16) + 'px', color: opts.color || '#fffbef', fontStyle: 'bold' }).setOrigin(0.5);
-    bg.on('pointerdown', () => { if (opts.sound !== null) this.sfx(opts.sound || 'ui-click'); onClick(); });
+    bg.on('pointerdown', () => { if (opts.sound !== null) this.sfx(opts.sound || 'ui-click'); onClick(); this.pressed(g); });
     this.uiObjects.push(g, bg, txt);
     return bg;
   }
@@ -5537,7 +5592,8 @@ class LootScene extends Phaser.Scene {
     const textX = 80, wrap = b.right - textX - 12;       // never past the arena border
 
     // A backing panel keeps the text readable over the rangoli floor.
-    this.uiObjects.push(this.add.rectangle(b.centerX, b.centerY, b.width, b.height, FORGE.deep, 0.78));
+    this.uiObjects.push(this.add.rectangle(W / 2, HUD_H + (H - HUD_H) / 2, W, H - HUD_H, 0x160803, 0.9));
+    this.uiObjects.push(this.glass(this.add.graphics(), b.centerX, b.centerY + 4, b.width + 16, b.height + 6, { kind: 'panel', alpha: 0.92 }));
     this.uiObjects.push(this.add.text(W/2, 30, 'POWERS', { resolution: RES, fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5));
     this.uiObjects.push(this.add.text(W/2, 56, `found in the depths · deepest ${N.stage.toLowerCase()} ${reached}`, { resolution: RES, fontSize: '11px', color: '#c8a96e' }).setOrigin(0.5));
 
