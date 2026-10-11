@@ -236,7 +236,7 @@ class ScreensScene extends FxScene {
   // the run's Nidhi, and the player should read that before it happens, not after.
   showAbandonConfirm() {
     this.openOverlay(0.84);
-    const cx = W / 2, kept = Math.floor(this.runGold * DEATH_KEEP);
+    const cx = W / 2, kept = bankedGold(this.runGold, false);
     this.ovPanel(cx, 362, 324, 300, { stroke: 0xff5c5c, strokeAlpha: 0.9 });
     this.ovText(cx, 252, 'ABANDON THIS RUN?', { fontSize: '21px', color: '#ff9a80', fontStyle: 'bold' }).setOrigin(0.5);
     this.ovText(cx, 296, 'Abandoning counts as a death.', { fontSize: '14px', color: '#fffbef', fontStyle: 'bold', display: false }).setOrigin(0.5);
@@ -686,8 +686,8 @@ class ScreensScene extends FxScene {
 
     // Exponential, not linear: linear costs let Vitality outgrow every sector. Levels
     // now plateau around 8-12 unless a player commits to many deep runs.
-    const vitCost = Math.round(50 * Math.pow(1.45, session.vitalityLevel));
-    const powCost = Math.round(60 * Math.pow(1.45, session.powerLevel));
+    const vitCost = upgradeCost('vitalityLevel', session.vitalityLevel);
+    const powCost = upgradeCost('powerLevel', session.powerLevel);
     const buy = (cost, level) => () => {
       if (session.metaGold < cost) { this.sfx('ui-error'); return; }
       session.metaGold -= cost; session[level]++; saveSession();

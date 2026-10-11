@@ -9,12 +9,14 @@
  *           icons: ICON_FRAMES (the frames of assets/icons/*.png, in order: printed by
  *           tools/cut-icons.py), ICON, FORM_SIGN and the functions that name an icon
  *           (lootIcon, boonIcon, perkIcon, formIcon, EMPTY_ICON, LOCKED_ICON);
- *           the title picture's fit: TITLE_ART.
+ *           the title picture's fit: TITLE_ART;
+ *           and gameAssets(): every file the game loads, in one list (wearAssets(slot)
+ *           for what a worn piece adds).
  * Needs     config.js, names.js, rules.js (RARITY, BOONS, PERKS, TEJAS_FORMS, when an
- *           icon is named).
+ *           icon is named); audio.js (SFX) and floors.js (FLOORS) when the list is made.
  * State     none.
  *
- * Files are loaded by the scene's preload() from these tables. tools/check-game.mjs
+ * The scene's preload() loads gameAssets() and nothing else. tools/check-game.mjs
  * checks that every file and frame named here exists and that nothing is named twice.
  */
 
@@ -31,7 +33,7 @@ const HP_BAR = { w: 42, h: 5, up: 35 };   // the hero's health bar: its size, an
 const ICON_FRAMES = 'loot-none-common loot-none-rare loot-none-epic loot-venom-common loot-venom-rare loot-venom-epic loot-vampiric-common loot-vampiric-rare loot-vampiric-epic loot-chain-common loot-chain-rare loot-chain-epic loot-executioner-common loot-executioner-rare loot-executioner-epic loot-vitality-common loot-vitality-rare loot-vitality-epic loot-aegis-common loot-aegis-rare loot-aegis-epic loot-thorns-common loot-thorns-rare loot-thorns-epic loot-swift-common loot-swift-rare loot-swift-epic loot-regen-common loot-regen-rare loot-regen-epic loot-mystery boon-keen boon-quick boon-reach boon-feet boon-iron boon-hide boon-ground boon-run boon-second boon-readslam boon-laststand boon-greed boon-rot boon-bloodshield boon-fork boon-cleancut boon-kindling boon-hunger perk-guard perk-eye perk-scale perk-lungs perk-wind perk-study perk-reroll perk-taker sign-treasure sign-power sign-health sign-shield sign-damage sign-speed sign-move sign-fire sign-poison sign-blood sign-lightning sign-execution hud-satchel hud-empty hud-locked hud-drift hud-surge hud-eclipse hud-convergence'.split(' ');
 // `grow`: a painted icon fills less of its square than a drawn shape did of its, and has
 // more in it to see, so each kind is drawn this much larger than the size asked for.
-const ICON = { frame: 128, small: 64, drawn: new URLSearchParams(location.search).get('icons') === 'drawn',
+const ICON = { frame: 128, small: 64, drawn: QUERY.get('icons') === 'drawn',
                grow: { loot: 1.25, boon: 1.12, perk: 1.3, sign: 1.15, hud: 1.15 } };
 // An icon is named by three things: its frame in the sheets and, for when the sheets are
 // not loaded, the drawn shape that stands in for it and the colour that shape is given.
@@ -107,7 +109,7 @@ const WEAR = {
 };
 const WORN = (() => {
   const worn = {};
-  (new URLSearchParams(location.search).get('wear') || '').split(',').forEach(pair => {
+  (QUERY.get('wear') || '').split(',').forEach(pair => {
     const [slot, piece] = pair.split(':');
     if (WEAR.slots.includes(slot) && WEAR.dyes[piece] !== undefined) worn[slot] = piece;
   });
@@ -150,4 +152,41 @@ const TITLE_ART = { hero: { x: 200, top: 318, foot: 430, wide: 56 }, depthY: 196
 function facingFor(dx, dy) {
   if (Math.abs(dy) >= Math.abs(dx)) return dy >= 0 ? 'front' : 'back';
   return dx >= 0 ? 'right' : 'left';
+}
+
+// ---------- Every file the game loads ----------
+// The two pictures a worn slot needs: its zone on the hero's sheet and on the portrait.
+function wearAssets(slot) {
+  return [{ load: 'image', key: `${CHARS.player}-zone-${slot}`, path: `assets/chars/${CHARS.player}-zone-${slot}.png` },
+          { load: 'image', key: `${CHARS.player}-portrait-zone-${slot}`, path: `assets/chars/${CHARS.player}-portrait-zone-${slot}.png` }];
+}
+
+// The whole list, in the order the scene's preload() asks for it: { load, key, path } and,
+// for a sheet of square frames, `frame` (their size). `key` is what the engine knows the
+// file by. This is the one place a file's address is written; tools/check-game.mjs
+// checks every one is on the disk and that nothing lies in those folders unasked for.
+function gameAssets() {
+  const list = [];
+  // 8 characters x 4 facings. Texture key is "<char>-<facing>", e.g. "asura-left".
+  for (const name of Object.values(CHARS)) {
+    for (const f of FACINGS) list.push({ load: 'image', key: `${name}-${f}`, path: `assets/chars/${name}-${f}.png` });
+  }
+  for (const name of WALKERS) list.push({ load: 'spritesheet', key: `${name}-walk`, path: `assets/chars/${name}-walk.png`, frame: artOf(name).cell });
+  // The hero's portrait for the profile, at the full size of the picture it was cut from;
+  // and, only if something is worn, the zones it is worn through (see dressHero).
+  list.push({ load: 'image', key: `${CHARS.player}-portrait`, path: `assets/chars/${CHARS.player}-portrait.png` });
+  Object.keys(WORN).forEach(slot => list.push(...wearAssets(slot)));
+  // The floor pictures (requirements 2.43), if this set of floors has any.
+  FLOORS.forEach(theme => { if (theme.picture) list.push({ load: 'image', key: `floor-pic-${theme.picture}`, path: `assets/floors/level-${theme.picture}.jpg` }); });
+  list.push({ load: 'image', key: 'bg_stars', path: 'assets/bg-stars.png' });
+  list.push({ load: 'image', key: 'title_art', path: 'assets/title-art.jpg' });
+  // The icon pictures (requirements 2.46). Without them the game draws its own.
+  if (!ICON.drawn) {
+    list.push({ load: 'spritesheet', key: 'icons', path: 'assets/icons/icons.png', frame: ICON.frame });
+    list.push({ load: 'spritesheet', key: 'icons-small', path: 'assets/icons/icons-small.png', frame: ICON.small });
+  }
+  for (const [key, def] of Object.entries(SFX)) {
+    for (const f of def.files || [key]) list.push({ load: 'audio', key: f, path: `assets/sfx/${f}.wav` });
+  }
+  return list;
 }

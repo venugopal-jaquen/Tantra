@@ -216,5 +216,5 @@ const NAME_PACKS = {
   }
 };
 const NAME_PACK = 'hybrid';
-const N = NAME_PACKS[new URLSearchParams(location.search).get('names')] || NAME_PACKS[NAME_PACK];
+const N = NAME_PACKS[QUERY.get('names')] || NAME_PACKS[NAME_PACK];
 const GLOSSARY = N.cards;

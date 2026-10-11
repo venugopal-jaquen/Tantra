@@ -17,7 +17,7 @@ const Loader = (() => {
   const $ = id => document.getElementById(id);
   const root = $('loader');
   let i = 0, timer = null, state = 'loading', onBegin = null;
-  try { i = (parseInt(localStorage.getItem('loot-chase-glossary-i'), 10) + 1) || 0; } catch (e) { /* no storage */ }
+  try { i = (parseInt(STORE.read('loot-chase-glossary-i'), 10) + 1) || 0; } catch (e) { /* no storage */ }
 
   $('ldr-title').textContent = GAME_TITLE;
   document.title = GAME_TITLE;
@@ -27,7 +27,7 @@ const Loader = (() => {
   (() => {
     let water = 0, won = 0;
     try {
-      const save = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
+      const save = JSON.parse(STORE.read(SAVE_KEY)) || {};
       water = save.water || 0;
       won = save.depthsWon !== undefined ? save.depthsWon : (save.wins > 0 ? 1 : 0);
     } catch (e) { /* no save yet */ }
@@ -53,7 +53,7 @@ const Loader = (() => {
 
   // The card about the hero carries the name the player chose, or says where to choose one.
   let nick = '';
-  try { nick = String((JSON.parse(localStorage.getItem(SAVE_KEY)) || {}).nickname || '').slice(0, 28); } catch (e) { /* no save yet */ }
+  try { nick = String((JSON.parse(STORE.read(SAVE_KEY)) || {}).nickname || '').slice(0, 28); } catch (e) { /* no save yet */ }
   const show = () => {
     const n = GLOSSARY.length, card = $('ldr-card');
     let g = GLOSSARY[((i % n) + n) % n];
@@ -65,7 +65,7 @@ const Loader = (() => {
     $('ldr-meaning').textContent = g.meaning ? '\u201C' + g.meaning + '\u201D' : '';
     $('ldr-role').textContent = g.role;
     card.classList.remove('in'); void card.offsetWidth; card.classList.add('in');   // replay the entrance
-    try { localStorage.setItem('loot-chase-glossary-i', String(((i % n) + n) % n)); } catch (e) { /* ignore */ }
+    try { STORE.write('loot-chase-glossary-i', String(((i % n) + n) % n)); } catch (e) { /* ignore */ }
   };
   const arm = () => { clearInterval(timer); timer = setInterval(() => { i++; show(); }, 7000); };
   const next = () => { i++; show(); arm(); };

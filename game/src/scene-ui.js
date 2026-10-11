@@ -120,33 +120,7 @@ class UiScene extends Phaser.Scene {
   // edged, in shade along its top. A `button` stands out of a panel as a panel stands out
   // of the screen. An edge takes the colour of what it says: a metal, a state, a warning.
   // What lies behind still shows through, blurred (frost): only the frame is new.
-  glass(g, x, y, w, h, opts = {}) {
-    const r = opts.radius === undefined ? 16 : opts.radius, kind = opts.kind || (r >= 14 ? 'panel' : 'card'), heavy = kind === 'panel';
-    const c = Math.min(heavy ? 11 : Math.max(3, r * 0.62), w / 4, h / 3.2), l = x - w / 2, t = y - h / 2, e = l + w, b = t + h;
-    // The eight corners, `i` inside the outline (outside it, if less than nothing).
-    const cut = (i = 0) => { const k = Math.max(0.5, c - i * 0.586);
-      return [{ x: l + i + k, y: t + i }, { x: e - i - k, y: t + i }, { x: e - i, y: t + i + k }, { x: e - i, y: b - i - k },
-              { x: e - i - k, y: b - i }, { x: l + i + k, y: b - i }, { x: l + i, y: b - i - k }, { x: l + i, y: t + i + k }]; };
-    const top = q => [q[7], q[0], q[1], q[2]], foot = q => [q[3], q[4], q[5], q[6]], outer = cut();
-    const stroke = opts.stroke === undefined ? MAT.bronze : opts.stroke === FORGE.gold ? MAT.amber : opts.stroke;
-    const sa = opts.strokeAlpha === undefined ? 0.85 : opts.strokeAlpha;
-    g.fillStyle(opts.fill === undefined ? (kind === 'card' ? MAT.cut : MAT.stone) : opts.fill, opts.alpha === undefined ? 0.62 : opts.alpha);
-    g.fillPoints(outer, true);
-    if (kind === 'card') {
-      g.lineStyle(2, MAT.shade, 0.32); g.strokePoints(top(cut(1.6)));
-      g.lineStyle(1, MAT.light, 0.1); g.strokePoints(foot(cut(1.2)));
-      g.lineStyle(1.3, stroke, sa); g.strokePoints(outer, true);
-      return g;
-    }
-    const band = t + Math.min(h * 0.42, 120);
-    g.fillStyle(MAT.light, (opts.sheen === undefined ? 0.045 : opts.sheen) * 0.7);
-    g.fillPoints([outer[7], outer[0], outer[1], outer[2], { x: e, y: band }, { x: l, y: band }], true);
-    g.lineStyle(heavy ? 2 : 1.6, MAT.shade, 0.55); g.strokePoints(foot(cut(-1.4)));
-    g.lineStyle(heavy ? 2.4 : 1.8, stroke, sa); g.strokePoints(outer, true);
-    g.lineStyle(1, MAT.light, heavy ? 0.42 : 0.5); g.strokePoints(top(cut(heavy ? 2 : 1.7)));
-    if (heavy) { g.lineStyle(1, MAT.bronzeDark, 0.8); g.strokePoints(cut(5), true); }
-    return g;
-  }
+  glass(g, x, y, w, h, opts = {}) { return drawSlab(g, x, y, w, h, opts); }      // the material itself is ui.js's
 
   // A button answers the finger: it dips for a moment. The tap has already been acted on,
   // and the screen may have changed under it, so only a button still there is touched.

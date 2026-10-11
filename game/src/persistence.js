@@ -59,9 +59,19 @@ function wellWater() {
 // What the hero is called: the name the player gave, or the pack's word for an unnamed one.
 function heroName() { return session.nickname || N.player; }
 
+// The one door to the browser's storage. Everything kept goes through it, so a test can
+// put a store of its own in its place (STORE.area) and a browser without storage fails
+// in one spot. It looks localStorage up at each use, as the code it replaces did: where
+// storage is missing or forbidden that throws, and each caller already catches it.
+const STORE = {
+  area: null,
+  read(key) { return (this.area || localStorage).getItem(key); },
+  write(key, value) { (this.area || localStorage).setItem(key, value); }
+};
+
 function loadSession() {
   try {
-    const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+    const saved = JSON.parse(STORE.read(SAVE_KEY));
     if (saved) {
       Object.assign(session, saved);
       session.records = Object.assign(newRecords(), saved.records);       // a save from before records, or from before one of them
@@ -81,7 +91,7 @@ function loadSession() {
 }
 
 function saveSession() {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(session)); } catch (e) { /* ignore */ }
+  try { STORE.write(SAVE_KEY, JSON.stringify(session)); } catch (e) { /* ignore */ }
 }
 
 loadSession();
@@ -107,10 +117,10 @@ const settings = {
   tips: true               // live first-run tips
 };
 function loadSettings() {
-  try { const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)); if (saved) Object.assign(settings, saved); }
+  try { const saved = JSON.parse(STORE.read(SETTINGS_KEY)); if (saved) Object.assign(settings, saved); }
   catch (e) { /* storage unavailable - defaults stand */ }
 }
 function saveSettings() {
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* ignore */ }
+  try { STORE.write(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* ignore */ }
 }
 loadSettings();

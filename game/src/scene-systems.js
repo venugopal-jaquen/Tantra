@@ -184,28 +184,22 @@ class SystemsScene extends ScreensScene {
   // Boon bonuses add together rather than multiply, so a stacked build grows steadily
   // instead of exploding.
   dmgMult() {
-    let m = 1 + this.boonRank('keen') * BOONS.keen.n;
-    if (this.boonRank('ground') && this.stillMs >= 200) m += BOONS.ground.n;
-    if (this.lastStand()) m += BOONS.laststand.n;
-    if (this.slamBuffMs > 0) m += BOONS.readslam.n;
-    return m;
+    return damageBonus({ keen: this.boonRank('keen'), ground: this.boonRank('ground'), stillMs: this.stillMs, lastStand: this.lastStand(), slamBuffMs: this.slamBuffMs });
   }
 
-  attackRate() { return 1 + this.boonRank('quick') * BOONS.quick.n + (this.boonRank('run') && this.moving ? BOONS.run.n : 0); }
+  attackRate() { return attackRateBonus({ quick: this.boonRank('quick'), run: this.boonRank('run'), moving: this.moving }); }
   attackRange() { return this.player.weapon.range + this.boonRank('reach') * BOONS.reach.n; }
   attackShots() { return (this.player.weapon.shots || 1) + this.boonRank('second'); }
   executeLine() { return this.boonLive('cleancut') ? BOONS.cleancut.n : 0.25; }
   tejasRate() { return 1 + (this.boonRank('kindling') ? BOONS.kindling.n : 0); }
 
-  addGold(n) { this.runGold += Math.round(n * (this.boonRank('greed') ? 1 + BOONS.greed.n : 1) * (1 + DEPTH_GOLD * (this.tier - 1))); }
+  addGold(n) { this.runGold += goldEarned(n, this.boonRank('greed'), this.tier); }
 
   // fromBlood: vampiric healing, whose overflow Blood Shield keeps as a shield.
   healPlayer(amount, fromBlood) {
-    const room = this.player.maxHp - this.player.hp;
-    this.player.hp = Math.min(this.player.maxHp, this.player.hp + amount);
-    if (fromBlood && amount > room && this.boonLive('bloodshield')) {
-      this.player.bloodShield = Math.min(BOONS.bloodshield.n, (this.player.bloodShield || 0) + amount - room);
-    }
+    const p = this.player, now = healed(p.hp, p.maxHp, amount, fromBlood, fromBlood && this.boonLive('bloodshield'), p.bloodShield);
+    p.hp = now.hp;
+    if (now.bloodShield !== undefined) p.bloodShield = now.bloodShield;
   }
 
   // Spreading Rot: the poison a dying enemy carried jumps to the nearest one.

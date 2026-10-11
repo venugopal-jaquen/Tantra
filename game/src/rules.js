@@ -84,6 +84,9 @@ const FINAL_SECTOR = MEGA_BOSS_SECTOR;        // the level whose boss ends the r
 // Death used to bank everything, exactly like Extract - which made Descend free and the
 // Extract/Descend choice (requirements 2.5) a fake one.
 const DEATH_KEEP = 0.5;
+// What the two upgrades on the title screen cost, in Nidhi: the first level's price, and
+// how much dearer each level after it is (1.45 is 45% dearer). See upgradeCost().
+const UPGRADE_COST = { vitalityLevel: 50, powerLevel: 60, growth: 1.45 };
 
 // Boss slam kit. Each boss draws from its own pool; Vritra has all three.
 const SLAM = {

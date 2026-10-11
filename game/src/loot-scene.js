@@ -23,33 +23,10 @@ class LootScene extends SystemsScene {
   preload() {
     // The first slice of the bar is the page and the engine itself arriving.
     this.load.on('progress', v => Loader.setProgress(0.12 + v * 0.88));
-    // 8 characters x 4 facings. Texture key is "<char>-<facing>", e.g. "asura-left".
-    for (const name of Object.values(CHARS)) {
-      for (const f of FACINGS) {
-        this.load.image(`${name}-${f}`, `assets/chars/${name}-${f}.png`);
-      }
-    }
-    for (const name of WALKERS) {
-      this.load.spritesheet(`${name}-walk`, `assets/chars/${name}-walk.png`, { frameWidth: artOf(name).cell, frameHeight: artOf(name).cell });
-    }
-    // The hero's portrait for the profile, at the full size of the picture it was cut from;
-    // and, only if something is worn, the zones it is worn through (see dressHero).
-    this.load.image(`${CHARS.player}-portrait`, `assets/chars/${CHARS.player}-portrait.png`);
-    Object.keys(WORN).forEach(slot => {
-      this.load.image(`${CHARS.player}-zone-${slot}`, `assets/chars/${CHARS.player}-zone-${slot}.png`);
-      this.load.image(`${CHARS.player}-portrait-zone-${slot}`, `assets/chars/${CHARS.player}-portrait-zone-${slot}.png`);
-    });
-    // The floor pictures (requirements 2.43), if this set of floors has any.
-    FLOORS.forEach(theme => { if (theme.picture) this.load.image(`floor-pic-${theme.picture}`, `assets/floors/level-${theme.picture}.jpg`); });
-    this.load.image('bg_stars', 'assets/bg-stars.png');
-    this.load.image('title_art', 'assets/title-art.jpg');
-    // The icon pictures (requirements 2.46). Without them the game draws its own.
-    if (!ICON.drawn) {
-      this.load.spritesheet('icons', 'assets/icons/icons.png', { frameWidth: ICON.frame, frameHeight: ICON.frame });
-      this.load.spritesheet('icons-small', 'assets/icons/icons-small.png', { frameWidth: ICON.small, frameHeight: ICON.small });
-    }
-    for (const [key, def] of Object.entries(SFX)) {
-      for (const f of def.files || [key]) this.load.audio(f, `assets/sfx/${f}.wav`);
+    // Every file the game uses is named by gameAssets() (assets.js), and loaded in its order.
+    for (const a of gameAssets()) {
+      if (a.load === 'spritesheet') this.load.spritesheet(a.key, a.path, { frameWidth: a.frame, frameHeight: a.frame });
+      else this.load[a.load](a.key, a.path);
     }
   }
 
@@ -1381,7 +1358,7 @@ class LootScene extends SystemsScene {
     this.showPauseButton(false);
     if (victory) this.sfx('coins'); else this.sfx('toll', { rate: 0.75 });
     this.playMusic('hub');
-    const banked = victory ? this.runGold : Math.floor(this.runGold * DEATH_KEEP);
+    const banked = bankedGold(this.runGold, victory);
     session.metaGold += banked;
     session.records.bestHaul = Math.max(session.records.bestHaul, banked);
     if (this.sector > (session.bestSector || 0)) session.bestSector = this.sector;
