@@ -127,9 +127,18 @@ try {
   await sleep(900);
   const hub = await page(`const s = game.scene.keys.LootScene; return { state: s.state, title: s.uiObjects.find(o => o.type === 'Text').text, families: [...new Set(s.uiObjects.filter(o => o.type === 'Text').map(o => o.style.fontFamily.split(',')[0]))] };`);
   check('Begin opens the title screen', hub.state === 'hub', JSON.stringify(hub));
-  const art = await page(`const s = game.scene.keys.LootScene, im = s.uiObjects.find(o => o.type === 'Image' && o.texture.key === 'title_art');
-    return { there: !!im, w: im && Math.round(im.displayWidth), y: im && Math.round(im.y), shaft: s.menu.g.visible, pool: WELL.cy };`);
-  check('the title screen shows the title picture, moved up so its pool lies under the way in', art.there && art.w === 400 && art.y === 250 && art.shaft === false, JSON.stringify(art));
+  const art = await page(`const s = game.scene.keys.LootScene, im = s.uiObjects.find(o => o.type === 'Image' && o.texture.key === 'title_art'), h = TITLE_ART.hero;
+    const src = im && im.texture.getSourceImage();
+    // What of the menu lies on the hero: any words, the depth chooser, any button.
+    const box = new Phaser.Geom.Rectangle(h.x - h.wide / 2, h.top, h.wide, h.foot - h.top);
+    const over = s.uiObjects.filter(o => o.type === 'Text' && o.visible && Phaser.Geom.Rectangle.Overlaps(o.getBounds(), box)).map(o => o.text.slice(0, 24));
+    const words = s.uiObjects.filter(o => o.type === 'Text').map(o => [o.text, Math.round(o.y)]);
+    const at = t => (words.find(w => w[0].startsWith(t)) || [0, -1])[1];
+    return { there: !!im, w: im && Math.round(im.displayWidth), h: im && Math.round(im.displayHeight), x: im && Math.round(im.x), y: im && Math.round(im.y), file: src && [src.width, src.height],
+      shaft: s.menu.g.visible, pool: WELL.cy, descend: at('DESCEND'), depth: at('DEPTH '), heroTop: h.top, heroFoot: h.foot, deepest: Math.min(...words.filter(w => /^(Deepest|No descent)/.test(w[0])).map(w => w[1])), over };`);
+  check('the title screen is the picture of the hero at the well, cut to the screen with its pool at the way in, and nothing of the menu lies on him',
+    art.there && art.w === 400 && art.h === 700 && art.x === 200 && art.y === 350 && art.file[0] * 7 === art.file[1] * 4 && art.file[0] >= 1200 && art.shaft === false
+    && art.descend > art.pool - 40 && art.descend < art.heroTop - 20 && art.depth < art.pool - 80 && art.deepest > art.heroFoot && art.over.length === 0, JSON.stringify(art));
   await sleep(1300);
   const music = await page(`return { on: MUSIC_ON, started: Music.inited, tracks: Object.fromEntries(Object.entries(Music.tracks).map(([k, t]) => [k, t.dead ? 'missing' : (t.el.duration ? Math.round(t.el.duration) + 's' : 'loading')])) };`);
   const fxSound = await page(`const s = game.scene.keys.LootScene, was = settings.sfx;

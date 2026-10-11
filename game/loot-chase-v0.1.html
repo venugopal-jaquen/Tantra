@@ -2347,9 +2347,10 @@ const FLOORS = FLOOR_SETS[new URLSearchParams(location.search).get('floors')] ||
 
 // The title screen's view down the shaft: nested square tiers shrinking toward a glowing
 // floor. `period` is the time to sink one tier; `twist` turns each tier a little more.
-// The title picture: how far it is moved up so its pool lies under the way in, and where
-// below the ledge it fades into the dark.
-const TITLE_ART = { up: 100, fadeFrom: 545, fadeOver: 60 };
+// The title picture (requirements 2.48) is fitted to the screen by tools/fit-title.py, its
+// pool at the way in (WELL.cy). `hero` is where the hero stands in it, on the screen:
+// nothing of the menu is laid there. `depthY` is where the depth chooser sits above the well.
+const TITLE_ART = { hero: { x: 200, top: 318, foot: 430, wide: 56 }, depthY: 196 };
 const WELL = { cy: 300, size: 540, k: 0.8, tiers: 17, steps: 5, period: 5200, twist: 0.07, shade: [1.0, 0.8, 0.6, 0.86] };
 const WELL_STOPS = [[0, 244, 184, 104], [2.5, 232, 150, 66], [5, 204, 108, 38], [7.5, 158, 68, 20], [9.5, 124, 44, 10], [11.5, 190, 78, 14], [13.5, 255, 166, 52], [16, 255, 240, 176]];
 function wellColour(depth, shade) {
@@ -5153,8 +5154,8 @@ class LootScene extends Phaser.Scene {
     // Dusk at the top and bottom of the screen, so the words sit on something calm.
     const veil = this.textures.createCanvas('menuveil', 4, H), vc = veil.getContext();
     const lg = vc.createLinearGradient(0, 0, 0, H);
-    lg.addColorStop(0, 'rgba(34,6,0,0.74)'); lg.addColorStop(0.17, 'rgba(34,6,0,0.36)'); lg.addColorStop(0.27, 'rgba(34,6,0,0)');
-    lg.addColorStop(0.55, 'rgba(34,6,0,0)'); lg.addColorStop(0.66, 'rgba(34,6,0,0.78)'); lg.addColorStop(1, 'rgba(26,4,0,0.94)');
+    lg.addColorStop(0, 'rgba(34,6,0,0.5)'); lg.addColorStop(0.12, 'rgba(34,6,0,0.3)'); lg.addColorStop(0.24, 'rgba(34,6,0,0)');
+    lg.addColorStop(0.6, 'rgba(34,6,0,0)'); lg.addColorStop(0.7, 'rgba(34,6,0,0.78)'); lg.addColorStop(1, 'rgba(26,4,0,0.94)');
     vc.fillStyle = lg; vc.fillRect(0, 0, 4, H); veil.refresh();
   }
 
@@ -5466,22 +5467,19 @@ class LootScene extends Phaser.Scene {
     const veil = this.add.image(cx, H / 2, 'menuveil').setDisplaySize(W, H).setDepth(10.5);
     this.uiObjects.push(g, embers, glow, veil);
     this.menu = { g, embers };
-    // The title picture (requirements 2.21; the founder's own, 2026-10-10, "fit 2"): a stepwell
-    // seen from above, lit by lamps. It is moved up so that its glowing pool lies under the
-    // way in, and below the ledge it fades into the dark the menu sits on. The embers and the
-    // glow still move over it. If the file is missing, the shaft drawn in code shows instead.
-    if (this.textures.exists('title_art')) {
+    // The title picture (requirements 2.21, 2.48; the founder's own): a stepwell seen from
+    // above, lit by lamps, and the hero on its ledge looking down at the pool. It is cut to
+    // the screen with its pool at the way in (tools/fit-title.py) and stands still; the
+    // embers and the glow move over it. The glow lies on the water, short of where he
+    // stands. If the file is missing, the shaft drawn in code shows instead.
+    const pictured = this.textures.exists('title_art');
+    if (pictured) {
       g.setVisible(false);
-      const art = this.add.image(cx, H / 2 - TITLE_ART.up, 'title_art').setDepth(10.1);
-      art.setDisplaySize(W, W * art.height / art.width);
-      const fade = this.add.graphics().setDepth(10.15);
-      fade.fillGradientStyle(FORGE.deep, FORGE.deep, FORGE.deep, FORGE.deep, 0, 0, 1, 1);
-      fade.fillRect(0, TITLE_ART.fadeFrom, W, TITLE_ART.fadeOver);
-      fade.fillStyle(FORGE.deep, 1);
-      fade.fillRect(0, TITLE_ART.fadeFrom + TITLE_ART.fadeOver, W, H);
-      this.uiObjects.push(art, fade);
+      this.uiObjects.push(this.add.image(cx, H / 2, 'title_art').setDisplaySize(W, H).setDepth(10.1));
+      glow.setPosition(cx, cy - 12).setDisplaySize(226, 124).setAlpha(0.38);
     }
-    this.tweens.add({ targets: glow, scale: glow.scale * 1.14, alpha: 0.78, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.tweens.add(pictured ? { targets: glow, alpha: 0.6, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }
+      : { targets: glow, scale: glow.scale * 1.14, alpha: 0.78, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.drawWell(this.time.now);
 
     const say = (x, y, str, style) => {
@@ -5503,31 +5501,48 @@ class LootScene extends Phaser.Scene {
       { fontSize: '13px', color: '#fffbef', align: 'center', lineSpacing: 3, stroke: '#2a0800', strokeThickness: 3 });
 
     // The way in sits at the bottom of the well: you press the light you are falling toward.
-    const ring = this.add.circle(cx, cy, 60, 0x000000, 0).setStrokeStyle(2, FORGE.gold, 0.8);
-    const core = this.add.circle(cx, cy, 54, BTN.primary, 0.96).setStrokeStyle(3, FORGE.gold, 1)
-      .setInteractive(new Phaser.Geom.Circle(54, 54, 54), Phaser.Geom.Circle.Contains);
+    // With the picture, the pool itself is the way in: a ring of gold round its water, open
+    // at the foot where the hero stands before it, and the words on the water over his head.
+    let ring, core;
+    if (pictured) {
+      ring = this.add.graphics({ x: cx, y: cy + 1 });
+      ring.lineStyle(2.5, MAT.amber, 0.95);
+      ring.strokePoints(Array.from({ length: 77 }, (_, i) => { const a = Phaser.Math.DegToRad(118 + i * 4); return { x: Math.cos(a) * 79, y: Math.sin(a) * 47 }; }));
+      core = this.add.circle(cx, cy, 54, BTN.primary, 0.001);
+      this.tweens.add({ targets: ring, scale: 1.1, alpha: 0.4, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    } else {
+      ring = this.add.circle(cx, cy, 60, 0x000000, 0).setStrokeStyle(2, FORGE.gold, 0.8);
+      core = this.add.circle(cx, cy, 54, BTN.primary, 0.96).setStrokeStyle(3, FORGE.gold, 1);
+      this.tweens.add({ targets: ring, scale: 1.3, alpha: 0, duration: 1700, repeat: -1, ease: 'Cubic.easeOut' });
+    }
+    core.setInteractive(new Phaser.Geom.Circle(54, 54, 54), Phaser.Geom.Circle.Contains);
     core.input.cursor = 'pointer';
     core.on('pointerdown', () => { this.sfx('ui-click'); this.startRun(); });
     this.uiObjects.push(ring, core);
-    this.tweens.add({ targets: ring, scale: 1.3, alpha: 0, duration: 1700, repeat: -1, ease: 'Cubic.easeOut' });
-    say(cx, cy - 5, 'DESCEND', { fontSize: '19px', color: '#fffbef', fontStyle: 'bold' });
-    say(cx, cy + 16, 'start a run', { fontSize: '10px', color: '#ffe9a0' });
+    if (pictured) {
+      say(cx, cy - 18, 'DESCEND', { fontSize: '21px', color: '#fffbef', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 5 });
+      say(cx, cy + 2, 'start a run', { fontSize: '10px', color: '#ffe9a0', stroke: '#2a0800', strokeThickness: 3 });
+    } else {
+      say(cx, cy - 5, 'DESCEND', { fontSize: '19px', color: '#fffbef', fontStyle: 'bold' });
+      say(cx, cy + 16, 'start a run', { fontSize: '10px', color: '#ffe9a0' });
+    }
 
     // Which depth of the well this run goes down (requirements 2.30).
     const openDepth = Math.min(DEPTH_MAX, session.depthsWon + 1), pick = Phaser.Math.Clamp(session.depthPick || openDepth, 1, openDepth), dp = DEPTHS[pick];
-    this.uiObjects.push(this.glass(this.add.graphics(), cx, 396, 348, 66, { fill: FORGE.panel, alpha: 0.62, stroke: FORGE.gold, strokeAlpha: 0.55, radius: 14, sheen: 0.06 }));
-    say(cx, 379, `DEPTH ${pick} OF ${DEPTH_MAX}  ·  ${dp.name.toUpperCase()}`, { fontSize: '12px', color: '#ffd23c', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 });
-    say(cx, 397, dp.twist, { fontSize: '10px', color: '#f0dcc0', align: 'center', stroke: '#2a0800', strokeThickness: 2, wordWrap: { width: 262 } });
+    const dy = pictured ? TITLE_ART.depthY : 396;         // above the well with the picture: the hero stands where it was
+    this.uiObjects.push(this.glass(this.add.graphics(), cx, dy, 348, 66, { fill: FORGE.panel, alpha: 0.62, stroke: FORGE.gold, strokeAlpha: 0.55, radius: 14, sheen: 0.06 }));
+    say(cx, dy - 17, `DEPTH ${pick} OF ${DEPTH_MAX}  ·  ${dp.name.toUpperCase()}`, { fontSize: '12px', color: '#ffd23c', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 });
+    say(cx, dy + 1, dp.twist, { fontSize: '10px', color: '#f0dcc0', align: 'center', stroke: '#2a0800', strokeThickness: 2, wordWrap: { width: 262 } });
     // What every depth past the first adds besides its own hardship, and what it pays.
     const won = pick <= session.depthsWon, health = Math.round(DEPTH_HEALTH * (pick - 1) * 100), gold = Math.round(DEPTH_GOLD * (pick - 1) * 100);
-    say(cx, 414, pick === 1 ? (won ? 'won: no water here' : 'win it and depth 2 opens')
+    say(cx, dy + 18, pick === 1 ? (won ? 'won: no water here' : 'win it and depth 2 opens')
       : won ? `+${health}% health  ·  strays  ·  +${gold}% ${N.currency}  ·  won, no water`
       : `+${health}% enemy health  ·  a stray in ${STRAYS.says[pick]} wave${STRAYS.says[pick] === 'every' ? '' : 's'}  ·  +${gold}% ${N.currency}`,
       { fontSize: '9px', color: '#c8a96e', stroke: '#2a0800', strokeThickness: 2 });
     if (openDepth > 1) {
       const step = d => () => { session.depthPick = Phaser.Math.Clamp(pick + d, 1, openDepth); saveSession(); this.showHub(); };
-      if (pick > 1) this.makeButton(cx - 152, 396, 30, 34, '<', BTN.quiet, step(-1), { size: 14, sound: 'ui-page' });
-      if (pick < openDepth) this.makeButton(cx + 152, 396, 30, 34, '>', BTN.quiet, step(1), { size: 14, sound: 'ui-page', stroke: FORGE.gold });
+      if (pick > 1) this.makeButton(cx - 152, dy, 30, 34, '<', BTN.quiet, step(-1), { size: 14, sound: 'ui-page' });
+      if (pick < openDepth) this.makeButton(cx + 152, dy, 30, 34, '>', BTN.quiet, step(1), { size: 14, sound: 'ui-page', stroke: FORGE.gold });
     }
     say(cx, 441, (session.bestSector ? `Deepest: ${N.stage} ${session.bestSector}` : 'No descent yet') + `  ·  ${wellLine()}`,
       { fontSize: '11px', color: session.water > 0 ? '#9fe8d8' : '#c8a96e' });

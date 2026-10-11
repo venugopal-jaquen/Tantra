@@ -196,10 +196,15 @@ dark purple and satisfied none of the Cosmic Forge direction.
 
 ## Title picture (`title-art.jpg`)
 
-Made by the founder on 2026-10-10 with ChatGPT's image generation, from their own
-prompt: a stepwell seen from above, lit by lamps, with a glowing pool at the bottom and a
-small figure on the top ledge. 940 x 1672. It is AI-generated, and the itch.io page says
-so. OpenAI's terms give the person who made an image the rights to it, including to use
+**Since 2026-10-11** it is the founder's second picture of the same well: the game's own
+hero on the ledge, seen from behind, looking down at the pool. The founder's original is
+`stepwell-kiran-4320x7680.png` (4320 x 7680, 28 MB), kept by them outside this
+repository, in their Codex outputs folder of 2026-10-10; `python tools/fit-title.py
+<that file>` cuts it to the title screen and writes `title-art.jpg` (1200 x 2100). The
+first picture, used from build 0.14, is in this file's history: made by the founder on
+2026-10-10 with ChatGPT's image generation, a stepwell seen from above, lit by lamps, with
+a glowing pool and a small cloaked figure on the ledge, 940 x 1672. Both are AI-generated,
+and the itch.io page says so. OpenAI's terms give the person who made an image the rights to it, including to use
 it commercially; that is to be read again on OpenAI's own page in the pre-launch pass.
 
 
