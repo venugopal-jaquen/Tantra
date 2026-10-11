@@ -201,3 +201,13 @@ prompt: a stepwell seen from above, lit by lamps, with a glowing pool at the bot
 small figure on the top ledge. 940 x 1672. It is AI-generated, and the itch.io page says
 so. OpenAI's terms give the person who made an image the rights to it, including to use
 it commercially; that is to be read again on OpenAI's own page in the pre-launch pass.
+
+
+## Floors (`floors/`)
+
+`level-1.jpg`, `level-2.jpg` and `level-3.jpg` were made by the founder on 2026-10-10 with
+ChatGPT's image generation, from the prompt in `docs/art-brief-for-chatgpt.md` §2: each
+level's floor seen from straight above, with its band of steps. 1024 x 1536; the
+originals are `incoming/well-delver/floor-N.png`. **They are AI-generated, and the
+itch.io page says so.** The same terms as the title picture and the characters apply.
+The floors painted by code are still in the game, on request (`?floors=carved`).

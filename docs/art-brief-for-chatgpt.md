@@ -304,14 +304,72 @@ Tell me what you changed and anything you could not keep exactly as it was.
 The four names to use in the file name are `head`, `chest`, `legs` and `holster`. Make one
 piece first: the way the game lays a new shape into a slot is built against it.
 
-## 4. What comes back, and what happens to it
+## 4. The loot icons
+
+Weapons and trinkets lie on the floor as small icons and show again in the satchel and
+on the profile. Today they are eleven flat white shapes, coloured by the game. The
+founder asked for a prompt (2026-10-11). The game shows how good an item is by its metal:
+copper, silver or gold. So each icon is painted once, with its metal in plain grey, and
+the game colours the metal. Attach the hero and Asura turnarounds for the look.
+
+```text
+I need the loot icons for my game, in the same Well Delver look as the characters you
+made for it (the hero and the Asura turnarounds are attached, for the look).
+
+WHAT TO MAKE
+One PNG with a transparent background: a grid of 4 columns and 3 rows of equal square
+cells, one object in each, in this order, left to right, top row first:
+ 1. Dagger: a plain, quick dagger.
+ 2. Venom Dagger: a dagger with a green, dripping edge.
+ 3. Blood Sword: a short sword with a crimson edge and a red drop at the guard.
+ 4. Storm Disc: a plain steel throwing ring with a teal-white crackle of lightning on
+    it. A plain ring: not a spoked wheel, not a flaming disc.
+ 5. Executioner's Axe: a heavy axe with one notched blade and a dark leather grip.
+ 6. Life Gem: a red faceted gem in a simple metal setting.
+ 7. Aegis: a small round shield with a boss at its middle.
+ 8. Thorn Band: a bangle with thorns all round it.
+ 9. Swift Sandals: one sandal with a small feather at the ankle and a metal buckle.
+10. Healing Herb: a sprig of green leaves held by a small metal clasp.
+11. Unknown item: a cloth bundle tied with cord and closed with a plain metal toggle.
+    Nothing shows what is inside.
+12. Leave this cell empty.
+
+RULES
+- The picture is 1024 x 768 pixels, or larger in the same shape, so that every cell is a
+  square at least 256 pixels across.
+- Each object sits in the middle of its cell, fills about three quarters of it, and has
+  clear space all round. Nothing crosses into the next cell.
+- A truly transparent background. No lines between cells, no labels, no numbers, no
+  text, no ground shadow, no glow.
+- Every icon must read when it is 20 pixels across on a phone: one bold, chunky shape,
+  two or three colours, no fine detail, no thin lines. The eleven shapes must be told
+  apart at a glance.
+- EVERY METAL PART IS PLAIN PALE GREY STEEL: blades, the axe's head, the shield, the
+  band, settings, buckles, clasps, the toggle. The game colours the metal copper, silver
+  or gold itself, to show how good the item is. Nothing that is not metal may be grey or
+  white.
+- What is not metal keeps a strong colour of its own: green venom, crimson blood,
+  teal-white lightning, the red gem, green leaves, brown leather, cream cloth.
+- All eleven are seen from the same angle, a little from above and to one side, and lit
+  as the characters are: warm light from above.
+- The look of the characters: stylised low-poly 3D, faceted planes, painted, matte.
+- No symbol of any faith. No trident, conch or sacred mark. The disc is a plain weapon,
+  not the weapon of any god.
+
+Save it as game/assets/incoming/well-delver/loot-icons.png, at the full size it was made.
+Do not change any other file, and do not run any git command.
+Tell me its size in pixels and anything you could not do as asked.
+```
+
+## 5. What comes back, and what happens to it
 
 | Picture | Where | What Claude does with it |
 |---|---|---|
 | `<name>-turnaround.png` | `game/assets/incoming/well-delver/` | Cuts it into stills and a walk sheet, sets its size in the game, shows it on all three floors |
 | `<name>-walk-side.png` | the same | If the four figures match the turnaround, the side walk is made from them and not from the still |
 | `pieces/<slot>-<name>.png` | the same | Cuts the changed slot out, bends it as the hero is bent, and shows it on the profile and in a fight |
-| `floor-N.png` | the same | Cuts it into the floor and its band of steps, fits both to the arena, puts the game's own lamps and glows over it, and shows the cast on it beside today's floor |
+| `loot-icons.png` | the same | Cuts the eleven icons out, finds the grey metal in each for the game to colour copper, silver or gold, and puts them on the floor, in the satchel and on the profile |
+| `floor-N.png` | the same | **Done for the first three (2026-10-11):** laid on the arena with its steps round it, the game's lamps and glows moved to the picture's. A remade floor of the same name is put in the same way |
 
 File names in the game keep their first names (`requirements.md` §2.12): hexer is
 `rakshasa`, brute is `mahish`, bloodseed is `raktabija`, gatekeeper is `bakasura`,

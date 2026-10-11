@@ -26,7 +26,7 @@ PAGE = "loot-chase-v0.1.html"
 
 # What the page loads, as (folder under game/, file ending). Anything else found in those
 # folders stops the build, so a stray file can never ride along unnoticed.
-TAKE = [("assets/chars", ".png"), ("assets/sfx", ".wav"), ("vendor", ".js"), ("vendor", ".md"),
+TAKE = [("assets/chars", ".png"), ("assets/floors", ".jpg"), ("assets/sfx", ".wav"), ("vendor", ".js"), ("vendor", ".md"),
         ("vendor/fonts", ".woff2"), ("vendor/fonts", ".txt")]
 SINGLE = ["assets/bg-stars.png", "assets/title-art.jpg"]
 # Addresses the page may name. The first is the feedback form's mail relay (requirements
@@ -82,7 +82,7 @@ Typefaces
   Yatra One. Copyright 2014 The Yatra Project Authors.
   SIL Open Font License 1.1: vendor/fonts/OFL-baloo2.txt, vendor/fonts/OFL-yatraone.txt
 
-Characters
+Characters and floors
   The maker's own designs, made with ChatGPT. One unseen stand-in is from a
   CraftPix.net free character pack, used under the CraftPix file licence
   (https://craftpix.net/file-licenses/).

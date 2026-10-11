@@ -105,8 +105,8 @@ words the game keeps (Asura, Vritra, Nidhi, Tejas), no hero's name, nothing sacr
 > **This is a prototype.** There is no music yet, only sound effects. There is a
 > Feedback button on the title screen and after every run. Every message is read.
 >
-> Made by one person with an AI coding assistant. The characters are my own designs,
-> made with ChatGPT; sound effects by Kenney, engine by Phaser.
+> Made by one person with an AI coding assistant. The characters and floors are my own
+> designs, made with ChatGPT; sound effects by Kenney, engine by Phaser.
 
 Two lines above are the founder's to confirm, because they speak for them: "Every
 message is read" and "Made by one person with an AI coding assistant".
@@ -120,7 +120,7 @@ it is; players can filter on it, and a wrong answer is worse than a filtered pag
 |---|---|---|
 | Code | Yes | The game's code was written with an AI assistant |
 | Text and dialogue | Yes | The in-game text was drafted with an AI assistant and edited by the founder |
-| Graphics | **Yes**, since build 0.14 | The title screen's picture was made by the founder with ChatGPT. Since build 0.15 every character is the founder's design, made with ChatGPT. Floors, effects and the serpent are drawn by code |
+| Graphics | **Yes**, since build 0.14 | The title screen's picture was made by the founder with ChatGPT. Since build 0.15 every character and the three floors are the founder's designs, made with ChatGPT. Floors, effects and the serpent are drawn by code |
 | Sound | No | Kenney's recorded effects. Music, if bought later, is to be checked the same way |
 
 ## 5. After the upload, while the page is still a draft

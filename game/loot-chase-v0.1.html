@@ -2308,8 +2308,46 @@ const FLOORS_CARVED = [
 // Which set of floors the game paints. `carved` is the default since 2026-10-06, chosen
 // by the founder; `classic` is the line-drawn set of 2026-10-02 it replaced. Add
 // ?floors=classic to the address to see the old one without changing anything.
-const FLOOR_SETS = { classic: FLOORS_CLASSIC, carved: FLOORS_CARVED };
-const FLOOR_SET = 'carved';
+// ---------- Floor set "painted" (requirements 2.43) ----------
+// The founder's own pictures, made to go with the cast: each is a level's floor seen from
+// straight above, with the band of steps round it, in one picture (assets/floors/). `inner`
+// is where the floor lies inside its picture, as parts of the picture's width and height;
+// that part is laid on the arena and the whole picture round it, so floor and steps are
+// one piece. It is chosen a little narrower than the floor in the picture where that
+// keeps what is round from being stretched by more than a twentieth. `lights` are where
+// the picture's own lamps and glows are, in parts of the picture; the game flickers them.
+// If a picture is missing the level is painted as the carved set paints it.
+const FLOOR_PICS = {};                 // the pictures themselves, by level, once loaded (see create)
+const paintedFloor = (level, carved, o) => {
+  const [x0, y0, x1, y1] = o.inner, pic = () => FLOOR_PICS[level];
+  const at = (fx, fy) => [(fx - x0) / (x1 - x0) * 340, (fy - y0) / (y1 - y0) * 564];       // a place in the picture, as a place on the floor
+  return Object.assign({}, o, {
+    picture: level,
+    lights: o.glows.map(([fx, fy, ...rest]) => [...at(fx, fy), ...rest]),
+    paint(ctx, w, h, px) {
+      const im = pic();
+      if (!im) return carved.paint(ctx, w, h, px);
+      ctx.drawImage(im, x0 * im.width, y0 * im.height, (x1 - x0) * im.width, (y1 - y0) * im.height, 0, 0, w, h);
+    },
+    frame(ctx, fw, fh, px) {
+      const im = pic();
+      if (!im) return carved.frame(ctx, fw, fh, px);
+      const kx = (fw - 2 * MARGIN) / ((x1 - x0) * im.width), ky = (fh - 2 * MARGIN) / ((y1 - y0) * im.height);
+      ctx.fillStyle = '#1a0a04'; ctx.fillRect(0, 0, fw, fh);
+      ctx.drawImage(im, MARGIN - x0 * im.width * kx, MARGIN - y0 * im.height * ky, im.width * kx, im.height * ky);
+    }
+  });
+};
+const FLOORS_PAINTED = [
+  paintedFloor(1, FLOORS_CARVED[0], { name: 'court', ember: 0xffc070, emberAlpha: 0.12, edge: 0xd8a488, inner: [0.078, 0.055, 0.922, 0.945],
+    glows: [[0.5, 0.5, 150, 0xffc880, 0.06, 4100]] }),                                              // the carved sun, breathing as cloud passes
+  paintedFloor(2, FLOORS_CARVED[1], { name: 'flood', ember: 0xcffff4, emberAlpha: 0.1, edge: 0xb9a078, inner: [0.1225, 0.09, 0.8775, 0.885],
+    glows: [[0.303, 0.1875], [0.707, 0.1875], [0.24, 0.47], [0.758, 0.47], [0.307, 0.747], [0.695, 0.747]].map(([x, y], i) => [x, y, 30, 0xffb060, 0.45, 520 + i * 90]) }),   // the floating lamps
+  paintedFloor(3, FLOORS_CARVED[2], { name: 'hoard', ember: 0xffd23c, emberAlpha: 0.18, edge: 0xd8a84a, inner: [0.1225, 0.085, 0.8775, 0.895],
+    glows: [[0.498, 0.477, 96, 0x50e6d2, 0.26, 1900], [0.15, 0.11, 90, 0xffb040, 0.2, 2300], [0.85, 0.11, 90, 0xffb040, 0.2, 2700], [0.15, 0.89, 90, 0xffb040, 0.2, 2500], [0.85, 0.89, 90, 0xffb040, 0.2, 2100]] })   // the water under the grate, and the hoard
+];
+const FLOOR_SETS = { classic: FLOORS_CLASSIC, carved: FLOORS_CARVED, painted: FLOORS_PAINTED };
+const FLOOR_SET = 'painted';
 const FLOORS = FLOOR_SETS[new URLSearchParams(location.search).get('floors')] || FLOOR_SETS[FLOOR_SET];
 // painted floor sets >>>
 
@@ -2407,6 +2445,8 @@ class LootScene extends Phaser.Scene {
       this.load.image(`${CHARS.player}-zone-${slot}`, `assets/chars/${CHARS.player}-zone-${slot}.png`);
       this.load.image(`${CHARS.player}-portrait-zone-${slot}`, `assets/chars/${CHARS.player}-portrait-zone-${slot}.png`);
     });
+    // The floor pictures (requirements 2.43), if this set of floors has any.
+    FLOORS.forEach(theme => { if (theme.picture) this.load.image(`floor-pic-${theme.picture}`, `assets/floors/level-${theme.picture}.jpg`); });
     this.load.image('bg_stars', 'assets/bg-stars.png');
     this.load.image('title_art', 'assets/title-art.jpg');
     for (const [key, def] of Object.entries(SFX)) {
@@ -2417,6 +2457,14 @@ class LootScene extends Phaser.Scene {
   create() {
     this.state = 'loading'; // loading -> hub -> playing -> ... -> summary -> hub
     this.dressHero();
+    // A floor picture is only ever painted into the floor's own texture, so the copy the
+    // loader put on the graphics card is given back; the picture itself is kept.
+    FLOORS.forEach(theme => {
+      const key = `floor-pic-${theme.picture}`;
+      if (!theme.picture || !this.textures.exists(key)) return;
+      FLOOR_PICS[theme.picture] = this.textures.get(key).getSourceImage();
+      this.textures.remove(key);
+    });
 
     // One door for typography: every this.add.text() call in this file picks up its
     // typeface here, so no call site has to name a font.

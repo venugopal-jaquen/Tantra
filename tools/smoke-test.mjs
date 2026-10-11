@@ -404,10 +404,11 @@ try {
     await sleep(450); await shot('3-floor-sector-' + n);
   }
   const floors = await page(`const s = game.scene.keys.LootScene; const t0 = performance.now(); for (const n of [1, 2, 3]) s.setFloor(n);
-    const out = { set: FLOORS === FLOOR_SETS.carved, floors: [0, 1, 2].filter(k => s.textures.exists('floor-' + k + '-0')).length,
+    const out = { set: FLOORS === FLOOR_SETS.painted, pictures: [1, 2, 3].filter(n => FLOOR_PICS[n] && FLOOR_PICS[n].width >= 1000).length, kept: [1, 2, 3].filter(n => s.textures.exists('floor-pic-' + n)).length,
+      floors: [0, 1, 2].filter(k => s.textures.exists('floor-' + k + '-0')).length,
       frames: [0, 1, 2].filter(k => s.textures.exists('frame-floor-' + k + '-0')).length, lights: s.floorLights.length, frameShown: s.frameImg.visible, paintMs: Math.round(performance.now() - t0) };
     s.setFloor(1); return out;`);
-  check('the carved floors are the default, and paint all three levels with their stairs and lights', floors.set && floors.floors === 3 && floors.frames === 3 && floors.lights > 0 && floors.frameShown, JSON.stringify(floors));
+  check("the founder's floor pictures are the default, and paint all three levels with their steps and lights, without being held twice", floors.set && floors.pictures === 3 && floors.kept === 0 && floors.floors === 3 && floors.frames === 3 && floors.lights > 0 && floors.frameShown, JSON.stringify(floors));
 
   // ---------- 4. pause, abandon prompt, death keeps half ----------
   await page(`const s = game.scene.keys.LootScene; s.runGold = 125; s.pauseGame();`);
