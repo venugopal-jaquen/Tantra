@@ -811,6 +811,28 @@ const DEATH_FX = {
   bakasura: [0xd89a4a, 0x7a2430], nidhiraksha: [0xf0c050, 0x2f8f8f], vritra: VRITRA_FX
 };
 const FLAT = 0.42;                         // how flat a ring lying on the floor round a standing figure is drawn
+
+// ---------- ICONS (requirements 2.46) ----------
+// The founder's icon pictures, cut by tools/cut-icons.py into two sheets of square frames
+// (assets/icons/): `icons` for where an icon is drawn large, `icons-small` for where it is
+// drawn small. ICON_FRAMES names the frames in the order they lie in both sheets; that tool
+// prints the line, and the smoke test holds the two to each other. Loot has a frame for
+// each metal, with only its metal recoloured. If the sheets are not there, or the page is
+// opened with ?icons=drawn, the game draws the white shapes it always drew (makeLootIcons),
+// coloured as they were: one set or the other, never a mix.
+const ICON_FRAMES = 'loot-none-common loot-none-rare loot-none-epic loot-venom-common loot-venom-rare loot-venom-epic loot-vampiric-common loot-vampiric-rare loot-vampiric-epic loot-chain-common loot-chain-rare loot-chain-epic loot-executioner-common loot-executioner-rare loot-executioner-epic loot-vitality-common loot-vitality-rare loot-vitality-epic loot-aegis-common loot-aegis-rare loot-aegis-epic loot-thorns-common loot-thorns-rare loot-thorns-epic loot-swift-common loot-swift-rare loot-swift-epic loot-regen-common loot-regen-rare loot-regen-epic loot-mystery boon-keen boon-quick boon-reach boon-feet boon-iron boon-hide boon-ground boon-run boon-second boon-readslam boon-laststand boon-greed boon-rot boon-bloodshield boon-fork boon-cleancut boon-kindling boon-hunger perk-guard perk-eye perk-scale perk-lungs perk-wind perk-study perk-reroll perk-taker sign-treasure sign-power sign-health sign-shield sign-damage sign-speed sign-move sign-fire sign-poison sign-blood sign-lightning sign-execution hud-satchel hud-empty hud-locked hud-drift hud-surge hud-eclipse hud-convergence'.split(' ');
+// `grow`: a painted icon fills less of its square than a drawn shape did of its, and has
+// more in it to see, so each kind is drawn this much larger than the size asked for.
+const ICON = { frame: 128, small: 64, drawn: new URLSearchParams(location.search).get('icons') === 'drawn',
+               grow: { loot: 1.25, boon: 1.12, perk: 1.3, sign: 1.15, hud: 1.15 } };
+// An icon is named by three things: its frame in the sheets and, for when the sheets are
+// not loaded, the drawn shape that stands in for it and the colour that shape is given.
+const FORM_SIGN = { none: 'fire', venom: 'poison', vampiric: 'blood', chain: 'lightning', executioner: 'execution' };
+const lootIcon = item => [`loot-${item.effect || 'none'}-${item.rarity}`, `icon_${item.effect || 'none'}`, RARITY[item.rarity].color];
+const boonIcon = key => ['boon-' + key, 'boon_' + key, RARITY[BOONS[key].metal].color];
+const perkIcon = key => ['perk-' + key, PERKS[key].icon, PERK_TINT];
+const formIcon = effect => ['sign-' + FORM_SIGN[effect || 'none'], 'icon_' + (effect || 'none'), TEJAS_FORMS[effect || 'none'].colour];
+const EMPTY_ICON = ['hud-empty', 'icon_mystery', 0x5a4535], LOCKED_ICON = ['hud-locked', 'icon_mystery', 0x5a4535];
 const dim = (c, k) => (Math.floor((c >> 16 & 255) * k) << 16) | (Math.floor((c >> 8 & 255) * k) << 8) | Math.floor((c & 255) * k);
 
 // Persists across page reloads via localStorage (falls back to in-memory if unavailable, e.g. private browsing)
@@ -2397,6 +2419,11 @@ class LootScene extends Phaser.Scene {
     FLOORS.forEach(theme => { if (theme.picture) this.load.image(`floor-pic-${theme.picture}`, `assets/floors/level-${theme.picture}.jpg`); });
     this.load.image('bg_stars', 'assets/bg-stars.png');
     this.load.image('title_art', 'assets/title-art.jpg');
+    // The icon pictures (requirements 2.46). Without them the game draws its own.
+    if (!ICON.drawn) {
+      this.load.spritesheet('icons', 'assets/icons/icons.png', { frameWidth: ICON.frame, frameHeight: ICON.frame });
+      this.load.spritesheet('icons-small', 'assets/icons/icons-small.png', { frameWidth: ICON.small, frameHeight: ICON.small });
+    }
     for (const [key, def] of Object.entries(SFX)) {
       for (const f of def.files || [key]) this.load.audio(f, `assets/sfx/${f}.wav`);
     }
@@ -2428,7 +2455,10 @@ class LootScene extends Phaser.Scene {
     this.camOff = { x: 0, y: 0 };
     this.cameraOn = false;
     this.uiObjects = this.uiList();
-    this.makeLootIcons();
+    // Painted icons if both sheets came, the drawn shapes if not; the shapes are not even
+    // made when the pictures are there, so nothing can show one by mistake.
+    this.painted = this.textures.exists('icons') && this.textures.exists('icons-small');
+    if (!this.painted) this.makeLootIcons();
     this.makeFxPieces();
     this.initFrost();
 
@@ -2465,11 +2495,15 @@ class LootScene extends Phaser.Scene {
     // HUD chrome is drawn after the arena so it always wins the depth fight.
     this.hudPanel = this.add.rectangle(W/2, HUD_H/2, W, HUD_H, FORGE.panel);
     this.hudText = this.add.text(14, 2, '', { resolution: RES, fontSize: '13px', color: '#fffbef' });
+    // The treasure carried, after the line, with its sign.
+    this.goldText = this.add.text(14, 2, '', { resolution: RES, fontSize: '13px', color: '#ffd23c' });
+    this.goldSign = this.painted ? this.icon(0, 11, ['sign-treasure'], 13).setVisible(false) : null;
+    this.powerSign = this.painted ? this.icon(0, 67, ['sign-power'], 12).setVisible(false) : null;
     this.weaponText = this.add.text(14, 60, '', { resolution: RES, fontSize: '11px', color: '#c8a96e' });
     // Power (2.28), at the right of the same line. Tapping it opens the profile.
     this.powerText = this.add.text(W - 14, 59, '', { resolution: RES, fontSize: '12px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(1, 0);
     const powerZone = this.add.zone(W - 52, 66, 104, 24).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.pauseGame('profile'));
-    this.fix(this.hudPanel, this.hudText, this.weaponText, this.powerText, powerZone);
+    this.fix(this.hudPanel, this.hudText, this.weaponText, this.powerText, powerZone, this.goldText, this.goldSign, this.powerSign);
 
     // input for movement (only acts while playing)
     this.pointerTarget = null;
@@ -2533,14 +2567,17 @@ class LootScene extends Phaser.Scene {
     this.tejasArc = this.add.graphics().setDepth(21);
     this.tejasLabel = this.add.text(x, y - 4, N.supercharge.toUpperCase(), { resolution: RES, fontSize: '8px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(0.5).setDepth(22);
     this.tejasPct = this.add.text(x, y + 7, '0%', { resolution: RES, fontSize: '8px', color: '#8a7360' }).setOrigin(0.5).setDepth(22);
+    // The sign of the form the weapon gives, over the word.
+    this.tejasSign = this.painted ? this.icon(x, y - 13, formIcon(this.player && this.player.weapon ? this.player.weapon.effect : 'none'), 11).setDepth(22) : null;
+    if (this.tejasSign) { this.tejasLabel.y = y + 1; this.tejasPct.y = y + 11; }
     this.tejasBtn.on('pointerdown', () => this.activateTejas());
-    this.fix(this.tejasBtn, this.tejasArc, this.tejasLabel, this.tejasPct);
+    this.fix(this.tejasBtn, this.tejasArc, this.tejasLabel, this.tejasPct, this.tejasSign);
   }
 
   destroyTejasUI() {
     this.endTejas(true);
-    [this.tejasBtn, this.tejasArc, this.tejasLabel, this.tejasPct].forEach(o => o && o.destroy());
-    this.tejasBtn = this.tejasArc = this.tejasLabel = this.tejasPct = null;
+    [this.tejasBtn, this.tejasArc, this.tejasLabel, this.tejasPct, this.tejasSign].forEach(o => o && o.destroy());
+    this.tejasBtn = this.tejasArc = this.tejasLabel = this.tejasPct = this.tejasSign = null;
   }
 
   gainTejas(e) {
@@ -2602,6 +2639,10 @@ class LootScene extends Phaser.Scene {
         : `${N.supercharge} is full! Press Space (or click the glowing button) to unleash it.`);
     }
     this.tejasWasReady = ready;
+    if (this.tejasSign) {
+      const want = ICON_FRAMES.indexOf(formIcon(this.player.weapon.effect)[0]);
+      if (this.tejasSign.frame.name !== want) this.tejasSign.setFrame(want);
+    }
     g.clear();
     g.lineStyle(4, 0x3a1a08, 0.9); g.strokeCircle(x, y, 25);
     g.lineStyle(4, this.tejasActive > 0 ? f.colour : FORGE.gold, 1);
@@ -3133,10 +3174,24 @@ class LootScene extends Phaser.Scene {
 
   // In a wide arena the HUD has the arena passing underneath it, so during a run it is
   // lifted above everything that fights. On the title screen it goes back under the menu.
+  // The top line of the HUD: where the run stands, then the treasure carried with its sign.
+  setHudLine(line, gold) {
+    this.hudText.setText(line);
+    this.goldText.setText(gold);
+    const x = this.hudText.x + this.hudText.width + 12;
+    this.goldText.x = x + (this.goldSign && gold ? 17 : 0);
+    if (this.goldSign) this.goldSign.setVisible(!!gold).setPosition(x + 7, 11);
+  }
+  // Power, at the right of the HUD, with its sign (the drawn HUD had a diamond for one).
+  setPower(power) {
+    this.powerText.setText(power === '' ? '' : (this.painted ? 'Power ' : '◆ Power ') + power);
+    if (this.powerSign) this.powerSign.setVisible(power !== '').setPosition(W - 14 - this.powerText.width - 9, 67);
+  }
+
   hudOnTop(on) {
     if (ARENA_SCALE === 1) return;
     this.hudPanel.setDepth(on ? Z.hud : 0);
-    [this.hudText, this.weaponText, this.powerText].forEach(o => o.setDepth(on ? Z.hud + 1 : 0));
+    [this.hudText, this.weaponText, this.powerText, this.goldText, this.goldSign, this.powerSign].forEach(o => o && o.setDepth(on ? Z.hud + 1 : 0));
   }
 
   // Arrows at the edge of the window toward what is out of sight: a boss always, and the
@@ -3347,7 +3402,7 @@ class LootScene extends Phaser.Scene {
     const keys = Object.keys(this.boons || {});
     keys.forEach((key, i) => {
       const bx = x + i * (size + 3);
-      this.ov(this.add.image(bx, y, 'boon_' + key).setDisplaySize(size, size).setTint(RARITY[BOONS[key].metal].color), 102);
+      this.ov(this.icon(bx, y, boonIcon(key), size), 102);
       if (this.boons[key] > 1) this.ovText(bx + size / 2 - 1, y + size / 2 - 2, String(this.boons[key]),
         { fontSize: '9px', color: '#fffbef', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 2.5 }).setOrigin(0.5);
     });
@@ -3375,7 +3430,7 @@ class LootScene extends Phaser.Scene {
       const card = this.ov(this.add.rectangle(cx, y, 322, 88, 0xffffff, 0).setInteractive({ useHandCursor: true }));
       // A tap that was meant for walking must not choose a card the instant it appears.
       card.on('pointerdown', () => { if (performance.now() - opened > 350) this.pickBoon(key); });
-      this.ov(this.add.image(left + 26, y, 'boon_' + key).setDisplaySize(34, 34).setTint(col), 102);
+      this.ov(this.icon(left + 26, y, boonIcon(key), 34), 102);
       this.ovText(left + 54, y - 37, N.boons[key][0], { fontSize: '15px', color: '#fffbef', fontStyle: 'bold' });
       this.ovText(left + 314, y - 34, N.metals[b.metal].toUpperCase(), { fontSize: '9px', color: '#' + col.toString(16).padStart(6, '0'), fontStyle: 'bold' }).setOrigin(1, 0);
       this.ovText(left + 54, y - 14, b.desc, { fontSize: '12px', color: '#f0dcc0', lineSpacing: 1, wordWrap: { width: 252 } });
@@ -3485,6 +3540,7 @@ class LootScene extends Phaser.Scene {
     }
     // Power, the way Destiny sets it: small label, large number.
     this.ovText(right, 74, 'POWER', { fontSize: '9px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(1, 0);
+    if (this.painted) this.ov(this.icon(right - 40, 79, ['sign-power'], 11), 102);
     const num = this.ovText(right, 82, String(parts.total), { fontSize: '36px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(1, 0);
     const dia = this.ov(this.add.graphics(), 102), dx = right - num.width - 13, dy = 106;
     dia.fillStyle(FORGE.gold, 1); dia.fillPoints([{ x: dx, y: dy - 7 }, { x: dx + 7, y: dy }, { x: dx, y: dy + 7 }, { x: dx - 7, y: dy }], true);
@@ -3502,9 +3558,12 @@ class LootScene extends Phaser.Scene {
 
     // Tapping a slot says what is in it.
     const detail = this.ovText(cx, 322, '', { fontSize: '11px', color: '#f0dcc0', align: 'center', wordWrap: { width: 300 } }).setOrigin(0.5, 0);
-    const slot = (x, y, size, texture, tint, corner, title, body, dim, onTap) => {
+    // `ref` is the icon (see ICON). `tint` colours the slot's border: with painted icons
+    // that is where quality and wearing show. A dim slot's icon is faded, its colours kept.
+    const slot = (x, y, size, ref, tint, corner, title, body, dim, onTap) => {
       this.glass(this.ov(this.add.graphics()), x, y, size, size, { fill: FORGE.panel, alpha: 0.6, stroke: dim ? 0x6b4a2e : tint, strokeAlpha: 0.95, radius: 9, sheen: 0.08 });
-      this.ov(this.add.image(x, y - (size > 40 ? 2 : 0), texture).setDisplaySize(size * 0.6, size * 0.6).setTint(dim ? 0x5a4535 : tint), 102);
+      const pic = this.ov(this.icon(x, y - (size > 40 ? 2 : 0), [ref[0], ref[1], dim ? 0x5a4535 : tint], size * 0.6), 102);
+      if (dim && this.painted && !ref[0].startsWith('hud-')) pic.setAlpha(0.4);
       if (corner) this.ovText(x + size / 2 - 3, y + size / 2 - 2, corner, { fontSize: '9px', color: '#fffbef', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 2.5 }).setOrigin(1, 1);
       const hit = this.ov(this.add.zone(x, y, size + 6, size + 6).setInteractive({ useHandCursor: true }), 103);
       hit.on('pointerdown', () => { this.sfx('ui-page'); detail.setText(`${title}\n${body}`); if (onTap) onTap(); });
@@ -3512,20 +3571,20 @@ class LootScene extends Phaser.Scene {
     // Left: what is equipped, each with the power it adds.
     const col = left + 26, f = this.tejasForm ? TEJAS_FORMS[w.effect || 'none'] || TEJAS_FORMS.none : null;
     this.ovText(col, 146, 'GEAR', { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
-    slot(col, 178, 48, `icon_${w.effect || 'none'}`, RARITY[w.rarity].color, '+' + parts.weapon, w.name + (w.shots > 1 ? `  x${w.shots}` : ''), (WEAPON_EFFECTS[w.effect] || WEAPON_EFFECTS.none).desc);
-    if (t) slot(col, 232, 48, `icon_${t.effect}`, RARITY[t.rarity].color, '+' + parts.trinket, t.name, TRINKET_EFFECTS[t.effect].desc);
-    else slot(col, 232, 48, 'icon_mystery', 0x6b4a2e, '', 'No trinket', live ? 'Trinkets drop from enemies: walk over one.' : 'Trinkets are found during a run.', true);
-    if (session.tejasUnlocked) slot(col, 286, 48, `icon_${w.effect || 'none'}`, f.colour, '+' + parts.tejas, `${N.supercharge}: ${f.name}`, f.desc);
-    else slot(col, 286, 48, 'icon_mystery', 0x6b4a2e, '', `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}.`, true);
+    slot(col, 178, 48, lootIcon(w), RARITY[w.rarity].color, '+' + parts.weapon, w.name + (w.shots > 1 ? `  x${w.shots}` : ''), (WEAPON_EFFECTS[w.effect] || WEAPON_EFFECTS.none).desc);
+    if (t) slot(col, 232, 48, lootIcon(t), RARITY[t.rarity].color, '+' + parts.trinket, t.name, TRINKET_EFFECTS[t.effect].desc);
+    else slot(col, 232, 48, EMPTY_ICON, 0x6b4a2e, '', 'No trinket', live ? 'Trinkets drop from enemies: walk over one.' : 'Trinkets are found during a run.', true);
+    if (session.tejasUnlocked) slot(col, 286, 48, formIcon(w.effect), f.colour, '+' + parts.tejas, `${N.supercharge}: ${f.name}`, f.desc);
+    else slot(col, 286, 48, LOCKED_ICON, 0x6b4a2e, '', `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}.`, true);
 
     // Right: the boons of this run.
     this.ovText(right - 46, 146, live ? 'BOONS' : `PERKS  \u00B7  WEAR ${this.perkSlots()}`, { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
     // The perks worn, at the hero's feet.
-    session.perksOn.forEach((key, i) => slot(cx + (i - (session.perksOn.length - 1) / 2) * 30, 304, 24, PERKS[key].icon, PERK_TINT, '', `${PERKS[key].name}  \u00B7  perk`, PERKS[key].desc));
+    session.perksOn.forEach((key, i) => slot(cx + (i - (session.perksOn.length - 1) / 2) * 30, 304, 24, perkIcon(key), PERK_TINT, '', `${PERKS[key].name}  \u00B7  perk`, PERKS[key].desc));
     const keys = Object.keys(boons);
     keys.slice(0, 15).forEach((key, i) => {
       const b = BOONS[key], asleep = b.weapon && b.weapon !== w.effect;
-      slot(right - 78 + (i % 3) * 32, 172 + Math.floor(i / 3) * 32, 28, 'boon_' + key, RARITY[b.metal].color, boons[key] > 1 ? String(boons[key]) : '',
+      slot(right - 78 + (i % 3) * 32, 172 + Math.floor(i / 3) * 32, 28, boonIcon(key), RARITY[b.metal].color, boons[key] > 1 ? String(boons[key]) : '',
         N.boons[key][0] + (b.max > 1 ? `  ·  rank ${boons[key]} of ${b.max}` : '') + (asleep ? '  ·  asleep' : ''), b.desc, asleep);
     });
     if (!live) this.profilePerks(slot, right, onBack);
@@ -3534,17 +3593,17 @@ class LootScene extends Phaser.Scene {
 
     // The numbers.
     const rows = [
-      ['icon_vitality', 0xff6b6b, 'Health', `${st.hp} / ${st.maxHp}`],
-      ['icon_aegis', 0x9fd8ff, 'Shield', st.shield || st.block || st.guard ? [st.shield ? String(st.shield) : '', st.block ? `blocks a hit every ${st.block}s` : st.guard ? 'blocks 1 hit a level' : ''].filter(Boolean).join('  +  ') : '0'],
-      ['boon_keen', 0xff8c42, 'Attack damage', (Math.round(st.damage * 10) / 10) + (st.targets > 1 ? `  x ${st.targets} targets` : '')],
-      ['boon_quick', 0xffd23c, 'Attack speed', (Math.round(st.perSecond * 100) / 100).toFixed(2) + ' a second'],
-      ['boon_feet', 0x5fe08a, 'Move speed', String(Math.round(st.move))]
+      ['sign-health', 'icon_vitality', 0xff6b6b, 'Health', `${st.hp} / ${st.maxHp}`],
+      ['sign-shield', 'icon_aegis', 0x9fd8ff, 'Shield', st.shield || st.block || st.guard ? [st.shield ? String(st.shield) : '', st.block ? `blocks a hit every ${st.block}s` : st.guard ? 'blocks 1 hit a level' : ''].filter(Boolean).join('  +  ') : '0'],
+      ['sign-damage', 'boon_keen', 0xff8c42, 'Attack damage', (Math.round(st.damage * 10) / 10) + (st.targets > 1 ? `  x ${st.targets} targets` : '')],
+      ['sign-speed', 'boon_quick', 0xffd23c, 'Attack speed', (Math.round(st.perSecond * 100) / 100).toFixed(2) + ' a second'],
+      ['sign-move', 'boon_feet', 0x5fe08a, 'Move speed', String(Math.round(st.move))]
     ];
     this.ovText(left, 372, 'STATS', { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' });
-    rows.forEach(([icon, tint, label, value], i) => {
+    rows.forEach(([sign, icon, tint, label, value], i) => {
       const y = 398 + i * 24;
       if (i) { const ln = this.ov(this.add.graphics(), 101); ln.lineStyle(1, 0xffffff, 0.08); ln.lineBetween(left, y - 12, right, y - 12); }
-      this.ov(this.add.image(left + 9, y, icon).setDisplaySize(16, 16).setTint(tint), 102);
+      this.ov(this.icon(left + 9, y, [sign, icon, tint], 16), 102);
       this.ovText(left + 26, y, label, { fontSize: '12px', color: '#f0dcc0' }).setOrigin(0, 0.5);
       this.ovText(right, y, value, { fontSize: '13px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(1, 0.5);
     });
@@ -3625,7 +3684,7 @@ class LootScene extends Phaser.Scene {
   profilePerks(slot, right, onBack) {
     Object.keys(PERKS).forEach((key, i) => {
       const pk = PERKS[key], has = !!session.perks[key], worn = session.perksOn.includes(key);
-      slot(right - 78 + (i % 3) * 32, 172 + Math.floor(i / 3) * 32, 28, pk.icon, worn ? PERK_TINT : 0xc8a96e, worn ? 'ON' : '',
+      slot(right - 78 + (i % 3) * 32, 172 + Math.floor(i / 3) * 32, 28, perkIcon(key), worn ? PERK_TINT : 0xc8a96e, worn ? 'ON' : '',
         pk.name + (has ? '' : '  \u00B7  not earned yet'), has ? pk.desc : `${pk.desc}. To earn it, ${this.perkHow(key)}.`, !has, has ? () => this.togglePerk(key, onBack) : null);
     });
   }
@@ -3720,20 +3779,20 @@ class LootScene extends Phaser.Scene {
     // The build you are carrying - Brotato and Vampire Survivors both put it here, since
     // pause is the one calm moment to read what your items actually do.
     const left = cx - 146, textX = left + 40;
-    const row = (y, iconKey, tint, title, body) => {
-      this.ov(this.add.image(left + 16, y + 8, `icon_${iconKey}`).setDisplaySize(24, 24).setTint(tint));
+    const row = (y, ref, title, body) => {
+      this.ov(this.icon(left + 16, y + 8, ref, 24));
       this.ovText(textX, y - 4, title, { fontSize: '12px', color: '#fffbef', fontStyle: 'bold', wordWrap: { width: 250 } });
       this.ovText(textX, y + 12, body, { fontSize: '10px', color: '#c8a96e', wordWrap: { width: 250 } });
     };
     this.ovText(left, 204, 'YOUR BUILD', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
     const w = this.player.weapon, tr = this.player.trinket;
-    row(226, w.effect || 'none', RARITY[w.rarity].color, w.name + (w.shots > 1 ? `  x${w.shots}` : ''),
+    row(226, lootIcon(w), w.name + (w.shots > 1 ? `  x${w.shots}` : ''),
         (WEAPON_EFFECTS[w.effect] || WEAPON_EFFECTS.none).desc);
-    if (tr) row(270, tr.effect, RARITY[tr.rarity].color, tr.name, TRINKET_EFFECTS[tr.effect].desc);
-    else row(270, 'mystery', 0x5a4535, 'No trinket', 'Trinkets drop from enemies - walk over one');
+    if (tr) row(270, lootIcon(tr), tr.name, TRINKET_EFFECTS[tr.effect].desc);
+    else row(270, EMPTY_ICON, 'No trinket', 'Trinkets drop from enemies - walk over one');
     const f = this.tejasForm();
-    if (session.tejasUnlocked) row(314, w.effect || 'none', f.colour, `${N.supercharge}: ${f.name}`, f.desc);
-    else row(314, 'mystery', 0x5a4535, `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}`);
+    if (session.tejasUnlocked) row(314, formIcon(w.effect), `${N.supercharge}: ${f.name}`, f.desc);
+    else row(314, LOCKED_ICON, `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}`);
     this.ovText(left, 350, 'YOUR BOONS', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
     if (!this.drawBoonRow(left + 16, 374, 18)) this.ovText(left, 367, 'None yet. One comes after every wave.', { fontSize: '10px', color: '#8a7360' });
     this.ovText(cx, 400, `${this.tier > 1 ? 'Depth ' + this.tier + ' · ' : ''}${stageLabel(this.sector)} · Wave ${Math.min(this.wave, 5)}/5 · ${this.runGold} ${N.currency} this run`,
@@ -3994,6 +4053,7 @@ class LootScene extends Phaser.Scene {
   howToCards(touch) {
     const g = () => this.ov(this.add.graphics(), 102);
     const img = (key, x, y, size, tint) => { const i = this.ov(this.add.image(x, y, key).setDisplaySize(size, size), 102); if (tint) i.setTint(tint); return i; };
+    const pic = (ref, x, y, size) => this.ov(this.icon(x, y, ref, size), 102);
     const label = (x, y, str, colour, size = 9) => this.ovText(x, y, str, { fontSize: size + 'px', color: colour || '#c8a96e', fontStyle: 'bold' }).setOrigin(0.5);
     const warn = 0xff3b1f;
     return [
@@ -4027,10 +4087,10 @@ class LootScene extends Phaser.Scene {
         body: `Walk over a drop to equip it - no menus. The metal is the quality: ${metalList()}. Violet ??? is unidentified - a gamble that usually pays. What you replace goes to the ${N.satchel} on the right edge: tap it, and the fight pauses while you swap.`,
         draw: (cx, cy) => {
           ['common', 'rare', 'epic'].map(r => [r, N.metals[r]]).forEach(([r, n], i) => {
-            img('icon_chain', cx - 118 + i * 58, cy - 18, 34, RARITY[r].color);
+            pic([`loot-chain-${r}`, 'icon_chain', RARITY[r].color], cx - 118 + i * 58, cy - 18, 34);
             label(cx - 118 + i * 58, cy + 14, n, '#' + RARITY[r].color.toString(16));
           });
-          img('icon_mystery', cx + 56, cy - 18, 34, MYSTERY_COLOR);
+          pic(['loot-mystery', 'icon_mystery', MYSTERY_COLOR], cx + 56, cy - 18, 34);
           label(cx + 56, cy + 14, '???', '#b48cff');
           this.ov(this.add.rectangle(cx + 128, cy, 22, 70, FORGE.panel, 1).setStrokeStyle(1, FORGE.bronze, 0.8), 102);
           label(cx + 128, cy - 10, '<', '#ffd23c', 10); label(cx + 128, cy + 8, '2', '#fffbef', 11);
@@ -4043,7 +4103,7 @@ class LootScene extends Phaser.Scene {
           [['keen', 'common'], ['ground', 'rare'], ['fork', 'epic']].forEach(([k, m], i) => {
             const y = cy - 52 + i * 52, col = RARITY[m].color;
             this.ov(this.add.rectangle(cx, y, 252, 44, FORGE.panel, 1).setStrokeStyle(1.5, col, 0.9), 102);
-            img('boon_' + k, cx - 102, y, 28, col);
+            pic(boonIcon(k), cx - 102, y, 28);
             this.ovText(cx - 80, y - 16, N.boons[k][0], { fontSize: '12px', color: '#fffbef', fontStyle: 'bold' });
             this.ovText(cx - 80, y + 2, BOONS[k].desc, { fontSize: '9px', color: '#c8a96e' });
           });
@@ -4135,7 +4195,7 @@ class LootScene extends Phaser.Scene {
           ['guard', 'scale', 'wind'].forEach((k, i) => {
             const y = cy - 44 + i * 40;
             this.glass(gr, cx + 30, y, 30, 30, { fill: FORGE.panel, alpha: 0.7, stroke: PERK_TINT, strokeAlpha: 0.95, radius: 7, sheen: 0.08 });
-            img(PERKS[k].icon, cx + 30, y, 18, PERK_TINT);
+            pic(perkIcon(k), cx + 30, y, 18);
             this.ovText(cx + 52, y - 13, PERKS[k].name, { fontSize: '10px', color: '#fffbef', fontStyle: 'bold' });
             this.ovText(cx + 52, y + 1, PERKS[k].desc, { fontSize: '8px', color: '#c8a96e', wordWrap: { width: 96 } });
           });
@@ -5135,6 +5195,19 @@ class LootScene extends Phaser.Scene {
     this.fxFade(star, { scale: star.scale * 2.2, angle: star.angle + 50, alpha: 0 }, 180);
   }
 
+  // ---------- ICONS ----------
+  // An icon, `size` across. `ref` is [frame, drawn shape, its colour] (see ICON). A painted
+  // icon is never tinted: its colours are its own, and what state it is in is shown round
+  // it (a border, a badge, a word) or by fading it.
+  icon(x, y, ref, size) {
+    if (!this.painted) {
+      const old = this.add.image(x, y, ref[1]).setDisplaySize(size, size);
+      return ref[2] === undefined ? old : old.setTint(ref[2]);
+    }
+    const drawn = size * (ICON.grow[ref[0].split('-')[0]] || 1);
+    return this.add.image(x, y, drawn * RES <= ICON.small ? 'icons-small' : 'icons', ICON_FRAMES.indexOf(ref[0])).setDisplaySize(drawn, drawn);
+  }
+
   // ---------- LOOT ICONS ----------
   // Drawn once into textures at boot rather than shipped as files: they stay exactly
   // on-palette, cost nothing to download, and one texture serves every rarity because
@@ -5325,7 +5398,7 @@ class LootScene extends Phaser.Scene {
     this.cameraOn = false;
     this.aimCamera(true);
     this.hudOnTop(false);
-    this.hudText.setText('');
+    this.setHudLine('', '');
     this.showPauseButton(false);
     this.setFloor(1);
     this.playMusic('hub');
@@ -5403,8 +5476,9 @@ class LootScene extends Phaser.Scene {
     }
     say(cx, 441, (session.bestSector ? `Deepest: ${N.stage} ${session.bestSector}` : 'No descent yet') + `  ·  ${wellLine()}`,
       { fontSize: '11px', color: session.water > 0 ? '#9fe8d8' : '#c8a96e' });
-    say(cx, 463, `${N.currency}: ${session.metaGold}`, { fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' });
-    if (this.powerText) this.powerText.setText('');
+    { const purse = say(cx, 463, `${N.currency}: ${session.metaGold}`, { fontSize: '20px', color: '#ffd23c', fontStyle: 'bold' });
+      if (this.painted) { purse.x += 12; this.uiObjects.push(this.icon(purse.x - purse.width / 2 - 14, 463, ['sign-treasure'], 19)); } }
+    if (this.powerText) this.setPower('');
 
     // Exponential, not linear: linear costs let Vitality outgrow every sector. Levels
     // now plateau around 8-12 unless a player commits to many deep runs.
@@ -5479,10 +5553,11 @@ class LootScene extends Phaser.Scene {
       this.uiObjects.push(btn, t);
     });
 
-    const row = (y, texture, tint, title, gloss, body, unlocked) => {
-      const dim = !unlocked;
+    const row = (y, ref, title, gloss, body, unlocked) => {
+      const dim = !unlocked, pic = this.icon(48, y, [ref[0], ref[1], dim ? 0x5a4535 : ref[2]], 28);
+      if (dim && this.painted) pic.setAlpha(0.4);
       this.uiObjects.push(
-        this.add.image(48, y, texture).setDisplaySize(28, 28).setTint(dim ? 0x5a4535 : tint),
+        pic,
         this.add.text(textX, y - 17, title, { resolution: RES, fontSize: '13px', fontStyle: 'bold',
           color: dim ? '#7a6656' : '#fffbef', wordWrap: { width: wrap } }),
         this.add.text(textX, y - 1, gloss, { resolution: RES, fontSize: '10px', fontStyle: 'italic',
@@ -5500,7 +5575,7 @@ class LootScene extends Phaser.Scene {
       for (const [key, def] of Object.entries(table)) {
         if (key === 'none') continue;                     // the starting Katar is not a discovery
         const unlocked = def.minSector <= reached;
-        row(y, 'icon_' + key, tint, def.label, def.meaning,
+        row(y, [`loot-${key}-rare`, 'icon_' + key, tint], def.label, def.meaning,
             unlocked ? def.desc : `Locked — reaches you on ${N.stage.toLowerCase()} ${def.minSector}`, unlocked);
         y += step;
       }
@@ -5530,7 +5605,7 @@ class LootScene extends Phaser.Scene {
         if (def.not) notes.push(`not with ${N.boons[def.not][0]}`);
         if (def.weapon) notes.push(`${WEAPON_EFFECTS[def.weapon].label} only`);
         if (def.tejas) notes.push(`once ${N.supercharge} has woken`);
-        row(y, 'boon_' + key, RARITY[metal].color, N.boons[key][0], notes.filter(Boolean).join(' · '), def.desc, true);
+        row(y, boonIcon(key), N.boons[key][0], notes.filter(Boolean).join(' · '), def.desc, true);
         y += 62;
       }
     } else {
@@ -5542,7 +5617,7 @@ class LootScene extends Phaser.Scene {
           wordWrap: { width: b.width - 40 } }).setOrigin(0.5, 0.5));
       y += 24;
       for (const [key, f] of Object.entries(TEJAS_FORMS)) {
-        row(y, 'icon_' + key, f.colour, f.name, `${f.meaning} · with ${WEAPON_EFFECTS[key].label}`, f.desc, on);
+        row(y, formIcon(key), f.name, `${f.meaning} · with ${WEAPON_EFFECTS[key].label}`, f.desc, on);
         y += step - 4;
       }
     }
@@ -5649,8 +5724,12 @@ class LootScene extends Phaser.Scene {
     this.phaseBarFill = this.add.rectangle(pbarX, pbarY, pbarW, pbarH, PHASE_DEFS.drift.color).setOrigin(0,0.5);
     this.phaseBarLabel = this.add.text(pbarX + pbarW/2, pbarY, PHASE_DEFS.drift.label, { resolution: RES, fontSize: '11px', color: '#1a0600', fontStyle: 'bold' }).setOrigin(0.5);
     this.phaseBarW = pbarW;
-    this.fix(this.phaseBarBg, this.phaseBarFill, this.phaseBarLabel);
-    if (ARENA_SCALE > 1) [this.phaseBarBg, this.phaseBarFill, this.phaseBarLabel].forEach(o => o.setDepth(Z.hud + 1));
+    // The phase's sign, on a dark stud at the head of the bar: the bar is the sign's own colour.
+    this.phaseStud = this.painted ? this.add.circle(pbarX + 13, pbarY, 11, 0x2a0f04, 1).setStrokeStyle(1.5, FORGE.bronze, 0.9) : null;
+    this.phaseSign = this.painted ? this.icon(pbarX + 13, pbarY, ['hud-drift'], 14) : null;
+    const phaseParts = [this.phaseBarBg, this.phaseBarFill, this.phaseBarLabel, this.phaseStud, this.phaseSign].filter(Boolean);
+    this.fix(...phaseParts);
+    if (ARENA_SCALE > 1) phaseParts.forEach(o => o.setDepth(Z.hud + 1));
 
     // Progress track - Dota-lane style: waves 1-5, gate at wave 3, ancient/flag at wave 5, moving marker
     const b = new Phaser.Geom.Rectangle(MARGIN, HUD_H + MARGIN, W - MARGIN*2, H - HUD_H - MARGIN*2);
@@ -5870,7 +5949,8 @@ class LootScene extends Phaser.Scene {
     this.satchelTab = this.add.rectangle(tx, ty, tabW, tabH, FORGE.panel, 0.6)
       .setStrokeStyle(1, FORGE.bronze, 0.8)
       .setInteractive({ useHandCursor: true });
-    this.satchelTabIcon = this.add.text(tx, ty - 12, '◀', { resolution: RES, fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
+    this.satchelTabIcon = this.painted ? this.icon(tx, ty - 15, ['hud-satchel'], 18)
+      : this.add.text(tx, ty - 12, '◀', { resolution: RES, fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
     this.satchelTabCount = this.add.text(tx, ty + 8, '0', { resolution: RES, fontSize: '13px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(0.5);
     this.satchelTab.on('pointerdown', () => this.pauseGame('satchel'));
     this.fix(this.satchelTab, this.satchelTabIcon, this.satchelTabCount);
@@ -5910,7 +5990,7 @@ class LootScene extends Phaser.Scene {
       this.glass(this.ov(this.add.graphics()), cx, y, 322, 38, { fill: onTap ? FORGE.panel : 0x2a0f04, alpha: 0.6, stroke: onTap ? FORGE.bronze : 0x6b4a2e, strokeAlpha: onTap ? 0.8 : 0.5, radius: 9, sheen: 0.06 });
       const bg = this.ov(this.add.rectangle(cx, y, 322, 38, 0xffffff, 0));
       if (onTap) { bg.setInteractive({ useHandCursor: true }); bg.on('pointerdown', onTap); }
-      this.ov(this.add.image(left + 22, y, `icon_${item.effect || 'none'}`).setDisplaySize(24, 24).setTint(RARITY[item.rarity].color), 102);
+      this.ov(this.icon(left + 22, y, lootIcon(item), 24), 102);
       this.ovText(left + 44, y - 16, item.name, { fontSize: '12px', color: '#fffbef', fontStyle: 'bold' });
       this.ovText(left + 44, y + 1, this.itemLine(item), { fontSize: '10px', color: '#c8a96e' });
       this.ovText(left + 316, y - 15, item.type, { fontSize: '8px', color: '#8a7360' }).setOrigin(1, 0);
@@ -6375,10 +6455,16 @@ class LootScene extends Phaser.Scene {
     // Icon tells you WHAT dropped, tint tells you how good it is. Unidentified drops
     // deliberately show the same blank sigil regardless of contents - that ambiguity
     // is the whole incentive to risk walking over one.
-    const iconKey = isMystery ? 'mystery' : (item.effect || 'none');
-    const sprite = this.add.image(px, py, `icon_${iconKey}`)
-      .setDisplaySize(19, 19)
-      .setTint(dispColor);
+    // An item not yet known is the same closed bundle whatever is in it.
+    const sprite = this.icon(px, py, isMystery ? ['loot-mystery', 'icon_mystery', dispColor] : lootIcon(item), 19);
+    if (this.painted) {
+      // A painted item is marked out from a painted floor: a shadow where it hovers, and
+      // a garland in its metal (violet for the unknown). They go when the item goes.
+      const mark = this.add.graphics().setDepth(Z.fx);
+      mark.fillStyle(0x140600, 0.38); mark.fillEllipse(px, py + 13, 24, 9);
+      this.facetRing(mark, px, py + 13, 13, [dispColor, dim(dispColor, 0.55)], 0.95, 0, 3);
+      sprite.once('destroy', () => mark.destroy());
+    }
     this.tweens.add({ targets: sprite, y: py-6, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     if (isMystery) {
       this.tweens.add({ targets: sprite, alpha: 0.45, duration: 350, yoyo: true, repeat: -1 });
@@ -6544,6 +6630,7 @@ class LootScene extends Phaser.Scene {
       if (this.phaseBarBg) this.phaseBarBg.destroy();
       if (this.phaseBarFill) this.phaseBarFill.destroy();
       if (this.phaseBarLabel) this.phaseBarLabel.destroy();
+      if (this.phaseStud) { this.phaseStud.destroy(); this.phaseSign.destroy(); this.phaseStud = this.phaseSign = null; }
       if (this.progressLine) this.progressLine.destroy();
       if (this.progressNodes) this.progressNodes.forEach(n => n.destroy());
       if (this.progressMarker) this.progressMarker.destroy();
@@ -6552,7 +6639,7 @@ class LootScene extends Phaser.Scene {
       if (this.weaponText) this.weaponText.setText('');
       this.destroySatchelUI();
       this.destroyBoonButton();
-      if (this.powerText) this.powerText.setText('');
+      if (this.powerText) this.setPower('');
       this.destroyTejasUI();
       if (this.attackFx) { this.attackFx.destroy(); this.attackFx = null; }   // was leaking one per run
       // Cancel every timer the run scheduled. Without this a callback queued in the
@@ -6640,6 +6727,7 @@ class LootScene extends Phaser.Scene {
     this.phaseBarFill.width = this.phaseBarW * barFrac;
     this.phaseBarFill.fillColor = pdef.color;
     this.phaseBarLabel.setText(pdef.label);
+    if (this.phaseSign && this.phaseSign.frame.name !== ICON_FRAMES.indexOf('hud-' + this.phase)) this.phaseSign.setFrame(ICON_FRAMES.indexOf('hud-' + this.phase));
     if (!this.inConvergence && this.phaseTimeLeft < 2500) {
       this.phaseBarFill.setAlpha(Math.sin(time/60) > 0 ? 1 : 0.3);
       this.phaseBarLabel.setAlpha(Math.sin(time/60) > 0 ? 1 : 0.3);
@@ -7066,7 +7154,7 @@ class LootScene extends Phaser.Scene {
     this.bloodBar.width = this.hpBarW * Math.min(1, shield / this.player.maxHp);
 
     // --- HUD text ---
-    this.hudText.setText(`${this.tier > 1 ? 'D' + this.tier + ' · ' : ''}${stageLabel(this.sector)} · Wave ${Math.min(this.wave,5)}/5   ${N.currency}: ${this.runGold}`);
+    this.setHudLine(`${this.tier > 1 ? 'D' + this.tier + ' · ' : ''}${stageLabel(this.sector)} · Wave ${Math.min(this.wave,5)}/5`, `${N.currency}: ${this.runGold}`);
     this.weaponText.setText(`${this.player.weapon.name}${this.player.weapon.shots>1 ? ' x'+this.player.weapon.shots : ''}   ${Math.ceil(this.player.hp)}/${Math.ceil(this.player.maxHp)} HP${shield > 0 ? ` +${Math.ceil(shield)} shield` : ''}`);
     const power = this.powerParts().total;
     if (power !== this.powerShown) {
@@ -7077,7 +7165,7 @@ class LootScene extends Phaser.Scene {
         this.powerText.setScale(1.35); this.tweens.add({ targets: this.powerText, scale: 1, duration: 300, ease: 'Back.easeOut' });
       }
       this.powerShown = power;
-      this.powerText.setText('\u25C6 Power ' + power);
+      this.setPower(power);
     }
   }
 }

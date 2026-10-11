@@ -14,7 +14,7 @@
  * Exit code 0 = every check passed.
  */
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -321,7 +321,7 @@ try {
   await sleep(250); await shot('3-profile');
   await page(`const s = game.scene.keys.LootScene; s.resumeGame(); s.boons = {}; s.player.weapon = s.__keep.w; s.player.trinket = s.__keep.t; delete s.__keep;`);
   check('power counts gear and boons, and sleeps a weapon boon with its weapon', pow.base === 120 && pow.gun === 105 && pow.awake === 125 && pow.asleep === 85, JSON.stringify(pow));
-  check('the HUD shows power and the profile shows the stats', pow.hud === '\u25C6 Power ' + pow.total && pow.prof.state === 'paused' && pow.prof.power && pow.prof.rows
+  check('the HUD shows power and the profile shows the stats', /Power \d+$/.test(pow.hud) && pow.hud.endsWith(' ' + pow.total) && pow.prof.state === 'paused' && pow.prof.power && pow.prof.rows
     && pow.prof.spill.length === 0 && pow.perSecond === 2.24 && pow.move === 240 && pow.targets === 4, JSON.stringify(pow));
 
   // Read the Slam: stand in a ring, step out before it lands, hit harder.
@@ -1009,9 +1009,90 @@ try {
   check('the profile shows the hero from a portrait three times the size of the still, standing where the ring is',
     portrait && portrait.source >= 3 * portrait.still && portrait.tall === portrait.wants[0] && portrait.feet === portrait.wants[1] && portrait.plain, JSON.stringify(portrait));
 
+  // ---------- 9c. the painted icons (requirements 2.46) ----------
+  // The record tools/cut-icons.py wrote, read off the disk: the game's list of frames must
+  // be that list, and the sources must be the approved sheets with their two empty cells.
+  const cutRecord = JSON.parse(readFileSync(join(REPO, 'game', 'assets', 'icons', 'icons.json'), 'utf8'));
+  const cutKinds = k => cutRecord.frames.filter(f => f.name.startsWith(k + '-')).length;
+  const icons = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
+    out.frames = ICON_FRAMES; out.painted = s.painted;
+    out.sheets = ['icons', 'icons-small'].map(k => { const t = s.textures.get(k), im = t.getSourceImage(); return [im.width, im.height, t.frameTotal - 1]; });
+    out.drawnMade = s.textures.getTextureKeys().filter(k => /^(icon|boon)_/.test(k)).length;
+    // Every frame: something in it, and clear of the edge of its square; the spare cells empty.
+    const big = s.textures.get('icons').getSourceImage(), F = ICON.frame, c = document.createElement('canvas'); c.width = big.width; c.height = big.height;
+    const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(big, 0, 0);
+    const cell = n => x.getImageData((n % 10) * F, Math.floor(n / 10) * F, F, F).data;
+    const look = n => { const d = cell(n); let solid = 0, edge = 0, r = 0, g = 0, b = 0, red = 0, green = 0;
+      for (let i = 0; i < d.length; i += 4) { const a = d[i + 3], px = (i / 4) % F, py = Math.floor(i / 4 / F);
+        if (a > 0 && (px < 2 || py < 2 || px >= F - 2 || py >= F - 2)) edge++;
+        if (a > 200) { solid++; r += d[i]; g += d[i + 1]; b += d[i + 2]; if (d[i] > 150 && d[i + 1] < 70 && d[i + 2] < 70) red++; if (d[i + 1] > d[i] * 1.25 && d[i + 1] > d[i + 2] * 1.5) green++; } }
+      return { solid, edge, r: r / solid, g: g / solid, b: b / solid, red, green }; };
+    const all = ICON_FRAMES.map((_, n) => look(n));
+    out.filled = all.every(a => a.solid > F * F * 0.08); out.clear = all.every(a => a.edge === 0);
+    out.spare = [76, 77, 78, 79].map(n => cell(n).some(v => v)).filter(Boolean).length;
+    const of = name => all[ICON_FRAMES.indexOf(name)];
+    // Only the metal changes with quality: the dagger is copper, silver and gold; the
+    // blood on the sword and the leaves of the herb are the same in all three.
+    const tone = a => [Math.round(a.r - a.b), Math.round(a.g - a.b)];
+    out.dagger = ['common', 'rare', 'epic'].map(q => tone(of('loot-none-' + q)));
+    out.blood = ['common', 'rare', 'epic'].map(q => of('loot-vampiric-' + q).red);
+    out.leaves = ['common', 'rare', 'epic'].map(q => of('loot-regen-' + q).green);
+    // What lies on the floor: a known item in its own metal, an unknown one always the same bundle.
+    session.depthPick = 1; s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.dismissHint(); await wait(200);          // a frame or two of the run, so that its HUD is written
+    for (let i = 0; i < 60; i++) s.spawnLootPickup(120 + (i % 6) * 30, 300 + Math.floor(i / 6) * 20);
+    const frameOf = img => ICON_FRAMES[img.frame.name];
+    out.drops = { n: s.pickups.length, unknown: s.pickups.filter(k => k.isMystery).length,
+      known: s.pickups.filter(k => !k.isMystery).every(k => frameOf(k.sprite) === 'loot-' + (k.item.effect || 'none') + '-' + k.item.rarity),
+      hidden: s.pickups.filter(k => k.isMystery).every(k => frameOf(k.sprite) === 'loot-mystery'), plain: s.pickups.every(k => !k.sprite.isTinted) };
+    s.pickups.forEach(k => { k.sprite.destroy(); k.label.destroy(); }); s.pickups = [];
+    // Every screen that shows icons shows painted ones, uncoloured, and none that is missing.
+    const mk = (type, effect, rarity) => ({ type, effect, rarity, name: 'x', shots: 1, dmg: 10, range: 130, atkSpeed: 500, hpBonus: 0, rechargeMs: 0, reflectPct: 0, speedBonus: 0, regenPerSec: 0 });
+    s.player.weapon = mk('weapon', 'venom', 'rare'); s.player.trinket = mk('trinket', 'aegis', 'epic'); s.inventory = [mk('weapon', 'chain', 'epic'), mk('trinket', 'swift', 'common')];
+    s.boons = { keen: 2, ground: 1, fork: 1 };
+    const seen = {}, shown = list => { const im = list.filter(o => o.type === 'Image' && /^icons/.test(o.texture.key));
+      return { n: im.length, names: im.map(frameOf), tinted: im.filter(o => o.isTinted).length, missing: list.filter(o => o.type === 'Image' && o.texture.key === '__MISSING').length }; };
+    s.pauseGame('pause'); await wait(150); seen.pause = shown(s.overlay); s.resumeGame();
+    s.pauseGame('profile'); await wait(150); seen.profile = shown(s.overlay); s.closeOverlay(); s.resumeGame();
+    s.pauseGame('satchel'); await wait(150); seen.satchel = shown(s.overlay); s.closeOverlay(); s.resumeGame();
+    s.queueBoon(); s.openBoons(); await wait(150); seen.boons = shown(s.overlay); s.closeBoons();
+    out.hud = { coin: !!s.goldSign && s.goldSign.visible && frameOf(s.goldSign) === 'sign-treasure', power: !!s.powerSign && frameOf(s.powerSign) === 'sign-power',
+      phase: !!s.phaseSign && frameOf(s.phaseSign) === 'hud-' + s.phase, satchel: frameOf(s.satchelTabIcon) === 'hud-satchel', gold: s.goldText.text };
+    s.endRun(false); await wait(200); s.showHub(); await wait(200);
+    s.showHowTo(2, () => {}); await wait(120); seen.howto = shown(s.overlay); s.closeOverlay();
+    for (const tab of ['weapons', 'trinkets', 'tejas', 'boons']) { s.showCodex(tab); await wait(80); seen[tab] = shown(s.uiObjects); }
+    s.showHub();
+    out.seen = seen;
+    return out;`);
+  check('the painted icons are loaded, and the game names their frames as the tool that cut them does',
+    icons.painted && icons.drawnMade === 0 && JSON.stringify(icons.frames) === JSON.stringify(cutRecord.frames.map(f => f.name))
+    && icons.sheets[0].join() === [cutRecord.columns * cutRecord.frame, 8 * cutRecord.frame, 80].join() && icons.sheets[1].join() === [cutRecord.columns * cutRecord.small, 8 * cutRecord.small, 80].join(),
+    JSON.stringify({ painted: icons.painted, drawnMade: icons.drawnMade, frames: icons.frames.length, sheets: icons.sheets }));
+  check('56 icons were cut from the approved sheets, the two empty cells left out: 31 frames of loot, 18 boons, 8 perks, 12 signs, 7 for the screen',
+    cutRecord.frames.length === 76 && cutKinds('loot') === 31 && cutKinds('boon') === 18 && cutKinds('perk') === 8 && cutKinds('sign') === 12 && cutKinds('hud') === 7
+    && new Set(cutRecord.frames.map(f => f.source + '#' + f.cell)).size === 56 && !cutRecord.frames.some(f => /loot-icons/.test(f.source) && f.cell === 11) && !cutRecord.frames.some(f => /hud\.png/.test(f.source) && f.cell === 7)
+    && cutRecord.frames.every(f => f.cut[0] >= 0 && f.cut[1] >= 0 && f.cut[2] > f.cut[0] && f.cut[3] > f.cut[1]),
+    cutRecord.frames.length + ' frames from ' + new Set(cutRecord.frames.map(f => f.source + '#' + f.cell)).size + ' cells');
+  check('every frame holds an icon clear of the edge of its square, and the spare cells of the sheet are empty', icons.filled && icons.clear && icons.spare === 0, JSON.stringify({ filled: icons.filled, clear: icons.clear, spare: icons.spare }));
+  { const [cu, ag, au] = icons.dagger;
+    check('only the metal of loot changes with its quality: a copper, a silver and a gold dagger; the blood and the leaves untouched',
+      cu[0] > 55 && cu[1] < cu[0] * 0.62 && Math.abs(ag[0]) < 22 && au[0] > 90 && au[1] > au[0] * 0.62
+      && Math.max(...icons.blood) - Math.min(...icons.blood) <= 12 && icons.blood[0] > 150 && Math.max(...icons.leaves) - Math.min(...icons.leaves) <= 20 && icons.leaves[0] > 2000,
+      JSON.stringify({ dagger: icons.dagger, blood: icons.blood, leaves: icons.leaves })); }
+  check('loot on the floor is drawn in its own metal, and an unknown item is the same closed bundle whatever is in it',
+    icons.drops.n === 60 && icons.drops.unknown > 3 && icons.drops.unknown < 40 && icons.drops.known && icons.drops.hidden && icons.drops.plain, JSON.stringify(icons.drops));
+  { const v = icons.seen, total = Object.values(v).reduce((n, k) => n + k.n, 0), has = (k, name) => v[k].names.includes(name);
+    check('every screen that shows icons shows the painted ones, uncoloured: gear, signs, boons, perks, the empty slot and the lock each have their own',
+      Object.values(v).every(k => k.n > 0 && k.tinted === 0 && k.missing === 0) && has('pause', 'loot-venom-rare') && has('pause', 'loot-aegis-epic') && has('pause', 'sign-poison') && has('pause', 'boon-fork')
+      && has('profile', 'sign-health') && has('profile', 'sign-shield') && has('profile', 'sign-damage') && has('profile', 'sign-power') && has('profile', 'boon-keen') && v.profile.names.some(n => n.startsWith('perk-'))
+      && has('satchel', 'loot-chain-epic') && has('satchel', 'loot-swift-common') && v.boons.names.filter(n => n.startsWith('boon-')).length >= 3
+      && has('howto', 'loot-chain-common') && has('howto', 'loot-mystery') && has('tejas', 'sign-lightning') && v.boons.n >= 3 && v.weapons.n === 4 && v.trinkets.n === 5,
+      total + ' icons on ' + Object.keys(v).length + ' screens; ' + Object.entries(v).map(([k, o]) => k + ' ' + o.n).join(', ')); }
+  check('the HUD carries the signs of treasure, power, the phase and the satchel beside their words and numbers',
+    icons.hud.coin && icons.hud.power && icons.hud.phase && icons.hud.satchel && /^\S+: \d+$/.test(icons.hud.gold), JSON.stringify(icons.hud));
+
   // ---------- 10. the fixed arena, on request: one screen, the camera still, nothing made harder ----------
   // The same load wears two dyes, to try the slots (requirements 2.42).
-  await send('Page.navigate', { url: PAGE + '?arena=fixed&wear=head:saffron,legs:indigo' });
+  await send('Page.navigate', { url: PAGE + '?arena=fixed&wear=head:saffron,legs:indigo&icons=drawn' });
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
   const fixedArena = await page(`settings.sfx = 0; settings.tips = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));
@@ -1020,7 +1101,10 @@ try {
       const at = (fx, fy) => x ? [...x.getImageData(Math.round(c.width * fx), Math.round(c.height * fy), 1, 1).data].slice(0, 3) : [];
       return { canvas: !!x, band: at(0.543, 0.093), tunic: at(0.518, 0.324), leg: at(0.369, 0.759), frames: s.textures.get(name + '-walk').frameTotal - 1,
         still: s.textures.get(name + '-front').getSourceImage().width, wantsStill: ART[name].still, zonesKept: s.textures.exists(name + '-zone-head') }; })();
+    out.drawn = { painted: s.painted, shapes: s.textures.getTextureKeys().filter(k => /^(icon|boon)_/.test(k)).length, sheets: s.textures.exists('icons') || s.textures.exists('icons-small') };
     s.startRun(); s.player.iframes = 1e9; s.setMoveTarget(9999, 9999); await wait(1500);
+    out.drawn.hud = s.powerText.text; out.drawn.tab = s.satchelTabIcon.type; out.drawn.signs = !!(s.goldSign || s.powerSign || s.phaseSign);
+    s.spawnLootPickup(200, 300, 'epic'); { const k = s.pickups[s.pickups.length - 1]; out.drawn.drop = /^icon_/.test(k.sprite.texture.key) && k.sprite.isTinted; k.sprite.destroy(); k.label.destroy(); s.pickups.pop(); }
     out.worn.sprite = { walks: !!s.playerSprite.walks, canvas: !!s.playerSprite.texture.getSourceImage().getContext };
     out.still = ARENA_SCALE === 1 && s.camOff.x === 0 && s.camOff.y === 0 && s.cameras.main.scrollX === 0 && s.cameras.main.scrollY === 0
       && Phaser.Geom.Rectangle.Equals(s.arenaBounds, s.viewBounds) && s.farFx === null;
@@ -1038,6 +1122,9 @@ try {
   { const w = fixedArena.worn, [br, bg, bb] = w.band, [tr, tg, tb] = w.tunic, [lr, lg, lb] = w.leg;
     check('worn pieces are laid into the hero through their zones: a saffron head-wrap and indigo trousers, the tunic untouched, in the portrait and on the sheet the hero walks on',
       w.canvas && br > bb + 60 && br > bg && lb > lr + 20 && tr > 200 && tg > 170 && tb > 120 && tr > tb && w.frames >= 48 && w.still === w.wantsStill && !w.zonesKept && w.sprite.walks && w.sprite.canvas, JSON.stringify(w)); }
+  check('without the pictures the game draws its own icons, coloured as it always did, and none of the painted ones',
+    fixedArena.drawn.painted === false && fixedArena.drawn.shapes === 29 && !fixedArena.drawn.sheets && /^\u25C6 Power \d+$/.test(fixedArena.drawn.hud) && fixedArena.drawn.tab === 'Text' && !fixedArena.drawn.signs && fixedArena.drawn.drop,
+    JSON.stringify(fixedArena.drawn));
   check('the fixed arena is still there on request: one screen, the camera still, slams and waves their old size', fixedArena.still && fixedArena.plain
     && fixedArena.bot.errors.length === 0 && fixedArena.bot.leaks.every(l => l <= 0), JSON.stringify(fixedArena));
 
