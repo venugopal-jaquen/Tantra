@@ -49,6 +49,7 @@ A file beside the turnaround with the same name and .json may say, for that figu
                         width; a staff planted on the ground outside them is left alone
   "still": 224, "cell": 256    larger files, for a figure the game draws large
   "rear": 12            a beast: in a strike it rears this many degrees on its hind feet
+  "walk": "sway"        a figure with no legs, a serpent: it does not step, it sways
   "slots": {"front": [[slot, area, colour], ...], "back": [...], "right": [...]}
                         what it wears (requirements 2.42). Each rule gives a slot ("head",
                         "chest", "legs", "holster", or "body" for bare skin), an area as a
@@ -295,6 +296,19 @@ def slot_masks(fig, rules, weapon=None):
     # Specks are smoothed away, and the edge of each mask softened by a pixel.
     return {slot: im.filter(ImageFilter.MedianFilter(7)).filter(ImageFilter.GaussianBlur(0.8)) for slot, im in out.items()}
 
+def sway(fig, i, mid):
+    """Walk frame i of FRAMES for a figure with no legs. It does not step: what stands up
+    of it leans from side to side over a base that stays where it is, a ripple runs up
+    it, and it swells and sinks a little as it goes."""
+    w, h = fig.size
+    phase = 2 * math.pi * i / FRAMES
+    def source(x, y):
+        up = max(0.0, 1 - y / h)                             # 0 on the ground, 1 at the top
+        lean = w * (0.075 * math.sin(phase) * up ** 1.4 + 0.02 * math.sin(phase + 2.6 * up) * up)
+        swell = 1 + 0.025 * math.sin(2 * phase) * (1 - up)
+        return mid + (x - mid - lean) / swell, y + h * 0.018 * math.sin(2 * phase) * up
+    return bend(fig, source)
+
 def legs(fig, cuff, columns=None, paint=None):
     """The legs of a side view, cut free of the body: (body, near leg, far leg, the row
     they are cut at, whether two were found). A leg is whatever, below the cuff, is joined
@@ -443,15 +457,15 @@ def main():
     if frames_dir: os.makedirs(frames_dir, exist_ok=True)
 
     props, rear = hints.get("props", {}), hints.get("rear", 0)
-    cuff, columns = hints.get("cuff", CUFF), hints.get("legs")
+    cuff, columns, sways = hints.get("cuff", CUFF), hints.get("legs"), hints.get("walk") == "sway"
     mids = {facing: middle(views[facing]) for facing in views}
 
     def sheet(paint, shaded, label=None):
         """The walk sheet and the four stills for one set of views: the figure itself, or
         a layer of it. Every bend is worked out from the figure, whatever is painted."""
         side = paint["right"]
-        parts = legs(views["right"], cuff, columns, side)
-        strides = [side_stride(parts, i, side.height) for i in range(FRAMES)]
+        parts = None if sways else legs(views["right"], cuff, columns, side)
+        strides = [] if sways else [side_stride(parts, i, side.height) for i in range(FRAMES)]
         blows = [strike(side, "right", k, mids["right"], props.get("right"), rear) for k in range(ACTS)]
         walk, stills = Image.new("RGBA", (CELL * cols, CELL * -(-PER * 4 // cols)), (0, 0, 0, 0)), {}
         for row, facing in enumerate(("front", "back", "left", "right")):
@@ -467,7 +481,8 @@ def main():
                 if frames_dir and label and tag: cell.save(os.path.join(frames_dir, f"{label}-{facing}-{tag}.png"))
             put(0, place(fig, CELL, scale, mid, fig.height, shade), None)
             for i in range(FRAMES):
-                if facing in ("front", "back"): bent, pad = stride(fig, i, mid)
+                if sways: bent, pad = sway(fig, i, mid)
+                elif facing in ("front", "back"): bent, pad = stride(fig, i, mid)
                 else:
                     bent, pad = strides[i]
                     if facing == "left": bent = bent.transpose(Image.FLIP_LEFT_RIGHT)
@@ -482,7 +497,7 @@ def main():
 
     walk, stills, parts = sheet(views, True, name)
     for facing, still in stills.items(): still.save(os.path.join(out, f"{name}-{facing}.png"), optimize=True)
-    if frames_dir:
+    if frames_dir and parts:
         side = views["right"]
         found = Image.new("RGBA", side.size, (90, 60, 40, 255))
         found.alpha_composite(parts[0])
@@ -536,7 +551,7 @@ def main():
                 shown.save(os.path.join(frames_dir, f"{name}-wears-{view}.png"))
     sizes = {f: os.path.getsize(os.path.join(out, f"{name}-{f}.png")) // 1024 for f in made}
     print(f"{name}: still {STILL}, cell {CELL}, {PER} cells a facing, {cols} to a row; the figure stands {tallest * scale / STILL:.2f} of a still tall and {widest * scale / STILL:.2f} wide, "
-          f"from {tallest} pixels; side view: {'two legs' if parts[4] else 'one leg, doubled'}, cut at {parts[3] / views['right'].height:.2f}; files in KB {sizes}")
+          f"from {tallest} pixels; " + ("it sways" if not parts else f"side view: {'two legs' if parts[4] else 'one leg, doubled'}, cut at {parts[3] / views['right'].height:.2f}") + f"; files in KB {sizes}")
 
 if __name__ == "__main__":
     main()

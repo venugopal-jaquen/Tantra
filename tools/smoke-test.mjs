@@ -197,17 +197,17 @@ try {
     for (let i = 0; i < 60 && s.pointerTarget; i++) await wait(40);
     await wait(320); out.stopped = walkCell(s.playerSprite);
     const e = s.spawnEnemyOfType('melee', 70, 330, 1), spr = s.enemySprites.get(e.id);
-    out.asura = await stepsOf(spr, 4); out.asuraSize = Math.round(spr.baseSX * artOf(e.char).still * 10) / 10; out.asuraWants = Math.round(e.radius * 28 * artOf(e.char).scale) / 10;
+    out.asura = await stepsOf(spr, 4); out.asuraSize = Math.round(spr.baseSX * artOf(e.char).still * 10) / 10; out.asuraWants = Math.round(e.radius / HIT * 28 * artOf(e.char).scale) / 10;
     e.speed = 0; await wait(320); out.asuraStopped = walkCell(spr);
     s.killEnemy(e); return out;`);
-  check('every character but Vritra has a walk sheet, and each figure is drawn at the size its art asks for', legs.sheets === 7 && legs.walkers === 7 && !legs.vritra && legs.onSheet && legs.size === legs.wants && legs.wants >= 44 && legs.asuraSize === legs.asuraWants, JSON.stringify(legs));
+  check('every character has a walk sheet, Vritra too, and each figure is drawn at the size its art asks for', legs.sheets === 8 && legs.walkers === 8 && legs.vritra && legs.onSheet && legs.size === legs.wants && legs.wants >= 44 && legs.asuraSize === legs.asuraWants, JSON.stringify(legs));
   // Art of the game's own (requirements 2.39): a figure named in ART has files cut to its own size.
   const own = await page(`const s = game.scene.keys.LootScene;
     return { figures: Object.keys(ART).map(name => ({ name, per: ART[name].per, cell: s.textures.get(name + '-walk').get(0).width, frames: s.textures.get(name + '-walk').frameTotal - 1,
         still: s.textures.get(name + '-front').get().width, wantsCell: ART[name].cell, wantsStill: ART[name].still })),
       ring: Math.round(s.playerRing.y - s.player.y), ringWants: HERO_RING_DOWN };`);
   check("art of the game's own is cut to its own size: standing, walking and striking cells for each facing, stills to match, and the stance ring at the hero's feet",
-    own.figures.length === 7 && own.figures.every(f => f.cell === f.wantsCell && f.frames >= 4 * f.per && f.frames < 4 * f.per + 12 && f.per === 12 && f.still === f.wantsStill) && own.ring === own.ringWants && own.ring >= 16, JSON.stringify(own));
+    own.figures.length === 8 && own.figures.every(f => f.cell === f.wantsCell && f.frames >= 4 * f.per && f.frames < 4 * f.per + 12 && f.per === 12 && f.still === f.wantsStill) && own.ring === own.ringWants && own.ring >= 16, JSON.stringify(own));
   // Striking (requirements 2.41): a figure turns to what it strikes at and goes through its strike cells.
   const acts = await page(`const s = game.scene.keys.LootScene, per = artOf(CHARS.player).per, wait = ms => new Promise(r => setTimeout(r, ms));
     const cellOf = spr => spr.frame.name % per, rowOf = spr => Math.floor(spr.frame.name / per), out = {};
@@ -496,12 +496,13 @@ try {
     first.x = 70; first.y = 590;                           // out of the serpent's way
     s.sector = 3; s.setFloor(3); const v = hold(s.spawnSectorBoss()); v.weakPhase = PHASE_SEQUENCE.find(p => p !== s.phase);
     await wait(400);
-    out.serpent = { drawn: !!v.serpent && v.serpent.segs.length === SERPENT.length, spriteHidden: !s.enemySprites.get(v.id).visible, label: v.gateLabel.text,
-                    moved: Math.hypot(v.serpent.segs[0].x - v.x, v.serpent.segs[0].y - v.y) < 30 };
+    { const vs = s.enemySprites.get(v.id);
+      out.serpent = { figure: vs.visible && !!vs.walks && vs.texture.key === CHARS.megaboss + '-walk', tall: Math.round((vs.baseSY || vs.scaleY) * ART[CHARS.megaboss].cell), wants: Math.round(v.radius / HIT * 2.8 * ART[CHARS.megaboss].scale * ART[CHARS.megaboss].cell / ART[CHARS.megaboss].still),
+        label: v.gateLabel.text, steel: vs.isTinted, drawnByCode: !!v.serpent }; }
     return out;`);
   check('the first Gatekeeper a player meets arrives open, and stays open a while', gate.tier === 1 && gate.firstOpen && gate.taught && gate.held && gate.full === 1 && /^VULNERABLE  \d+s$/.test(gate.openLabel), JSON.stringify(gate));
   check('a resisting boss says so, counts down, and takes 30% on level 1 and 12% below', /^RESISTS  \u00B7  opens in \d+s$/.test(gate.closedLabel) && gate.grey && gate.level1 === 30 && gate.level2 === 12, JSON.stringify(gate));
-  check('Vritra is a drawn serpent with the same tell', gate.serpent.drawn && gate.serpent.spriteHidden && gate.serpent.moved && /^RESISTS/.test(gate.serpent.label), JSON.stringify(gate.serpent));
+  check("Vritra is the founder's picture of him, a figure like the others, with the same tell", gate.serpent.figure && gate.serpent.tall === gate.serpent.wants && gate.serpent.tall > 200 && !gate.serpent.drawnByCode && gate.serpent.steel && /^RESISTS/.test(gate.serpent.label), JSON.stringify(gate.serpent));
   await shot('5f-serpent');
 
   // Depths: a depth already won pays no water; the next one is harder and pays more.

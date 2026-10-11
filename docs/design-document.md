@@ -75,19 +75,19 @@ The founder: "What we are aiming with PR18 is a comprehensive visual redesign wh
 | V3 | The supercharge | ✅ in (§2.40) | Their verdict |
 | V4 | Weapon beams, hit marks, the Hexer's bolt, slam landings | ✅ in (§2.41) | Their verdict |
 | V5 | **Floors** | ✅ in (`requirements.md` §2.43): the founder's three pictures are the default floors, steps and all, with the game's lamps on the picture's | Their eye on each level in a fight |
-| V6 | **Vritra** | ✅ in: "Keep the moving serpent" (founder, 2026-10-11). Repainted from the picture, faceted, half as large again; no crest or tassels added | Their eye |
+| V6 | **Vritra** | ✅ in (`requirements.md` §2.44). First kept as the moving serpent and repainted; the founder did not like it ("Please use the ChatGPT made image and rebuild the Vritra"), and he is now their picture, a figure that sways and strikes. The serpent drawn by code is removed | Their eye; a larger original would sharpen him |
 | V7 | **Loot:** weapon and trinket drops, and the same icons in the satchel and profile | Eleven flat glyphs in the old look. "Give a prompt for chatgpt" (founder, 2026-10-11): written, `docs/art-brief-for-chatgpt.md` §4 | The founder's picture of the eleven; then they are cut, their metal coloured copper, silver or gold by the game, and put in |
 | V8 | What is drawn round a boss and an elite: shield, anchors, timer ring, core; a split; a death | Old look | Redrawn faceted |
 | V9 | Slam warnings | Kept as they are | Nothing: they are the game's language and the floors were made round them |
 | V10 | Screens: title, profile, how-to cards, loading card, boon cards, HUD | Not yet looked at beside the new art | A pass over each at phone size; expected to be icons and sizes only |
-| V11 | **Feel at the new size** | ✅ "Grow the hit circles by a quarter" (founder, 2026-10-11): done, and measured: harder (`requirements.md` §2.41) | Their hands on it. If it is too hard, `HERO_RADIUS` alone can go back. The one-screen arena is crowded |
+| V11 | **Feel at the new size** | ✅ Hit circles grown by a quarter, then a tenth taken back, both at the founder's word the same day: 1.125 times the first circles (`HIT`; measured in `requirements.md` §2.41) | Their hands on it. The one-screen arena is crowded |
 | V12 | Sharper originals | The founder will have them remade ("Will do. For now build with what you have") | When they come, each is cut again; nothing else changes |
 | V13 | **A phone** | ❗ Not done | Memory and speed on a mid-range Android, and the iPhone. Needs a way to play this branch without merging it |
 | V14 | The store page | Old pictures | Five screenshots, the GIF and the cover taken again once the look is settled; the text, the AI disclosure and the credits |
 | V15 | Merge, package, security checklist, release | Last | L9, L11 |
 | V16 | The hero's portrait, and the hero in parts for cosmetics | ✅ in (`requirements.md` §2.42): a full-size portrait on the profile; four slots (head, chest, legs, holster) that follow the hero through every cell; dyes as stand-ins, by the address only | **For after the itch.io launch** (founder, 2026-10-11: "Equipping the hero with visual cosmetics is for later than itch.io launch. I only wanted that capability built"): a first real piece, earning and equipping (P12, P13) |
 
-**Settled 2026-10-11:** the Gatekeeper's headdress and the Brute's ring stay ("Keep"); Vritra stays the moving serpent. **Still open:** that the cast has two finishes (flat-faceted for the hero, Asura and Hexer; finely painted for the other four); that the unmerged `title-art` branch also calls itself build 0.15 and holds a title layout that was not chosen.
+**Settled 2026-10-11:** the Gatekeeper's headdress and the Brute's ring stay ("Keep"); Vritra is the founder's picture of him, crest and tassels and all. **Still open:** that the cast has two finishes (flat-faceted for the hero, Asura and Hexer; finely painted for the other four); that the unmerged `title-art` branch also calls itself build 0.15 and holds a title layout that was not chosen.
 
 ## 1.3 Open design questions (2026-10-02)
 

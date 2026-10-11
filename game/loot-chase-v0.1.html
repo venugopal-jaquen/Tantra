@@ -799,6 +799,7 @@ const TEJAS_FX = {
 const WEAPON_FX = Object.assign({}, TEJAS_FX, { none: [0xeafcf4, 0x2fa7a0] });
 const HEX_FX = [0xf0b8ff, 0x8a3fc0];       // the Hexer's bolt: violet, which nothing of the hero's uses
 const SLAM_FX = [0xff8a5a, 0xb5301a];      // where a boss's slam lands: the red of its warning
+const VRITRA_FX = [0xe0aa3e, 0x3a3558];    // what Vritra bursts into when he falls: his gold and his indigo
 
 // Persists across page reloads via localStorage (falls back to in-memory if unavailable, e.g. private browsing)
 // The well's depths and the perks worn (requirements 2.30). These sit above the save
@@ -1310,79 +1311,10 @@ const PERK_TINT = 0xd89bff, TRIBUTE_TAKER = { item: 4, boon: 8, gold: 12 };
 const POWER = { base: 100, upgrade: 8, weapon: { common: 20, rare: 45, epic: 80 }, shot: 15, effect: 15,
                 trinket: { common: 15, rare: 30, epic: 50 }, boon: { common: 10, rare: 25, epic: 40 }, tejas: 30, perk: 20 };
 
-// VRITRA (requirements 2.6). The final boss is the serpent who drank the world's waters,
-// and until 2026-10-04 he was a stock sprite of something else. He is drawn now: a chain
-// of segments behind a head, painted every frame.
-// Repainted 2026-10-11 from the founder's picture of him: charcoal indigo scales, gold
-// diamonds down the back, the inside of the hood red, eyes of teal; and cut in flat faces
-// like the rest of the cast, where he was made of round beads. `scale` is his size in the
-// fight: half as large again, as every figure is.
-const SERPENT = { length: 26, gap: 7.5, scale: 1.5, body: 0x2f2b47, lit: 0x4f4a78, band: 0xe0aa3e, bandShade: 0xa6701c, dark: 0x120f1f,
-                  hood: 0xa8392a, eye: 0x40e8d8, steel: 0x7a8494, steelLit: 0xa9b3c4 };
-
-// pts[0] is the head. `o.size` scales everything; `o.mood` is 'open' (flaring in o.glow),
-// 'closed' (steel-grey: resisting) or 'plain'; `o.rear` 0..1 swells the head for a slam;
-// `o.slither` is how hard the body ripples. Used in the fight and on the How to Play card.
-function paintSerpent(g, pts, heading, time, o) {
-  const n = pts.length, k = o.size || 1, steel = o.mood === 'closed';
-  const body = steel ? SERPENT.steel : SERPENT.body, band = steel ? 0xb9c2d6 : SERPENT.band;
-  // The ripple travels down the body: each point is pushed sideways from its neighbours' line.
-  const at = i => {
-    const p = pts[i], q = pts[Math.min(n - 1, i + 1)], r = pts[Math.max(0, i - 1)];
-    const dx = r.x - q.x, dy = r.y - q.y, d = Math.hypot(dx, dy) || 1;
-    const wave = Math.sin(time / 190 - i * 0.62) * 4.2 * k * (o.slither === undefined ? 1 : o.slither) * Math.min(1, i / 4);
-    return [p.x - dy / d * wave, p.y + dx / d * wave];
-  };
-  const rad = i => (4 + 12.5 * Math.pow(1 - i / (n - 1), 0.75)) * k;
-  // Each joint of him is a six-sided scale, turned the way he runs: its upper faces in
-  // the light, the rest in shade, and on every third a gold diamond.
-  const lit = steel ? SERPENT.steelLit : SERPENT.lit, gold = steel ? 0xdfe5f0 : band, goldShade = steel ? 0x9aa3b4 : SERPENT.bandShade;
-  const scale = (x, y, r, turn) => Array.from({ length: 6 }, (_, j) => ({ x: x + Math.cos(turn + j * Math.PI / 3) * r, y: y + Math.sin(turn + j * Math.PI / 3) * r }));
-  const run = i => { const q = pts[Math.min(n - 1, i + 1)], r = pts[Math.max(0, i - 1)]; return Math.atan2(r.y - q.y, r.x - q.x); };
-  for (let i = n - 1; i >= 1; i--) { const [x, y] = at(i); g.fillStyle(0x0a0300, 0.3); g.fillPoints(scale(x + 2.5 * k, y + 3.5 * k, rad(i), run(i)), true); }
-  for (let i = n - 1; i >= 1; i--) { const [x, y] = at(i); g.fillStyle(SERPENT.dark, 1); g.fillPoints(scale(x, y, rad(i) + 1.8 * k, run(i)), true); }
-  for (let i = n - 1; i >= 1; i--) {
-    const [x, y] = at(i), r = rad(i), turn = run(i), six = scale(x, y, r, turn);
-    g.fillStyle(body, 1); g.fillPoints(six, true);
-    // The two faces that look up and to the left take the light.
-    const up = six.map((p, j) => [j, p.x + p.y]).sort((u, v) => u[1] - v[1])[0][0];
-    g.fillStyle(lit, 1); g.fillPoints([{ x, y }, six[up], six[(up + 1) % 6]], true); g.fillPoints([{ x, y }, six[(up + 5) % 6], six[up]], true);
-    if (i % 3 === 1) {
-      const c2 = Math.cos(turn), s2 = Math.sin(turn), d = r * 0.66, w = r * 0.42;
-      const tip = { x: x + c2 * d, y: y + s2 * d }, tail = { x: x - c2 * d, y: y - s2 * d }, left = { x: x - s2 * w, y: y + c2 * w }, right = { x: x + s2 * w, y: y - c2 * w };
-      g.fillStyle(gold, 1); g.fillPoints([tip, right, tail], true);
-      g.fillStyle(goldShade, 1); g.fillPoints([tip, left, tail], true);
-    }
-  }
-  // The head, turned toward its prey.
-  const hx = pts[0].x, hy = pts[0].y, c = Math.cos(heading), s = Math.sin(heading), big = k * (1 + 0.22 * (o.rear || 0));
-  const P = (fx, fy) => ({ x: hx + (c * fx - s * fy) * big, y: hy + (s * fx + c * fy) * big });
-  const head = [P(-14, -13), P(-4, -19), P(10, -15), P(24, -7), P(30, 0), P(24, 7), P(10, 15), P(-4, 19), P(-14, 13)];
-  if (o.mood === 'open') { g.fillStyle(o.glow, 0.22 + 0.12 * Math.sin(time / 130)); g.fillCircle(hx, hy, 34 * big); }
-  g.fillStyle(0x0a0300, 0.32); g.fillPoints(head.map(p => ({ x: p.x + 2.5 * k, y: p.y + 3.5 * k })), true);
-  // The hood, spread behind the jaw: red inside, as a cobra's is.
-  g.fillStyle(steel ? 0x5d6675 : SERPENT.hood, 1);
-  g.fillPoints([P(-12, -10), P(-26, -24), P(-6, -22), P(4, -14)], true); g.fillPoints([P(-12, 10), P(-26, 24), P(-6, 22), P(4, 14)], true);
-  g.lineStyle(2.4 * k, steel ? SERPENT.dark : SERPENT.body, 1);
-  g.strokePoints([P(-12, -10), P(-26, -24), P(-6, -22), P(4, -14)], true); g.strokePoints([P(-12, 10), P(-26, 24), P(-6, 22), P(4, 14)], true);
-  g.fillStyle(o.struck > 0 ? 0xe8e6ff : body, 1); g.fillPoints(head, true);
-  if (!(o.struck > 0)) { g.fillStyle(lit, 1); g.fillPoints([P(-14, -13), P(-4, -19), P(10, -15), P(24, -7), P(30, 0), P(-14, 0)], true); }      // the half of the head in the light
-  g.lineStyle(2 * k, SERPENT.dark, 1); g.strokePoints(head, true);
-  g.fillStyle(gold, 1); g.fillPoints([P(-8, 0), P(8, -5), P(21, 0)], true);                                        // the gold blaze down the head, in two faces
-  g.fillStyle(goldShade, 1); g.fillPoints([P(-8, 0), P(8, 5), P(21, 0)], true);
-  if ((o.rear || 0) > 0.15) { g.lineStyle(2 * k, 0x2a0606, 1); g.lineBetween(P(18, -6).x, P(18, -6).y, P(30, 0).x, P(30, 0).y); g.lineBetween(P(18, 6).x, P(18, 6).y, P(30, 0).x, P(30, 0).y); }
-  if (Math.sin(time / 310) > 0.55 || (o.rear || 0) > 0.3) {                                                      // the tongue
-    g.lineStyle(1.6 * k, 0xe23a2a, 1);
-    const t0 = P(30, 0), t1 = P(40, 0), fa = P(46, -4), fb = P(46, 4);
-    g.lineBetween(t0.x, t0.y, t1.x, t1.y); g.lineBetween(t1.x, t1.y, fa.x, fa.y); g.lineBetween(t1.x, t1.y, fb.x, fb.y);
-  }
-  for (const side of [-1, 1]) {                                                                                   // eyes of teal
-    const e = P(13, side * 8.5);
-    g.fillStyle(SERPENT.eye, 0.3); g.fillCircle(e.x, e.y, 6.5 * big);
-    g.fillStyle(steel ? 0xc8f4ee : SERPENT.eye, 1); g.fillCircle(e.x, e.y, 3.2 * big);
-    g.fillStyle(0x1a0200, 1); g.fillEllipse(e.x + c * 0.8 * big, e.y + s * 0.8 * big, 1.6 * big, 4.2 * big);
-  }
-}
+// VRITRA (requirements 2.6). The final boss is the serpent who drank the world's waters.
+// He was a stock sprite of something else, then (2026-10-04) a chain of segments drawn by
+// code. Since 2026-10-11 he is the founder's own picture of him, a figure like the others
+// (requirements 2.44): a hooded serpent in his coil, who sways where the others walk.
 
 // How much of a hit a boss takes outside its own phase. The rule is first met on level 1,
 // so it bites less there: 30%, then 12% from level 2 on (founder, 2026-10-04).
@@ -1429,9 +1361,9 @@ const FACINGS = ['front', 'back', 'left', 'right'];
 // facing, in the order of FACINGS; the first cell of a row is the standing frame and the
 // rest are one walk cycle. Cells are larger than the 96px stills so that a stride never
 // clips, and a sheet is drawn larger by the same amount (pad), which leaves the figure the
-// size it was. Built by tools/extract-walk.py. Vritra has none: he is drawn in code.
+// size it was. Built by tools/extract-walk.py.
 const WALK = { frames: 8, cell: 112, pad: 112 / 96 };
-const WALKERS = Object.keys(CHARS).filter(k => k !== 'megaboss').map(k => CHARS[k]);
+const WALKERS = Object.values(CHARS);          // every figure has a sheet, Vritra too since 2026-10-11
 // Art made for this game comes one figure at a time (requirements 2.39), so a figure named
 // here has files of its own while the others keep the stock ones: stills of `still` pixels
 // and a walk sheet with cells of `cell`, both cut by tools/cut-turnaround.py. `scale` is
@@ -1443,24 +1375,28 @@ const WALKERS = Object.keys(CHARS).filter(k => k !== 'megaboss').map(k => CHARS[
 // and, in art cut for this game, ACT.cells of a strike (requirements 2.41). `tall` is how
 // much of a still the figure fills, where that is not the usual 0.86: a beast on four
 // legs is cut to fit the width.
-// `wide` is how much of a still the figure's widest view fills. Figures are drawn half as
-// large again as they were first set (the founder, 2026-10-10: "the new characters are
-// looking too small in game.. Make their size 50% bigger"). The day after, the hit circles
-// were grown by a quarter to go with them ("Grow the hit circles by a quarter"): an
-// enemy's `scale` is the less by that much, since it multiplies the circle, and what is
-// drawn is the size it was. The hero's is not: his figure is sized by HERO_SIZE.
+// `wide` is how much of a still the figure's widest view fills. `scale` is how much larger
+// a figure is drawn than the stock figure of its kind was: half as large again as first
+// set (the founder, 2026-10-10: "the new characters are looking too small in game.. Make
+// their size 50% bigger"). It is measured from the stock hit circle, not today's, so the
+// circles can be changed (HIT) without anything being drawn differently.
 const ART = {
   kiran:       { still: 224, cell: 256, per: 12, scale: 2.25, wide: 0.46 },
-  asura:       { still: 160, cell: 192, per: 12, scale: 2.04, wide: 0.58 },
-  rakshasa:    { still: 160, cell: 192, per: 12, scale: 2.56, wide: 0.5 },
-  mahish:      { still: 192, cell: 224, per: 12, scale: 1.8, wide: 0.87 },
-  raktabija:   { still: 160, cell: 192, per: 12, scale: 2.04, tall: 0.8, wide: 0.96 },
-  bakasura:    { still: 224, cell: 256, per: 12, scale: 2.08, wide: 0.56 },
-  nidhiraksha: { still: 224, cell: 256, per: 12, scale: 1.76, tall: 0.75, wide: 0.96 }
+  asura:       { still: 160, cell: 192, per: 12, scale: 2.55, wide: 0.58 },
+  rakshasa:    { still: 160, cell: 192, per: 12, scale: 3.2, wide: 0.5 },
+  mahish:      { still: 192, cell: 224, per: 12, scale: 2.25, wide: 0.87 },
+  raktabija:   { still: 160, cell: 192, per: 12, scale: 2.55, tall: 0.8, wide: 0.96 },
+  bakasura:    { still: 224, cell: 256, per: 12, scale: 2.6, wide: 0.56 },
+  nidhiraksha: { still: 224, cell: 256, per: 12, scale: 2.2, tall: 0.75, wide: 0.96 },
+  vritra:      { still: 224, cell: 256, per: 12, scale: 2.0, wide: 0.7 }
 };
+// Hit circles, as a multiple of what they first were: every enemy's, the hero's, and how
+// near a bolt must pass. The founder grew them by a quarter to go with the larger figures
+// (2026-10-11, "Grow the hit circles by a quarter") and then took a tenth back the same
+// day ("reduce the hit circle by 10%"): 1.25 x 0.9.
+const HIT = 1.125;
 // The hero's hit circle: how near an enemy's edge can come, and how near a bolt must pass.
-// It was 15 until the circles were grown by a quarter (2026-10-11).
-const HERO_RADIUS = 18.75;
+const HERO_RADIUS = 15 * HIT;
 // Figures are drawn in the order they stand, the one nearest the top of the floor first,
 // so that whoever is nearer the bottom of the screen is in front. They keep to a band of
 // their own just under everything else in the fight (bars, names, rings, beams, loot),
@@ -2378,11 +2314,11 @@ function facingFor(dx, dy) {
 }
 
 const ENEMY_TYPES = {
-  melee:    { hpMult: 1.0, speedMult: 1.0, dmgMult: 1.0, radius: 15, color: 0xff5c5c },
-  ranged:   { hpMult: 0.6, speedMult: 0.85, dmgMult: 0.0, radius: 12.5, color: 0xffa63c,
+  melee:    { hpMult: 1.0, speedMult: 1.0, dmgMult: 1.0, radius: 12, color: 0xff5c5c },
+  ranged:   { hpMult: 0.6, speedMult: 0.85, dmgMult: 0.0, radius: 10, color: 0xffa63c,
               isRanged: true, preferredRange: 175, fireInterval: 1500, projSpeed: 260, projDmgMult: 0.85 },
-  tank:     { hpMult: 2.6, speedMult: 0.5, dmgMult: 1.7, radius: 23.75, color: 0x8a8a9c },
-  splitter: { hpMult: 0.85, speedMult: 1.1, dmgMult: 0.85, radius: 13.75, color: 0xc77dff, splitsOnDeath: true }
+  tank:     { hpMult: 2.6, speedMult: 0.5, dmgMult: 1.7, radius: 19, color: 0x8a8a9c },
+  splitter: { hpMult: 0.85, speedMult: 1.1, dmgMult: 0.85, radius: 11, color: 0xc77dff, splitsOnDeath: true }
 };
 
 // weighted pool of types unlocked per wave - depth ramps up as you go deeper
@@ -3852,8 +3788,7 @@ class LootScene extends Phaser.Scene {
         body: `${N.enemies.megaboss} has drunk the well dry. Descend to ${N.stage.toLowerCase()} ${FINAL_SECTOR}, the bottom of the well, and slay him to bring the water back. Every boss you beat on the way returns a little water, even if the run is lost. Fill the well and the game is won.`,
         draw: (cx, cy) => {
           const gr = g();
-          const coil = Array.from({ length: 22 }, (_, i) => ({ x: cx - 84 + Math.sin(i * 0.5 + 0.4) * (4 + i * 1.5), y: cy - 34 + i * 3.6 }));
-          paintSerpent(g(), coil, -Math.PI / 2 + 0.5, 3000, { size: 0.62, mood: 'plain', slither: 0.4 });
+          img(`${CHARS.megaboss}-front`, cx - 84, cy + 2, 96);
           label(cx - 84, cy + 54, N.enemies.megaboss, '#ffb38a', 10);
           gr.fillStyle(0x2a0f04, 1); gr.fillRect(cx + 4, cy - 44, 112, 76);
           gr.fillStyle(0x1f8f80, 0.9); gr.fillRect(cx + 4, cy + 2, 112, 30);
@@ -4337,11 +4272,14 @@ class LootScene extends Phaser.Scene {
 
   // How far over an enemy's middle its bars and name begin, and how far under it the
   // floor is, whatever art it has.
-  headUp(e) { return e.radius + artRise(e.char, e.radius * 2.8); }
+  // What an enemy's figure was drawn at before art of the game's own: 2.8 times its stock
+  // hit circle. Everything about how a figure is drawn is measured from this.
+  stockSize(e) { return e.radius / HIT * 2.8; }
+  headUp(e) { return e.radius / HIT + artRise(e.char, this.stockSize(e)); }
   // How far out from an enemy's middle a ring drawn round it must be to clear what is
   // drawn of it: its hit circle for stock art, most of its half-width for the game's own.
-  girth(e) { const a = ART[e.char]; return a ? Math.max(e.radius, e.radius * 2.8 * a.scale * (a.wide || 0.5) * 0.45) : e.radius; }
-  feetDown(e) { return e.radius * 0.55 + artDrop(e.char, e.radius * 2.8); }
+  girth(e) { const a = ART[e.char]; return a ? Math.max(e.radius, this.stockSize(e) * a.scale * (a.wide || 0.5) * 0.45) : e.radius; }
+  feetDown(e) { return e.radius / HIT * 0.55 + artDrop(e.char, this.stockSize(e)); }
 
   // A character's sprite: its walk sheet where it has one, its still otherwise. `size` is
   // how large the standing stock figure is drawn, whichever it is; art of the game's own
@@ -5889,7 +5827,7 @@ class LootScene extends Phaser.Scene {
       id: Phaser.Math.RND.uuid(),
       type: 'gatekeeper', isBoss: true, isSplit: false, isElite: false,
       x, y, hp, maxHp: hp,
-      speed: 42, dmg: 0, radius: 32.5,
+      speed: 42, dmg: 0, radius: 26 * HIT,
       hitCooldown: 0, goldDrop: 60 + this.depth * 4,
       isRanged: false,
       weakPhase
@@ -5898,7 +5836,7 @@ class LootScene extends Phaser.Scene {
     this.enemies.push(enemy);
     enemy.char = CHARS.gatekeeper;
     enemy.facing = 'front';
-    const spr = this.charSprite(enemy.char, x, y, enemy.radius * 2.8);
+    const spr = this.charSprite(enemy.char, x, y, this.stockSize(enemy));
     // The weak-phase core sits UNDER the sprite as a glow pool, so Dwarapal's
     // silhouette stays readable while the colour tell is still unmistakable.
     const core = this.add.circle(x, y + this.feetDown(enemy), 14, PHASE_DEFS[weakPhase].color, 0.85);
@@ -5922,7 +5860,7 @@ class LootScene extends Phaser.Scene {
       id: Phaser.Math.RND.uuid(),
       type: 'sectorboss', isBoss: true, isSectorBoss: true, isMega: !!isMega,
       x, y, hp, maxHp: hp,
-      speed: 34, dmg: 0, radius: isMega ? 47.5 : 40,
+      speed: 34, dmg: 0, radius: (isMega ? 38 : 32) * HIT,
       hitCooldown: 0, goldDrop: isMega ? 260 : 130 + this.depth * 3,
       isRanged: false,
       weakPhase,
@@ -5935,22 +5873,14 @@ class LootScene extends Phaser.Scene {
 
     enemy.char = isMega ? CHARS.megaboss : CHARS.sectorboss;
     enemy.facing = 'front';
-    const spr = this.charSprite(enemy.char, x, y, enemy.radius * 2.8);
+    const spr = this.charSprite(enemy.char, x, y, this.stockSize(enemy));
     this.enemySprites.set(enemy.id, spr);
     const outerRing = this.add.circle(x, y, this.girth(enemy) + 10, 0x000000, 0).setStrokeStyle(2, isMega ? 0xc23cff : FORGE.gold, 0.5);
     this.enemyRings.set(enemy.id, outerRing);
     this.addHpBar(enemy);
     this.addNameLabel(enemy);
 
-    if (isMega) {
-      enemy.orbiters = [ this.add.circle(x, y, 4, 0xffd23c), this.add.circle(x, y, 4, 0xffd23c) ];
-      // Vritra is drawn, not a sprite (2026-10-04): a serpent that coils and strikes. The
-      // stock sprite stays as an unseen stand-in, so nothing that expects one breaks.
-      spr.setVisible(false);
-      outerRing.setVisible(false);
-      enemy.serpent = { gfx: this.add.graphics(), heading: Math.PI / 2,
-        segs: Array.from({ length: SERPENT.length }, (_, i) => ({ x: x + Math.cos(i * 0.5) * (14 + i * 2) * SERPENT.scale, y: y + 8 + Math.sin(i * 0.5) * (14 + i * 2) * 0.8 * SERPENT.scale })) };
-    }
+    if (isMega) enemy.orbiters = [ this.add.circle(x, y, 4, 0xffd23c), this.add.circle(x, y, 4, 0xffd23c) ];
 
     if (enemy.bossPhase === 'timing') {
       const core = this.add.circle(x, y + this.feetDown(enemy), 16, PHASE_DEFS[weakPhase].color, 0.85);
@@ -5961,29 +5891,6 @@ class LootScene extends Phaser.Scene {
       this.spawnShieldAdds(enemy);
     }
     return enemy;
-  }
-
-  // The serpent's body is a chain: the head leads, every segment keeps its distance from
-  // the one before, and the whole thing draws in to a coil whenever he roots himself -
-  // behind his shield, or winding up a slam.
-  updateSerpent(e, time, delta) {
-    const sp = e.serpent, dt = delta / 1000, rooted = !!e.shieldOn || !!e.slam, b = this.arenaBounds;
-    sp.heading = Phaser.Math.Angle.RotateTo(sp.heading, Math.atan2(this.player.y - e.y, this.player.x - e.x), 2.6 * dt);
-    sp.segs[0].x = e.x; sp.segs[0].y = e.y;
-    for (let i = 1; i < sp.segs.length; i++) {
-      const prev = sp.segs[i - 1], seg = sp.segs[i];
-      if (rooted) {
-        const a = time / 1500 + i * 0.5, r = 14 + i * 2, pull = Math.min(1, dt * 2.4);
-        seg.x += (e.x + Math.cos(a) * r - seg.x) * pull; seg.y += (e.y + 8 + Math.sin(a) * r * 0.8 - seg.y) * pull;
-      } else {
-        const dx = seg.x - prev.x, dy = seg.y - prev.y, d = Math.hypot(dx, dy) || 1;
-        seg.x = prev.x + dx / d * SERPENT.gap * SERPENT.scale; seg.y = prev.y + dy / d * SERPENT.gap * SERPENT.scale;
-      }
-      seg.x = Phaser.Math.Clamp(seg.x, b.x + 6, b.right - 6); seg.y = Phaser.Math.Clamp(seg.y, b.y + 6, b.bottom - 6);
-    }
-    const mood = !this.bossGated(e) || e.shieldOn ? 'plain' : this.phase === e.weakPhase ? 'open' : 'closed';
-    paintSerpent(sp.gfx.clear(), sp.segs, sp.heading, time, { size: SERPENT.scale, mood, glow: PHASE_DEFS[e.weakPhase].color,
-      rear: e.slam ? Math.min(1, e.slam.t / e.slam.dur) : 0, struck: e.squash > 0 ? e.squash / 140 : 0, slither: rooted ? 0.35 : 1 });
   }
 
   spawnShieldAdds(boss) {
@@ -6058,7 +5965,7 @@ class LootScene extends Phaser.Scene {
       x, y, hp, maxHp: hp,
       speed: (62 + wave * 5) * def.speedMult * (isSplit ? 1.15 : 1) * (this.tier >= 2 ? 1.12 : 1),
       dmg: (8 + wave * 1.4) * def.dmgMult * (isElite ? 1.5 : 1) * sectorDmgMult(this.sector),
-      radius: (isSplit ? Math.max(8.75, def.radius - 5) : def.radius) + (isElite ? 7.5 : 0),
+      radius: ((isSplit ? Math.max(7, def.radius - 4) : def.radius) + (isElite ? 6 : 0)) * HIT,     // the table gives the stock circle
       hitCooldown: 0,
       goldDrop: Math.ceil((4 + wave) * (isSplit ? 0.35 : 1) * (isElite ? 4 : 1)),
       isRanged: !!def.isRanged,
@@ -6075,7 +5982,7 @@ class LootScene extends Phaser.Scene {
     // muddies it. Elites keep a gold wash because that IS a state, not an identity.
     enemy.char = CHARS[type];
     enemy.facing = 'front';
-    const spr = this.charSprite(enemy.char, x, y, enemy.radius * 2.8);
+    const spr = this.charSprite(enemy.char, x, y, this.stockSize(enemy));
     if (isElite) spr.setTint(0xffd23c);
     this.enemySprites.set(enemy.id, spr);
     this.addHpBar(enemy);
@@ -6162,10 +6069,7 @@ class LootScene extends Phaser.Scene {
     if (spr) spr.destroy();
     this.enemySprites.delete(enemy.id);
     if (enemy.gateLabel) { enemy.gateLabel.destroy(); enemy.gateFx.destroy(); enemy.gateLabel = enemy.gateFx = null; }
-    if (enemy.serpent) {                               // the coil bursts from the tail to the head
-      enemy.serpent.segs.forEach((sg, i) => { if (i % 3 === 0 && !this.silent) this.time.delayedCall((enemy.serpent.segs.length - i) * 14, () => this.impactBurst(sg.x, sg.y, i % 2 ? SERPENT.band : SERPENT.lit)); });
-      enemy.serpent.gfx.destroy(); enemy.serpent = null;
-    }
+    if (enemy.isMega && !this.silent) this.chipFx(enemy.x, enemy.y, VRITRA_FX, 16, 70);     // he comes apart in indigo and gold
     if (this.enemyCores.has(enemy.id)) { this.enemyCores.get(enemy.id).destroy(); this.enemyCores.delete(enemy.id); }
     if (this.enemyRings.has(enemy.id)) { this.enemyRings.get(enemy.id).destroy(); this.enemyRings.delete(enemy.id); }
     if (this.enemyShields.has(enemy.id)) { this.enemyShields.get(enemy.id).destroy(); this.enemyShields.delete(enemy.id); }
@@ -6513,7 +6417,6 @@ class LootScene extends Phaser.Scene {
         if (e.shieldParts) e.shieldParts.forEach(pt => pt.destroy());
         if (e.nameLabel) e.nameLabel.destroy();
         if (e.gateLabel) { e.gateLabel.destroy(); e.gateFx.destroy(); }
-        if (e.serpent) e.serpent.gfx.destroy();
       });
       this.goldPickups.forEach(g => g.sprite && g.sprite.destroy());
       if (this.projectiles) this.projectiles.forEach(p => { if (p.sprite) p.sprite.destroy(); if (p.halo) p.halo.destroy(); });
@@ -6774,7 +6677,6 @@ class LootScene extends Phaser.Scene {
           });
         }
         this.updateBossGate(enemy, time);
-        if (enemy.serpent) this.updateSerpent(enemy, time, delta);
       } else {
         // melee / tank / splitter: chase and hit on contact. A hunted runner is run down (2.36).
         const pace = Math.max(enemy.speed, this.huntPace);
@@ -6868,7 +6770,7 @@ class LootScene extends Phaser.Scene {
       const pdist = Math.hypot(p.x - this.player.x, p.y - this.player.y);
       const offscreen = !Phaser.Geom.Rectangle.Contains(this.worldBounds, p.x, p.y);
 
-      if (pdist < HERO_RADIUS + 3.75) {
+      if (pdist < HERO_RADIUS + 3 * HIT) {
         const died = this.damagePlayer(p.dmg * PHASE_DEFS[this.phase].enemyDmgMult, null, 'ranged');
         this.impactBurst(p.x, p.y, FORGE.flame);
         p.sprite.destroy(); if (p.halo) p.halo.destroy();
