@@ -800,6 +800,18 @@ const WEAPON_FX = Object.assign({}, TEJAS_FX, { none: [0xeafcf4, 0x2fa7a0] });
 const HEX_FX = [0xf0b8ff, 0x8a3fc0];       // the Hexer's bolt: violet, which nothing of the hero's uses
 const SLAM_FX = [0xff8a5a, 0xb5301a];      // where a boss's slam lands: the red of its warning
 const VRITRA_FX = [0xe0aa3e, 0x3a3558];    // what Vritra bursts into when he falls: his gold and his indigo
+// What stands round a figure (requirements 2.45).
+const SHIELD_FX = [0xd6f2ff, 0x4f9fd6];    // the dome over a shielded boss: ice, lit and in shade
+const STEEL_FX = [0xc3cad8, 0x565d70];     // the plates round a boss who resists
+const GILT_FX = [0xffe27a, 0xc78a1c];      // the gold of an elite, of what anchors a shield, and of a boss's own ring
+const GILT_GLOW = 0xffb820;                // the light laid over such a figure: deeper, so it gilds and does not bleach
+// What each figure comes apart in when it falls: two of its own colours.
+const DEATH_FX = {
+  asura: [0xe07a3a, 0x3d3a8c], rakshasa: [0xb48ad8, 0x4a3a66], mahish: [0xe08a3c, 0x4a4450], raktabija: [0xe2584a, 0x7a1f2c],
+  bakasura: [0xd89a4a, 0x7a2430], nidhiraksha: [0xf0c050, 0x2f8f8f], vritra: VRITRA_FX
+};
+const FLAT = 0.42;                         // how flat a ring lying on the floor round a standing figure is drawn
+const dim = (c, k) => (Math.floor((c >> 16 & 255) * k) << 16) | (Math.floor((c >> 8 & 255) * k) << 8) | Math.floor((c & 255) * k);
 
 // Persists across page reloads via localStorage (falls back to in-memory if unavailable, e.g. private browsing)
 // The well's depths and the perks worn (requirements 2.30). These sit above the save
@@ -2840,6 +2852,207 @@ class LootScene extends Phaser.Scene {
     }
   }
 
+  // ---------- ROUND A FIGURE (requirements 2.45) ----------
+  // The figures stand; the floor is seen from above. What lies on the floor round one of
+  // them is therefore drawn as it would be seen there: a ring flattened to an ellipse at
+  // its feet, under it. Returns the point at angle `a` on such a ring, `k` times as wide.
+  onFloor(x, y, rx) { return (a, k = 1) => ({ x: x + Math.cos(a) * rx * k, y: y + Math.sin(a) * rx * k * FLAT }); }
+
+  // A garland of facets on such a ring: kites, each half in the light and half in shade.
+  facetRing(g, x, y, rx, c, alpha, spin = 0, w = 5) {
+    const at = this.onFloor(x, y, rx), n = Math.max(10, Math.round(rx / 5)), k = w / rx;
+    for (let i = 0; i < n; i++) {
+      const a0 = spin + i / n * Math.PI * 2, a1 = spin + (i + 0.84) / n * Math.PI * 2, mid = (a0 + a1) / 2;
+      g.fillStyle(c[0], alpha); g.fillPoints([at(a0), at(mid, 1 + k), at(mid, 1 - k * 0.7)], true);
+      g.fillStyle(c[1], alpha); g.fillPoints([at(mid, 1 + k), at(a1), at(mid, 1 - k * 0.7)], true);
+    }
+  }
+
+  // A pool of colour at a figure's feet: a fan of eight faces, light and shade by turns.
+  facetPool(g, x, y, rx, colour, alpha, spin) {
+    const at = this.onFloor(x, y, rx), n = 8, shade = dim(colour, 0.62);
+    for (let i = 0; i < n; i++) {
+      g.fillStyle(i % 2 ? colour : shade, alpha);
+      g.fillPoints([{ x, y }, at(spin + i / n * Math.PI * 2), at(spin + (i + 1) / n * Math.PI * 2)], true);
+    }
+    g.lineStyle(1.5, colour, Math.min(1, alpha + 0.25));
+    g.strokePoints(Array.from({ length: n }, (_, i) => at(spin + i / n * Math.PI * 2)), true);
+  }
+
+  // Plates of armour lying round a boss who resists: six slabs, each with a top of two
+  // faces and the one side of it that is turned to us, going slowly round.
+  steelPlates(g, x, y, rx, spin) {
+    const at = this.onFloor(x, y, rx), n = 6, lip = 4.5, up = p => ({ x: p.x, y: p.y - lip });
+    for (let i = 0; i < n; i++) {
+      const a0 = spin + i * Math.PI * 2 / n, a1 = a0 + 0.76, am = (a0 + a1) / 2;
+      const out = [at(a0, 1.09), at(am, 1.11), at(a1, 1.09)], inn = [at(a0, 0.89), at(am, 0.87), at(a1, 0.89)];
+      const side = Math.sin(am) > 0 ? out : inn;                       // near us its outer side shows, far from us its inner
+      g.fillStyle(STEEL_FX[1], 0.95); g.fillPoints([...side.map(up), side[2], side[1], side[0]], true);
+      g.fillStyle(STEEL_FX[0], 0.95); g.fillPoints([up(inn[0]), up(out[0]), up(out[1]), up(inn[1])], true);
+      g.fillStyle(dim(STEEL_FX[0], 0.8), 0.95); g.fillPoints([up(inn[1]), up(out[1]), up(out[2]), up(inn[2])], true);
+    }
+  }
+
+  // A boss who can be hurt: a garland in the colour of his phase breathing at his feet,
+  // and shards standing out of it all round.
+  openGlow(g, x, y, rx, colour, time) {
+    const pulse = 0.5 + 0.5 * Math.sin(time / 130), c = [colour, dim(colour, 0.6)], at = this.onFloor(x, y, rx);
+    this.facetRing(g, x, y, rx + pulse * 3, c, 0.75 + 0.25 * pulse, time / 900, 6);
+    for (let i = 0; i < 10; i++) {
+      const a = -time / 1400 + i * Math.PI / 5, tip = at(a, 1.34 + 0.1 * pulse), mid = at(a, 1.15);
+      g.fillStyle(c[0], 0.9); g.fillPoints([at(a - 0.075, 1.15), mid, tip], true);
+      g.fillStyle(c[1], 0.9); g.fillPoints([mid, at(a + 0.075, 1.15), tip], true);
+    }
+  }
+
+  // The shield over a boss: a dome of flat panes standing on the floor round him, going
+  // slowly round, its far half drawn behind him and its near half in front. Each anchor
+  // that still stands holds it by a chain of gold along the floor; each one lost cracks it.
+  drawDome(e, time, fx, fy) {
+    const back = e.floorFx, front = e.domeFx, rx = this.girth(e) + 14, tall = this.headUp(e) + this.feetDown(e) + 18;
+    const P = (a, w, h) => ({ x: fx + Math.cos(a) * rx * w, y: fy + Math.sin(a) * rx * w * FLAT - tall * h });
+    const n = 10, spin = time / 5200, ring = [[1, 0], [0.93, 0.4], [0.62, 0.8], [0, 1]];           // each ring of corners: how wide, how high
+    const held = e.keyAddIds.length / (e.shieldMax || 1), lost = (e.shieldMax || 0) - e.keyAddIds.length, strength = 0.5 + 0.5 * held;
+    const breath = 0.5 + 0.5 * Math.sin(time / 420), glint = Math.floor(time / 110) % (n * 3), struck = Math.max(0, (e.domeHit || 0) / 160);
+    this.facetRing(back, fx, fy, rx, SHIELD_FX, 0.45 + 0.35 * held, -spin * 2, 5);
+    for (let i = 0; i < n; i++) {
+      const a0 = spin + i / n * Math.PI * 2, a1 = spin + (i + 1) / n * Math.PI * 2, am = (a0 + a1) / 2;
+      const near = Math.sin(am) > 0, g = near ? front : back, lit = 0.5 - 0.5 * Math.cos(am);      // the light is on its left
+      for (let k = 0; k < 3; k++) {
+        const pane = k < 2 ? [P(a0, ...ring[k]), P(a1, ...ring[k]), P(a1, ...ring[k + 1]), P(a0, ...ring[k + 1])] : [P(a0, ...ring[k]), P(a1, ...ring[k]), P(am, 0, 1)];
+        const shine = (i * 3 + k === glint ? 0.2 : 0) + struck * 0.22;
+        g.fillStyle((i + k) % 2 ? SHIELD_FX[0] : SHIELD_FX[1], ((near ? 0.1 : 0.2) + 0.1 * lit + 0.05 * breath) * strength + shine);
+        g.fillPoints(pane, true);
+        g.lineStyle(1, SHIELD_FX[0], (near ? 0.55 : 0.3) * strength + shine); g.strokePoints(pane, true);
+      }
+    }
+    for (let j = 0; j < lost; j++) {
+      const a = 0.75 + j * 0.82, crack = [P(a, 0.5, 0.86), P(a + 0.16, 0.7, 0.72), P(a + 0.02, 0.8, 0.6), P(a + 0.15, 0.9, 0.45), P(a - 0.07, 0.94, 0.33), P(a + 0.09, 0.98, 0.17), P(a, 1, 0)];
+      front.lineStyle(2.4, 0x1d3a5a, 0.4); front.strokePoints(crack);
+      front.lineStyle(1, 0xffffff, 0.9); front.strokePoints(crack);
+      front.strokePoints([crack[2], P(a - 0.2, 0.88, 0.52)]); front.strokePoints([crack[4], P(a + 0.24, 0.99, 0.3)]);        // and two that branch from it
+    }
+    e.keyAddIds.forEach(id => {
+      const m = this.enemies.find(o => o.id === id);
+      if (!m) return;
+      const mx = m.x, my = m.y + this.feetDown(m), a = Math.atan2((my - fy) / FLAT, mx - fx), end = P(a, 1, 0);
+      const len = Math.hypot(mx - end.x, my - end.y);
+      if (len < 14 || Math.hypot(mx - fx, (my - fy) / FLAT) < rx) return;                          // it stands under the dome itself
+      const ux = (end.x - mx) / len, uy = (end.y - my) / len, run = (time / 70) % 12;              // the links run toward the dome
+      for (let d = run; d < len; d += 12) {
+        const cx = mx + ux * d, cy = my + uy * d, tail = { x: cx - ux * 4.5, y: cy - uy * 4.5 }, head = { x: cx + ux * 4.5, y: cy + uy * 4.5 };
+        back.fillStyle(GILT_FX[0], 0.85); back.fillPoints([tail, { x: cx - uy * 2.4, y: cy + ux * 2.4 }, head], true);
+        back.fillStyle(GILT_FX[1], 0.85); back.fillPoints([tail, { x: cx + uy * 2.4, y: cy - ux * 2.4 }, head], true);
+      }
+    });
+  }
+
+  // What is drawn round a boss this frame. On the floor at his feet: the pool of the
+  // phase that opens him, with the plates of one who resists or the garland of one who
+  // can be hurt; a plain garland for a boss who has neither; and the dome of a shielded one.
+  drawBossFx(e, time, delta) {
+    if (this.silent) return;
+    if (!e.floorFx) { e.floorFx = this.add.graphics().setDepth(Z.fx); e.domeFx = this.add.graphics(); }
+    const g = e.floorFx, x = e.x, y = e.y + this.feetDown(e), rx = this.girth(e) + 10, spr = this.enemySprites.get(e.id);
+    g.clear(); e.domeFx.clear();
+    if (e.domeHit > 0) e.domeHit -= delta;
+    if (e.shieldOn) {
+      e.domeFx.setDepth((spr ? spr.depth : 0) + 1e-5);
+      this.drawDome(e, time, x, y);
+    } else if (this.bossGated(e)) {
+      const open = this.phase === e.weakPhase, col = PHASE_DEFS[e.weakPhase].color, beat = 0.5 + 0.5 * Math.sin(time / 500);
+      this.facetPool(g, x, y, rx * (open ? 0.72 : 0.58), col, open ? 0.6 + 0.25 * beat : 0.55 + 0.2 * beat, time / 3000);
+      if (open) this.openGlow(g, x, y, rx, col, time); else this.steelPlates(g, x, y, rx, time / 2600);
+    } else this.facetRing(g, x, y, rx, e.isMega ? VRITRA_FX : GILT_FX, 0.75, time / 2400, 5);
+  }
+
+  // Gold on a figure that is more than its kind: an elite, or one that anchors a shield.
+  // Its own picture is laid over it as light, so it glows and keeps its colours (a tint
+  // turned the Asura's indigo to mud), and a garland of gold lies at its feet.
+  gild(e) {
+    const spr = this.enemySprites.get(e.id);
+    if (!spr || this.silent) return;
+    spr.clearTint();
+    e.gilt = this.add.image(spr.x, spr.y, spr.texture.key, spr.frame.name).setTintFill(GILT_GLOW).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.2);
+    e.giltRing = this.add.graphics().setDepth(Z.fx);
+  }
+
+  // Everything drawn round an enemy, taken away.
+  dropRound(e) {
+    [e.floorFx, e.domeFx, e.gilt, e.giltRing, ...(e.orbiters || [])].forEach(o => o && o.destroy());
+    e.floorFx = e.domeFx = e.gilt = e.giltRing = e.orbiters = null;
+  }
+
+  // A figure falls: its own picture comes apart in pieces that are thrown out and fade,
+  // with chips in two of its colours. The larger it was the more of both; a boss also
+  // throws a ring of shards and opens a star, and Vritra does it twice.
+  deathFx(e, spr) {
+    const c = DEATH_FX[e.char] || GILT_FX, big = e.isBoss ? (e.isMega ? 3 : 2) : (e.isElite || e.type === 'tank' ? 1 : 0);
+    const cols = big >= 2 ? 3 : 2, rows = big >= 1 ? 3 : 2, f = spr.frame, fw = f.width, fh = f.height;
+    const x0 = fw * 0.16, y0 = fh * 0.08, pw = fw * 0.68 / cols, ph = fh * 0.88 / rows;        // the part of a cell a figure stands in
+    const cx = spr.x, cy = spr.y - spr.displayHeight * 0.04, far = 9 + big * 7;
+    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+      const ox = (x0 + (i + 0.5) * pw) / fw, oy = (y0 + (j + 0.5) * ph) / fh;
+      const px = spr.x + (ox - 0.5) * spr.displayWidth, py = spr.y + (oy - 0.5) * spr.displayHeight;
+      const piece = this.add.image(px, py, spr.texture.key, f.name).setScale(spr.scaleX, spr.scaleY).setOrigin(ox, oy)
+        .setCrop(x0 + i * pw, y0 + j * ph, pw, ph).setTint(0xffe6c0).setDepth(spr.depth);
+      const a = Math.atan2(py - cy, px - cx) + (Math.random() - 0.5) * 0.7, d = far * (0.7 + Math.random() * 0.6);
+      const ms = 260 + big * 70 + Math.random() * 70;
+      this.fxFade(piece, { x: px + Math.cos(a) * d, y: py + Math.sin(a) * d - 3 - big * 2, angle: (Math.random() - 0.5) * 110, scale: spr.scaleX * 0.7 }, ms, 'Quad.easeOut');
+      this.tweens.add({ targets: piece, alpha: 0, delay: ms * 0.45, duration: ms * 0.55 });      // whole for the first of its flight, then gone
+    }
+    this.chipFx(cx, cy, c, 4 + big * 4, 16 + big * 16);
+    if (big < 1) return;
+    const star = this.fxPiece('fx_star', cx, cy, 12 + big * 7, c).setRotation(Math.random() * 1.5);
+    this.fxFade(star, { scale: star.scale * 2.6, angle: star.angle + 60, alpha: 0 }, 260 + big * 60);
+    if (big < 2) return;
+    const ring = (n, reach, ms) => {
+      const spin = Math.random() * 6.28;
+      for (let i = 0; i < n; i++) {
+        const a = spin + i / n * Math.PI * 2;
+        const shard = this.fxPiece('fx_shard', cx + Math.cos(a) * 14, cy + Math.sin(a) * 14, 22, c).setRotation(a - Math.PI / 2);
+        this.fxFade(shard, { x: cx + Math.cos(a) * reach, y: cy + Math.sin(a) * reach, alpha: 0 }, ms);
+      }
+    };
+    ring(12, 78, 460);
+    this.shake(260, 0.006 + big * 0.002);
+    if (big >= 3) this.time.delayedCall(150, () => { ring(16, 118, 560); this.chipFx(cx, cy, c, 14, 80); });
+  }
+
+  // A Bloodseed bursts: clots of it thrown out, and a ring of short shards.
+  splitFx(x, y) {
+    const c = DEATH_FX.raktabija, spin = Math.random() * 6.28;
+    for (let i = 0; i < 5; i++) {
+      const a = spin + i / 5 * Math.PI * 2, clot = this.fxPiece('fx_lump', x, y, 14 + Math.random() * 7, c).setRotation(a);
+      this.fxFade(clot, { x: x + Math.cos(a) * 34, y: y + Math.sin(a) * 34 - 6, scale: clot.scale * 0.5, alpha: 0 }, 380 + Math.random() * 110, 'Quad.easeOut');
+    }
+    for (let i = 0; i < 8; i++) {
+      const a = spin + (i + 0.5) / 8 * Math.PI * 2, shard = this.fxPiece('fx_shard', x + Math.cos(a) * 8, y + Math.sin(a) * 8, 16, c).setRotation(a - Math.PI / 2);
+      this.fxFade(shard, { x: x + Math.cos(a) * 44, y: y + Math.sin(a) * 44, alpha: 0 }, 340, 'Quad.easeOut');
+    }
+  }
+
+  // An anchor falls: its chain parts in chips of gold, link by link, toward the dome.
+  snapFx(m, boss) {
+    const fx = boss.x, fy = boss.y + this.feetDown(boss), mx = m.x, my = m.y + this.feetDown(m);
+    for (let t = 0.1; t < 1; t += 0.2) this.chipFx(mx + (fx - mx) * t, my + (fy - my) * t, GILT_FX, 2, 10);
+    boss.domeHit = 260;
+  }
+
+  // The shield breaks: its panes fly out as shards of ice from where they stood.
+  domeBreakFx(boss) {
+    const fx = boss.x, fy = boss.y + this.feetDown(boss), rx = this.girth(boss) + 14, tall = this.headUp(boss) + this.feetDown(boss) + 18;
+    for (let i = 0; i < 16; i++) {
+      const a = i / 16 * Math.PI * 2 + Math.random() * 0.3, h = 0.15 + (i % 3) * 0.3, w = Math.sqrt(1 - h * h * 0.8);
+      const x = fx + Math.cos(a) * rx * w, y = fy + Math.sin(a) * rx * w * FLAT - tall * h;
+      const pane = this.fxPiece(i % 2 ? 'fx_shard' : 'fx_chip', x, y, i % 2 ? 24 : 13, SHIELD_FX).setRotation(a - Math.PI / 2);
+      this.fxFade(pane, { x: x + Math.cos(a) * 62, y: y + Math.sin(a) * 34 - 26 + h * 30, angle: pane.angle + (i % 2 ? 40 : 200), alpha: 0 }, 380 + Math.random() * 140);
+    }
+    const star = this.fxPiece('fx_star', fx, fy - tall * 0.55, 26, SHIELD_FX);
+    this.fxFade(star, { scale: star.scale * 3.2, angle: 50, alpha: 0 }, 420);
+    this.chipFx(fx, fy - tall * 0.4, SHIELD_FX, 12, 70);
+  }
+
   // ---------- AUDIO ----------
   sfx(key, opts = {}) {
     if (this.silent || settings.sfx <= 0) return;
@@ -4617,14 +4830,13 @@ class LootScene extends Phaser.Scene {
   // his colour and says so. Nothing to read, nothing to match.
   updateBossGate(e, time) {
     if (!this.bossGated(e) || e.shieldOn) {
-      if (e.gateLabel) { e.gateLabel.setVisible(false); e.gateFx.clear(); }
+      if (e.gateLabel) e.gateLabel.setVisible(false);
       if (e.gateOpen === false) { const spr0 = this.enemySprites.get(e.id); if (spr0) spr0.clearTint(); }
       e.gateOpen = null;
       return;
     }
     if (!e.gateLabel) {
       e.gateLabel = this.add.text(e.x, e.y, '', { resolution: RES, fontSize: '10px', color: '#fffbef', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 }).setOrigin(0.5).setDepth(42);
-      e.gateFx = this.add.graphics().setDepth(Z.fx);
       e.gateBorn = this.time.now;
     }
     const open = this.phase === e.weakPhase, col = PHASE_DEFS[e.weakPhase].color, spr = this.enemySprites.get(e.id);
@@ -4644,24 +4856,6 @@ class LootScene extends Phaser.Scene {
     e.gateLabel.setVisible(true).setText(open ? `VULNERABLE  ${secs}s` : `RESISTS  \u00B7  opens in ${secs}s`).setColor(open ? '#ffe27a' : '#b9c2d6');
     const half = e.gateLabel.width / 2 + 2;
     e.gateLabel.setPosition(Phaser.Math.Clamp(e.x, ab.x + half, ab.right - half), Math.max((this.trackY ? this.trackY + this.camOff.y : ab.y) + 28, top));
-    const g = e.gateFx, r = this.girth(e) + 9;
-    g.clear();
-    if (open) {                                   // a bright ring breathing in his colour, and rays
-      const pulse = 0.5 + 0.5 * Math.sin(time / 130);
-      g.lineStyle(3, col, 0.55 + 0.4 * pulse); g.strokeCircle(e.x, e.y, r + pulse * 4);
-      g.lineStyle(2, col, 0.5);
-      for (let i = 0; i < 10; i++) {
-        const a = time / 900 + i * Math.PI / 5;
-        g.lineBetween(e.x + Math.cos(a) * (r + 8), e.y + Math.sin(a) * (r + 8), e.x + Math.cos(a) * (r + 15 + pulse * 4), e.y + Math.sin(a) * (r + 15 + pulse * 4));
-      }
-    } else {                                      // plates of armour, turning slowly
-      g.lineStyle(4, 0x8d94a6, 0.85);
-      for (let i = 0; i < 6; i++) {
-        const a = time / 2600 + i * Math.PI / 3;
-        g.beginPath(); g.arc(e.x, e.y, r, a, a + 0.72); g.strokePath();
-      }
-      g.lineStyle(1.5, 0x2a2f3a, 0.8); g.strokeCircle(e.x, e.y, r + 3.5);
-    }
   }
 
   // A hit that mostly glances off says so.
@@ -4670,6 +4864,7 @@ class LootScene extends Phaser.Scene {
     e.resistAt = this.time.now;
     const t = this.add.text(e.x + Phaser.Math.Between(-18, 18), e.y - this.headUp(e) - 2, 'RESISTS', { resolution: RES, fontSize: '9px', color: '#b9c2d6', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 }).setOrigin(0.5).setDepth(41);
     this.tweens.add({ targets: t, y: t.y - 20, alpha: 0, duration: 620, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
+    this.chipFx(e.x + Phaser.Math.Between(-10, 10), e.y - this.headUp(e) * 0.3, STEEL_FX, 2, 14);     // it glances off
   }
 
   // One door for all player-sourced damage to an enemy: shields, boss weak phases and
@@ -4678,7 +4873,7 @@ class LootScene extends Phaser.Scene {
   damageEnemy(e, dmg) {
     this.lullMs = 0;                 // a blow struck, whatever it does: the hero is in the fight (2.36)
     if (!e || e.hp <= 0) return false;
-    if (e.shieldOn) return false;
+    if (e.shieldOn) { e.domeHit = 160; return false; }        // the dome flashes where it is struck
     const scale = this.weakScale(e);
     if (scale < 1) this.resistFx(e); else e.squash = 140;
     e.hp -= dmg * scale;
@@ -5486,9 +5681,6 @@ class LootScene extends Phaser.Scene {
 
     this.enemies = [];
     this.enemySprites = new Map();
-    this.enemyCores = new Map();
-    this.enemyRings = new Map();
-    this.enemyShields = new Map();
     this.goldPickups = [];
     this.projectiles = [];
     this.pickups = [];
@@ -5784,7 +5976,7 @@ class LootScene extends Phaser.Scene {
 
   addNameLabel(enemy) {
     const big = !!enemy.isBoss;
-    const role = enemy.isMega ? 'megaboss' : enemy.type;   // both sector bosses share a type
+    const role = enemy.isMega ? 'megaboss' : enemy.isSplit ? 'splitter' : enemy.type;   // both sector bosses share a type; a brood is named for its parent
     const name = CHAR_LABELS[role] || '';
     if (!name) return;
     const label = enemy.isElite ? name.toUpperCase() : name;
@@ -5836,14 +6028,9 @@ class LootScene extends Phaser.Scene {
     this.enemies.push(enemy);
     enemy.char = CHARS.gatekeeper;
     enemy.facing = 'front';
-    const spr = this.charSprite(enemy.char, x, y, this.stockSize(enemy));
-    // The weak-phase core sits UNDER the sprite as a glow pool, so Dwarapal's
-    // silhouette stays readable while the colour tell is still unmistakable.
-    const core = this.add.circle(x, y + this.feetDown(enemy), 14, PHASE_DEFS[weakPhase].color, 0.85);
-    core.setDepth(spr.depth - 1);
-    this.tweens.add({ targets: core, alpha: 0.45, duration: 500, yoyo: true, repeat: -1 });
-    this.enemySprites.set(enemy.id, spr);
-    this.enemyCores.set(enemy.id, core);
+    // The pool of his phase's colour at his feet, and what else stands round him, is drawn
+    // each frame (drawBossFx).
+    this.enemySprites.set(enemy.id, this.charSprite(enemy.char, x, y, this.stockSize(enemy)));
     this.addHpBar(enemy);
     this.addNameLabel(enemy);
     this.hint('core', `${N.enemies.gatekeeper} resists most of your damage outside his own phase. The timer over his head counts down to when he opens.`);
@@ -5875,21 +6062,13 @@ class LootScene extends Phaser.Scene {
     enemy.facing = 'front';
     const spr = this.charSprite(enemy.char, x, y, this.stockSize(enemy));
     this.enemySprites.set(enemy.id, spr);
-    const outerRing = this.add.circle(x, y, this.girth(enemy) + 10, 0x000000, 0).setStrokeStyle(2, isMega ? 0xc23cff : FORGE.gold, 0.5);
-    this.enemyRings.set(enemy.id, outerRing);
     this.addHpBar(enemy);
     this.addNameLabel(enemy);
 
-    if (isMega) enemy.orbiters = [ this.add.circle(x, y, 4, 0xffd23c), this.add.circle(x, y, 4, 0xffd23c) ];
+    // Two stars of his gold go round Vritra on the floor, behind him and in front by turns.
+    if (isMega && !this.silent) enemy.orbiters = [0, 1].map(() => this.fxPiece('fx_star', x, y, 20, [GILT_FX[0], VRITRA_FX[0]]));
 
-    if (enemy.bossPhase === 'timing') {
-      const core = this.add.circle(x, y + this.feetDown(enemy), 16, PHASE_DEFS[weakPhase].color, 0.85);
-      core.setDepth(spr.depth - 1);
-      this.tweens.add({ targets: core, alpha: 0.45, duration: 500, yoyo: true, repeat: -1 });
-      this.enemyCores.set(enemy.id, core);
-    } else {
-      this.spawnShieldAdds(enemy);
-    }
+    if (enemy.bossPhase !== 'timing') this.spawnShieldAdds(enemy);
     return enemy;
   }
 
@@ -5903,33 +6082,18 @@ class LootScene extends Phaser.Scene {
       add.isKeyAdd = true;
       add.ownerBossId = boss.id;
       boss.keyAddIds.push(add.id);
-      const spr = this.enemySprites.get(add.id);
-      // Character sprites are Images now, so the old gold outline is a gold wash -
-      // same read ("this one is an anchor, kill it"), and it survives any art swap.
-      if (spr) spr.setTint(0xffd23c);
+      // An anchor glows gold, is named for what it is, and is chained to the dome it holds
+      // up (gild, drawDome): "this one is an anchor, kill it".
+      this.gild(add);
+      if (add.nameLabel) add.nameLabel.setText('ANCHOR').setColor('#ffd23c');
     }
-    // Shield: a breathing inner dome plus two counter-rotating rings. The old flat
-    // circle gave no sense that it was holding anything back.
-    const r = this.girth(boss) + 8;
-    const dome = this.add.circle(boss.x, boss.y, r, 0x9fd8ff, 0.16);
-    const ringA = this.add.circle(boss.x, boss.y, r + 3, 0x000000, 0).setStrokeStyle(2, 0x9fd8ff, 0.75);
-    const ringB = this.add.circle(boss.x, boss.y, r + 9, 0x000000, 0).setStrokeStyle(1.5, FORGE.cool, 0.45);
-
-    this.tweens.add({ targets: dome, scale: 1.09, alpha: 0.28, duration: 780,
-                      yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    this.tweens.add({ targets: ringA, angle: 360, duration: 6000, repeat: -1 });
-    this.tweens.add({ targets: ringB, angle: -360, duration: 9000, repeat: -1 });
-
-    boss.shieldParts = [dome, ringA, ringB];
-    boss.shieldMax = boss.keyAddIds.length;
-    this.enemyShields.set(boss.id, dome);   // kept for the existing pulse-on-hit path
+    boss.shieldMax = boss.keyAddIds.length;       // the dome itself is drawn each frame (drawBossFx)
     this.addShieldBar(boss);
     this.time.delayedCall(900, () => this.showToast('DESTROY THE ANCHORS', '#9fd8ff'));
     this.hint('shield', `Shielded - no damage gets through. Kill the gold-glowing ${N.enemies.melee} anchoring it and the shield breaks.`);
   }
 
   transitionMegaBossToShield(boss) {
-    if (this.enemyCores.has(boss.id)) { this.enemyCores.get(boss.id).destroy(); this.enemyCores.delete(boss.id); }
     boss.bossPhase = 'shielded';
     boss.shieldOn = true;
     this.showToast(`${N.enemies.megaboss.toUpperCase()} COILS - DESTROY THE ANCHORS`, '#9fd8ff');
@@ -5980,11 +6144,12 @@ class LootScene extends Phaser.Scene {
     // Characters are now visually distinct by design (goblin / chieftain / brute / rogue),
     // so type no longer needs a tint to be readable - and tinting detailed art just
     // muddies it. Elites keep a gold wash because that IS a state, not an identity.
-    enemy.char = CHARS[type];
+    // What a Bloodseed splits into is drawn as a Bloodseed, small: it is its own brood.
+    enemy.char = isSplit ? CHARS.splitter : CHARS[type];
     enemy.facing = 'front';
     const spr = this.charSprite(enemy.char, x, y, this.stockSize(enemy));
-    if (isElite) spr.setTint(0xffd23c);
     this.enemySprites.set(enemy.id, spr);
+    if (isElite) this.gild(enemy);
     this.addHpBar(enemy);
     this.addNameLabel(enemy);
     if (type === 'ranged') this.hint('ranged', `${N.enemies.ranged} shoot bolts from range. Keep moving sideways to dodge them.`);
@@ -6062,22 +6227,14 @@ class LootScene extends Phaser.Scene {
 
   killEnemy(enemy) {
     const spr = this.enemySprites.get(enemy.id);
-    if (spr && spr.visible && !this.silent) {          // it folds and fades rather than blinking out
-      const ghost = this.add.image(spr.x, spr.y, spr.texture.key, spr.frame.name).setScale(spr.scaleX, spr.scaleY).setTint(0xffe6c0).setAlpha(0.85);
-      this.tweens.add({ targets: ghost, scaleX: spr.scaleX * 1.3, scaleY: spr.scaleY * 0.35, y: spr.y + spr.displayHeight * 0.3, alpha: 0, duration: 190, ease: 'Cubic.easeIn', onComplete: () => ghost.destroy() });
-    }
+    if (spr && spr.visible && !this.silent) this.deathFx(enemy, spr);      // it comes apart rather than blinking out
     if (spr) spr.destroy();
     this.enemySprites.delete(enemy.id);
-    if (enemy.gateLabel) { enemy.gateLabel.destroy(); enemy.gateFx.destroy(); enemy.gateLabel = enemy.gateFx = null; }
-    if (enemy.isMega && !this.silent) this.chipFx(enemy.x, enemy.y, VRITRA_FX, 16, 70);     // he comes apart in indigo and gold
-    if (this.enemyCores.has(enemy.id)) { this.enemyCores.get(enemy.id).destroy(); this.enemyCores.delete(enemy.id); }
-    if (this.enemyRings.has(enemy.id)) { this.enemyRings.get(enemy.id).destroy(); this.enemyRings.delete(enemy.id); }
-    if (this.enemyShields.has(enemy.id)) { this.enemyShields.get(enemy.id).destroy(); this.enemyShields.delete(enemy.id); }
+    if (enemy.gateLabel) { enemy.gateLabel.destroy(); enemy.gateLabel = null; }
+    this.dropRound(enemy);
     if (enemy.hpBarBg) { enemy.hpBarBg.destroy(); enemy.hpBarFill.destroy(); }
     if (enemy.shieldBarBg) { enemy.shieldBarBg.destroy(); enemy.shieldBarFill.destroy(); }
-    if (enemy.shieldParts) enemy.shieldParts.forEach(pt => pt.destroy());
     if (enemy.nameLabel) enemy.nameLabel.destroy();
-    if (enemy.orbiters) enemy.orbiters.forEach(o => o.destroy());
     if (enemy.telegraphGfx) { enemy.telegraphGfx.destroy(); enemy.telegraphGfx = null; }
     this.enemies.splice(this.enemies.indexOf(enemy), 1);
 
@@ -6100,18 +6257,13 @@ class LootScene extends Phaser.Scene {
       const boss = this.enemies.find(e => e.id === enemy.ownerBossId);
       if (boss) {
         boss.keyAddIds = boss.keyAddIds.filter(id => id !== enemy.id);
+        if (!this.silent) this.snapFx(enemy, boss);
         if (boss.keyAddIds.length === 0 && boss.shieldOn) {
           boss.shieldOn = false;
           boss.bossPhase = 'active';
-          // Blow the shield outward rather than snapping it off - the break is the
-          // payoff for the anchor puzzle and deserves to be seen.
-          (boss.shieldParts || []).forEach(part => {
-            this.tweens.killTweensOf(part);
-            this.tweens.add({ targets: part, scale: 1.7, alpha: 0, duration: 260,
-                              ease: 'Cubic.easeOut', onComplete: () => part.destroy() });
-          });
-          boss.shieldParts = null;
-          this.enemyShields.delete(boss.id);
+          // The dome flies apart rather than snapping off: the break is the payoff for
+          // the anchor puzzle and deserves to be seen.
+          if (!this.silent) this.domeBreakFx(boss);
           if (boss.shieldBarBg) {
             boss.shieldBarBg.destroy(); boss.shieldBarFill.destroy();
             boss.shieldBarBg = null; boss.shieldBarFill = null;
@@ -6124,10 +6276,12 @@ class LootScene extends Phaser.Scene {
 
     if (enemy.splitsOnDeath) {
       for (let i = 0; i < 2; i++) {
-        const ox = enemy.x + Phaser.Math.Between(-18, 18);
+        const ox = enemy.x + (i ? 1 : -1) * Phaser.Math.Between(11, 22);      // one to each side, so that two can be seen
         const oy = enemy.y + Phaser.Math.Between(-18, 18);
-        this.spawnEnemyOfType('melee', ox, oy, this.depth, true);
+        // Thrown out of the one that fell: drawn from where it stood to where they land.
+        this.spawnEnemyOfType('melee', ox, oy, this.depth, true).hatch = { t: 0, dur: 280, dx: enemy.x - ox, dy: enemy.y - oy };
       }
+      if (!this.silent) this.splitFx(enemy.x, enemy.y);
     }
 
     // Sector/Mega Boss defeat: skip normal wave-clear flow entirely, trigger the Extract/Descend choice instead
@@ -6406,17 +6560,13 @@ class LootScene extends Phaser.Scene {
       // destroyed object - found by tools/playtest-bot.js.
       this.time.removeAllEvents();
       this.enemySprites.forEach(s => s.destroy());
-      if (this.enemyCores) this.enemyCores.forEach(c => c.destroy());
-      if (this.enemyRings) this.enemyRings.forEach(r => r.destroy());
-      if (this.enemyShields) this.enemyShields.forEach(s => s.destroy());
       if (this.enemies) this.enemies.forEach(e => {
         if (e.telegraphGfx) e.telegraphGfx.destroy();
-        if (e.orbiters) e.orbiters.forEach(o => o.destroy());
+        this.dropRound(e);
         if (e.hpBarBg) { e.hpBarBg.destroy(); e.hpBarFill.destroy(); }
         if (e.shieldBarBg) { e.shieldBarBg.destroy(); e.shieldBarFill.destroy(); }
-        if (e.shieldParts) e.shieldParts.forEach(pt => pt.destroy());
         if (e.nameLabel) e.nameLabel.destroy();
-        if (e.gateLabel) { e.gateLabel.destroy(); e.gateFx.destroy(); }
+        if (e.gateLabel) e.gateLabel.destroy();
       });
       this.goldPickups.forEach(g => g.sprite && g.sprite.destroy());
       if (this.projectiles) this.projectiles.forEach(p => { if (p.sprite) p.sprite.destroy(); if (p.halo) p.halo.destroy(); });
@@ -6666,17 +6816,17 @@ class LootScene extends Phaser.Scene {
         }
       } else if (enemy.isBoss) {
         if (this.updateBoss(enemy, edx, edy, edist, dt, delta)) return;   // true = player died
-        const core = this.enemyCores.get(enemy.id);
-        if (core) core.setPosition(enemy.x, enemy.y + this.feetDown(enemy));
-        const ring = this.enemyRings.get(enemy.id);
-        if (ring) ring.setPosition(enemy.x, enemy.y);
-        if (enemy.orbiters) {
-          enemy.orbiters.forEach((o, idx) => {
-            const ang = (time/500) + idx*Math.PI;
-            o.setPosition(enemy.x + Math.cos(ang)*(enemy.radius+16), enemy.y + Math.sin(ang)*(enemy.radius+16));
-          });
+        if (enemy.hp > 0) {
+          if (enemy.orbiters) {
+            const fy = enemy.y + this.feetDown(enemy), rx = this.girth(enemy) + 24;
+            enemy.orbiters.forEach((o, idx) => {
+              const ang = time / 520 + idx * Math.PI, oy = fy + Math.sin(ang) * rx * FLAT;
+              o.setPosition(enemy.x + Math.cos(ang) * rx, oy - 9).setRotation(time / 300).setDepth(sortDepth(oy));
+            });
+          }
+          this.updateBossGate(enemy, time);
+          this.drawBossFx(enemy, time, delta);
         }
-        this.updateBossGate(enemy, time);
       } else {
         // melee / tank / splitter: chase and hit on contact. A hunted runner is run down (2.36).
         const pace = Math.max(enemy.speed, this.huntPace);
@@ -6713,6 +6863,12 @@ class LootScene extends Phaser.Scene {
           if (k >= 1) enemy.lunge = null;
           else { const push = Math.sin(k * Math.PI) * enemy.lunge.amp; ox = enemy.lunge.dx * push; oy = enemy.lunge.dy * push; }
         }
+        if (enemy.hatch) {                    // a brood, still in the air from the one that fell
+          enemy.hatch.t += delta;
+          const k = enemy.hatch.t / enemy.hatch.dur;
+          if (k >= 1) enemy.hatch = null;
+          else { const back = (1 - k) * (1 - k); ox += enemy.hatch.dx * back; oy += enemy.hatch.dy * back - Math.sin(k * Math.PI) * 13; }
+        }
         if (enemy.act && enemy.act.held && !enemy.slam) this.release(enemy);
         const lift = this.animate(spr, enemy, delta, (enemy.x - (enemy.lastX === undefined ? enemy.x : enemy.lastX)) / dt,
           (enemy.y - (enemy.lastY === undefined ? enemy.y : enemy.lastY)) / dt, !!enemy.isBoss, enemy.slam ? Math.min(1, enemy.slam.t / enemy.slam.dur) : 0);
@@ -6724,6 +6880,12 @@ class LootScene extends Phaser.Scene {
           enemy.facing = facingFor(this.player.x - enemy.x, this.player.y - enemy.y);
           this.pose(spr, enemy.char, enemy.facing, enemy);
         }
+        if (enemy.gilt) {                     // the gold follows the figure through every cell
+          enemy.gilt.setTexture(spr.texture.key, spr.frame.name).setPosition(spr.x, spr.y).setScale(spr.scaleX, spr.scaleY).setRotation(spr.rotation)
+            .setDepth(spr.depth + 1e-6).setAlpha(0.2 + 0.1 * Math.sin(time / 190 + enemy.gait));
+          enemy.giltRing.clear();
+          this.facetRing(enemy.giltRing, enemy.x, enemy.y + this.feetDown(enemy), this.girth(enemy) + 5, GILT_FX, 0.85, time / 1500, 4);
+        }
       }
 
       if (enemy.nameLabel) {
@@ -6731,22 +6893,24 @@ class LootScene extends Phaser.Scene {
         const topBar = enemy.shieldBarFill ? 27 : (enemy.isBoss ? 18 : 13);
         // Clamped below the progress track: bosses spawn near the top of the arena and
         // their label would otherwise sit on top of the sector rail.
-        const floor = (this.trackY ? this.trackY + this.camOff.y : this.arenaBounds.y) + 14, ab = this.arenaBounds, half = enemy.nameLabel.width / 2 + 2;
+        // A boss's timer sits over his name: at the top wall it keeps its place and the name gives way.
+        const floor = (this.trackY ? this.trackY + this.camOff.y : this.arenaBounds.y) + (enemy.gateLabel && enemy.gateLabel.visible ? 41 : 14), ab = this.arenaBounds, half = enemy.nameLabel.width / 2 + 2;
         // Kept inside the arena: a boss's label grows once it carries a tribute count.
         enemy.nameLabel.setPosition(half * 2 >= ab.width ? ab.centerX : Phaser.Math.Clamp(enemy.x, ab.x + half, ab.right - half),
                                     Math.max(floor, enemy.y - this.headUp(enemy) - topBar - 8));
       }
+      // A boss up against the top wall: his name is held under the wave track, and his bars under his name.
+      const barTop = enemy.isBoss && enemy.nameLabel ? enemy.nameLabel.y + 12 : -1e9;
       if (enemy.shieldBarFill) {
-        const sy = enemy.y - this.headUp(enemy) - 27;
+        const sy = Math.max(barTop, enemy.y - this.headUp(enemy) - 27);
         const left = (enemy.keyAddIds ? enemy.keyAddIds.length : 0) / (enemy.shieldMax || 1);
         enemy.shieldBarBg.setPosition(enemy.x, sy);
         enemy.shieldBarFill.x = enemy.x - enemy.shieldBarW/2;
         enemy.shieldBarFill.y = sy;
         enemy.shieldBarFill.width = enemy.shieldBarW * Math.max(0, left);
       }
-      if (enemy.shieldParts) enemy.shieldParts.forEach(pt => pt.setPosition(enemy.x, enemy.y));
       if (enemy.hpBarBg) {
-        const by = enemy.y - this.headUp(enemy) - (enemy.isBoss ? 18 : 13);
+        const by = Math.max(barTop + (enemy.shieldBarFill ? 9 : 0), enemy.y - this.headUp(enemy) - (enemy.isBoss ? 18 : 13));
         const pct = Math.max(0, enemy.hp / enemy.maxHp);
         enemy.hpBarBg.setPosition(enemy.x, by);
         enemy.hpBarFill.x = enemy.x - enemy.hpBarW/2;

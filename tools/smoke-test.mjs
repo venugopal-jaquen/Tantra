@@ -1041,6 +1041,40 @@ try {
   check('the fixed arena is still there on request: one screen, the camera still, slams and waves their old size', fixedArena.still && fixedArena.plain
     && fixedArena.bot.errors.length === 0 && fixedArena.bot.leaks.every(l => l <= 0), JSON.stringify(fixedArena));
 
+  // ---------- 11. what stands round a figure, and how it falls (requirements 2.45) ----------
+  const round = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
+    const drawn = g => !!g && g.active && g.commandBuffer.length > 0, plain = e => !s.enemySprites.get(e.id).isTinted;
+    const hold = e => Object.assign(e, { slamTimer: 1e9, speed: 0, summonTimer: 1e9, dmg: 0 });
+    const cut = () => s.children.list.filter(o => o.isCropped).length;
+    session.depthPick = 1; s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.player.weapon.range = 1; s.dismissHint();
+    const b = s.arenaBounds, uncut = cut();                  // something of the screen's own may be cropped already
+    const el = hold(s.spawnEnemyOfType('tank', b.centerX + 90, b.centerY + 120, 1, false, true));        // an elite
+    s.killEnemy(s.spawnEnemyOfType('splitter', b.centerX - 90, b.centerY + 120, 1, false));             // a Bloodseed, killed where it stands
+    const brood = s.enemies.filter(e => e.isSplit); brood.forEach(hold);
+    out.brood = { n: brood.length, kind: brood.every(e => e.char === CHARS.splitter), named: brood.every(e => e.nameLabel.text === N.enemies.splitter),
+      thrown: brood.every(e => !!e.hatch), apart: brood.length === 2 && Math.abs(brood[0].x - brood[1].x) >= 22, pieces: cut() - uncut };
+    const g = hold(s.spawnSectorBoss()), anchors = s.enemies.filter(e => e.isKeyAdd); anchors.forEach(hold);  // the Hoard Guardian under his dome
+    const k = hold(s.spawnGatekeeper()); k.x = b.x + 60; k.y = b.bottom - 60; k.weakPhase = PHASE_SEQUENCE.find(p => p !== s.phase);
+    await wait(500);
+    out.elite = { glow: !!el.gilt && el.gilt.blendMode === Phaser.BlendModes.ADD && el.gilt.frame.name === s.enemySprites.get(el.id).frame.name, ring: drawn(el.giltRing), plain: plain(el) };
+    out.dome = { on: g.shieldOn, drawn: drawn(g.domeFx) && drawn(g.floorFx), inFront: g.domeFx.depth > s.enemySprites.get(g.id).depth, anchors: anchors.length,
+      gilded: anchors.every(a => !!a.gilt && plain(a)), named: anchors.every(a => a.nameLabel.text === 'ANCHOR') };
+    const hp = g.hp; s.damageEnemy(g, 50); out.dome.holds = g.hp === hp && g.domeHit > 0;
+    out.gate = { plates: drawn(k.floorFx), steel: s.enemySprites.get(k.id).tintTopLeft === 0x8d94a6 };
+    out.brood.landed = brood.every(e => !e.hatch); out.brood.piecesGone = cut() === uncut;
+    anchors.forEach(a => s.killEnemy(a)); await wait(250);
+    out.dome.broken = !g.shieldOn && !drawn(g.domeFx) && drawn(g.floorFx) && anchors.every(a => !a.gilt);
+    [el, k, ...brood, g].forEach(e => s.killEnemy(e)); await wait(1500);
+    out.gone = { round: [el, g, k].every(e => !e.floorFx && !e.domeFx && !e.gilt && !e.giltRing), pieces: cut() - uncut, fx: s.children.list.filter(o => o.texture && /^fx_/.test(o.texture.key)).length };
+    return out;`);
+  check('an elite glows gold over its own colours, with a garland at its feet', round.elite.glow && round.elite.ring && round.elite.plain, JSON.stringify(round.elite));
+  check('a Bloodseed comes apart in pieces of its own picture, and its brood is two small Bloodseeds thrown out to either side',
+    round.brood.n === 2 && round.brood.kind && round.brood.named && round.brood.thrown && round.brood.apart && round.brood.pieces >= 4 && round.brood.landed && round.brood.piecesGone, JSON.stringify(round.brood));
+  check('a shielded boss stands under a dome drawn behind him and in front, held by three gilded anchors; it turns a blow, and breaks when they fall',
+    round.dome.on && round.dome.drawn && round.dome.inFront && round.dome.anchors === 3 && round.dome.gilded && round.dome.named && round.dome.holds && round.dome.broken, JSON.stringify(round.dome));
+  check('a resisting boss has plates at his feet, and nothing drawn round a figure outlives it',
+    round.gate.plates && round.gate.steel && round.gone.round && round.gone.pieces === 0 && round.gone.fx === 0, JSON.stringify({ gate: round.gate, gone: round.gone }));
+
   // The engine and the typefaces sit beside the game (launch track L9): nothing may come
   // from another site, and nothing the page asks for may be absent. The bot is the test's
   // own file, loaded from tools/.
