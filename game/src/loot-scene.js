@@ -42,7 +42,7 @@ class LootScene extends SystemsScene {
       this.textures.remove(key);
     });
 
-    // One door for typography: every this.add.text() call in this file picks up its
+    // One door for typography: every this.add.text() call of the scene picks up its
     // typeface here, so no call site has to name a font.
     const addText = this.add.text;
     this.add.text = (x, y, str, style) => addText.call(this.add, x, y, str, styleText(style, str));

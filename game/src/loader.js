@@ -74,7 +74,7 @@ const Loader = (() => {
   show(); arm();
 
   // Canvas text cannot swap fonts after it is drawn, so the game must not start until
-  // the faces are in. Their @font-face rules are in this page's own stylesheet, so they
+  // the faces are in. Their @font-face rules are in styles/game.css, which the page names first, so they
   // exist by now. Capped: a font file that fails to arrive must never stop the game
   // from starting (it falls back to system fonts).
   const probes = [['16px "Yatra One"', 'Aa'], ['400 16px "Baloo 2"', 'Aa'], ['700 16px "Baloo 2"', 'Aa'],

@@ -14,7 +14,7 @@
 // ---------- NAMES (requirements 2.12) ----------
 // Every word of the game's world that a player reads lives in one of these packs: the
 // hero, enemies, phases, metals, items, sectors, and the loading-screen cards. Nothing
-// else in this file spells a name out; it asks the pack (`N`).
+// else in the game spells a name out; it asks the pack (`N`).
 //
 // To change how the whole game is named, change NAME_PACK below - one line. To compare
 // packs without editing anything, add ?names=plain or ?names=sanskrit to the address.

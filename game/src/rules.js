@@ -78,7 +78,7 @@ const SECTOR_CLEAR_HEAL = 0.35;
 // level and slay the final boss, who has drunk the well dry - and across runs every boss
 // beaten returns water to the well, which fills on the title screen.
 const FINAL_SECTOR = MEGA_BOSS_SECTOR;        // the level whose boss ends the run
-// WATER and WELL_FULL are defined with the loading screen, which draws the well.
+// WATER and WELL_FULL are at the top of this file.
 
 // Share of a run's Nidhi you keep when you fall, or abandon. Extracting keeps all of it.
 // Death used to bank everything, exactly like Extract - which made Descend free and the
@@ -124,9 +124,8 @@ const TEJAS_FORMS = {
   executioner: { name: N.forms.executioner[0], meaning: N.forms.executioner[1], desc: 'Ground slams that execute the weak',  kind: 'slam',  every: 620, radius: 124, dmgMult: 2.2, colour: 0xffd23c, execute: 0.3 }
 };
 
-// Persists across page reloads via localStorage (falls back to in-memory if unavailable, e.g. private browsing)
-// The well's depths and the perks worn (requirements 2.30). These sit above the save
-// because loading an older save needs them; the tables themselves are further down.
+// The well's depths and the perks worn (requirements 2.30). Loading an older save
+// (persistence.js) needs these; the tables themselves, DEPTHS and PERKS, are further down.
 const DEPTH_MAX = 7, DEPTH_WATER = WATER.boss * 2 + WATER.final, DEPTH_GOLD = 0.2;   // +20% Nidhi per depth past the first
 const DEPTH_HEALTH = 0.04;                    // and +4% enemy health (founder, 2026-10-06)
 const PERK_SLOTS = 2;

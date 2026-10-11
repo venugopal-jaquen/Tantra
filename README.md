@@ -1,68 +1,87 @@
-# Loot Chase
+# Anantarya (working title; the repository is still "Loot Chase")
 
-A solo-buildable, AI-assisted arena roguelite. Depth comes from a learnable Cosmic Cycle, real item identity, and structured Sector escalation — not grind or FOMO.
+A one-thumb arena roguelite set in a stepwell: descend three levels, beat the serpent
+who drank the well dry, and bring the water back. Mobile-first, plays in a browser.
+Built by one person with AI assistants.
 
-## Folder structure
+## Where things are
+
 ```
-loot-chase-project/
-├── index.html                  — site entry point; redirects to the current build
-├── docs/
-│   ├── requirements.md         — high & low-level requirements
-│   ├── design-document.md      — milestones, engine selection, gap analysis
-│   └── launch-roadmap.md       — platform sequencing & cost plan
-├── game/
-│   └── loot-chase-v0.1.html    — current playable build (open directly in any browser)
-├── concept/
-│   └── visual-style-sheet.html — "Cut Light" art direction reference
-└── .claude/launch.json         — local preview server config (python http.server on :8123)
+index.html                  the site's front door: redirects to the game
+game/
+  loot-chase-v0.1.html      the game's page: markup and the list of scripts
+  styles/game.css           the page's styles
+  src/                      the game's code, 17 ordered scripts (docs/code-architecture.md)
+  assets/                   pictures and sounds the game loads; CREDITS.md says whose
+    incoming/               the pictures as they came, kept for re-cutting; never shipped
+  vendor/                   the engine (Phaser 3.70) and the two typefaces, with licences
+tools/                      checks, packaging, and the scripts that cut the art
+docs/
+  code-architecture.md      how the code is laid out and where to change what: start here
+  requirements.md           what the game does and why, with the founder's decisions, dated
+  design-document.md        milestones, the roadmap, the pinned backlog
+  launch-roadmap.md         platforms and costs
+  itch-page.md              the store page's text and settings
+  pre-launch-security-checklist.md
+concept/                    pictures made along the way
+store/                      the store page's pictures
 ```
 
-## Status
-Core mechanics: ~90% designed (Sectors, Cosmic Cycle, bosses, item identity, HUD).
-Remaining: visual reskin to Cut Light, capstone boss, platform packaging.
+## Running it
 
-**M6 (project infrastructure) is now in progress** — this repo exists, with history. What still
-closes M6: pushing to GitHub and turning on Pages (below).
+Serve the folder and open it:
 
-See `docs/design-document.md` for the full milestone table.
-
-## Running the game locally
-
-Open `game/loot-chase-v0.1.html` directly in a browser — no build step, no install. The engine
-and the typefaces are in `game/vendor/`, so it runs with no connection.
-
-To serve it over HTTP instead (needed if you want `localStorage` to behave exactly as it will in
-production):
 ```bash
 python -m http.server 8123
 ```
-Then visit <http://localhost:8123>.
 
-## Deploying to GitHub Pages
+then <http://localhost:8123/>. There is no build step and nothing to install; the engine
+and typefaces are in `game/vendor/`, so it needs no connection.
 
-Create an empty repo on GitHub (no README, no .gitignore — this repo already has both), then:
+Opening the page straight off the disk does not work: browsers block the engine from
+reading pictures and sounds from `file://`. Use the server.
+
+## Checking it
 
 ```bash
-git remote add origin https://github.com/<your-username>/<your-repo>.git
-git push -u origin main
+node tools/check-game.mjs
 ```
 
-Then in the repo on GitHub: **Settings → Pages → Source: Deploy from a branch → `main` / `(root)` → Save.**
+A second, no browser: script order, words, icons, files, the save, the sums.
 
-The game goes live at `https://<your-username>.github.io/<your-repo>/` within a minute or two.
-`index.html` redirects the site root straight to the current build, so that URL is a direct play
-link you can hand to playtesters.
+```bash
+node tools/smoke-test.mjs
+```
 
-**Shipping a new build:** add the new file under `game/`, bump the one `meta http-equiv="refresh"`
-line in `index.html` to point at it, and push. Keeping old versioned files around means every past
-build stays playable at its own URL.
+Five minutes, in a private, muted, headless Chrome: every screen, a full run, bots.
+Needs Chrome or Edge and Node 22 or later. Nothing appears on screen and your own saved
+game is not touched.
 
-## Known open items
+## Packaging it for itch.io
 
-- **Canvas does not scale.** The Phaser config sets a fixed 400×700 with no `scale` block, so the
-  game renders at literal pixel size rather than fitting the viewport. Contradicts requirements
-  §2.11 (mobile-first portrait). Small fix, not yet applied.
-- **Meta-progression does not persist.** `session` is a plain in-memory object (see the top of the
-  game file). Requirements §2.8 attributes this to the claude.ai artifact sandbox blocking
-  `localStorage` — that constraint is gone once this is served from Pages, so the fix is now
-  unblocked.
+```bash
+python tools/build-itch.py
+```
+
+writes `dist/itch/` and a zip beside it. Check what was built before uploading it:
+
+```bash
+node tools/check-game.mjs --package dist/itch
+```
+
+```bash
+node tools/smoke-test.mjs "" dist/itch/index.html
+```
+
+`docs/pre-launch-security-checklist.md` is to be gone through before any upload.
+
+## Where it is live
+
+GitHub Pages serves the `main` branch: <https://venugopal-jaquen.github.io/Tantra/>.
+Merging to `main` is what changes the live game.
+
+## Changing it
+
+`docs/code-architecture.md` has a table of "to change this, edit that", two worked
+examples, and what is still tangled. `docs/requirements.md` §2.20 lists what the checks
+cover.

@@ -17,15 +17,15 @@
  * of that against saved fixtures without a browser.
  */
 
-// The save, and the well it fills (requirements 2.23). They live up here, ahead of the
-// engine, because the loading screen draws the well straight from the save.
+// The save's name in the browser's storage. The loading screen (loader.js) reads the
+// raw save under it too, to draw the well before the engine has arrived.
 const SAVE_KEY = 'loot-chase-session-v1';
 
 // tribute: the most taken from each kind of boss; bosses: how many of each kind have fallen;
 // runs begun, enemies slain, and the most Nidhi banked from one run.
 function newRecords() { return { tribute: {}, bosses: {}, runs: 0, slain: 0, bestHaul: 0 }; }
 
-const session = {                    // SAVE_KEY is defined with the loading screen
+const session = {
   metaGold: 0,
   vitalityLevel: 0,   // +10% max HP per level
   powerLevel: 0,       // +8% weapon dmg per level
