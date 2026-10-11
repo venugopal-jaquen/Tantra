@@ -547,8 +547,8 @@ Make PICTURE 1 first, the six copper tokens, and show me before making the rest.
 | `<name>-turnaround.png` | `game/assets/incoming/well-delver/` | Cuts it into stills and a walk sheet, sets its size in the game, shows it on all three floors |
 | `<name>-walk-side.png` | the same | If the four figures match the turnaround, the side walk is made from them and not from the still |
 | `pieces/<slot>-<name>.png` | the same | Cuts the changed slot out, bends it as the hero is bent, and shows it on the profile and in a fight |
-| `loot-icons.png` | the same | Cuts the eleven icons out, finds the grey metal in each for the game to colour copper, silver or gold, and puts them on the floor, in the satchel and on the profile |
-| `icons/boons-*.png`, `perks.png`, `signs.png`, `hud.png` | the same | Cuts each grid into its icons and puts them wherever the white shapes are now; the borrowed ones get their own |
+| `loot-icons.png` | the same | **Done (2026-10-11):** `tools/cut-icons.py` cuts the eleven and makes each in copper, silver and gold, recolouring only its metal |
+| `icons/boons-*.png`, `perks.png`, `signs.png`, `hud.png` | the same | **Done (2026-10-11):** cut by the same tool and shown wherever the white shapes were. A remade sheet of the same name is cut the same way |
 | `floor-N.png` | the same | **Done for the first three (2026-10-11):** laid on the arena with its steps round it, the game's lamps and glows moved to the picture's. A remade floor of the same name is put in the same way |
 
 File names in the game keep their first names (`requirements.md` §2.12): hexer is

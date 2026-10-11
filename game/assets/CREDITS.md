@@ -203,6 +203,18 @@ so. OpenAI's terms give the person who made an image the rights to it, including
 it commercially; that is to be read again on OpenAI's own page in the pre-launch pass.
 
 
+## Icons (`icons/`)
+
+`icons.png` and `icons-small.png` are cut by `tools/cut-icons.py` from seven pictures the
+founder made on 2026-10-11 with OpenAI's image generation in ChatGPT, from the prompts in
+`docs/art-brief-for-chatgpt.md` §4 and §5: the loot (`incoming/well-delver/loot-icons.png`)
+and boons, perks, signs and screen icons (`incoming/well-delver/icons/`). Which model made
+them was not shown, so none is named. **They are AI-generated, and the itch.io page is to
+say so.** The copper, silver and gold of the loot are recolourings of the painted steel by
+that tool; nothing else is changed but size. What each frame was cut from is recorded in
+`incoming/well-delver/icons-cut.json`. The same terms as the title picture, the characters
+and the floors apply, to be read again on OpenAI's own page in the pre-launch pass.
+
 ## Floors (`floors/`)
 
 `level-1.jpg`, `level-2.jpg` and `level-3.jpg` were made by the founder on 2026-10-10 with

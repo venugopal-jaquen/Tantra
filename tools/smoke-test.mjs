@@ -1012,7 +1012,7 @@ try {
   // ---------- 9c. the painted icons (requirements 2.46) ----------
   // The record tools/cut-icons.py wrote, read off the disk: the game's list of frames must
   // be that list, and the sources must be the approved sheets with their two empty cells.
-  const cutRecord = JSON.parse(readFileSync(join(REPO, 'game', 'assets', 'icons', 'icons.json'), 'utf8'));
+  const cutRecord = JSON.parse(readFileSync(join(REPO, 'game', 'assets', 'incoming', 'well-delver', 'icons-cut.json'), 'utf8'));
   const cutKinds = k => cutRecord.frames.filter(f => f.name.startsWith(k + '-')).length;
   const icons = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
     out.frames = ICON_FRAMES; out.painted = s.painted;

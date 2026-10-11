@@ -10,7 +10,9 @@ game/assets/incoming/well-delver/. What is written:
 
     icons.png        every icon in a frame of FRAME pixels, COLS to a row
     icons-small.png  the same frames at SMALL pixels, for where an icon is drawn small
-    icons.json       what each frame was cut from: the record, not read by the game
+
+and, beside the pictures it was cut from, incoming/well-delver/icons-cut.json: what each
+frame was cut from. That is the record; the game does not read it and it is not shipped.
 
 An icon is cut by its own outline and not by the lines of the grid (two of the loot icons
 reach across them), cleared of the haze the pictures have where they should be clear, sized
@@ -285,7 +287,7 @@ def main():
         print(f"{file}: {sheet.size[0]} x {sheet.size[1]}, {len(frames)} frames of {size}, {os.path.getsize(os.path.join(OUT, file)) // 1024} KB")
     doc = {"about": "What each frame of icons.png and icons-small.png was cut from, by tools/cut-icons.py. The game does not read this file.",
            "frame": FRAME, "small": SMALL, "columns": COLS, "frames": record}
-    io.open(os.path.join(OUT, "icons.json"), "w", encoding="utf-8", newline="\n").write(json.dumps(doc, indent=1) + "\n")
+    io.open(os.path.join(SRC, "icons-cut.json"), "w", encoding="utf-8", newline="\n").write(json.dumps(doc, indent=1) + "\n")
     print("const ICON_FRAMES = '" + " ".join(names) + "'.split(' ');")
     if qa:
         os.makedirs(qa, exist_ok=True)

@@ -828,7 +828,7 @@ const FLAT = 0.42;                         // how flat a ring lying on the floor
 // The founder's icon pictures, cut by tools/cut-icons.py into two sheets of square frames
 // (assets/icons/): `icons` for where an icon is drawn large, `icons-small` for where it is
 // drawn small. ICON_FRAMES names the frames in the order they lie in both sheets; that tool
-// prints the line, and the smoke test holds the two to each other. Loot has a frame for
+// prints the line, and the smoke test holds the two to each other (by the tool's record, icons-cut.json). Loot has a frame for
 // each metal, with only its metal recoloured. If the sheets are not there, or the page is
 // opened with ?icons=drawn, the game draws the white shapes it always drew (makeLootIcons),
 // coloured as they were: one set or the other, never a mix.
@@ -6519,7 +6519,13 @@ class LootScene extends Phaser.Scene {
       const mark = this.add.graphics().setDepth(Z.fx);
       mark.fillStyle(0x140600, 0.38); mark.fillEllipse(px, py + 13, 24, 9);
       this.facetRing(mark, px, py + 13, 13, [dispColor, dim(dispColor, 0.55)], 0.95, 0, 3);
-      sprite.once('destroy', () => mark.destroy());
+      // And a pale outline, its own shape a little larger behind it: copper on the
+      // terracotta of level 1 or the brown of level 3 is otherwise hard to find.
+      const rim = this.add.image(px, py, sprite.texture.key, sprite.frame.name).setDisplaySize(sprite.displayWidth * 1.17, sprite.displayHeight * 1.17)
+        .setTintFill(0xfff1cf).setAlpha(0.9).setDepth(-0.001);
+      this.tweens.add({ targets: rim, y: py - 6, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });       // it hovers with the item
+      if (isMystery) this.tweens.add({ targets: rim, alpha: 0.4, duration: 350, yoyo: true, repeat: -1 });
+      sprite.once('destroy', () => { mark.destroy(); this.tweens.killTweensOf(rim); rim.destroy(); });
     }
     this.tweens.add({ targets: sprite, y: py-6, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     if (isMystery) {
