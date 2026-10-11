@@ -1,6 +1,6 @@
 """Founder-picked music -> game/assets/music/{hub,combat,boss}.mp3
 
-The game streams one track per mood (see MUSIC in game/loot-chase-v0.1.html). This turns
+The game streams one track per mood (see MUSIC in game/src/audio.js). This turns
 the files as downloaded into what it plays:
 
   * leading and trailing silence trimmed, so a loop restarts on sound rather than on air

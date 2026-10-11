@@ -166,7 +166,7 @@ On 2026-10-02 the founder said: "Will give name later.. For now go with Anantary
 "Tantra" (sexual/new-age connotation in the West, and a religious practice term) were both
 set aside.
 
-The name is one constant, `GAME_TITLE`, in `game/loot-chase-v0.1.html` (loader, hub, browser
+The name is one constant, `GAME_TITLE`, in `game/src/config.js` (in the game's page until the code was cut into files on 2026-10-11) (loader, hub, browser
 tab); the root `index.html` redirect page has its own copy. File names, the save key
 `loot-chase-session-v1` and the docs' titles still say "Loot Chase" on purpose — renaming them
 would break saves and links for a name that may change again.

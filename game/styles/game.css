@@ -1,0 +1,168 @@
+  @font-face { font-family: "Baloo 2"; font-style: normal; font-weight: 400 800; font-display: swap;
+    src: url(../vendor/fonts/baloo2-devanagari.woff2) format("woff2"); unicode-range: U+0900-097F, U+1CD0-1CF4, U+1CF7-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B0A; }
+  @font-face { font-family: "Baloo 2"; font-style: normal; font-weight: 400 800; font-display: swap;
+    src: url(../vendor/fonts/baloo2-latin-ext.woff2) format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  @font-face { font-family: "Baloo 2"; font-style: normal; font-weight: 400 800; font-display: swap;
+    src: url(../vendor/fonts/baloo2-latin.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: "Yatra One"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url(../vendor/fonts/yatraone-devanagari.woff2) format("woff2"); unicode-range: U+0900-097F, U+1CD0-1CF4, U+1CF7-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B0A; }
+  @font-face { font-family: "Yatra One"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url(../vendor/fonts/yatraone-latin-ext.woff2) format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  @font-face { font-family: "Yatra One"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url(../vendor/fonts/yatraone-latin.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  :root {
+    --deep: #2b1107; --bg: #3d1200; --panel: #4c2410; --flame: #ff8c42; --gold: #ffd23c;
+    --bronze: #c8a96e; --cream: #fffbef; --tamra: #d9844a; --rajat: #d4dde6; --swarna: #ffc93c;
+    /* The material of the screens (requirements 2.47), the same on the page as in the
+       game: shadowed sandstone with cut corners, edged in worn bronze, lit from above. */
+    --stone: #57301a; --stone-low: #351a0c; --cut: #2a1208; --edge: #b88c4c; --edge-low: #6e4d22;
+    --lit: rgba(255,226,176,.45); --foot: rgba(20,6,0,.55);
+  }
+  /* A slab. The element itself is the bronze edge, its corners cut; the stone lies inside
+     it on a layer of its own, cut the same and lit along its top. A cut shape can carry no
+     border and no outline, so the ring that shows where the keyboard is, is drawn inside. */
+  .card, .well, .fb-box, .fb-cancel {
+    position: relative; isolation: isolate; border: 0; border-radius: 0; box-shadow: none;
+    background: linear-gradient(var(--edge), var(--edge-low)); clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
+  }
+  .card::before, .well::before, .fb-box::before, .fb-cancel::before {
+    content: ""; position: absolute; inset: 2px; z-index: -1; --c: calc(var(--cc) - 1px); clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
+    background: linear-gradient(var(--lit), transparent 2px), linear-gradient(rgba(255,226,176,.08), transparent 46%), linear-gradient(var(--stone), var(--stone-low));
+  }
+  .card, .well, .fb-box { --c: .75em; --cc: .75em; }
+  .well::before { background: linear-gradient(var(--foot), transparent 3px), linear-gradient(var(--cut), #331709); }   /* cut in, where the card stands out */
+  html, body {
+    margin: 0; padding: 0; background: var(--deep);
+    height: 100%; width: 100%; overflow: hidden;
+    font-family: "Baloo 2", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  #game-container {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #game-container canvas { box-shadow: 0 0 40px rgba(255,140,66,0.18); border-radius: 8px; }
+
+  /* ---------- Loading screen: one glossary card per load (requirements 2.19) ---------- */
+  #loader {
+    position: fixed; inset: 0; z-index: 10; box-sizing: border-box;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1.2em; padding: 1.2em 1.2em calc(1.2em + env(safe-area-inset-bottom));
+    /* Every size below is in em off this one value, so the whole screen scales with the
+       smaller of the viewport's height and width - it has to fit a phone held sideways. */
+    font-size: clamp(8px, min(2.3vh, 4.2vw), 22px);
+    color: var(--cream); text-align: center;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cg fill='none' stroke='%23e8a868' stroke-opacity='.13'%3E%3Crect x='13' y='13' width='22' height='22'/%3E%3Cpath d='M24 9 39 24 24 39 9 24Z M24 0V9 M24 39V48 M0 24H9 M39 24H48 M0 -8 8 0 0 8 -8 0Z M48 -8 56 0 48 8 40 0Z M0 40 8 48 0 56 -8 48Z M48 40 56 48 48 56 40 48Z'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(circle at 16% 24%, rgba(255,150,40,.4), transparent 34%),
+      radial-gradient(circle at 88% 64%, rgba(40,170,150,.26), transparent 36%),
+      radial-gradient(circle at 30% 92%, rgba(255,90,30,.3), transparent 34%),
+      radial-gradient(ellipse at 50% 36%, #7a2c06 0%, #3d1200 55%, #2a0800 100%);
+    transition: opacity .45s ease;
+  }
+  #loader.done { opacity: 0; pointer-events: none; }
+  #loader > * { opacity: 0; transition: opacity .35s ease; }      /* held back until the fonts land */
+  #loader.show > * { opacity: 1; }
+
+  .ldr-title {
+    font-family: "Yatra One", "Baloo 2", serif; font-weight: 400;
+    font-size: 3.5em; line-height: 1.05; margin: 0; color: var(--gold);
+    text-shadow: 0 .05em 0 #7a3a0a, 0 0 .5em rgba(255,140,66,.5);
+  }
+  .ldr-tag { margin: -.6em 0 0; font-size: .78em; letter-spacing: .16em; text-transform: uppercase; color: var(--bronze); }
+
+  .card {
+    width: 21em; max-width: 100%; box-sizing: border-box; padding: 1em 1.2em .8em;
+    cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  .card:focus-visible { outline: 0; }
+  .card:focus-visible::before { box-shadow: inset 0 0 0 .14em var(--cream); }
+  .card.in > * { animation: card-in .4s ease both; }
+  @keyframes card-in { from { opacity: 0; transform: translateY(.4em); } to { opacity: 1; transform: none; } }
+  .card-kind { font-size: .7em; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--flame); }
+  .card-dev  { font-family: "Yatra One", "Baloo 2", serif; font-size: 3.4em; line-height: 1.35; color: var(--gold); }
+  .card-name { font-family: "Yatra One", "Baloo 2", serif; font-size: 1.6em; line-height: 1.15; color: var(--cream); }
+  .card-meaning { font-size: .95em; font-style: italic; color: var(--bronze); margin-top: .15em; }
+  .card-rule { display: flex; align-items: center; gap: .6em; margin: .55em auto .5em; width: 60%; color: var(--gold); font-size: .6em; }
+  .card-rule::before, .card-rule::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--bronze)); }
+  .card-rule::after { transform: scaleX(-1); }
+  .card-role { margin: 0; font-size: .95em; line-height: 1.4; color: #f0dcc0; min-height: 4.2em; }
+  .card-hint { margin-top: .5em; font-size: .68em; letter-spacing: .06em; color: #8a7360; }
+
+  /* How full the well is (requirements 2.19): the goal, on screen before the game loads. */
+  .well {
+    width: 21em; max-width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 1em;
+    padding: .55em 1em; text-align: left;
+  }
+  .well-art { flex: none; width: 5.2em; height: 6.2em; }
+  .well-wall { fill: #1c0803; stroke: var(--bronze); stroke-width: 1.6; stroke-linejoin: round; }
+  .well-water { fill: #1f8f80; }
+  .well-surface { stroke: #bff5ea; stroke-width: 1.6; }
+  .well-kind { font-size: .7em; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--flame); }
+  .well-line { font-family: "Yatra One", "Baloo 2", serif; font-size: 1.35em; line-height: 1.2; color: var(--gold); }
+  .well-sub { font-size: .85em; line-height: 1.3; color: #9fe8d8; }
+  .well-legend { font-size: .72em; line-height: 1.3; color: var(--bronze); }
+  .well-after { margin-top: .3em; font-size: .78em; line-height: 1.3; color: #f0dcc0; }
+
+  .ldr-foot { width: 21em; max-width: 100%; min-height: 3.4em; display: flex; flex-direction: column; align-items: center; gap: .45em; }
+  .bar { width: 100%; height: .85em; box-sizing: border-box; border-radius: .1em; background: var(--cut); border: 1px solid var(--edge-low); box-shadow: inset 0 2px 0 var(--foot); overflow: hidden; }
+  /* Copper, then silver, then gold - the rarity ladder. The gradient is pinned to the
+     full track, so the growing fill reveals each metal in turn. */
+  .bar-fill {
+    height: 100%; width: 0; transition: width .25s ease;
+    background: linear-gradient(90deg, var(--tamra) 0%, var(--tamra) 26%, var(--rajat) 46%, var(--rajat) 60%, var(--swarna) 82%, #ffe9a0 100%) 0 0 / 21em 100% no-repeat;
+  }
+  .bar-label { font-size: .72em; letter-spacing: .18em; text-transform: uppercase; color: var(--bronze); }
+  .begin {
+    display: none; font-family: "Yatra One", "Baloo 2", serif; font-size: 1.5em; line-height: 1;
+    color: var(--deep); background: linear-gradient(#ffe6a8 0, #ffcc48 9%, #f39a26 100%); border: 0; border-radius: 0;
+    --c: .34em; clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
+    padding: .55em 1.9em .5em; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    box-shadow: inset 0 -.17em 0 #9a4a08;
+    animation: begin-pulse 1.7s ease-in-out infinite;
+  }
+  .begin:active { transform: translateY(.08em); box-shadow: inset 0 -.06em 0 #9a4a08; }
+  .begin:focus-visible { outline: 0; box-shadow: inset 0 0 0 .13em var(--deep), inset 0 -.17em 0 #9a4a08; }
+  @keyframes begin-pulse { 50% { filter: brightness(1.16); } }
+  #loader.ready .bar, #loader.ready .bar-label { display: none; }
+  #loader.ready .begin { display: inline-block; }
+  #loader.failed .bar { display: none; }
+  #loader.failed .bar-label { color: #ff9a80; letter-spacing: .04em; text-transform: none; font-size: .85em; }
+  @media (prefers-reduced-motion: reduce) { .card.in > *, .begin { animation: none; } }
+
+  /* ---------- Feedback dialog (requirements 2.21) ---------- */
+  #feedback, #namer {
+    position: fixed; inset: 0; z-index: 20; box-sizing: border-box; padding: 16px;
+    display: grid; place-items: center; background: rgba(18,4,0,.5); color: var(--cream);
+    -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+  }
+  #feedback[hidden], #namer[hidden] { display: none; }
+  .fb-box {
+    width: min(380px, 100%); box-sizing: border-box; padding: 18px 18px 16px; text-align: left;
+    --c: 13px; --cc: 13px;
+  }
+  .fb-title { font-family: "Yatra One", "Baloo 2", serif; font-weight: 400; font-size: 26px; line-height: 1.1; color: var(--gold); margin: 0 0 4px; }
+  .fb-sub { margin: 0 0 12px; font-size: 14px; line-height: 1.35; color: #f0dcc0; }
+  .fb-label { display: block; margin: 0 0 4px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--bronze); }
+  .fb-label span { font-weight: 400; letter-spacing: 0; text-transform: none; color: #8a7360; }
+  /* 16px on the fields: anything smaller makes iOS zoom the page when one is focused. */
+  #fb-text, #fb-email, #nm-text {
+    width: 100%; box-sizing: border-box; margin: 0 0 12px; padding: 9px 10px; font: 16px/1.35 "Baloo 2", system-ui, sans-serif;
+    color: var(--cream); background: var(--cut); border: 1px solid var(--edge-low); border-radius: 2px; box-shadow: inset 0 2px 0 var(--foot);
+  }
+  #fb-text { resize: vertical; min-height: 110px; max-height: 40vh; }
+  #fb-text:focus, #fb-email:focus, #nm-text:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: transparent; }
+  #fb-text::placeholder, #fb-email::placeholder, #nm-text::placeholder { color: #8a7360; }
+  #nm-text { font-size: 20px; font-weight: 700; }
+  .fb-note { margin: 0 0 14px; font-size: 12px; line-height: 1.35; color: #8a7360; min-height: 2.7em; }
+  .fb-note.fb-good { color: #5fe08a; font-size: 15px; }
+  .fb-note.fb-bad { color: #ff9a80; font-size: 13px; }
+  .fb-note a { color: var(--gold); }
+  .fb-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .fb-btn { font: 700 15px "Baloo 2", system-ui, sans-serif; border: 0; border-radius: 0; padding: 9px 20px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .fb-cancel { color: var(--cream); --c: 6px; --cc: 6px; }
+  .fb-send { color: var(--deep); background: linear-gradient(#ffe6a8 0, #ffcc48 9%, #f39a26 100%); box-shadow: inset 0 -3px 0 #9a4a08; --c: 6px; clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c)); }
+  .fb-send:disabled { opacity: .6; cursor: default; }
+  .fb-btn:active { transform: translateY(1px); }
+  .fb-btn:focus-visible { outline: 0; }
+  .fb-send:focus-visible { box-shadow: inset 0 0 0 2px var(--deep), inset 0 -3px 0 #9a4a08; }
+  .fb-cancel:focus-visible::before { box-shadow: inset 0 0 0 2px var(--cream); }

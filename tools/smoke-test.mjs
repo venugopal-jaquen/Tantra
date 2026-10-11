@@ -14,7 +14,7 @@
  * Exit code 0 = every check passed.
  */
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -127,9 +127,18 @@ try {
   await sleep(900);
   const hub = await page(`const s = game.scene.keys.LootScene; return { state: s.state, title: s.uiObjects.find(o => o.type === 'Text').text, families: [...new Set(s.uiObjects.filter(o => o.type === 'Text').map(o => o.style.fontFamily.split(',')[0]))] };`);
   check('Begin opens the title screen', hub.state === 'hub', JSON.stringify(hub));
-  const art = await page(`const s = game.scene.keys.LootScene, im = s.uiObjects.find(o => o.type === 'Image' && o.texture.key === 'title_art');
-    return { there: !!im, w: im && Math.round(im.displayWidth), y: im && Math.round(im.y), shaft: s.menu.g.visible, pool: WELL.cy };`);
-  check('the title screen shows the title picture, moved up so its pool lies under the way in', art.there && art.w === 400 && art.y === 250 && art.shaft === false, JSON.stringify(art));
+  const art = await page(`const s = game.scene.keys.LootScene, im = s.uiObjects.find(o => o.type === 'Image' && o.texture.key === 'title_art'), h = TITLE_ART.hero;
+    const src = im && im.texture.getSourceImage();
+    // What of the menu lies on the hero: any words, the depth chooser, any button.
+    const box = new Phaser.Geom.Rectangle(h.x - h.wide / 2, h.top, h.wide, h.foot - h.top);
+    const over = s.uiObjects.filter(o => o.type === 'Text' && o.visible && Phaser.Geom.Rectangle.Overlaps(o.getBounds(), box)).map(o => o.text.slice(0, 24));
+    const words = s.uiObjects.filter(o => o.type === 'Text').map(o => [o.text, Math.round(o.y)]);
+    const at = t => (words.find(w => w[0].startsWith(t)) || [0, -1])[1];
+    return { there: !!im, w: im && Math.round(im.displayWidth), h: im && Math.round(im.displayHeight), x: im && Math.round(im.x), y: im && Math.round(im.y), file: src && [src.width, src.height],
+      shaft: s.menu.g.visible, pool: WELL.cy, descend: at('DESCEND'), depth: at('DEPTH '), heroTop: h.top, heroFoot: h.foot, deepest: Math.min(...words.filter(w => /^(Deepest|No descent)/.test(w[0])).map(w => w[1])), over };`);
+  check('the title screen is the picture of the hero at the well, cut to the screen with its pool at the way in, and nothing of the menu lies on him',
+    art.there && art.w === 400 && art.h === 700 && art.x === 200 && art.y === 350 && art.file[0] * 7 === art.file[1] * 4 && art.file[0] >= 1200 && art.shaft === false
+    && art.descend > art.pool - 40 && art.descend < art.heroTop - 20 && art.depth < art.pool - 80 && art.deepest > art.heroFoot && art.over.length === 0, JSON.stringify(art));
   await sleep(1300);
   const music = await page(`return { on: MUSIC_ON, started: Music.inited, tracks: Object.fromEntries(Object.entries(Music.tracks).map(([k, t]) => [k, t.dead ? 'missing' : (t.el.duration ? Math.round(t.el.duration) + 's' : 'loading')])) };`);
   const fxSound = await page(`const s = game.scene.keys.LootScene, was = settings.sfx;
@@ -146,7 +155,7 @@ try {
   // ---------- 3. a run in real time: HUD, the first lesson, banner ----------
   await page(`game.scene.keys.LootScene.startRun();`);
   await sleep(1500); await shot('3-run-start');
-  const run = await page(`const s = game.scene.keys.LootScene; return { state: s.state, tip: s.hintBox ? s.hintBox[1].text : null, hudBottom: Math.round(s.hudText.y + s.hudText.height), barTop: Math.round(s.phaseBarBg.y - s.phaseBarBg.height / 2), hp: { dx: Math.round(s.hpBarBg.x + s.hpBarBg.width / 2 - s.player.x), dy: Math.round(s.player.y - s.hpBarBg.y), w: s.hpBarBg.width } };`);
+  const run = await page(`const s = game.scene.keys.LootScene; return { state: s.state, tip: s.hintBox ? s.hintBox[1].text : null, hudBottom: Math.round(s.hudText.y + s.hudText.height), barTop: Math.round(s.phaseBarBg.y - s.phaseBarBg.height / 2), hp: { dx: Math.round(s.hpBarBg.x + s.hpBarBg.width / 2 - s.player.x), dy: Math.round(s.player.y - s.hpBarBg.y), w: s.hpBarBg.width, wants: HERO_BAR_UP } };`);
   // The first of the teaching pauses (requirements 2.35): once the level's banner has gone,
   // a new player's first run stops to say how to move.
   const first = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms));
@@ -164,7 +173,7 @@ try {
   check('skipping the tutorial resumes the fight, stops the pauses, and says how to get them back', skipped.state === 'playing' && skipped.off === true && skipped.paused === false
     && /Replay tutorial/.test(skipped.tip || ''), JSON.stringify(skipped));
   check('HUD line clears the phase bar', run.hudBottom <= run.barTop + 1, `text bottom ${run.hudBottom}, bar top ${run.barTop}`);
-  check("the hero's health bar floats over his head", run.hp.dx === 0 && run.hp.dy === 35 && run.hp.w === 42, JSON.stringify(run.hp));
+  check("the hero's health bar floats over his head", run.hp.dx === 0 && run.hp.dy === run.hp.wants && run.hp.dy >= 35 && run.hp.w === 42, JSON.stringify(run.hp));
 
   // Waves are held still for the checks that follow: a queue that never spawns, so a kill
   // is not a cleared wave unless a check empties the queue to make it one.
@@ -185,20 +194,45 @@ try {
   // Walk frames: every character but Vritra has a sheet; a standing figure shows the first
   // cell of its facing's row, a moving one steps through the rest, and the figure is the
   // size it was as a still.
-  const legs = await page(`const s = game.scene.keys.LootScene, per = WALK.frames + 1, wait = ms => new Promise(r => setTimeout(r, ms));
+  const legs = await page(`const s = game.scene.keys.LootScene, per = artOf(CHARS.player).per, wait = ms => new Promise(r => setTimeout(r, ms));
+    // Which walk cell a sprite shows: 0 standing, 1 to 8 a step. The strike cells that follow the walk are not steps.
+    const walkCell = spr => { const c = spr.frame.name % per; return c > WALK.frames ? 0 : c; };
     const stepsOf = async (spr, need) => { const seen = new Set(), rows = new Set();
-      for (let i = 0; i < 80 && seen.size < need; i++) { await wait(30); const f = spr.frame.name; if (f % per) { seen.add(f % per); rows.add(Math.floor(f / per)); } }
+      for (let i = 0; i < 80 && seen.size < need; i++) { await wait(30); const c = walkCell(spr); if (c) { seen.add(c); rows.add(Math.floor(spr.frame.name / per)); } }
       return { steps: seen.size, rows: [...rows].join() }; };
-    const out = { sheets: WALKERS.filter(n => s.textures.exists(n + '-walk') && s.textures.get(n + '-walk').frameTotal - 1 === per * FACINGS.length).length, walkers: WALKERS.length,
-      vritra: s.textures.exists(CHARS.megaboss + '-walk'), onSheet: !!s.playerSprite.walks, size: Math.round(s.playerSprite.baseSX * WALK.cell / WALK.pad), standing: s.playerSprite.frame.name % per };
+    const out = { sheets: WALKERS.filter(n => s.textures.exists(n + '-walk') && s.textures.get(n + '-walk').frameTotal - 1 >= per * FACINGS.length).length, walkers: WALKERS.length,
+      vritra: s.textures.exists(CHARS.megaboss + '-walk'), onSheet: !!s.playerSprite.walks, size: Math.round(s.playerSprite.baseSX * artOf(CHARS.player).still), wants: Math.round(HERO_SIZE * artOf(CHARS.player).scale), standing: walkCell(s.playerSprite) };
     s.setMoveTarget(330, 150); out.kiran = await stepsOf(s.playerSprite, 5); out.right = FACINGS.indexOf('right');
     for (let i = 0; i < 60 && s.pointerTarget; i++) await wait(40);
-    await wait(320); out.stopped = s.playerSprite.frame.name % per;
+    await wait(320); out.stopped = walkCell(s.playerSprite);
     const e = s.spawnEnemyOfType('melee', 70, 330, 1), spr = s.enemySprites.get(e.id);
-    out.asura = await stepsOf(spr, 4); out.asuraSize = Math.round(spr.baseSX * WALK.cell / WALK.pad * 10) / 10; out.asuraWants = Math.round(e.radius * 28) / 10;
-    e.speed = 0; await wait(320); out.asuraStopped = spr.frame.name % per;
+    out.asura = await stepsOf(spr, 4); out.asuraSize = Math.round(spr.baseSX * artOf(e.char).still * 10) / 10; out.asuraWants = Math.round(e.radius / HIT * 28 * artOf(e.char).scale) / 10;
+    e.speed = 0; await wait(320); out.asuraStopped = walkCell(spr);
     s.killEnemy(e); return out;`);
-  check('every character but Vritra has a walk sheet, and figures keep their size', legs.sheets === 7 && legs.walkers === 7 && !legs.vritra && legs.onSheet && legs.size === 44 && legs.asuraSize === legs.asuraWants, JSON.stringify(legs));
+  check('every character has a walk sheet, Vritra too, and each figure is drawn at the size its art asks for', legs.sheets === 8 && legs.walkers === 8 && legs.vritra && legs.onSheet && legs.size === legs.wants && legs.wants >= 44 && legs.asuraSize === legs.asuraWants, JSON.stringify(legs));
+  // Art of the game's own (requirements 2.39): a figure named in ART has files cut to its own size.
+  const own = await page(`const s = game.scene.keys.LootScene;
+    return { figures: Object.keys(ART).map(name => ({ name, per: ART[name].per, cell: s.textures.get(name + '-walk').get(0).width, frames: s.textures.get(name + '-walk').frameTotal - 1,
+        still: s.textures.get(name + '-front').get().width, wantsCell: ART[name].cell, wantsStill: ART[name].still })),
+      ring: Math.round(s.playerRing.y - s.player.y), ringWants: HERO_RING_DOWN };`);
+  check("art of the game's own is cut to its own size: standing, walking and striking cells for each facing, stills to match, and the stance ring at the hero's feet",
+    own.figures.length === 8 && own.figures.every(f => f.cell === f.wantsCell && f.frames >= 4 * f.per && f.frames < 4 * f.per + 12 && f.per === 12 && f.still === f.wantsStill) && own.ring === own.ringWants && own.ring >= 16, JSON.stringify(own));
+  // Striking (requirements 2.41): a figure turns to what it strikes at and goes through its strike cells.
+  const acts = await page(`const s = game.scene.keys.LootScene, per = artOf(CHARS.player).per, wait = ms => new Promise(r => setTimeout(r, ms));
+    const cellOf = spr => spr.frame.name % per, rowOf = spr => Math.floor(spr.frame.name / per), out = {};
+    // One Asura stood close on the hero's right, and nothing else in the fight touched.
+    const was = s.player.iframes; s.player.iframes = 1e9; s.pointerTarget = null;
+    const foe = s.spawnEnemyOfType('melee', s.player.x + 44, s.player.y, 1); foe.speed = 0; foe.dmg = 0; foe.maxHp = foe.hp = 1e6;
+    const seen = new Set(), rows = new Set();
+    for (let i = 0; i < 90; i++) { await wait(16); const c = cellOf(s.playerSprite); if (c > WALK.frames) { seen.add(c - WALK.frames - 1); rows.add(rowOf(s.playerSprite)); } }
+    out.hero = { cells: [...seen].sort().join(), rows: [...rows].join(), right: FACINGS.indexOf('right') };
+    foe.x = s.arenaBounds.right - 20; foe.y = s.arenaBounds.bottom - 20;         // out of reach: nothing left to strike
+    const far = !s.enemies.some(e => Math.hypot(e.x - s.player.x, e.y - s.player.y) < 200);
+    await wait(450); out.rests = !far || (!s.playerAnim.act && cellOf(s.playerSprite) <= WALK.frames);
+    s.killEnemy(foe); s.player.iframes = was;
+    return out;`);
+  check('the hero strikes with every attack, turned to what he strikes at, and rests when there is nothing to strike',
+    acts.hero.cells.length >= 3 && acts.hero.rows.split(',').includes(String(acts.hero.right)) && acts.rests, JSON.stringify(acts));
   check('the hero and his enemies step through their walk frames, and stand when they stop', legs.standing === 0 && legs.kiran.steps >= 5 && legs.kiran.rows === String(legs.right) && legs.stopped === 0
     && legs.asura.steps >= 4 && legs.asuraStopped === 0, JSON.stringify(legs));
 
@@ -296,7 +330,7 @@ try {
   await sleep(250); await shot('3-profile');
   await page(`const s = game.scene.keys.LootScene; s.resumeGame(); s.boons = {}; s.player.weapon = s.__keep.w; s.player.trinket = s.__keep.t; delete s.__keep;`);
   check('power counts gear and boons, and sleeps a weapon boon with its weapon', pow.base === 120 && pow.gun === 105 && pow.awake === 125 && pow.asleep === 85, JSON.stringify(pow));
-  check('the HUD shows power and the profile shows the stats', pow.hud === '\u25C6 Power ' + pow.total && pow.prof.state === 'paused' && pow.prof.power && pow.prof.rows
+  check('the HUD shows power and the profile shows the stats', /Power \d+$/.test(pow.hud) && pow.hud.endsWith(' ' + pow.total) && pow.prof.state === 'paused' && pow.prof.power && pow.prof.rows
     && pow.prof.spill.length === 0 && pow.perSecond === 2.24 && pow.move === 240 && pow.targets === 4, JSON.stringify(pow));
 
   // Read the Slam: stand in a ring, step out before it lands, hit harder.
@@ -307,11 +341,13 @@ try {
     // Waits are on the event, not the clock: a headless page can stall for a moment.
     const until = async (test, ms) => { for (let i = 0; i < ms / 40 && !test(); i++) await new Promise(r => setTimeout(r, 40)); };
     await until(() => e.slam && e.slam.touched, 1500);
-    const touched = !!(e.slam && e.slam.touched), hp = p.hp;
+    const touched = !!(e.slam && e.slam.touched), hp = p.hp, bossSpr = s.enemySprites.get(e.id), per = artOf(e.char).per;
+    const wound = { held: !!(e.act && e.act.held), cell: bossSpr.frame.name % per - WALK.frames - 1 };
     p.x = s.arenaBounds.x + 20; p.y = s.arenaBounds.bottom - 20;
     await until(() => !e.slam, 3000);
     await new Promise(r => setTimeout(r, 120));
-    const out = { touched, buff: Math.round(s.slamBuffMs), mult: +s.dmgMult().toFixed(2), unhurt: p.hp >= hp, arc: s.boonFx.commandBuffer.length > 0 };
+    const loosed = { held: !!(e.act && e.act.held), cell: e.act ? e.act.cell : -1 };
+    const out = { wound, loosed, touched, buff: Math.round(s.slamBuffMs), mult: +s.dmgMult().toFixed(2), unhurt: p.hp >= hp, arc: s.boonFx.commandBuffer.length > 0 };
     // Hold Your Ground: the gold ring shows only while it is live.
     s.boons = { ground: 1 }; s.slamBuffMs = 0; s.stillMs = 0;
     await until(() => s.stillMs >= 200 && s.boonFx.commandBuffer.length > 0, 2500);
@@ -321,6 +357,8 @@ try {
     out.walking = s.boonFx.commandBuffer.length === 0 && s.dmgMult() === 1; s.pointerTarget = null;
     s.boons = {}; s.killEnemy(e);
     return out;`);
+  check('a boss stays drawn back for as long as its slam is warned of, even if it lands a blow meanwhile, and lets go when the slam lands',
+    read.wound.held && read.wound.cell === 0 && !read.loosed.held, JSON.stringify({ wound: read.wound, loosed: read.loosed }));
   check('reading a slam makes the next hits harder', read.touched && read.buff > 3000 && read.mult === 1.5 && read.unhurt, JSON.stringify(read));
   check('timed boons show on the hero while they are live', read.arc && read.planted && read.walking, JSON.stringify(read));
 
@@ -375,10 +413,11 @@ try {
     await sleep(450); await shot('3-floor-sector-' + n);
   }
   const floors = await page(`const s = game.scene.keys.LootScene; const t0 = performance.now(); for (const n of [1, 2, 3]) s.setFloor(n);
-    const out = { set: FLOORS === FLOOR_SETS.carved, floors: [0, 1, 2].filter(k => s.textures.exists('floor-' + k + '-0')).length,
+    const out = { set: FLOORS === FLOOR_SETS.painted, pictures: [1, 2, 3].filter(n => FLOOR_PICS[n] && FLOOR_PICS[n].width >= 1000).length, kept: [1, 2, 3].filter(n => s.textures.exists('floor-pic-' + n)).length,
+      floors: [0, 1, 2].filter(k => s.textures.exists('floor-' + k + '-0')).length,
       frames: [0, 1, 2].filter(k => s.textures.exists('frame-floor-' + k + '-0')).length, lights: s.floorLights.length, frameShown: s.frameImg.visible, paintMs: Math.round(performance.now() - t0) };
     s.setFloor(1); return out;`);
-  check('the carved floors are the default, and paint all three levels with their stairs and lights', floors.set && floors.floors === 3 && floors.frames === 3 && floors.lights > 0 && floors.frameShown, JSON.stringify(floors));
+  check("the founder's floor pictures are the default, and paint all three levels with their steps and lights, without being held twice", floors.set && floors.pictures === 3 && floors.kept === 0 && floors.floors === 3 && floors.frames === 3 && floors.lights > 0 && floors.frameShown, JSON.stringify(floors));
 
   // ---------- 4. pause, abandon prompt, death keeps half ----------
   await page(`const s = game.scene.keys.LootScene; s.runGold = 125; s.pauseGame();`);
@@ -466,12 +505,13 @@ try {
     first.x = 70; first.y = 590;                           // out of the serpent's way
     s.sector = 3; s.setFloor(3); const v = hold(s.spawnSectorBoss()); v.weakPhase = PHASE_SEQUENCE.find(p => p !== s.phase);
     await wait(400);
-    out.serpent = { drawn: !!v.serpent && v.serpent.segs.length === SERPENT.length, spriteHidden: !s.enemySprites.get(v.id).visible, label: v.gateLabel.text,
-                    moved: Math.hypot(v.serpent.segs[0].x - v.x, v.serpent.segs[0].y - v.y) < 30 };
+    { const vs = s.enemySprites.get(v.id);
+      out.serpent = { figure: vs.visible && !!vs.walks && vs.texture.key === CHARS.megaboss + '-walk', tall: Math.round((vs.baseSY || vs.scaleY) * ART[CHARS.megaboss].cell), wants: Math.round(v.radius / HIT * 2.8 * ART[CHARS.megaboss].scale * ART[CHARS.megaboss].cell / ART[CHARS.megaboss].still),
+        label: v.gateLabel.text, steel: vs.isTinted, drawnByCode: !!v.serpent }; }
     return out;`);
   check('the first Gatekeeper a player meets arrives open, and stays open a while', gate.tier === 1 && gate.firstOpen && gate.taught && gate.held && gate.full === 1 && /^VULNERABLE  \d+s$/.test(gate.openLabel), JSON.stringify(gate));
   check('a resisting boss says so, counts down, and takes 30% on level 1 and 12% below', /^RESISTS  \u00B7  opens in \d+s$/.test(gate.closedLabel) && gate.grey && gate.level1 === 30 && gate.level2 === 12, JSON.stringify(gate));
-  check('Vritra is a drawn serpent with the same tell', gate.serpent.drawn && gate.serpent.spriteHidden && gate.serpent.moved && /^RESISTS/.test(gate.serpent.label), JSON.stringify(gate.serpent));
+  check("Vritra is the founder's picture of him, a figure like the others, with the same tell", gate.serpent.figure && gate.serpent.tall === gate.serpent.wants && gate.serpent.tall > 200 && !gate.serpent.drawnByCode && gate.serpent.steel && /^RESISTS/.test(gate.serpent.label), JSON.stringify(gate.serpent));
   await shot('5f-serpent');
 
   // Depths: a depth already won pays no water; the next one is harder and pays more.
@@ -970,13 +1010,111 @@ try {
   check('bot runs in the wide arena raise no errors and leak nothing', wide2.bot.errors.length === 0 && wide2.bot.leaks.every(l => l <= 0), wide2.bot.errors.join('; ') + ' ' + wide2.bot.runs);
   await shot('10-wide-hub');
 
+  // The profile shows the hero's portrait, cut at the full size of the picture (requirements 2.42).
+  const portrait = await page(`const s = game.scene.keys.LootScene; s.showHub(); s.showProfile(() => s.closeOverlay());
+    const pic = s.overlay.find(o => o.type === 'Image' && o.texture.key === CHARS.player + '-portrait'), still = s.textures.get(CHARS.player + '-front').getSourceImage().height;
+    const out = pic ? { source: pic.texture.getSourceImage().height, still, tall: Math.round(pic.displayHeight), feet: Math.round(pic.y), wants: [PORTRAIT.tall, PORTRAIT.feet], plain: !Object.keys(WORN).length } : null;
+    s.closeOverlay(); return out;`);
+  check('the profile shows the hero from a portrait three times the size of the still, standing where the ring is',
+    portrait && portrait.source >= 3 * portrait.still && portrait.tall === portrait.wants[0] && portrait.feet === portrait.wants[1] && portrait.plain, JSON.stringify(portrait));
+
+  // ---------- 9c. the painted icons (requirements 2.46) ----------
+  // The record tools/cut-icons.py wrote, read off the disk: the game's list of frames must
+  // be that list, and the sources must be the approved sheets with their two empty cells.
+  const cutRecord = JSON.parse(readFileSync(join(REPO, 'game', 'assets', 'incoming', 'well-delver', 'icons-cut.json'), 'utf8'));
+  const cutKinds = k => cutRecord.frames.filter(f => f.name.startsWith(k + '-')).length;
+  const icons = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
+    out.frames = ICON_FRAMES; out.painted = s.painted;
+    out.sheets = ['icons', 'icons-small'].map(k => { const t = s.textures.get(k), im = t.getSourceImage(); return [im.width, im.height, t.frameTotal - 1]; });
+    out.drawnMade = s.textures.getTextureKeys().filter(k => /^(icon|boon)_/.test(k)).length;
+    // Every frame: something in it, and clear of the edge of its square; the spare cells empty.
+    const big = s.textures.get('icons').getSourceImage(), F = ICON.frame, c = document.createElement('canvas'); c.width = big.width; c.height = big.height;
+    const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(big, 0, 0);
+    const cell = n => x.getImageData((n % 10) * F, Math.floor(n / 10) * F, F, F).data;
+    const look = n => { const d = cell(n); let solid = 0, edge = 0, r = 0, g = 0, b = 0, red = 0, green = 0;
+      for (let i = 0; i < d.length; i += 4) { const a = d[i + 3], px = (i / 4) % F, py = Math.floor(i / 4 / F);
+        if (a > 0 && (px < 2 || py < 2 || px >= F - 2 || py >= F - 2)) edge++;
+        if (a > 200) { solid++; r += d[i]; g += d[i + 1]; b += d[i + 2]; if (d[i] > 150 && d[i + 1] < 70 && d[i + 2] < 70) red++; if (d[i + 1] > d[i] * 1.25 && d[i + 1] > d[i + 2] * 1.5) green++; } }
+      return { solid, edge, r: r / solid, g: g / solid, b: b / solid, red, green }; };
+    const all = ICON_FRAMES.map((_, n) => look(n));
+    out.filled = all.every(a => a.solid > F * F * 0.08); out.clear = all.every(a => a.edge === 0);
+    out.spare = [76, 77, 78, 79].map(n => cell(n).some(v => v)).filter(Boolean).length;
+    const of = name => all[ICON_FRAMES.indexOf(name)];
+    // Only the metal changes with quality: the dagger is copper, silver and gold; the
+    // blood on the sword and the leaves of the herb are the same in all three.
+    const tone = a => [Math.round(a.r - a.b), Math.round(a.g - a.b)];
+    out.dagger = ['common', 'rare', 'epic'].map(q => tone(of('loot-none-' + q)));
+    out.blood = ['common', 'rare', 'epic'].map(q => of('loot-vampiric-' + q).red);
+    out.leaves = ['common', 'rare', 'epic'].map(q => of('loot-regen-' + q).green);
+    // What lies on the floor: a known item in its own metal, an unknown one always the same bundle.
+    session.depthPick = 1; s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.dismissHint(); await wait(200);          // a frame or two of the run, so that its HUD is written
+    for (let i = 0; i < 60; i++) s.spawnLootPickup(120 + (i % 6) * 30, 300 + Math.floor(i / 6) * 20);
+    const frameOf = img => ICON_FRAMES[img.frame.name];
+    out.drops = { n: s.pickups.length, unknown: s.pickups.filter(k => k.isMystery).length,
+      known: s.pickups.filter(k => !k.isMystery).every(k => frameOf(k.sprite) === 'loot-' + (k.item.effect || 'none') + '-' + k.item.rarity),
+      hidden: s.pickups.filter(k => k.isMystery).every(k => frameOf(k.sprite) === 'loot-mystery'), plain: s.pickups.every(k => !k.sprite.isTinted) };
+    s.pickups.forEach(k => { k.sprite.destroy(); k.label.destroy(); }); s.pickups = [];
+    // Every screen that shows icons shows painted ones, uncoloured, and none that is missing.
+    const mk = (type, effect, rarity) => ({ type, effect, rarity, name: 'x', shots: 1, dmg: 10, range: 130, atkSpeed: 500, hpBonus: 0, rechargeMs: 0, reflectPct: 0, speedBonus: 0, regenPerSec: 0 });
+    s.player.weapon = mk('weapon', 'venom', 'rare'); s.player.trinket = mk('trinket', 'aegis', 'epic'); s.inventory = [mk('weapon', 'chain', 'epic'), mk('trinket', 'swift', 'common')];
+    s.boons = { keen: 2, ground: 1, fork: 1 };
+    const seen = {}, shown = list => { const im = list.filter(o => o.type === 'Image' && /^icons/.test(o.texture.key));
+      return { n: im.length, names: im.map(frameOf), tinted: im.filter(o => o.isTinted).length, missing: list.filter(o => o.type === 'Image' && o.texture.key === '__MISSING').length }; };
+    s.pauseGame('pause'); await wait(150); seen.pause = shown(s.overlay); s.resumeGame();
+    s.pauseGame('profile'); await wait(150); seen.profile = shown(s.overlay); s.closeOverlay(); s.resumeGame();
+    s.pauseGame('satchel'); await wait(150); seen.satchel = shown(s.overlay); s.closeOverlay(); s.resumeGame();
+    s.queueBoon(); s.openBoons(); await wait(150); seen.boons = shown(s.overlay); s.closeBoons();
+    out.hud = { coin: !!s.goldSign && s.goldSign.visible && frameOf(s.goldSign) === 'sign-treasure', power: !!s.powerSign && frameOf(s.powerSign) === 'sign-power',
+      phase: !!s.phaseSign && frameOf(s.phaseSign) === 'hud-' + s.phase, satchel: frameOf(s.satchelTabIcon) === 'hud-satchel', gold: s.goldText.text };
+    s.endRun(false); await wait(200); s.showHub(); await wait(200);
+    s.showHowTo(2, () => {}); await wait(120); seen.howto = shown(s.overlay); s.closeOverlay();
+    for (const tab of ['weapons', 'trinkets', 'tejas', 'boons']) { s.showCodex(tab); await wait(80); seen[tab] = shown(s.uiObjects); }
+    s.showHub();
+    out.seen = seen;
+    return out;`);
+  check('the painted icons are loaded, and the game names their frames as the tool that cut them does',
+    icons.painted && icons.drawnMade === 0 && JSON.stringify(icons.frames) === JSON.stringify(cutRecord.frames.map(f => f.name))
+    && icons.sheets[0].join() === [cutRecord.columns * cutRecord.frame, 8 * cutRecord.frame, 80].join() && icons.sheets[1].join() === [cutRecord.columns * cutRecord.small, 8 * cutRecord.small, 80].join(),
+    JSON.stringify({ painted: icons.painted, drawnMade: icons.drawnMade, frames: icons.frames.length, sheets: icons.sheets }));
+  check('56 icons were cut from the approved sheets, the two empty cells left out: 31 frames of loot, 18 boons, 8 perks, 12 signs, 7 for the screen',
+    cutRecord.frames.length === 76 && cutKinds('loot') === 31 && cutKinds('boon') === 18 && cutKinds('perk') === 8 && cutKinds('sign') === 12 && cutKinds('hud') === 7
+    && new Set(cutRecord.frames.map(f => f.source + '#' + f.cell)).size === 56 && !cutRecord.frames.some(f => /loot-icons/.test(f.source) && f.cell === 11) && !cutRecord.frames.some(f => /hud\.png/.test(f.source) && f.cell === 7)
+    && cutRecord.frames.every(f => f.cut[0] >= 0 && f.cut[1] >= 0 && f.cut[2] > f.cut[0] && f.cut[3] > f.cut[1]),
+    cutRecord.frames.length + ' frames from ' + new Set(cutRecord.frames.map(f => f.source + '#' + f.cell)).size + ' cells');
+  check('every frame holds an icon clear of the edge of its square, and the spare cells of the sheet are empty', icons.filled && icons.clear && icons.spare === 0, JSON.stringify({ filled: icons.filled, clear: icons.clear, spare: icons.spare }));
+  { const [cu, ag, au] = icons.dagger;
+    check('only the metal of loot changes with its quality: a copper, a silver and a gold dagger; the blood and the leaves untouched',
+      cu[0] > 55 && cu[1] < cu[0] * 0.62 && Math.abs(ag[0]) < 22 && au[0] > 90 && au[1] > au[0] * 0.62
+      && Math.max(...icons.blood) - Math.min(...icons.blood) <= 12 && icons.blood[0] > 150 && Math.max(...icons.leaves) - Math.min(...icons.leaves) <= 20 && icons.leaves[0] > 2000,
+      JSON.stringify({ dagger: icons.dagger, blood: icons.blood, leaves: icons.leaves })); }
+  check('loot on the floor is drawn in its own metal, and an unknown item is the same closed bundle whatever is in it',
+    icons.drops.n === 60 && icons.drops.unknown > 3 && icons.drops.unknown < 40 && icons.drops.known && icons.drops.hidden && icons.drops.plain, JSON.stringify(icons.drops));
+  { const v = icons.seen, total = Object.values(v).reduce((n, k) => n + k.n, 0), has = (k, name) => v[k].names.includes(name);
+    check('every screen that shows icons shows the painted ones, uncoloured: gear, signs, boons, perks, the empty slot and the lock each have their own',
+      Object.values(v).every(k => k.n > 0 && k.tinted === 0 && k.missing === 0) && has('pause', 'loot-venom-rare') && has('pause', 'loot-aegis-epic') && has('pause', 'sign-poison') && has('pause', 'boon-fork')
+      && has('profile', 'sign-health') && has('profile', 'sign-shield') && has('profile', 'sign-damage') && has('profile', 'sign-power') && has('profile', 'boon-keen') && v.profile.names.some(n => n.startsWith('perk-'))
+      && has('satchel', 'loot-chain-epic') && has('satchel', 'loot-swift-common') && v.boons.names.filter(n => n.startsWith('boon-')).length >= 3
+      && has('howto', 'loot-chain-common') && has('howto', 'loot-mystery') && has('tejas', 'sign-lightning') && v.boons.n >= 3 && v.weapons.n === 4 && v.trinkets.n === 5,
+      total + ' icons on ' + Object.keys(v).length + ' screens; ' + Object.entries(v).map(([k, o]) => k + ' ' + o.n).join(', ')); }
+  check('the HUD carries the signs of treasure, power, the phase and the satchel beside their words and numbers',
+    icons.hud.coin && icons.hud.power && icons.hud.phase && icons.hud.satchel && /^\S+: \d+$/.test(icons.hud.gold), JSON.stringify(icons.hud));
+
   // ---------- 10. the fixed arena, on request: one screen, the camera still, nothing made harder ----------
-  await send('Page.navigate', { url: PAGE + '?arena=fixed' });
+  // The same load wears two dyes, to try the slots (requirements 2.42).
+  await send('Page.navigate', { url: PAGE + '?arena=fixed&wear=head:saffron,legs:indigo&icons=drawn' });
   state = 'loading';
   for (let i = 0; i < 80 && state === 'loading'; i++) { await sleep(250); state = await page(`return typeof Loader === 'undefined' ? 'loading' : Loader.state;`); }
   const fixedArena = await page(`settings.sfx = 0; settings.tips = false; Loader.begin(); await new Promise(r => setTimeout(r, 500));
     const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
+    out.worn = (() => { const name = CHARS.player, c = s.textures.get(name + '-portrait').getSourceImage(), x = c.getContext && c.getContext('2d');
+      const at = (fx, fy) => x ? [...x.getImageData(Math.round(c.width * fx), Math.round(c.height * fy), 1, 1).data].slice(0, 3) : [];
+      return { canvas: !!x, band: at(0.543, 0.093), tunic: at(0.518, 0.324), leg: at(0.369, 0.759), frames: s.textures.get(name + '-walk').frameTotal - 1,
+        still: s.textures.get(name + '-front').getSourceImage().width, wantsStill: ART[name].still, zonesKept: s.textures.exists(name + '-zone-head') }; })();
+    out.drawn = { painted: s.painted, shapes: s.textures.getTextureKeys().filter(k => /^(icon|boon)_/.test(k)).length, sheets: s.textures.exists('icons') || s.textures.exists('icons-small') };
     s.startRun(); s.player.iframes = 1e9; s.setMoveTarget(9999, 9999); await wait(1500);
+    out.drawn.hud = s.powerText.text; out.drawn.tab = s.satchelTabIcon.type; out.drawn.signs = !!(s.goldSign || s.powerSign || s.phaseSign);
+    s.spawnLootPickup(200, 300, 'epic'); { const k = s.pickups[s.pickups.length - 1]; out.drawn.drop = /^icon_/.test(k.sprite.texture.key) && k.sprite.isTinted; k.sprite.destroy(); k.label.destroy(); s.pickups.pop(); }
+    out.worn.sprite = { walks: !!s.playerSprite.walks, canvas: !!s.playerSprite.texture.getSourceImage().getContext };
     out.still = ARENA_SCALE === 1 && s.camOff.x === 0 && s.camOff.y === 0 && s.cameras.main.scrollX === 0 && s.cameras.main.scrollY === 0
       && Phaser.Geom.Rectangle.Equals(s.arenaBounds, s.viewBounds) && s.farFx === null;
     out.plain = s.slamReach() === 1 && (s.waveExtra || 0) === 0 && s.floorLayers[0].displayWidth === 340;
@@ -990,8 +1128,48 @@ try {
     out.bot = { errors: rep.errors, runs: rep.runs.map(r => r.profile + ': level ' + r.finalSector + ', leak ' + r.leak).join('; '), leaks: rep.runs.map(r => r.leak) };
     return out;`);
   console.log('      fixed arena bot: ' + fixedArena.bot.runs);
+  { const w = fixedArena.worn, [br, bg, bb] = w.band, [tr, tg, tb] = w.tunic, [lr, lg, lb] = w.leg;
+    check('worn pieces are laid into the hero through their zones: a saffron head-wrap and indigo trousers, the tunic untouched, in the portrait and on the sheet the hero walks on',
+      w.canvas && br > bb + 60 && br > bg && lb > lr + 20 && tr > 200 && tg > 170 && tb > 120 && tr > tb && w.frames >= 48 && w.still === w.wantsStill && !w.zonesKept && w.sprite.walks && w.sprite.canvas, JSON.stringify(w)); }
+  check('without the pictures the game draws its own icons, coloured as it always did, and none of the painted ones',
+    fixedArena.drawn.painted === false && fixedArena.drawn.shapes === 29 && !fixedArena.drawn.sheets && /^\u25C6 Power \d+$/.test(fixedArena.drawn.hud) && fixedArena.drawn.tab === 'Text' && !fixedArena.drawn.signs && fixedArena.drawn.drop,
+    JSON.stringify(fixedArena.drawn));
   check('the fixed arena is still there on request: one screen, the camera still, slams and waves their old size', fixedArena.still && fixedArena.plain
     && fixedArena.bot.errors.length === 0 && fixedArena.bot.leaks.every(l => l <= 0), JSON.stringify(fixedArena));
+
+  // ---------- 11. what stands round a figure, and how it falls (requirements 2.45) ----------
+  const round = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
+    const drawn = g => !!g && g.active && g.commandBuffer.length > 0, plain = e => !s.enemySprites.get(e.id).isTinted;
+    const hold = e => Object.assign(e, { slamTimer: 1e9, speed: 0, summonTimer: 1e9, dmg: 0 });
+    const cut = () => s.children.list.filter(o => o.isCropped).length;
+    session.depthPick = 1; s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.player.weapon.range = 1; s.dismissHint();
+    const b = s.arenaBounds, uncut = cut();                  // something of the screen's own may be cropped already
+    const el = hold(s.spawnEnemyOfType('tank', b.centerX + 90, b.centerY + 120, 1, false, true));        // an elite
+    s.killEnemy(s.spawnEnemyOfType('splitter', b.centerX - 90, b.centerY + 120, 1, false));             // a Bloodseed, killed where it stands
+    const brood = s.enemies.filter(e => e.isSplit); brood.forEach(hold);
+    out.brood = { n: brood.length, kind: brood.every(e => e.char === CHARS.splitter), named: brood.every(e => e.nameLabel.text === N.enemies.splitter),
+      thrown: brood.every(e => !!e.hatch), apart: brood.length === 2 && Math.abs(brood[0].x - brood[1].x) >= 22, pieces: cut() - uncut };
+    const g = hold(s.spawnSectorBoss()), anchors = s.enemies.filter(e => e.isKeyAdd); anchors.forEach(hold);  // the Hoard Guardian under his dome
+    const k = hold(s.spawnGatekeeper()); k.x = b.x + 60; k.y = b.bottom - 60; k.weakPhase = PHASE_SEQUENCE.find(p => p !== s.phase);
+    await wait(500);
+    out.elite = { glow: !!el.gilt && el.gilt.blendMode === Phaser.BlendModes.ADD && el.gilt.frame.name === s.enemySprites.get(el.id).frame.name, ring: drawn(el.giltRing), plain: plain(el) };
+    out.dome = { on: g.shieldOn, drawn: drawn(g.domeFx) && drawn(g.floorFx), inFront: g.domeFx.depth > s.enemySprites.get(g.id).depth, anchors: anchors.length,
+      gilded: anchors.every(a => !!a.gilt && plain(a)), named: anchors.every(a => a.nameLabel.text === 'ANCHOR') };
+    const hp = g.hp; s.damageEnemy(g, 50); out.dome.holds = g.hp === hp && g.domeHit > 0;
+    out.gate = { plates: drawn(k.floorFx), steel: s.enemySprites.get(k.id).tintTopLeft === 0x8d94a6 };
+    out.brood.landed = brood.every(e => !e.hatch); out.brood.piecesGone = cut() === uncut;
+    anchors.forEach(a => s.killEnemy(a)); await wait(250);
+    out.dome.broken = !g.shieldOn && !drawn(g.domeFx) && drawn(g.floorFx) && anchors.every(a => !a.gilt);
+    [el, k, ...brood, g].forEach(e => s.killEnemy(e)); await wait(1500);
+    out.gone = { round: [el, g, k].every(e => !e.floorFx && !e.domeFx && !e.gilt && !e.giltRing), pieces: cut() - uncut, fx: s.children.list.filter(o => o.texture && /^fx_/.test(o.texture.key)).length };
+    return out;`);
+  check('an elite glows gold over its own colours, with a garland at its feet', round.elite.glow && round.elite.ring && round.elite.plain, JSON.stringify(round.elite));
+  check('a Bloodseed comes apart in pieces of its own picture, and its brood is two small Bloodseeds thrown out to either side',
+    round.brood.n === 2 && round.brood.kind && round.brood.named && round.brood.thrown && round.brood.apart && round.brood.pieces >= 4 && round.brood.landed && round.brood.piecesGone, JSON.stringify(round.brood));
+  check('a shielded boss stands under a dome drawn behind him and in front, held by three gilded anchors; it turns a blow, and breaks when they fall',
+    round.dome.on && round.dome.drawn && round.dome.inFront && round.dome.anchors === 3 && round.dome.gilded && round.dome.named && round.dome.holds && round.dome.broken, JSON.stringify(round.dome));
+  check('a resisting boss has plates at his feet, and nothing drawn round a figure outlives it',
+    round.gate.plates && round.gate.steel && round.gone.round && round.gone.pieces === 0 && round.gone.fx === 0, JSON.stringify({ gate: round.gate, gone: round.gone }));
 
   // The engine and the typefaces sit beside the game (launch track L9): nothing may come
   // from another site, and nothing the page asks for may be absent. The bot is the test's

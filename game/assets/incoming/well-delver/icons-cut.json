@@ -1,0 +1,1208 @@
+{
+ "about": "What each frame of icons.png and icons-small.png was cut from, by tools/cut-icons.py. The game does not read this file.",
+ "frame": 128,
+ "small": 64,
+ "columns": 10,
+ "frames": [
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 0,
+   "cut": [
+    52,
+    50,
+    324,
+    349
+   ],
+   "name": "loot-none-common",
+   "metal": "common",
+   "metalShare": 0.808,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 0,
+   "scale": 0.3946
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 0,
+   "cut": [
+    52,
+    50,
+    324,
+    349
+   ],
+   "name": "loot-none-rare",
+   "metal": "rare",
+   "metalShare": 0.808,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 1,
+   "scale": 0.3946
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 0,
+   "cut": [
+    52,
+    50,
+    324,
+    349
+   ],
+   "name": "loot-none-epic",
+   "metal": "epic",
+   "metalShare": 0.808,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 2,
+   "scale": 0.3946
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 1,
+   "cut": [
+    424,
+    49,
+    686,
+    357
+   ],
+   "name": "loot-venom-common",
+   "metal": "common",
+   "metalShare": 0.599,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 3,
+   "scale": 0.3831
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 1,
+   "cut": [
+    424,
+    49,
+    686,
+    357
+   ],
+   "name": "loot-venom-rare",
+   "metal": "rare",
+   "metalShare": 0.599,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 4,
+   "scale": 0.3831
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 1,
+   "cut": [
+    424,
+    49,
+    686,
+    357
+   ],
+   "name": "loot-venom-epic",
+   "metal": "epic",
+   "metalShare": 0.599,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 5,
+   "scale": 0.3831
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 2,
+   "cut": [
+    753,
+    32,
+    1051,
+    351
+   ],
+   "name": "loot-vampiric-common",
+   "metal": "common",
+   "metalShare": 0.61,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 6,
+   "scale": 0.3699
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 2,
+   "cut": [
+    753,
+    32,
+    1051,
+    351
+   ],
+   "name": "loot-vampiric-rare",
+   "metal": "rare",
+   "metalShare": 0.61,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 7,
+   "scale": 0.3699
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 2,
+   "cut": [
+    753,
+    32,
+    1051,
+    351
+   ],
+   "name": "loot-vampiric-epic",
+   "metal": "epic",
+   "metalShare": 0.61,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 8,
+   "scale": 0.3699
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 3,
+   "cut": [
+    1130,
+    59,
+    1404,
+    302
+   ],
+   "name": "loot-chain-common",
+   "metal": "common",
+   "metalShare": 0.746,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 9,
+   "scale": 0.4307
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 3,
+   "cut": [
+    1130,
+    59,
+    1404,
+    302
+   ],
+   "name": "loot-chain-rare",
+   "metal": "rare",
+   "metalShare": 0.746,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 10,
+   "scale": 0.4307
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 3,
+   "cut": [
+    1130,
+    59,
+    1404,
+    302
+   ],
+   "name": "loot-chain-epic",
+   "metal": "epic",
+   "metalShare": 0.746,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 11,
+   "scale": 0.4307
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 4,
+   "cut": [
+    33,
+    378,
+    362,
+    698
+   ],
+   "name": "loot-executioner-common",
+   "metal": "common",
+   "metalShare": 0.726,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 12,
+   "scale": 0.3587
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 4,
+   "cut": [
+    33,
+    378,
+    362,
+    698
+   ],
+   "name": "loot-executioner-rare",
+   "metal": "rare",
+   "metalShare": 0.726,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 13,
+   "scale": 0.3587
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 4,
+   "cut": [
+    33,
+    378,
+    362,
+    698
+   ],
+   "name": "loot-executioner-epic",
+   "metal": "epic",
+   "metalShare": 0.726,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 14,
+   "scale": 0.3587
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 5,
+   "cut": [
+    427,
+    414,
+    682,
+    687
+   ],
+   "name": "loot-vitality-common",
+   "metal": "common",
+   "metalShare": 0.35,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 15,
+   "scale": 0.393
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 5,
+   "cut": [
+    427,
+    414,
+    682,
+    687
+   ],
+   "name": "loot-vitality-rare",
+   "metal": "rare",
+   "metalShare": 0.35,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 16,
+   "scale": 0.393
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 5,
+   "cut": [
+    427,
+    414,
+    682,
+    687
+   ],
+   "name": "loot-vitality-epic",
+   "metal": "epic",
+   "metalShare": 0.35,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 17,
+   "scale": 0.393
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 6,
+   "cut": [
+    756,
+    404,
+    1040,
+    701
+   ],
+   "name": "loot-aegis-common",
+   "metal": "common",
+   "metalShare": 0.512,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 18,
+   "scale": 0.3432
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 6,
+   "cut": [
+    756,
+    404,
+    1040,
+    701
+   ],
+   "name": "loot-aegis-rare",
+   "metal": "rare",
+   "metalShare": 0.512,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 19,
+   "scale": 0.3432
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 6,
+   "cut": [
+    756,
+    404,
+    1040,
+    701
+   ],
+   "name": "loot-aegis-epic",
+   "metal": "epic",
+   "metalShare": 0.512,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 20,
+   "scale": 0.3432
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 7,
+   "cut": [
+    1108,
+    411,
+    1427,
+    697
+   ],
+   "name": "loot-thorns-common",
+   "metal": "common",
+   "metalShare": 0.756,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 21,
+   "scale": 0.3699
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 7,
+   "cut": [
+    1108,
+    411,
+    1427,
+    697
+   ],
+   "name": "loot-thorns-rare",
+   "metal": "rare",
+   "metalShare": 0.756,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 22,
+   "scale": 0.3699
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 7,
+   "cut": [
+    1108,
+    411,
+    1427,
+    697
+   ],
+   "name": "loot-thorns-epic",
+   "metal": "epic",
+   "metalShare": 0.756,
+   "steel": {
+    "sat": 0.42
+   },
+   "frame": 23,
+   "scale": 0.3699
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 8,
+   "cut": [
+    44,
+    740,
+    377,
+    1045
+   ],
+   "name": "loot-swift-common",
+   "metal": "common",
+   "metalShare": 0.03,
+   "steel": {
+    "sat": 0.42,
+    "only": [
+     [
+      0.66,
+      0.06,
+      0.93,
+      0.36
+     ]
+    ]
+   },
+   "frame": 24,
+   "scale": 0.3544
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 8,
+   "cut": [
+    44,
+    740,
+    377,
+    1045
+   ],
+   "name": "loot-swift-rare",
+   "metal": "rare",
+   "metalShare": 0.03,
+   "steel": {
+    "sat": 0.42,
+    "only": [
+     [
+      0.66,
+      0.06,
+      0.93,
+      0.36
+     ]
+    ]
+   },
+   "frame": 25,
+   "scale": 0.3544
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 8,
+   "cut": [
+    44,
+    740,
+    377,
+    1045
+   ],
+   "name": "loot-swift-epic",
+   "metal": "epic",
+   "metalShare": 0.03,
+   "steel": {
+    "sat": 0.42,
+    "only": [
+     [
+      0.66,
+      0.06,
+      0.93,
+      0.36
+     ]
+    ]
+   },
+   "frame": 26,
+   "scale": 0.3544
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 9,
+   "cut": [
+    445,
+    736,
+    699,
+    1055
+   ],
+   "name": "loot-regen-common",
+   "metal": "common",
+   "metalShare": 0.043,
+   "steel": {
+    "sat": 0.42,
+    "only": [
+     [
+      0.27,
+      0.57,
+      0.53,
+      0.8
+     ]
+    ]
+   },
+   "frame": 27,
+   "scale": 0.3699
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 9,
+   "cut": [
+    445,
+    736,
+    699,
+    1055
+   ],
+   "name": "loot-regen-rare",
+   "metal": "rare",
+   "metalShare": 0.043,
+   "steel": {
+    "sat": 0.42,
+    "only": [
+     [
+      0.27,
+      0.57,
+      0.53,
+      0.8
+     ]
+    ]
+   },
+   "frame": 28,
+   "scale": 0.3699
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 9,
+   "cut": [
+    445,
+    736,
+    699,
+    1055
+   ],
+   "name": "loot-regen-epic",
+   "metal": "epic",
+   "metalShare": 0.043,
+   "steel": {
+    "sat": 0.42,
+    "only": [
+     [
+      0.27,
+      0.57,
+      0.53,
+      0.8
+     ]
+    ]
+   },
+   "frame": 29,
+   "scale": 0.3699
+  },
+  {
+   "source": "game/assets/incoming/well-delver/loot-icons.png",
+   "cell": 10,
+   "cut": [
+    767,
+    742,
+    1041,
+    1056
+   ],
+   "name": "loot-mystery",
+   "metal": "unknown",
+   "metalShare": 0.021,
+   "steel": {
+    "sat": 0.3,
+    "only": [
+     [
+      0.5,
+      0.24,
+      0.72,
+      0.45
+     ]
+    ]
+   },
+   "frame": 30,
+   "scale": 0.3597
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-copper.png",
+   "cell": 0,
+   "cut": [
+    125,
+    127,
+    431,
+    434
+   ],
+   "name": "boon-keen",
+   "frame": 31,
+   "scale": 0.3779
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-copper.png",
+   "cell": 1,
+   "cut": [
+    608,
+    126,
+    915,
+    434
+   ],
+   "name": "boon-quick",
+   "frame": 32,
+   "scale": 0.3766
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-copper.png",
+   "cell": 2,
+   "cut": [
+    1091,
+    126,
+    1399,
+    434
+   ],
+   "name": "boon-reach",
+   "frame": 33,
+   "scale": 0.3766
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-copper.png",
+   "cell": 3,
+   "cut": [
+    124,
+    589,
+    433,
+    900
+   ],
+   "name": "boon-feet",
+   "frame": 34,
+   "scale": 0.373
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-copper.png",
+   "cell": 4,
+   "cut": [
+    610,
+    589,
+    921,
+    901
+   ],
+   "name": "boon-iron",
+   "frame": 35,
+   "scale": 0.3718
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-copper.png",
+   "cell": 5,
+   "cut": [
+    1091,
+    589,
+    1402,
+    901
+   ],
+   "name": "boon-hide",
+   "frame": 36,
+   "scale": 0.3718
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-silver.png",
+   "cell": 0,
+   "cut": [
+    95,
+    112,
+    417,
+    432
+   ],
+   "name": "boon-ground",
+   "frame": 37,
+   "scale": 0.3602
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-silver.png",
+   "cell": 1,
+   "cut": [
+    605,
+    112,
+    927,
+    432
+   ],
+   "name": "boon-run",
+   "frame": 38,
+   "scale": 0.3602
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-silver.png",
+   "cell": 2,
+   "cut": [
+    1108,
+    112,
+    1431,
+    432
+   ],
+   "name": "boon-second",
+   "frame": 39,
+   "scale": 0.3591
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-silver.png",
+   "cell": 3,
+   "cut": [
+    95,
+    583,
+    417,
+    906
+   ],
+   "name": "boon-readslam",
+   "frame": 40,
+   "scale": 0.3591
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-silver.png",
+   "cell": 4,
+   "cut": [
+    605,
+    584,
+    927,
+    906
+   ],
+   "name": "boon-laststand",
+   "frame": 41,
+   "scale": 0.3602
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-silver.png",
+   "cell": 5,
+   "cut": [
+    1107,
+    583,
+    1431,
+    906
+   ],
+   "name": "boon-greed",
+   "frame": 42,
+   "scale": 0.358
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-gold.png",
+   "cell": 0,
+   "cut": [
+    99,
+    102,
+    427,
+    426
+   ],
+   "name": "boon-rot",
+   "frame": 43,
+   "scale": 0.3537
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-gold.png",
+   "cell": 1,
+   "cut": [
+    598,
+    102,
+    929,
+    426
+   ],
+   "name": "boon-bloodshield",
+   "frame": 44,
+   "scale": 0.3505
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-gold.png",
+   "cell": 2,
+   "cut": [
+    1100,
+    102,
+    1431,
+    426
+   ],
+   "name": "boon-fork",
+   "frame": 45,
+   "scale": 0.3505
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-gold.png",
+   "cell": 3,
+   "cut": [
+    98,
+    581,
+    426,
+    904
+   ],
+   "name": "boon-cleancut",
+   "frame": 46,
+   "scale": 0.3537
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-gold.png",
+   "cell": 4,
+   "cut": [
+    598,
+    581,
+    929,
+    904
+   ],
+   "name": "boon-kindling",
+   "frame": 47,
+   "scale": 0.3505
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/boons-gold.png",
+   "cell": 5,
+   "cut": [
+    1100,
+    581,
+    1431,
+    904
+   ],
+   "name": "boon-hunger",
+   "frame": 48,
+   "scale": 0.3505
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/perks.png",
+   "cell": 0,
+   "cut": [
+    105,
+    121,
+    280,
+    430
+   ],
+   "name": "perk-guard",
+   "frame": 49,
+   "scale": 0.3883
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/perks.png",
+   "cell": 1,
+   "cut": [
+    484,
+    134,
+    655,
+    432
+   ],
+   "name": "perk-eye",
+   "frame": 50,
+   "scale": 0.4027
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/perks.png",
+   "cell": 2,
+   "cut": [
+    868,
+    125,
+    1021,
+    436
+   ],
+   "name": "perk-scale",
+   "frame": 51,
+   "scale": 0.3859
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/perks.png",
+   "cell": 3,
+   "cut": [
+    1225,
+    133,
+    1410,
+    420
+   ],
+   "name": "perk-lungs",
+   "frame": 52,
+   "scale": 0.4181
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/perks.png",
+   "cell": 4,
+   "cut": [
+    91,
+    606,
+    329,
+    911
+   ],
+   "name": "perk-wind",
+   "frame": 53,
+   "scale": 0.3934
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/perks.png",
+   "cell": 5,
+   "cut": [
+    471,
+    610,
+    687,
+    892
+   ],
+   "name": "perk-study",
+   "frame": 54,
+   "scale": 0.4255
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/perks.png",
+   "cell": 6,
+   "cut": [
+    856,
+    605,
+    1067,
+    902
+   ],
+   "name": "perk-reroll",
+   "frame": 55,
+   "scale": 0.404
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/perks.png",
+   "cell": 7,
+   "cut": [
+    1213,
+    605,
+    1432,
+    907
+   ],
+   "name": "perk-taker",
+   "frame": 56,
+   "scale": 0.3974
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/signs.png",
+   "cell": 0,
+   "cut": [
+    107,
+    83,
+    322,
+    297
+   ],
+   "name": "sign-treasure",
+   "frame": 57,
+   "scale": 0.4436
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/signs.png",
+   "cell": 1,
+   "cut": [
+    467,
+    77,
+    685,
+    300
+   ],
+   "name": "sign-power",
+   "frame": 58,
+   "scale": 0.5112
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/signs.png",
+   "cell": 2,
+   "cut": [
+    847,
+    102,
+    1069,
+    292
+   ],
+   "name": "sign-health",
+   "frame": 59,
+   "scale": 0.4914
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/signs.png",
+   "cell": 3,
+   "cut": [
+    1244,
+    79,
+    1425,
+    307
+   ],
+   "name": "sign-shield",
+   "frame": 60,
+   "scale": 0.5
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/signs.png",
+   "cell": 4,
+   "cut": [
+    143,
+    392,
+    311,
+    617
+   ],
+   "name": "sign-damage",
+   "frame": 61,
+   "scale": 0.5067
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/signs.png",
+   "cell": 5,
+   "cut": [
+    485,
+    429,
+    692,
+    586
+   ],
+   "name": "sign-speed",
+   "frame": 62,
+   "scale": 0.5507
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/signs.png",
+   "cell": 6,
+   "cut": [
+    868,
+    385,
+    1045,
+    617
+   ],
+   "name": "sign-move",
+   "frame": 63,
+   "scale": 0.4914
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/signs.png",
+   "cell": 7,
+   "cut": [
+    1261,
+    389,
+    1430,
+    615
+   ],
+   "name": "sign-fire",
+   "frame": 64,
+   "scale": 0.5044
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/signs.png",
+   "cell": 8,
+   "cut": [
+    100,
+    716,
+    320,
+    916
+   ],
+   "name": "sign-poison",
+   "frame": 65,
+   "scale": 0.4926
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/signs.png",
+   "cell": 9,
+   "cut": [
+    496,
+    698,
+    654,
+    921
+   ],
+   "name": "sign-blood",
+   "frame": 66,
+   "scale": 0.5112
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/signs.png",
+   "cell": 10,
+   "cut": [
+    880,
+    695,
+    1049,
+    927
+   ],
+   "name": "sign-lightning",
+   "frame": 67,
+   "scale": 0.4914
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/signs.png",
+   "cell": 11,
+   "cut": [
+    1231,
+    696,
+    1448,
+    919
+   ],
+   "name": "sign-execution",
+   "frame": 68,
+   "scale": 0.5112
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/hud.png",
+   "cell": 0,
+   "cut": [
+    34,
+    150,
+    379,
+    468
+   ],
+   "name": "hud-satchel",
+   "frame": 69,
+   "scale": 0.2981
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/hud.png",
+   "cell": 1,
+   "cut": [
+    436,
+    168,
+    742,
+    459
+   ],
+   "name": "hud-empty",
+   "frame": 70,
+   "scale": 0.3725
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/hud.png",
+   "cell": 2,
+   "cut": [
+    807,
+    83,
+    1099,
+    477
+   ],
+   "name": "hud-locked",
+   "frame": 71,
+   "scale": 0.2893
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/hud.png",
+   "cell": 3,
+   "cut": [
+    1179,
+    196,
+    1503,
+    446
+   ],
+   "name": "hud-drift",
+   "frame": 72,
+   "scale": 0.3519
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/hud.png",
+   "cell": 4,
+   "cut": [
+    38,
+    561,
+    368,
+    900
+   ],
+   "name": "hud-surge",
+   "frame": 73,
+   "scale": 0.3363
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/hud.png",
+   "cell": 5,
+   "cut": [
+    419,
+    578,
+    744,
+    896
+   ],
+   "name": "hud-eclipse",
+   "frame": 74,
+   "scale": 0.3007
+  },
+  {
+   "source": "game/assets/incoming/well-delver/icons/hud.png",
+   "cell": 6,
+   "cut": [
+    804,
+    584,
+    1117,
+    895
+   ],
+   "turned": 45,
+   "name": "hud-convergence",
+   "frame": 75,
+   "scale": 0.3519
+  }
+ ]
+}

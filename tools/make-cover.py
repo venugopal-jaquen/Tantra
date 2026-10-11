@@ -22,8 +22,8 @@ ap.add_argument("picture"); ap.add_argument("out")
 ap.add_argument("--title"); ap.add_argument("--line", default="A one-thumb arena roguelite")
 a = ap.parse_args()
 if not a.title:
-    page = io.open(os.path.join(REPO, "game", "loot-chase-v0.1.html"), encoding="utf-8").read()
-    a.title = re.search(r"const GAME_TITLE = '([^']+)'", page).group(1)
+    said = io.open(os.path.join(REPO, "game", "src", "config.js"), encoding="utf-8").read()      # where the title is said
+    a.title = re.search(r"^const GAME_TITLE = '([^']+)'", said, re.M).group(1)
 
 im = Image.open(a.picture).convert("RGB")
 at = json.load(open(os.path.splitext(a.picture)[0] + ".json"))

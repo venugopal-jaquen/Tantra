@@ -7,8 +7,9 @@ Writes dist/itch/ - the game as itch.io will serve it, with index.html at the to
 dist/<title>-<build>-itch.zip beside it. Nothing is downloaded and nothing under game/ is
 changed; dist/ is gitignored and can be deleted at any time.
 
-In:  the game page (as index.html), the sprites and sounds it loads, the engine and the
-     typefaces with their licences, and a short credits file.
+In:  the game page (as index.html), the scripts and the stylesheet it names (game/src,
+     game/styles), the sprites and sounds they load, the engine and the typefaces with
+     their licences, and a short credits file.
 Out: the music (switched off for launch, 7 MB, and Pixabay's licence does not allow it to
      be handed out on its own), the raw asset packs, the docs and the tools.
 
@@ -23,10 +24,11 @@ GAME = os.path.join(REPO, "game")
 DIST = os.path.join(REPO, "dist")
 STAGE = os.path.join(DIST, "itch")
 PAGE = "loot-chase-v0.1.html"
+CONFIG = "src/config.js"        # where the game's title and build are said, and nowhere else
 
 # What the page loads, as (folder under game/, file ending). Anything else found in those
 # folders stops the build, so a stray file can never ride along unnoticed.
-TAKE = [("assets/chars", ".png"), ("assets/sfx", ".wav"), ("vendor", ".js"), ("vendor", ".md"),
+TAKE = [("src", ".js"), ("styles", ".css"), ("assets/chars", ".png"), ("assets/floors", ".jpg"), ("assets/icons", ".png"), ("assets/sfx", ".wav"), ("vendor", ".js"), ("vendor", ".md"),
         ("vendor/fonts", ".woff2"), ("vendor/fonts", ".txt")]
 SINGLE = ["assets/bg-stars.png", "assets/title-art.jpg"]
 # Addresses the page may name. The first is the feedback form's mail relay (requirements
@@ -39,16 +41,39 @@ def fail(msg):
     print("BUILD FAILED: " + msg)
     sys.exit(1)
 
-html = io.open(os.path.join(GAME, PAGE), encoding="utf-8", newline="").read()
-title = re.search(r"const GAME_TITLE = '([^']+)'", html)
-build = re.search(r"const BUILD = '([^']+)'", html)
+def read(rel):
+    return io.open(os.path.join(GAME, rel), encoding="utf-8", newline="").read()
+
+html = read(PAGE)
+title = re.search(r"^const GAME_TITLE = '([^']+)'", read(CONFIG), re.M)
+build = re.search(r"^const BUILD = '([^']+)'", read(CONFIG), re.M)
 if not title or not build:
-    fail("GAME_TITLE or BUILD not found in the game page")
+    fail("GAME_TITLE or BUILD not found in " + CONFIG)
 title, build = title.group(1), build.group(1)
 
-for url in re.findall(r"https?://[^\s\"'<>)]+", html):
-    if not any(url.startswith(a) for a in ALLOWED):
-        fail("the page names an outside address that is not on the list: " + url)
+# The page's code is the files it names, in the order it names them: every script in
+# game/src and every sheet in game/styles is named once, nothing named is missing, and
+# no code is written into the page itself.
+scripts = re.findall(r'<script\b[^>]*\bsrc="([^"]+)"', html)
+sheets = re.findall(r'<link rel="stylesheet" href="([^"]+)"', html)
+if re.search(r"<script(?![^>]*\bsrc=)", html) or re.search(r"<style\b", html):
+    fail("the page carries code or styles of its own: they belong in game/src and game/styles")
+for kind, named, folder, ending in (("script", [n for n in scripts if not n.startswith("vendor/")], "src", ".js"), ("stylesheet", sheets, "styles", ".css")):
+    there = sorted(folder + "/" + n for n in os.listdir(os.path.join(GAME, folder)) if n.endswith(ending))
+    if len(set(named)) != len(named):
+        fail("the page names a " + kind + " twice")
+    if sorted(named) != there:
+        fail("the page's " + kind + "s and the files in game/" + folder + " differ: " + ", ".join(sorted(set(named) ^ set(there))))
+for named in scripts + sheets:
+    if not os.path.isfile(os.path.join(GAME, named)):
+        fail("the page names " + named + ", which is not in game/")
+sources = {PAGE: html}
+sources.update({n: read(n) for n in scripts + sheets if not n.startswith("vendor/")})
+
+for name, text in sources.items():
+    for url in re.findall(r"https?://[^\s\"'<>)]+", text):
+        if not any(url.startswith(a) for a in ALLOWED):
+            fail(name + " names an outside address that is not on the list: " + url)
 
 files = [(PAGE, "index.html")] + [(s, s) for s in SINGLE]
 for folder, ending in TAKE:
@@ -61,13 +86,17 @@ for folder in sorted({f for f, _ in TAKE}):
         if os.path.isfile(os.path.join(GAME, folder, name)) and not name.endswith(endings):
             fail("unexpected file " + folder + "/" + name + " - add its ending to TAKE or remove it")
 
-# Every sprite and sound the page asks for by a fixed name must be there.
-for ref in sorted(set(re.findall(r"'((?:assets|vendor)/[\w./-]+\.\w+)'|\"((?:assets|vendor)/[\w./-]+\.\w+)\"|url\(((?:assets|vendor)/[\w./-]+\.\w+)\)", html))):
-    ref = next(r for r in ref if r)
-    if ref.startswith("assets/music/"):
-        continue
-    if not os.path.isfile(os.path.join(GAME, ref)):
-        fail("the page asks for " + ref + ", which is not in game/")
+# Every sprite, sound and typeface asked for by a fixed name must be there. (A stylesheet
+# names them from its own folder, with ../ in front. Names built as the game runs, a
+# figure's facings or a level's floor, are checked by tools/check-game.mjs from the
+# tables that build them, and by the smoke test from what the browser really asks for.)
+for name, text in sources.items():
+    for ref in sorted(set(re.findall(r"'((?:assets|vendor)/[\w./-]+\.\w+)'|\"((?:assets|vendor)/[\w./-]+\.\w+)\"|url\((?:\.\./)?((?:assets|vendor)/[\w./-]+\.\w+)\)", text))):
+        ref = next(r for r in ref if r)
+        if ref.startswith("assets/music/"):
+            continue
+        if not os.path.isfile(os.path.join(GAME, ref)):
+            fail(name + " asks for " + ref + ", which is not in game/")
 
 credits = f"""{title} - build {build}
 
@@ -82,10 +111,8 @@ Typefaces
   Yatra One. Copyright 2014 The Yatra Project Authors.
   SIL Open Font License 1.1: vendor/fonts/OFL-baloo2.txt, vendor/fonts/OFL-yatraone.txt
 
-Characters
-  CraftPix.net free character packs, used under the CraftPix file licence
-  (https://craftpix.net/file-licenses/). The artwork may not be taken out of this
-  game and reused or resold.
+Characters, floors and icons
+  The maker's own designs, generated with OpenAI's image generation in ChatGPT.
 
 Sound effects and the ember texture
   Kenney (https://kenney.nl), CC0 1.0 Universal.

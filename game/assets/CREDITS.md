@@ -2,7 +2,40 @@
 
 Provenance for every shipped asset, kept auditable ahead of store submission.
 
+## The founder's own characters (`chars/`)
+
+Since 2026-10-11 all eight figures are the founder's own designs, made at their direction
+with ChatGPT's image generation: one turnaround picture each (front, back and right
+side), kept as they came in `incoming/well-delver/`. **They are AI-generated, and the
+itch.io page says so.** OpenAI's terms give the person who made a picture the rights to
+it, including to use it commercially; that is to be read again on OpenAI's own page in
+the pre-launch pass, as for the title picture.
+
+| In-game | Files | Turnaround |
+|---|---|---|
+| Hero | `kiran-*` (the hero's files keep their first name) | `hero-turnaround.png` |
+| Asura | `asura-*` | `asura-turnaround.png` |
+| Hexer | `rakshasa-*` | `hexer-turnaround.png` |
+| Brute | `mahish-*` | `brute-turnaround.png` |
+| Bloodseed | `raktabija-*` | `bloodseed-turnaround.png` |
+| Gatekeeper | `bakasura-*` | `gatekeeper-turnaround.png` |
+| Hoard Guardian | `nidhiraksha-*` | `guardian-turnaround.png` |
+| Vritra | `vritra-*` | `vritra-turnaround.png` (he has no legs: his walk is a sway) |
+
+`tools/cut-turnaround.py` makes the game's files from a turnaround: four stills and a
+sheet (for each facing a standing cell, eight of a walk and three of a strike; a
+255-colour palette). The left view is the right view mirrored. Every walk and strike cell
+is made from the standing picture, by bending it and by turning what the figure holds in
+its hand; no other picture was generated for them. `docs/requirements.md` §2.39, §2.41.
+`kiran-portrait.png` is the hero's front view at the full size of the picture, for the
+profile. `kiran-zone-*.png` and `kiran-portrait-zone-*.png` are masks, not pictures: which
+pixels are the hero's head-wrap, tunic, trousers and weapon strap (§2.42).
+
 ## CraftPix — character roster (`chars/`)
+
+**Nothing in the game comes from these packs any more** (see above): since 2026-10-11 no
+file of theirs ships. The packs still sit in `incoming/` and `tools/extract-chars.py` and
+`tools/extract-walk.py` still remake that cast from them.
 
 Source: https://craftpix.net/freebies/
 License: https://craftpix.net/file-licenses/
@@ -40,8 +73,8 @@ not.** This is a deliberate, documented trade to ship on itch.io, not an oversig
 
 | In-game | Devanagari | Role | Source character |
 |---|---|---|---|
-| `kiran-*`       | किरण      | Player | Warrior |
-| `asura-*`       | असुर      | Melee | Male Goblin |
+| `kiran-*`       | किरण      | Player | Warrior until 2026-10-10; now the founder's own |
+| `asura-*`       | असुर      | Melee | Male Goblin until 2026-10-10; now the founder's own |
 | `rakshasa-*`    | राक्षस     | Ranged | Chief Goblin |
 | `raktabija-*`   | रक्तबीज    | Splitter | Female Goblin |
 | `mahish-*`      | महिष      | Tank | Giant Goblin |
@@ -163,8 +196,35 @@ dark purple and satisfied none of the Cosmic Forge direction.
 
 ## Title picture (`title-art.jpg`)
 
-Made by the founder on 2026-10-10 with ChatGPT's image generation, from their own
-prompt: a stepwell seen from above, lit by lamps, with a glowing pool at the bottom and a
-small figure on the top ledge. 940 x 1672. It is AI-generated, and the itch.io page says
-so. OpenAI's terms give the person who made an image the rights to it, including to use
+**Since 2026-10-11** it is the founder's second picture of the same well: the game's own
+hero on the ledge, seen from behind, looking down at the pool. The founder's original is
+`stepwell-kiran-4320x7680.png` (4320 x 7680, 28 MB), kept by them outside this
+repository, in their Codex outputs folder of 2026-10-10; `python tools/fit-title.py
+<that file>` cuts it to the title screen and writes `title-art.jpg` (1200 x 2100). The
+first picture, used from build 0.14, is in this file's history: made by the founder on
+2026-10-10 with ChatGPT's image generation, a stepwell seen from above, lit by lamps, with
+a glowing pool and a small cloaked figure on the ledge, 940 x 1672. Both are AI-generated,
+and the itch.io page says so. OpenAI's terms give the person who made an image the rights to it, including to use
 it commercially; that is to be read again on OpenAI's own page in the pre-launch pass.
+
+
+## Icons (`icons/`)
+
+`icons.png` and `icons-small.png` are cut by `tools/cut-icons.py` from seven pictures the
+founder made on 2026-10-11 with OpenAI's image generation in ChatGPT, from the prompts in
+`docs/art-brief-for-chatgpt.md` §4 and §5: the loot (`incoming/well-delver/loot-icons.png`)
+and boons, perks, signs and screen icons (`incoming/well-delver/icons/`). Which model made
+them was not shown, so none is named. **They are AI-generated, and the itch.io page is to
+say so.** The copper, silver and gold of the loot are recolourings of the painted steel by
+that tool; nothing else is changed but size. What each frame was cut from is recorded in
+`incoming/well-delver/icons-cut.json`. The same terms as the title picture, the characters
+and the floors apply, to be read again on OpenAI's own page in the pre-launch pass.
+
+## Floors (`floors/`)
+
+`level-1.jpg`, `level-2.jpg` and `level-3.jpg` were made by the founder on 2026-10-10 with
+ChatGPT's image generation, from the prompt in `docs/art-brief-for-chatgpt.md` §2: each
+level's floor seen from straight above, with its band of steps. 1024 x 1536; the
+originals are `incoming/well-delver/floor-N.png`. **They are AI-generated, and the
+itch.io page says so.** The same terms as the title picture and the characters apply.
+The floors painted by code are still in the game, on request (`?floors=carved`).
