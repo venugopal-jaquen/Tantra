@@ -1,0 +1,153 @@
+/*
+ * assets.js: which picture stands for what. The art manifest.
+ *
+ * Declares  characters: CHARS (role -> file name), FACINGS, WALK, WALKERS, ART (each
+ *           figure's cell, scale and proportions), STOCK_ART, artOf, artRise, artDrop,
+ *           ACT (the strike's timing, ms), sortDepth, facingFor, CHAR_LABELS;
+ *           the hero: HERO_SIZE, HP_BAR, HERO_BAR_UP, HERO_RING_DOWN, PORTRAIT, WEAR and
+ *           WORN (dyes tried by ?wear=);
+ *           icons: ICON_FRAMES (the frames of assets/icons/*.png, in order: printed by
+ *           tools/cut-icons.py), ICON, FORM_SIGN and the functions that name an icon
+ *           (lootIcon, boonIcon, perkIcon, formIcon, EMPTY_ICON, LOCKED_ICON);
+ *           the title picture's fit: TITLE_ART.
+ * Needs     config.js, names.js, rules.js (RARITY, BOONS, PERKS, TEJAS_FORMS, when an
+ *           icon is named).
+ * State     none.
+ *
+ * Files are loaded by the scene's preload() from these tables. tools/check-game.mjs
+ * checks that every file and frame named here exists and that nothing is named twice.
+ */
+
+const HP_BAR = { w: 42, h: 5, up: 35 };   // the hero's health bar: its size, and how far over the stock figure's middle it floats (HERO_BAR_UP)
+
+// ---------- ICONS (requirements 2.46) ----------
+// The founder's icon pictures, cut by tools/cut-icons.py into two sheets of square frames
+// (assets/icons/): `icons` for where an icon is drawn large, `icons-small` for where it is
+// drawn small. ICON_FRAMES names the frames in the order they lie in both sheets; that tool
+// prints the line, and the smoke test holds the two to each other (by the tool's record, icons-cut.json). Loot has a frame for
+// each metal, with only its metal recoloured. If the sheets are not there, or the page is
+// opened with ?icons=drawn, the game draws the white shapes it always drew (makeLootIcons),
+// coloured as they were: one set or the other, never a mix.
+const ICON_FRAMES = 'loot-none-common loot-none-rare loot-none-epic loot-venom-common loot-venom-rare loot-venom-epic loot-vampiric-common loot-vampiric-rare loot-vampiric-epic loot-chain-common loot-chain-rare loot-chain-epic loot-executioner-common loot-executioner-rare loot-executioner-epic loot-vitality-common loot-vitality-rare loot-vitality-epic loot-aegis-common loot-aegis-rare loot-aegis-epic loot-thorns-common loot-thorns-rare loot-thorns-epic loot-swift-common loot-swift-rare loot-swift-epic loot-regen-common loot-regen-rare loot-regen-epic loot-mystery boon-keen boon-quick boon-reach boon-feet boon-iron boon-hide boon-ground boon-run boon-second boon-readslam boon-laststand boon-greed boon-rot boon-bloodshield boon-fork boon-cleancut boon-kindling boon-hunger perk-guard perk-eye perk-scale perk-lungs perk-wind perk-study perk-reroll perk-taker sign-treasure sign-power sign-health sign-shield sign-damage sign-speed sign-move sign-fire sign-poison sign-blood sign-lightning sign-execution hud-satchel hud-empty hud-locked hud-drift hud-surge hud-eclipse hud-convergence'.split(' ');
+// `grow`: a painted icon fills less of its square than a drawn shape did of its, and has
+// more in it to see, so each kind is drawn this much larger than the size asked for.
+const ICON = { frame: 128, small: 64, drawn: new URLSearchParams(location.search).get('icons') === 'drawn',
+               grow: { loot: 1.25, boon: 1.12, perk: 1.3, sign: 1.15, hud: 1.15 } };
+// An icon is named by three things: its frame in the sheets and, for when the sheets are
+// not loaded, the drawn shape that stands in for it and the colour that shape is given.
+const FORM_SIGN = { none: 'fire', venom: 'poison', vampiric: 'blood', chain: 'lightning', executioner: 'execution' };
+const lootIcon = item => [`loot-${item.effect || 'none'}-${item.rarity}`, `icon_${item.effect || 'none'}`, RARITY[item.rarity].color];
+const boonIcon = key => ['boon-' + key, 'boon_' + key, RARITY[BOONS[key].metal].color];
+const perkIcon = key => ['perk-' + key, PERKS[key].icon, PERK_TINT];
+const formIcon = effect => ['sign-' + FORM_SIGN[effect || 'none'], 'icon_' + (effect || 'none'), TEJAS_FORMS[effect || 'none'].colour];
+const EMPTY_ICON = ['hud-empty', 'icon_mystery', 0x5a4535], LOCKED_ICON = ['hud-locked', 'icon_mystery', 0x5a4535];
+
+// Sanskrit roster (requirements.md 2.12). Each entry is a character folder in
+// assets/chars/ with four facing frames: -front, -back, -left, -right.
+// Art is CraftPix (commercial use, no attribution) - see assets/CREDITS.md.
+const CHARS = {
+  melee:    'asura',        // असुर     — power-seeking antagonists of the devas
+  ranged:   'rakshasa',     // राक्षस    — shape-shifting demons famed for sorcery (maya)
+  tank:     'mahish',       // महिष    — the buffalo demon
+  splitter: 'raktabija',    // रक्तबीज  — every drop of his blood rose as a new demon
+  player:   'kiran',        // the hero's art keeps its first file name; the player names the hero (2.32)
+  gatekeeper:  'bakasura',    // बकासुर   — demanded tribute before anyone could pass
+  sectorboss:  'nidhiraksha', // निधि-रक्षा — treasure guardian (descriptive, not a figure)
+  megaboss:    'vritra'       // वृत्र     — the serpent who hoarded the world's waters
+};
+const FACINGS = ['front', 'back', 'left', 'right'];
+// Walk frames (requirements 2.31). One sheet per character, "<name>-walk": a row for each
+// facing, in the order of FACINGS; the first cell of a row is the standing frame and the
+// rest are one walk cycle. Cells are larger than the 96px stills so that a stride never
+// clips, and a sheet is drawn larger by the same amount (pad), which leaves the figure the
+// size it was. Built by tools/extract-walk.py.
+const WALK = { frames: 8, cell: 112, pad: 112 / 96 };
+const WALKERS = Object.values(CHARS);          // every figure has a sheet, Vritra too since 2026-10-11
+// Art made for this game comes one figure at a time (requirements 2.39), so a figure named
+// here has files of its own while the others keep the stock ones: stills of `still` pixels
+// and a walk sheet with cells of `cell`, both cut by tools/cut-turnaround.py. `scale` is
+// how much larger than the stock figure it is drawn. These figures stand as people do,
+// half as wide as they are tall, where the stock cast are squat: at the stock size they
+// are slivers on a phone. Nothing about the fight changes with the size: hit circles,
+// reach and speed are as they were.
+// `per` is how many cells a sheet has for each facing: one standing, WALK.frames walking
+// and, in art cut for this game, ACT.cells of a strike (requirements 2.41). `tall` is how
+// much of a still the figure fills, where that is not the usual 0.86: a beast on four
+// legs is cut to fit the width.
+// `wide` is how much of a still the figure's widest view fills. `scale` is how much larger
+// a figure is drawn than the stock figure of its kind was: half as large again as first
+// set (the founder, 2026-10-10: "the new characters are looking too small in game.. Make
+// their size 50% bigger"). It is measured from the stock hit circle, not today's, so the
+// circles can be changed (HIT) without anything being drawn differently.
+const ART = {
+  kiran:       { still: 224, cell: 256, per: 12, scale: 2.25, wide: 0.46 },
+  asura:       { still: 160, cell: 192, per: 12, scale: 2.55, wide: 0.58 },
+  rakshasa:    { still: 160, cell: 192, per: 12, scale: 3.2, wide: 0.5 },
+  mahish:      { still: 192, cell: 224, per: 12, scale: 2.25, wide: 0.87 },
+  raktabija:   { still: 160, cell: 192, per: 12, scale: 2.55, tall: 0.8, wide: 0.96 },
+  bakasura:    { still: 224, cell: 256, per: 12, scale: 2.6, wide: 0.56 },
+  nidhiraksha: { still: 224, cell: 256, per: 12, scale: 2.2, tall: 0.75, wide: 0.96 },
+  vritra:      { still: 224, cell: 256, per: 12, scale: 2.0, wide: 0.7 }
+};
+// Figures are drawn in the order they stand, the one nearest the top of the floor first,
+// so that whoever is nearer the bottom of the screen is in front. They keep to a band of
+// their own just under everything else in the fight (bars, names, rings, beams, loot),
+// which is drawn over them as it always was.
+const sortDepth = feetY => -0.5 + feetY / 20000;
+// What the hero wears (requirements 2.42). The hero's picture is known in four parts, the
+// slots: tools/cut-turnaround.py writes a "zone" for each, the pixels of that part in
+// every cell of the sheet and in the portrait. A piece worn in a slot is drawn through
+// its zone, so it walks and strikes with the figure and shows on the profile and in the
+// fight alike. Nothing in the game hands pieces out yet (the pinned cosmetics, P12): the
+// only pieces are `dyes`, the same cloth in another colour, and the only way to wear one
+// is the address, for trying the slots out: ?wear=head:saffron,legs:indigo
+const WEAR = {
+  slots: ['head', 'chest', 'legs', 'holster'],
+  dyes: { saffron: 0xf0a030, indigo: 0x4a50c8, crimson: 0xc22a3a, moss: 0x5c9a38, ash: 0x8c8c98, gold: 0xe6c040, rose: 0xe070a0, ink: 0x30364a }
+};
+const WORN = (() => {
+  const worn = {};
+  (new URLSearchParams(location.search).get('wear') || '').split(',').forEach(pair => {
+    const [slot, piece] = pair.split(':');
+    if (WEAR.slots.includes(slot) && WEAR.dyes[piece] !== undefined) worn[slot] = piece;
+  });
+  return worn;
+})();
+const STOCK_ART = { still: 96, cell: WALK.cell, per: WALK.frames + 1, scale: 1 };
+const artOf = char => ART[char] || STOCK_ART;
+// A strike: how long a figure is drawn back, strikes, and comes out of it, in ms.
+const ACT = { cells: 3, back: 70, strike: 100, out: 70 };
+// A larger figure stands on the same spot, so its head is higher and its feet lower than
+// the stock figure's would be at the same `size` (what charSprite is asked for). By how
+// much: a cut still has its feet 44% of its height below the middle, and its head as far
+// above the middle as the figure is tall, less that; the stock figure's head was 42% up.
+const artRise = (char, size) => { const a = ART[char]; return a ? a.scale * size * ((a.tall || 0.86) - 0.44) - size * 0.42 : 0; };
+const artDrop = (char, size) => (artOf(char).scale - 1) * size * 0.44;
+// The hero's portrait on the profile: how tall it is drawn, where its feet stand, and how
+// much of the picture's height is clear margin below them.
+const PORTRAIT = { tall: 172, feet: 281, edge: 0.037 };
+const HERO_SIZE = 44;                                                           // the hero's figure, before `scale`
+const HERO_BAR_UP = HP_BAR.up + Math.round(artRise(CHARS.player, HERO_SIZE));   // his health bar clears his head
+const HERO_RING_DOWN = 16 + Math.round(artDrop(CHARS.player, HERO_SIZE));       // his stance ring lies at his feet
+
+// Shown above every enemy. These are the Sanskrit *type* names, not proper nouns -
+// the point is that the player is reading "Asura", "Yaksha", "Mahish" constantly
+// during a run, so the Indian identity lands through play rather than through a
+// menu nobody opens. Devanagari is deliberately omitted here: at ~9px over a moving
+// sprite it turns to mush, and it already carries the identity on the codex screen.
+const CHAR_LABELS = N.enemies;
+// painted floor sets >>>
+
+// The title screen's view down the shaft: nested square tiers shrinking toward a glowing
+// floor. `period` is the time to sink one tier; `twist` turns each tier a little more.
+// The title picture (requirements 2.48) is fitted to the screen by tools/fit-title.py, its
+// pool at the way in (WELL.cy). `hero` is where the hero stands in it, on the screen:
+// nothing of the menu is laid there. `depthY` is where the depth chooser sits above the well.
+const TITLE_ART = { hero: { x: 200, top: 318, foot: 430, wide: 56 }, depthY: 196 };
+
+// Movement vector -> facing frame. Vertical wins ties so a diagonal runner
+// still reads as advancing rather than flickering between two side frames.
+function facingFor(dx, dy) {
+  if (Math.abs(dy) >= Math.abs(dx)) return dy >= 0 ? 'front' : 'back';
+  return dx >= 0 ? 'right' : 'left';
+}
