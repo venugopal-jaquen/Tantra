@@ -1399,7 +1399,7 @@ const FACINGS = ['front', 'back', 'left', 'right'];
 // size it was. Built by tools/extract-walk.py. Vritra has none: he is drawn in code.
 const WALK = { frames: 8, cell: 112, pad: 112 / 96 };
 // The pair has still art only. Final walk sheets are a later production step.
-const WALKERS = Object.keys(CHARS).filter(k => !['megaboss', 'player', 'melee'].includes(k)).map(k => CHARS[k]);
+const WALKERS = Object.keys(CHARS).filter(k => k !== 'megaboss').map(k => CHARS[k]);
 const INV_MAX = 8;   // satchel capacity; oldest falls out past this
 
 // Shown above every enemy. These are the Sanskrit *type* names, not proper nouns -
@@ -2290,12 +2290,17 @@ class LootScene extends Phaser.Scene {
     // 8 characters x 4 facings. Texture key is "<char>-<facing>", e.g. "asura-left".
     for (const name of Object.values(CHARS)) {
       for (const f of FACINGS) {
-        const testStill = name === 'wellhero' || name === 'wellasura';
-        this.load.image(`${name}-${f}`, `assets/chars/${testStill ? name : `${name}-${f}`}.png`);
+        const candidate = name === 'wellhero' || name === 'wellasura';
+        this.load.image(`${name}-${f}`, candidate
+          ? `assets/chars/well-delver-v1/${name}-${f}.png`
+          : `assets/chars/${name}-${f}.png`);
       }
     }
     for (const name of WALKERS) {
-      this.load.spritesheet(`${name}-walk`, `assets/chars/${name}-walk.png`, { frameWidth: WALK.cell, frameHeight: WALK.cell });
+      const candidate = name === 'wellhero' || name === 'wellasura';
+      this.load.spritesheet(`${name}-walk`, candidate
+        ? `assets/chars/well-delver-v1/${name}-walk.png`
+        : `assets/chars/${name}-walk.png`, { frameWidth: WALK.cell, frameHeight: WALK.cell });
     }
     this.load.image('bg_stars', 'assets/bg-stars.png');
     this.load.image('title_art', 'assets/title-art.jpg');
