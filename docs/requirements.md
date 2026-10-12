@@ -1140,7 +1140,7 @@ And in code: each figure starts on a foot of its own (a swarm marched in step), 
 
 **Checked.** Recorded frame by frame here at a true 60 steps a second (this machine draws at three, so the engine's own loop was stepped by hand), before and after. Two smoke checks were added: the hero's legs keep walking while he strikes on the move (walk cells at least twice as often as strike cells), and a boss is still in the blow a moment after his slam lands.
 
-**Costs.** The hero's larger sheet adds about 14 MB of pictures held (§2.20, `tools/measure-pictures.mjs`). Bosses stand still for half a second after each slam, so they chase a little less; the hero is a larger target. The figures' feet still slide a little in the side view: a bend of one picture cannot swing a leg far enough. Painted walk and strike poses from ChatGPT remain the full answer (`docs/art-brief-for-chatgpt.md` §1).
+**Costs.** The hero's larger sheet adds about 15 MB of pictures held: 152 MB in all at a phone's density, where it was 137 (§2.20, `tools/measure-pictures.mjs`). Bosses stand still for half a second after each slam, so they chase a little less; the hero is a larger target. The figures' feet still slide a little in the side view: a bend of one picture cannot swing a leg far enough. Painted walk and strike poses from ChatGPT remain the full answer (`docs/art-brief-for-chatgpt.md` §1).
 
 ### 2.20 Automated checks
 - **`tools/playtest-bot.js`** plays complete runs with game logic only (about 80x real time) and records per-sector balance figures, errors and leaked objects (§2.14). Since 2026-10-10 a profile can name a `style`, a player who does not play (§2.36), and **`tools/lazy-players.mjs`** runs those beside the one that does.
