@@ -178,3 +178,24 @@ flagged one caution and asked which word the founder means: Sanskrit *ānantarya
 succession, without interval", but in Buddhist texts *ānantarya-karma* is the term for the five
 gravest acts — the same class of problem as Kalachakra under *indian-cultural-identity-pivot*.
 No Devanagari is shown for the title until the founder confirms the intended word.
+
+## animation-loop-prompts
+
+*Short animated loops are built and judged by the rules in docs/animation-prompting-best-practices.md (saved 2026-10-12).*
+
+On 2026-10-12 the founder sent a link to an X post (<https://x.com/flxrnc/status/2105311836190978392>)
+with a long animation prompt: a 3D animation-principles loop, four rounds of revisions and a
+sound prompt. They asked for "the information and instructions in this link" to be saved as
+best practices. The cloud session could not open x.com, so the practices were drawn from the
+prompt itself and from building it (`animation/principles-loop/`). The post's own words are
+still to be folded in.
+
+**Why:** the prompt is a model of how to get a precise result: a pure `renderAt(t)`, every
+event on a frame, colours as hex, and revisions as measurable targets ("reads D97757",
+"lights-off near 50%", "every tripod foot on the slab").
+
+**How to apply:** for any clip, trailer or store-page motion, write or follow the prompt in that
+shape, and check the result by measuring rather than by eye: colours sampled, props projected
+against UI regions on every frame, frame N against frame 0, loudness with ffmpeg. If the founder
+pastes the post's text or opens x.com to the session, add what it says to the doc and mark it
+as from the post.

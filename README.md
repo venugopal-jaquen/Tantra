@@ -20,10 +20,12 @@ docs/
   code-architecture.md      how the code is laid out and where to change what: start here
   requirements.md           what the game does and why, with the founder's decisions, dated
   design-document.md        milestones, the roadmap, the pinned backlog
+  animation-prompting-best-practices.md   how to prompt for, build and check animation loops
   launch-roadmap.md         platforms and costs
   itch-page.md              the store page's text and settings
   pre-launch-security-checklist.md
 concept/                    pictures made along the way
+animation/principles-loop/  an 8 s animation-principles loop in three.js, its score and render (its README)
 store/                      the store page's pictures
 ```
 

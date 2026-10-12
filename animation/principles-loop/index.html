@@ -1,0 +1,1379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animation Principles Loop</title>
+<!--
+  A miniature studio: a voxel Claude mascot hops along a timeline to show five principles
+  of animation. 1080 x 1080, 8 s at 60 fps (480 frames); frame 480 is frame 0.
+
+  window.renderAt(t)   draws the frame at t seconds, from t alone (nothing carries over
+                       between calls; every random number is seeded).
+  window.renderScore() renders the 8 s score with the Web Audio API and masters it to
+                       -14 LUFS, -1 dBTP; returns { left, right, sampleRate, stats }.
+  window.ready         resolves once the type is loaded and the scene is built.
+
+  ?capture   no playback loop (render.mjs drives renderAt)    ?frame=N  hold frame N
+  ?calib     no grade, grain, vignette or labels: raw linear light, for measuring
+
+  render.mjs beside this file renders the frames, the WAV and the MP4. README.md has the
+  spec, the revisions, and where each number in it lives.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --backdrop: #F4F2EE; --ink: #0F0F0F; --muted: #8E8A83; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --backdrop: #F4F2EE; } }
+  :root[data-theme="dark"] { --backdrop: #F4F2EE; }
+  html, body { margin: 0; height: 100%; background: var(--backdrop); overflow: hidden; }
+  body { display: grid; place-items: center; }
+  #stage { width: min(100vw, 100vh); aspect-ratio: 1; position: relative; cursor: pointer; }
+  #stage canvas { width: 100%; height: 100%; display: block; }
+  #hint { position: fixed; right: 16px; bottom: 12px; font: 500 12px "Geist Mono", ui-monospace, monospace;
+          color: var(--muted); letter-spacing: 0.02em; user-select: none; }
+  .capture #hint { display: none; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<div id="hint">click for sound</div>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { SavePass } from 'three/addons/postprocessing/SavePass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const QUERY = new URLSearchParams(location.search);
+const CAPTURE = QUERY.has('capture');
+const CALIB = QUERY.has('calib');
+if (CAPTURE) document.documentElement.classList.add('capture');
+
+// ───────────────────────────── the loop ─────────────────────────────
+const SIZE = 1080, FPS = 60, FRAMES = 480, DUR = FRAMES / FPS;
+
+// Every event, in frames. Audio hits land one frame after these (hitTime below).
+const T = {
+  keyOn: 6, rimOn: 24, topOn: 42,          // 0.1 s, 0.4 s, 0.7 s
+  crouch: [69, 129, 189, 249],             // 11-frame anticipation
+  take:   [80, 140, 200, 260],             // stretch 0.85 x 1.28
+  land:   [105, 165, 225, 285],            // squash 1.25 x 0.7; the playhead crosses here
+  arcFrom: 303, arcTo: 318,                // dotted arc draws in
+  flipCrouch: 312, flipTake: 330, flipLand: 384,
+  blink: 432,                              // 7.2 s
+  off: 468,                                // lights, diamonds and labels snap off
+  labels: [69, 140, 200, 285, 303],
+};
+const CROUCH_LEN = 11, AIR = 25;
+const DX = [-4, -2, 0, 2, 4];              // keyframe diamonds, 2 units apart
+
+const HEX = {
+  backdrop: 0xF4F2EE, cell: 0xEFEEEA, ink: 0x0F0F0F, body: 0xD97757,
+  hot: 0xFF6A2B, muted: 0x8E8A83, slab: 0xFFFFFF,
+};
+
+// ───────────────────────────── small maths ─────────────────────────────
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const smoother = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * t * (t * (t * 6 - 15) + 10); };
+const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+const easeInOutQuad = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+const easeOutBack = t => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+// Step response of a damped spring released from 1 at rest: 1 at tau = 0, settling to 0.
+function dampedStep(tau, zeta, hz) {
+  if (tau < 0) return 1;
+  const w = 2 * Math.PI * hz, k = Math.sqrt(1 - zeta * zeta), wd = w * k;
+  return Math.exp(-zeta * w * tau) * (Math.cos(wd * tau) + (zeta / k) * Math.sin(wd * tau));
+}
+const frameOf = t => { const f = Math.round(t * FPS * 1e6) / 1e6; return ((f % FRAMES) + FRAMES) % FRAMES; };
+function sampleTable(tab, f) {
+  const i = Math.floor(f), a = tab[((i % FRAMES) + FRAMES) % FRAMES], b = tab[(((i + 1) % FRAMES) + FRAMES) % FRAMES];
+  return lerp(a, b, f - i);
+}
+const srgbToLinear = c => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+
+// Colour temperature to RGB (Tanner Helland's fit), as a linear THREE.Color.
+function kelvin(K) {
+  const t = K / 100; let r, g, b;
+  if (t <= 66) { r = 255; g = 99.4708025861 * Math.log(t) - 161.1195681661; }
+  else { r = 329.698727446 * Math.pow(t - 60, -0.1332047592); g = 288.1221695283 * Math.pow(t - 60, -0.0755148492); }
+  if (t >= 66) b = 255; else if (t <= 19) b = 0; else b = 138.5177312231 * Math.log(t - 10) - 305.0447927307;
+  const c = v => clamp(v, 0, 255) / 255;
+  return new THREE.Color().setRGB(c(r), c(g), c(b), THREE.SRGBColorSpace);
+}
+
+// ───────────────────────────── the grade ─────────────────────────────
+// Measured with ?calib (README.md, "Grading"): white balance and exposure that put the lit
+// front face of the mascot on D97757. Everything else is graded with it.
+const GRADE = { wb: [0.6949, 1.2879, 2.5665], exposure: 1.0 };
+// The final pass is identity up to 0.8 linear, then rolls off to 1. graded(hex) returns the
+// pre-grade linear colour that comes out as hex, so emissive things land on their hex code.
+function graded(hex) {
+  const c = new THREE.Color(hex); // linear
+  const inv = v => v <= 0.8 ? v : (v >= 0.998 ? 1.6 : 0.8 - 0.2 * Math.log(1 - (v - 0.8) / 0.2));
+  const ex = CALIB ? 1 : GRADE.exposure, wb = CALIB ? [1, 1, 1] : GRADE.wb;
+  return new THREE.Color(inv(c.r) / (ex * wb[0]), inv(c.g) / (ex * wb[1]), inv(c.b) / (ex * wb[2]));
+}
+
+// ───────────────────────────── lights ─────────────────────────────
+const KEY_COL = kelvin(3200), RIM_COL = kelvin(7500), TOP_COL = kelvin(5000);
+const LIGHT = {
+  key: 4.6,            // irradiance at the slab; a distant spot 28° up from the front right
+  keyDist: 24,
+  rim: 2.2,            // from the back left, cool, low
+  rimDist: 20,
+  topCd: 45,           // top spot, candela, 34° pool
+  rimLocal: 0.9,       // spill from the strip onto the slab
+  fill: 1.0,           // lights off: the frame sits near 50%
+  bounce: { key: 0.30, rim: 0.10, top: 0.08 },
+  playhead: 0.4, diamond: 0.32,
+};
+// The fill is the grade's white, so lights-off is grey rather than orange.
+const FILL_COL = (() => {
+  const w = GRADE.wb, c = [1 / w[0], 1 / w[1], 1 / w[2]], m = Math.max(...c);
+  return new THREE.Color(c[0] / m, c[1] / m, c[2] / m);
+})();
+// The three clicks: each light flickers for three frames, then holds. Seeded.
+const FLICKER = (() => {
+  const r = mulberry32(0x5EED1);
+  const pat = () => [0.55 + 0.35 * r(), 0.05 + 0.12 * r(), 0.45 + 0.4 * r()];
+  return { key: pat(), rim: pat(), top: pat() };
+})();
+function level(f, on, pat) {
+  const i = Math.floor(f + 1e-6);
+  if (i < on || i >= T.off) return 0;
+  const k = i - on;
+  return k < 3 ? pat[k] : 1;
+}
+const keyLevel = f => level(f, T.keyOn, FLICKER.key);
+const rimLevel = f => level(f, T.rimOn, FLICKER.rim);
+const topLevel = f => level(f, T.topOn, FLICKER.top);
+
+// ───────────────────────────── the mascot's motion ─────────────────────────────
+const VOX = 0.1;
+const G = 0.03;                 // the mascot stands on the cells' tops
+const CENTER = 0.8;             // body centre above the feet: the flip turns about it
+const HOP_H = 1.15, FLIP_H = 3.5;
+const CROUCH_HOP = [1.2, 0.75], CROUCH_FLIP = [1.32, 0.6];
+const STRETCH = [0.85, 1.28];
+const SQUASH_HOP = [1.25, 0.7], SQUASH_FLIP = [1.3, 0.64];
+const BODY_SPRING = { zeta: 0.55, hz: 3.2 };
+const LANDINGS = [
+  [105, -2, SQUASH_HOP], [165, 0, SQUASH_HOP], [225, 2, SQUASH_HOP], [285, 4, SQUASH_HOP], [384, -4, SQUASH_FLIP],
+];
+
+// What is left of the last landing's squash, springing back at damping 0.55.
+function residual(f) {
+  let last = null;
+  for (const L of LANDINGS) if (f >= L[0]) last = L;
+  if (!last) return [0, 0];
+  const q = dampedStep((f - last[0]) / FPS, BODY_SPRING.zeta, BODY_SPRING.hz) * (1 - smooth(450, 466, f));
+  return [(last[2][0] - 1) * q, (last[2][1] - 1) * q];
+}
+const stretchHop = u => u < 0.5 ? Math.pow(1 - u / 0.5, 2) : (u > 0.7 ? 0.3 * Math.pow((u - 0.7) / 0.3, 2) : 0);
+const stretchFlip = u => u < 0.22 ? Math.pow(1 - u / 0.22, 2) : (u > 0.86 ? 0.3 * Math.pow((u - 0.86) / 0.14, 2) : 0);
+
+// x, height of the feet above the ground, turn about the centre, and squash (x/z, y).
+function bodyAt(f) {
+  const b = { x: DX[0], y: 0, rot: 0, sx: 1, sy: 1, air: false, flip: false, u: 0 };
+  const r = residual(f);
+  const grounded = (sx, sy) => { b.sx = sx + r[0]; b.sy = sy + r[1]; return b; };
+  for (let k = 0; k < 4; k++) {
+    if (f < T.crouch[k]) return grounded(1, 1);
+    if (f < T.take[k]) {
+      b.x = DX[k];
+      const p = easeOutCubic(clamp((f - T.crouch[k]) / (CROUCH_LEN - 2)));
+      return grounded(lerp(1, CROUCH_HOP[0], p), lerp(1, CROUCH_HOP[1], p));
+    }
+    if (f < T.land[k]) {
+      const u = (f - T.take[k]) / AIR;
+      b.x = lerp(DX[k], DX[k + 1], u);
+      b.y = 4 * HOP_H * u * (1 - u);
+      const s = stretchHop(u);
+      b.sx = lerp(1, STRETCH[0], s); b.sy = lerp(1, STRETCH[1], s);
+      b.rot = -0.12 * Math.sin(Math.PI * u);     // leans into the hop
+      b.air = true; b.u = u;
+      return b;
+    }
+    b.x = DX[k + 1];
+  }
+  if (f < T.flipCrouch) return grounded(1, 1);
+  if (f < T.flipTake) {
+    const p = easeOutCubic(clamp((f - T.flipCrouch) / (T.flipTake - T.flipCrouch - 3)));
+    return grounded(lerp(1, CROUCH_FLIP[0], p), lerp(1, CROUCH_FLIP[1], p));
+  }
+  if (f < T.flipLand) {
+    const u = (f - T.flipTake) / (T.flipLand - T.flipTake);
+    b.x = lerp(DX[4], DX[0], u);
+    b.y = 4 * FLIP_H * u * (1 - u);
+    const v = clamp(u / 0.88);
+    b.rot = 2 * Math.PI * (v - Math.sin(2 * Math.PI * v) / (2 * Math.PI)); // one full turn, still at both ends
+    const s = stretchFlip(u);
+    b.sx = lerp(1, STRETCH[0], s); b.sy = lerp(1, STRETCH[1], s);
+    b.air = true; b.flip = true; b.u = u;
+    return b;
+  }
+  b.x = DX[0];
+  return grounded(1, 1);
+}
+
+// Arms (lag 4 frames, 2.2 Hz, damping 0.22) and legs (lag 6 frames) as springs driven by the
+// body's acceleration. Simulated over two loops at init; the second loop is kept, so the
+// table is periodic and renderAt(t) only looks things up.
+const armPose = f => {
+  if (f < T.flipTake || f >= T.flipLand) return 0;
+  const u = (f - T.flipTake) / (T.flipLand - T.flipTake);
+  return 0.55 * smooth(0.04, 0.2, u) * (1 - smooth(0.7, 0.9, u));   // arms out through the turn
+};
+function simulateLimbs() {
+  const SUB = 10, dt = 1 / (FPS * SUB), PAD = 40 * SUB, N = FRAMES * SUB * 2 + PAD + 2;
+  const ya = new Float64Array(N), xa = new Float64Array(N);
+  for (let n = 0; n < N; n++) {
+    const f = ((((n - PAD) / SUB) % FRAMES) + FRAMES) % FRAMES;
+    const b = bodyAt(f);
+    ya[n] = b.y + 0.7 * b.sy;   // the shoulders' height
+    xa[n] = b.x;
+  }
+  const box = (src, w) => {    // centred moving average: takes the one-frame pops out of the drive
+    const out = new Float64Array(src.length), h = w >> 1;
+    for (let i = 0; i < src.length; i++) {
+      let s = 0, c = 0;
+      for (let j = Math.max(0, i - h); j <= Math.min(src.length - 1, i + h); j++) { s += src[j]; c++; }
+      out[i] = s / c;
+    }
+    return out;
+  };
+  const ys = box(ya, 2 * SUB), xs = box(xa, 2 * SUB);
+  const acc = (s, n) => (s[n + 1] - 2 * s[n] + s[n - 1]) / (dt * dt);
+  const ARM = { w: 2 * Math.PI * 2.2, z: 0.22, c: 1.1, lag: 4 * SUB };
+  const LEG = { w: 2 * Math.PI * 3.0, z: 0.35, c: 2.0, lag: 6 * SUB };
+  const arm = new Float32Array(FRAMES), leg = new Float32Array(FRAMES);
+  let a = 0, av = 0, l = 0, lv = 0;
+  for (let n = PAD; n < N - 1; n++) {
+    const fd = (((((n - PAD - ARM.lag) / SUB) % FRAMES) + FRAMES) % FRAMES);
+    const ay = acc(ys, n - ARM.lag), ax = acc(xs, n - LEG.lag);
+    av += (-ARM.w * ARM.w * (a - armPose(fd)) - 2 * ARM.z * ARM.w * av - ARM.c * ay) * dt;
+    a += av * dt;
+    if (a > 1.1) { a = 1.1; av = Math.min(av, 0); }
+    if (a < -1.2) { a = -1.2; av = Math.max(av, 0); }
+    lv += (-LEG.w * LEG.w * l - 2 * LEG.z * LEG.w * lv - LEG.c * ax) * dt;
+    l += lv * dt;
+    if (l > 0.7) { l = 0.7; lv = Math.min(lv, 0); }
+    if (l < -0.7) { l = -0.7; lv = Math.max(lv, 0); }
+    const m = n - PAD;
+    if (m >= FRAMES * SUB && m % SUB === 0 && m / SUB - FRAMES < FRAMES) { arm[m / SUB - FRAMES] = a; leg[m / SUB - FRAMES] = l; }
+  }
+  return { arm, leg };
+}
+const LIMBS = simulateLimbs();
+
+// The camera follows a smoothed copy of the mascot's x (circular Gaussian, sigma 12 frames).
+const X_TRACK = (() => {
+  const raw = new Float32Array(FRAMES), out = new Float32Array(FRAMES), S = 12;
+  for (let f = 0; f < FRAMES; f++) raw[f] = bodyAt(f).x;
+  for (let f = 0; f < FRAMES; f++) {
+    let s = 0, w = 0;
+    for (let k = -3 * S; k <= 3 * S; k++) { const g = Math.exp(-(k * k) / (2 * S * S)); s += g * raw[(f + k + FRAMES) % FRAMES]; w += g; }
+    out[f] = s / w;
+  }
+  return out;
+})();
+
+// Eyes: [frame, frames to get there, dx, dy] in voxels. They glance at each light as it clicks on.
+const EYE_KEYS = [[0, 1, 0, 0], [8, 3, 1, 0.3], [26, 3, -1, 0.8], [44, 3, 0.8, 1], [58, 5, 0, 0]];
+for (let k = 0; k < 4; k++) EYE_KEYS.push([T.crouch[k] + 1, 3, 0.8, -0.3], [T.take[k] + 3, 4, 0.4, 0.2], [T.land[k] + 6, 5, 0, 0]);
+EYE_KEYS.push([T.arcFrom, 4, -0.9, 0.9], [T.flipTake + 2, 4, -0.6, 0.3], [T.flipLand + 8, 5, 0, 0]);
+function eyeAt(f) {
+  let x = 0, y = 0;
+  for (const [k, d, dx, dy] of EYE_KEYS) {
+    if (f < k) break;
+    const p = easeInOutQuad(clamp((f - k) / d));
+    x = lerp(x, dx, p); y = lerp(y, dy, p);
+  }
+  return { x, y };
+}
+function blinkAt(f) {
+  const d = f - T.blink;
+  if (d < 0 || d > 7) return 1;
+  if (d < 2) return lerp(1, 0.1, easeInOutQuad(d / 2));
+  if (d < 3) return 0.1;
+  return lerp(0.1, 1, easeOutCubic((d - 3) / 4));
+}
+
+// The playhead moves at constant speed and crosses each diamond on its landing frame
+// (x = (f - 165) / 30), then rewinds under the flip and waits on diamond 1.
+function playheadX(f) {
+  if (f < T.flipTake) return (f - 165) / 30;
+  if (f < T.flipLand) {
+    const u = (f - T.flipTake) / (T.flipLand - T.flipTake);
+    return lerp(DX[4], DX[0], u) + 1.5 * Math.pow(1 - u, 2);
+  }
+  return DX[0];
+}
+
+// Ripples: a ring from each landing, 0.08 high.
+const RIPPLE_A = 0.087;
+function rippleAt(x, z, f) {
+  let h = 0;
+  for (const [L, X, sq] of LANDINGS) {
+    const tau = (f - L) / FPS;
+    if (tau < 0 || tau > 1.3) continue;
+    const d = Math.hypot(x - X, z), front = 0.45 + 6.5 * tau;
+    const amp = RIPPLE_A * (sq === SQUASH_FLIP ? 1.2 : 1);
+    h += amp * Math.exp(-Math.pow((d - front) / 0.5, 2)) * Math.exp(-tau / 0.42) * Math.min(1, tau * 30) * (1 - smooth(1.0, 1.3, tau));
+  }
+  return h;
+}
+
+// The dotted arc: from just above the mascot's head on diamond 5 to diamond 1.
+const ARC_N = 30;
+function arcPoint(s) {
+  return new THREE.Vector3(lerp(DX[4], DX[0], s), lerp(1.55, 0.14, s) + 4 * 3.45 * s * (1 - s), 0);
+}
+
+// ───────────────────────────── renderer, scene, camera ─────────────────────────────
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(1);
+renderer.setSize(SIZE, SIZE, false);
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.VSMShadowMap;
+renderer.shadowMap.autoUpdate = false;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(HEX.backdrop);
+const camera = new THREE.PerspectiveCamera(18, 1, 5, 160);
+const camTarget = new THREE.Vector3();
+
+const std = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0, ...o });
+const MAT = {
+  backdrop: std(HEX.backdrop, { roughness: 1 }),
+  slab: std(HEX.slab, { roughness: 0.55 }),
+  cell: std(HEX.cell, { roughness: 0.7 }),
+  ink: std(HEX.ink, { roughness: 0.5 }),
+  metal: std(0x2B2B2E, { metalness: 0.55, roughness: 0.38 }),
+  rubber: std(0x141414, { roughness: 0.9 }),
+  fabric: std(0x1B1B1C, { roughness: 0.85, side: THREE.DoubleSide }),
+  body: new THREE.MeshPhysicalMaterial({ color: HEX.body, roughness: 0.45, clearcoat: 0.3, clearcoatRoughness: 0.3 }),
+  eye: new THREE.MeshPhysicalMaterial({ color: HEX.ink, roughness: 0.45, clearcoat: 0.3, clearcoatRoughness: 0.3 }),
+  hot: std(0x000000, { emissive: graded(HEX.hot), roughness: 0.5 }),
+};
+const dark = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+// ── backdrop: a cyclorama in F4F2EE, and the floating slab's soft shadow on it
+const FLOOR = -2.4;
+{
+  const prof = [[70, FLOOR, 0, 1], [-11, FLOOR, 0, 1]];
+  const R = 9, WZ = -20;
+  for (let i = 1; i <= 24; i++) {
+    const a = (i / 24) * Math.PI / 2;
+    prof.push([WZ + R - Math.sin(a) * R, FLOOR + R - Math.cos(a) * R, Math.sin(a), Math.cos(a)]);
+  }
+  prof.push([WZ, 60, 1, 0]);
+  const pos = [], nor = [], idx = [];
+  prof.forEach(([z, y, nz, ny], i) => {
+    pos.push(-90, y, z, 90, y, z); nor.push(0, ny, nz, 0, ny, nz);
+    if (i) { const a = 2 * (i - 1); idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setIndex(idx);
+  const cyc = new THREE.Mesh(g, MAT.backdrop);
+  cyc.receiveShadow = true;
+  scene.add(cyc);
+
+  const c = document.createElement('canvas'); c.width = 512; c.height = 320;
+  const x = c.getContext('2d');
+  x.filter = 'blur(34px)'; x.fillStyle = '#000';
+  x.beginPath(); x.roundRect(92, 74, 328, 172, 40); x.fill();
+  const tex = new THREE.CanvasTexture(c);
+  const blob = new THREE.Mesh(new THREE.PlaneGeometry(17.5, 11), new THREE.MeshBasicMaterial({ color: 0x1A1612, transparent: true, opacity: 0.42, alphaMap: tex, depthWrite: false }));
+  blob.rotation.x = -Math.PI / 2; blob.position.set(0.15, FLOOR + 0.01, -0.1);
+  scene.add(blob);
+}
+
+// ── the slab: 12 x 6, its top is the timeline
+const slab = new THREE.Mesh(new RoundedBoxGeometry(12, 0.5, 6, 3, 0.06), MAT.slab);
+slab.position.y = -0.25; slab.castShadow = true; slab.receiveShadow = true;
+scene.add(slab);
+
+const TRACK_Z = [-1.25, 0, 1.25], CELLS_PER_TRACK = 44;
+const cells = new THREE.InstancedMesh(new RoundedBoxGeometry(0.22, 0.03, 0.9, 1, 0.008), MAT.cell, TRACK_Z.length * CELLS_PER_TRACK);
+cells.receiveShadow = true; cells.frustumCulled = false;
+scene.add(cells);
+const cellXZ = [];
+TRACK_Z.forEach(z => { for (let c = 0; c < CELLS_PER_TRACK; c++) cellXZ.push([-5.5 + 0.125 + c * 0.25, z]); });
+
+// ── the ruler: a wedge along the back edge, its slope turned to the camera, frame numbers on it
+const RULER = { x0: -5.25, x1: 5.25, zf: -2.06, zb: -2.8, h: 0.36 };
+{
+  const { x0, x1, zf, zb, h } = RULER;
+  const P = (x, y, z) => [x, y, z];
+  const A = P(x0, 0, zf), B = P(x1, 0, zf), C = P(x1, 0, zb), D = P(x0, 0, zb), E = P(x0, h, zb), F = P(x1, h, zb);
+  const tris = [A, B, F, A, F, E, D, E, F, D, F, C, A, E, D, B, C, F];
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(tris.flat(), 3));
+  g.computeVertexNormals();
+  const wedge = new THREE.Mesh(g, MAT.slab);
+  wedge.castShadow = true; wedge.receiveShadow = true;
+  scene.add(wedge);
+}
+const rulerFace = new THREE.Mesh(
+  new THREE.PlaneGeometry(RULER.x1 - RULER.x0, Math.hypot(RULER.zf - RULER.zb, RULER.h)),
+  std(0xFFFFFF, { roughness: 0.55 }),
+);
+{
+  const depth = RULER.zf - RULER.zb, n = new THREE.Vector3(0, depth, RULER.h).normalize();
+  rulerFace.rotation.x = -Math.atan2(depth, RULER.h);
+  rulerFace.position.set(0, RULER.h / 2, (RULER.zf + RULER.zb) / 2).addScaledVector(n, 0.003);
+  rulerFace.receiveShadow = true;
+  scene.add(rulerFace);
+}
+
+// ── keyframe diamonds on the middle track: white fill, 0F0F0F outline; lit FF6A2B with a glow
+const diamonds = DX.map((x, i) => {
+  const grp = new THREE.Group(); grp.position.set(x, 0, 0);
+  const outline = new THREE.Mesh(new RoundedBoxGeometry(0.5, 0.045, 0.5, 1, 0.01), MAT.ink);
+  outline.rotation.y = Math.PI / 4; outline.position.y = G + 0.0225; outline.castShadow = true;
+  const fillMat = std(0xFFFFFF, { roughness: 0.4 });
+  const fill = new THREE.Mesh(new RoundedBoxGeometry(0.4, 0.06, 0.4, 1, 0.012), fillMat);
+  fill.rotation.y = Math.PI / 4; fill.position.y = G + 0.03;
+  fill.receiveShadow = true;
+  // Lit, the top is a light: unlit, in the colour that grades to FF6A2B, glowing onto the cells.
+  const lit = new THREE.Mesh(fill.geometry, new THREE.MeshBasicMaterial({ color: graded(HEX.hot) }));
+  lit.rotation.copy(fill.rotation); lit.position.copy(fill.position);
+  lit.userData.bloom = true;
+  const light = new THREE.PointLight(HEX.hot, 0, 2.6, 2);
+  light.position.set(0, 0.32, 0);
+  grp.add(outline, fill, lit, light);
+  scene.add(grp);
+  return { grp, fill, lit, light, litAt: i === 0 ? T.flipLand : T.land[i - 1] };
+});
+
+// ── the playhead: FF6A2B, its line under the diamonds, its head at the ruler, its light at the
+//    front edge of the tracks
+const PH = { z0: -2.02, z1: 1.88, segs: 39 };
+const playhead = new THREE.Group();
+const phLine = new THREE.InstancedMesh(new THREE.BoxGeometry(0.035, 0.012, (PH.z1 - PH.z0) / PH.segs + 0.002), MAT.hot, PH.segs);
+phLine.frustumCulled = false;
+const phHead = (() => {
+  const s = new THREE.Shape();
+  s.moveTo(-0.13, 0.30); s.lineTo(0.13, 0.30); s.lineTo(0.13, 0.12); s.lineTo(0, 0); s.lineTo(-0.13, 0.12); s.closePath();
+  const m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: 0.05, bevelEnabled: false }), MAT.hot);
+  m.position.set(0, G + 0.01, PH.z0 - 0.06);
+  return m;
+})();
+const phBead = new THREE.Mesh(new RoundedBoxGeometry(0.11, 0.11, 0.11, 1, 0.015), MAT.hot);
+phBead.position.set(0, G + 0.06, PH.z1 + 0.03);
+const phLight = new THREE.PointLight(HEX.hot, 0, 3.6, 2);
+phLight.position.set(0, 0.22, PH.z1 + 0.03);
+playhead.add(phLine, phHead, phBead, phLight);
+scene.add(playhead);
+[phLine, phHead, phBead].forEach(m => { m.userData.bloom = true; });
+
+// ── sparks: 12 voxel sparks per landing, 0.075 to 0.12
+const SPARKS = LANDINGS.map(([L, X, sq], j) => {
+  const r = mulberry32(1000 + j), big = sq === SQUASH_FLIP;
+  return Array.from({ length: 12 }, (_, s) => {
+    const th = 2 * Math.PI * (s + 0.6 * r()) / 12, el = 0.55 + 0.5 * r(), sp = (2.4 + 1.8 * r()) * (big ? 1.25 : 1);
+    const axis = new THREE.Vector3(r() - 0.5, r() - 0.5, r() - 0.5).normalize();
+    return {
+      L, size: 0.075 + 0.045 * r(), life: 0.42 + 0.22 * r(), spin: 6 + 10 * r(), axis,
+      p0: new THREE.Vector3(X + Math.cos(th) * 0.55, 0.12, Math.sin(th) * 0.35),
+      v: new THREE.Vector3(Math.cos(th) * Math.cos(el) * sp, Math.sin(el) * sp * 1.25, Math.sin(th) * Math.cos(el) * sp * 0.7),
+    };
+  });
+}).flat();
+const sparks = new THREE.InstancedMesh(new RoundedBoxGeometry(1, 1, 1, 1, 0.12), MAT.hot, SPARKS.length);
+sparks.frustumCulled = false; sparks.userData.bloom = true;
+scene.add(sparks);
+
+// ── the dotted arc
+const ARC = Array.from({ length: ARC_N }, (_, i) => {
+  const s = i / (ARC_N - 1);
+  return { s, p: arcPoint(s), on: T.arcFrom + (T.arcTo - T.arcFrom) * s, eaten: T.flipTake + (T.flipLand - T.flipTake) * s * 0.98 };
+});
+const dots = new THREE.InstancedMesh(new RoundedBoxGeometry(1, 1, 1, 1, 0.14), MAT.hot, ARC_N);
+dots.frustumCulled = false; dots.userData.bloom = true;
+scene.add(dots);
+
+// ── stands: every foot on the slab
+function rod(a, b, r, mat) {
+  const d = new THREE.Vector3().subVectors(b, a), len = d.length();
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), mat);
+  m.position.copy(a).addScaledVector(d, 0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+  m.castShadow = true;
+  return m;
+}
+function tripod(cx, cz, hubY, spread, rot, topY) {
+  const g = new THREE.Group(), hub = new THREE.Vector3(cx, hubY, cz);
+  for (let i = 0; i < 3; i++) {
+    const a = rot + i * 2 * Math.PI / 3;
+    const foot = new THREE.Vector3(cx + spread * Math.cos(a), 0.03, cz + spread * Math.sin(a));
+    g.add(rod(hub, foot, 0.02, MAT.metal));
+    const shoe = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.044, 0.03, 12), MAT.rubber);
+    shoe.position.set(foot.x, 0.015, foot.z); shoe.castShadow = true;
+    g.add(shoe);
+  }
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.08, 12), MAT.metal);
+  collar.position.copy(hub);
+  g.add(collar, rod(hub.clone().setY(hubY - 0.05), new THREE.Vector3(cx, topY, cz), 0.028, MAT.metal));
+  scene.add(g);
+  return g;
+}
+const STANDS = {
+  key: { x: 5.42, z: 2.42, hub: 0.62, spread: 0.38, head: 3.15 },
+  rim: { x: -5.64, z: -2.64, hub: 0.36, spread: 0.3, head: 0.55 },
+  top: { x: 5.64, z: -2.64, hub: 0.7, spread: 0.32, mast: 6.4 },
+};
+const TOP_LAMP = new THREE.Vector3(1.6, 5.8, 0);   // hung at 5.8, above the flip
+
+// Key: a softbox on a stand at the front right, aimed at the timeline.
+const softFace = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.86), std(0x000000, { emissive: KEY_COL, emissiveIntensity: 0, side: THREE.DoubleSide }));
+softFace.userData.bloom = true;
+{
+  const s = STANDS.key;
+  const rig = tripod(s.x, s.z, s.hub, s.spread, 0.4, s.head - 0.12);
+  const head = new THREE.Group();
+  const shell = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.61, 0.55, 4, 1, true), MAT.fabric);
+  shell.rotation.y = Math.PI / 4; shell.castShadow = true;
+  const ring = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.08, 0.26), MAT.metal);
+  ring.position.y = 0.3;
+  softFace.rotation.x = Math.PI / 2; softFace.position.y = -0.272;
+  head.add(shell, ring, softFace);
+  head.position.set(s.x, s.head, s.z);
+  head.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0.4, 0.6, 0).sub(head.position).normalize());
+  scene.add(head);
+  // It stands for the key, so it must not shadow what the key lights.
+  for (const o of [rig, head]) o.traverse(m => { m.castShadow = false; });
+}
+
+// Rim: a strip light at the back left, its panel turned to the camera so the click reads.
+const rimFace = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 1.1), std(0x000000, { emissive: RIM_COL, emissiveIntensity: 0 }));
+rimFace.userData.bloom = true;
+const rimLocal = new THREE.PointLight(RIM_COL, 0, 4.2, 2);
+{
+  const s = STANDS.rim;
+  tripod(s.x, s.z, s.hub, s.spread, 1.1, s.head);
+  const head = new THREE.Group();
+  const housing = new THREE.Mesh(new RoundedBoxGeometry(0.3, 1.22, 0.1, 1, 0.02), MAT.metal);
+  housing.castShadow = true;
+  rimFace.position.z = 0.052;
+  const yoke = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.12), MAT.metal);
+  yoke.position.set(0, -0.66, -0.02);
+  head.add(housing, rimFace, yoke);
+  head.position.set(s.x, s.head + 0.71, s.z);
+  head.lookAt(new THREE.Vector3(0, 23.5, 38.1));   // the camera's resting position
+  scene.add(head);
+  rimLocal.position.copy(head.position).add(new THREE.Vector3(0.35, -0.2, 0.35));
+  scene.add(rimLocal);
+}
+
+// Top spot: a lamp hung at 5.8 on a boom from the back-right corner, above the flip.
+const lens = new THREE.Mesh(new THREE.CircleGeometry(0.2, 32), std(0x000000, { emissive: TOP_COL, emissiveIntensity: 0 }));
+const lensRim = new THREE.Mesh(new THREE.TorusGeometry(0.228, 0.03, 12, 48), std(0x000000, { emissive: TOP_COL, emissiveIntensity: 0 }));
+lens.userData.bloom = true; lensRim.userData.bloom = true;
+{
+  const s = STANDS.top;
+  const rig = tripod(s.x, s.z, s.hub, s.spread, 2.0, s.mast);
+  const top = new THREE.Vector3(s.x, s.mast, s.z), end = new THREE.Vector3(TOP_LAMP.x, s.mast, TOP_LAMP.z);
+  const dir = end.clone().sub(top).normalize();
+  const tail = top.clone().addScaledVector(dir, -0.7);
+  const boom = rod(tail, end, 0.026, MAT.metal);
+  scene.add(boom);
+  const knuckle = new THREE.Mesh(new THREE.SphereGeometry(0.065, 16, 12), MAT.metal);
+  knuckle.position.copy(top);
+  const weight = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.28, 16), MAT.metal);
+  weight.position.copy(tail); weight.castShadow = true;
+  scene.add(knuckle, weight);
+  const lamp = new THREE.Group();
+  const can = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 0.5, 32, 1, true), MAT.metal);
+  can.position.y = 0.25; can.castShadow = true;
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.22, 0.08, 32), MAT.metal);
+  cap.position.y = 0.54;
+  lens.rotation.x = Math.PI / 2; lens.position.y = 0.012;
+  lensRim.rotation.x = Math.PI / 2; lensRim.position.y = 0.01;
+  lamp.add(can, cap, lens, lensRim);
+  lamp.position.copy(TOP_LAMP);
+  scene.add(lamp);
+  const hanger = rod(TOP_LAMP.clone().setY(TOP_LAMP.y + 0.58), end, 0.022, MAT.metal);
+  scene.add(hanger);
+  // The rig casts no shadow: from the key its shadow would cross the wall behind the labels.
+  for (const o of [rig, boom, knuckle, weight, lamp, hanger]) o.traverse(m => { m.castShadow = false; });
+}
+
+// ── lights
+const aimed = (azDeg, elDeg, dist, y = 0.5) => {
+  const az = THREE.MathUtils.degToRad(azDeg), el = THREE.MathUtils.degToRad(elDeg);
+  return new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el)).multiplyScalar(dist).add(new THREE.Vector3(0, y, 0));
+};
+// Key: 3200 K from the front right, 28° up. Aimed behind the slab's centre; a gobo (keyGobo,
+// below) holds it to the slab and the air the flip passes through, so the floor in front and
+// most of the backdrop stay in the dark and the lit stage does not wash out.
+const keyLight = new THREE.SpotLight(KEY_COL, 0, 0, THREE.MathUtils.degToRad(24), 0.3, 0);   // no falloff: the same on every diamond
+keyLight.position.copy(aimed(35, 28, LIGHT.keyDist));
+keyLight.target.position.set(-0.5, 1.5, -1.5);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.shadow.camera.near = 12; keyLight.shadow.camera.far = 48;
+keyLight.shadow.radius = 6; keyLight.shadow.blurSamples = 16;
+keyLight.shadow.bias = -0.0002;
+scene.add(keyLight, keyLight.target);
+function keyGobo() {
+  keyLight.updateMatrixWorld(); keyLight.target.updateMatrixWorld();
+  keyLight.shadow.updateMatrices(keyLight);
+  const pts = [];
+  for (const x of [-6.7, 6.7]) for (const y of [-0.45, 5.6]) for (const z of [-3.7, 3.7]) {
+    const v = new THREE.Vector4(x, y, z, 1).applyMatrix4(keyLight.shadow.matrix);
+    pts.push([v.x / v.w, v.y / v.w]);
+  }
+  pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);              // convex hull, monotone chain
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const half = list => { const h = []; for (const p of list) { while (h.length > 1 && cross(h[h.length - 2], h[h.length - 1], p) <= 0) h.pop(); h.push(p); } h.pop(); return h; };
+  const hull = [...half(pts), ...half([...pts].reverse())];
+  const N = 512, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d');
+  g.fillStyle = '#000'; g.fillRect(0, 0, N, N);
+  g.filter = 'blur(9px)'; g.fillStyle = '#fff';
+  g.beginPath(); hull.forEach(([u, v], i) => (i ? g.lineTo : g.moveTo).call(g, u * N, (1 - v) * N)); g.closePath(); g.fill();
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.NoColorSpace;
+  return tex;
+}
+keyLight.map = keyGobo();
+// Rim: 7500 K from the back left, low, so it edges the mascot's left side and top.
+const rimLight = new THREE.SpotLight(RIM_COL, 0, 0, THREE.MathUtils.degToRad(12), 0.55, 2);   // just the mascot's path
+rimLight.position.copy(aimed(-122, 8, LIGHT.rimDist, 0.7));
+rimLight.target.position.set(0, 0.9, 0);
+rimLight.castShadow = true;                       // the slab keeps it off the floor below
+rimLight.shadow.mapSize.set(1024, 1024);
+rimLight.shadow.camera.near = 8; rimLight.shadow.camera.far = 40;
+rimLight.shadow.radius = 4; rimLight.shadow.blurSamples = 12;
+scene.add(rimLight, rimLight.target);
+const topSpot = new THREE.SpotLight(TOP_COL, 0, 0, THREE.MathUtils.degToRad(17), 0.35, 2);
+topSpot.position.copy(TOP_LAMP).setY(TOP_LAMP.y - 0.02);
+topSpot.target.position.set(TOP_LAMP.x, 0, 0);
+topSpot.castShadow = true;
+topSpot.shadow.mapSize.set(1024, 1024);
+topSpot.shadow.camera.near = 1; topSpot.shadow.camera.far = 9;
+topSpot.shadow.radius = 5; topSpot.shadow.blurSamples = 12;
+scene.add(topSpot, topSpot.target);
+const fill = new THREE.HemisphereLight(FILL_COL, FILL_COL, LIGHT.fill);
+scene.add(fill);
+
+// ── the mascot: 0.1 voxels. Body 14 x 10 x 8, arms 3 x 2, legs 2 x 3, eyes 2 x 3.
+const voxGeo = new RoundedBoxGeometry(VOX, VOX, VOX, 1, 0.013);
+function voxels(list, mat) {
+  const m = new THREE.InstancedMesh(voxGeo, mat, list.length), M = new THREE.Matrix4();
+  list.forEach(([x, y, z], i) => m.setMatrixAt(i, M.makeTranslation(x, y, z)));
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+const mascot = new THREE.Group(), spin = new THREE.Group(), feet = new THREE.Group(), squash = new THREE.Group();
+mascot.add(spin); spin.add(feet); feet.add(squash); feet.position.y = -CENTER;
+scene.add(mascot);
+const LEG_H = 0.3, BODY_W = 14, BODY_H = 10, BODY_D = 8;
+{
+  const body = [];
+  for (let i = 0; i < BODY_W; i++) for (let j = 0; j < BODY_H; j++) for (let k = 0; k < BODY_D; k++) {
+    if (i && j && k && i < BODY_W - 1 && j < BODY_H - 1 && k < BODY_D - 1) continue;
+    body.push([(i - (BODY_W - 1) / 2) * VOX, LEG_H + (j + 0.5) * VOX, (k - (BODY_D - 1) / 2) * VOX]);
+  }
+  squash.add(voxels(body, MAT.body));
+}
+const LIMB_Z = [-0.15, -0.05, 0.05, 0.15];
+const arms = [-1, 1].map(side => {
+  const pivot = new THREE.Group();
+  pivot.position.set(side * BODY_W / 2 * VOX, LEG_H + 0.4, 0);
+  const v = [];
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) for (const z of LIMB_Z) v.push([side * (i + 0.5) * VOX, (j - 0.5) * VOX, z]);
+  pivot.add(voxels(v, MAT.body));
+  squash.add(pivot);
+  return { pivot, side };
+});
+const legs = [-0.5, -0.2, 0.2, 0.5].map(cx => {
+  const pivot = new THREE.Group();
+  pivot.position.set(cx, LEG_H, 0);
+  const v = [];
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 3; j++) for (const z of LIMB_Z) v.push([(i - 0.5) * VOX, -(j + 0.5) * VOX, z]);
+  pivot.add(voxels(v, MAT.body));
+  squash.add(pivot);
+  return pivot;
+});
+const EYE_Y = LEG_H + 6.5 * VOX;   // rows 5 to 7
+const eyes = new THREE.Group();
+{
+  const v = [];
+  for (const cols of [[3, 4], [9, 10]]) for (const c of cols) for (const j of [-1, 0, 1]) v.push([(c - (BODY_W - 1) / 2) * VOX, j * VOX, (BODY_D - 1) / 2 * VOX + 0.012]);
+  eyes.add(voxels(v, MAT.eye));
+  eyes.position.y = EYE_Y;
+  squash.add(eyes);
+}
+
+// ───────────────────────────── labels: Geist Mono 28 px, top left ─────────────────────────────
+const LABELS = [
+  [['01 ANTICIPATION']],
+  [['02 SQUASH '], ['&', '#D97757'], [' STRETCH']],
+  [['03 OVERLAPPING ACTION']],
+  [['04 FOLLOW-THROUGH']],
+  [['05 ARCS']],
+];
+const labelCanvas = document.createElement('canvas');
+labelCanvas.width = labelCanvas.height = SIZE;
+const labelCtx = labelCanvas.getContext('2d');
+const labelTex = new THREE.CanvasTexture(labelCanvas);
+labelTex.colorSpace = THREE.NoColorSpace;
+labelTex.minFilter = labelTex.magFilter = THREE.NearestFilter;
+labelTex.generateMipmaps = false;
+let labelKey = '';
+function drawLabels(f) {
+  const fi = Math.floor(f + 1e-6);
+  const state = T.labels.map(at => (fi >= at && fi < T.off) ? Math.min(fi - at, 9) : -1);
+  const key = state.join(',');
+  if (key === labelKey) return;
+  labelKey = key;
+  const g = labelCtx;
+  g.clearRect(0, 0, SIZE, SIZE);
+  g.font = '500 28px "Geist Mono"';
+  g.textBaseline = 'middle';
+  LABELS.forEach((parts, i) => {
+    const y = 84 + i * 46, done = state[i] >= 0;
+    const pop = done ? 1 + 0.55 * Math.pow(1 - clamp(state[i] / 8), 2) : 1;
+    const d = 8.5 * pop, cx = 74;
+    g.beginPath(); g.moveTo(cx, y - d); g.lineTo(cx + d, y); g.lineTo(cx, y + d); g.lineTo(cx - d, y); g.closePath();
+    if (done) { g.fillStyle = '#FF6A2B'; g.fill(); }
+    else { g.lineWidth = 2; g.strokeStyle = '#8E8A83'; g.stroke(); }
+    let x = 100;
+    for (const [text, colour] of parts) {
+      g.fillStyle = colour || (done ? '#0F0F0F' : '#8E8A83');
+      g.fillText(text, x, y + 1);
+      x += g.measureText(text).width;
+    }
+  });
+  labelTex.needsUpdate = true;
+}
+
+// The ruler's numbers: frames, so the playhead reads the frame it is on. 15 to 315, every 30;
+// the diamonds' frames (45, 105, 165, 225, 285) in ink.
+function buildRulerTexture() {
+  const W = 4096, len = RULER.x1 - RULER.x0, H = Math.round(W / len * Math.hypot(RULER.zf - RULER.zb, RULER.h));
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'), ppu = W / len, X = x => (x - RULER.x0) * ppu;
+  g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, W, H);
+  for (let i = 0; i <= Math.round(len / 0.25); i++) {
+    const x = RULER.x0 + i * 0.25, whole = Math.abs(x - Math.round(x)) < 1e-6, half = Math.abs(x * 2 - Math.round(x * 2)) < 1e-6;
+    const onKey = whole && Math.round(x) % 2 === 0;
+    g.fillStyle = onKey ? '#0F0F0F' : '#8E8A83';
+    const th = whole ? 0.27 : half ? 0.17 : 0.1, tw = whole ? 0.026 : 0.018;
+    g.fillRect(X(x) - tw * ppu / 2, H - th * ppu, tw * ppu, th * ppu);
+  }
+  g.font = `500 ${Math.round(0.43 * ppu)}px "Geist Mono"`;
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  for (let x = -5; x <= 5; x++) {
+    g.fillStyle = x % 2 === 0 ? '#0F0F0F' : '#8E8A83';
+    g.fillText(String(165 + 30 * x), X(x), H - 0.33 * ppu);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return tex;
+}
+
+// ───────────────────────────── post ─────────────────────────────
+const rt = (samples = 0) => new THREE.WebGLRenderTarget(SIZE, SIZE, { type: THREE.HalfFloatType, samples });
+const bloomComposer = new EffectComposer(renderer, rt(4));
+bloomComposer.renderToScreen = false;
+bloomComposer.addPass(new RenderPass(scene, camera));
+const savePass = new SavePass(rt());
+bloomComposer.addPass(savePass);
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(SIZE, SIZE), 0.7, 0.5, 0.0);
+bloomComposer.addPass(bloomPass);
+
+const composer = new EffectComposer(renderer, rt(4));
+composer.addPass(new RenderPass(scene, camera));
+const bokeh = new BokehPass(scene, camera, { focus: 40, aperture: 0.0007, maxblur: 0.0045 });
+composer.addPass(bokeh);
+const finalPass = new ShaderPass({
+  uniforms: {
+    tDiffuse: { value: null }, tBloom: { value: null }, tEmit: { value: null }, tLabels: { value: labelTex },
+    bloomStrength: { value: 0.8 }, exposure: { value: GRADE.exposure }, wb: { value: new THREE.Vector3(...GRADE.wb) },
+    grain: { value: 0.02 }, vignette: { value: 0.10 }, dither: { value: 1.0 }, labels: { value: 1.0 },
+    shoulder: { value: 1.0 }, frame: { value: 0 },
+  },
+  vertexShader: /* glsl */`
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: /* glsl */`
+    uniform sampler2D tDiffuse, tBloom, tEmit, tLabels;
+    uniform float bloomStrength, exposure, grain, vignette, dither, labels, shoulder, frame;
+    uniform vec3 wb;
+    varying vec2 vUv;
+    float hash(vec3 p) { p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yzx + 33.33); return fract((p.x + p.y) * p.z); }
+    vec3 toSRGB(vec3 c) { return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
+    vec3 roll(vec3 x) { vec3 t = max(x - 0.8, 0.0); return min(x, 0.8) + 0.2 * (1.0 - exp(-t / 0.2)); }
+    void main() {
+      vec3 c = texture2D(tDiffuse, vUv).rgb;
+      vec3 e = texture2D(tEmit, vUv).rgb;
+      vec3 b = texture2D(tBloom, vUv).rgb;
+      // bloom around emissive things, not on their faces: a lit diamond still reads FF6A2B
+      float onFace = clamp(max(e.r, max(e.g, e.b)) * 60.0, 0.0, 1.0);
+      c += max(b - e, 0.0) * bloomStrength * (1.0 - onFace);
+      c *= exposure * wb;
+      c = mix(c, roll(c), shoulder);
+      c = toSRGB(clamp(c, 0.0, 1.0));
+      vec2 q = vUv - 0.5;
+      float r2 = dot(q, q) * 2.0;                           // 0 centre, 1 corner
+      c *= 1.0 - vignette * smoothstep(0.15, 1.0, r2);
+      vec2 px = floor(vUv * ${SIZE.toFixed(1)});
+      c += (hash(vec3(px, frame)) - 0.5) * 2.0 * grain;
+      c += dither * (hash(vec3(px + 17.0, frame + 0.37)) - hash(vec3(px + 41.0, frame + 0.71))) / 255.0;
+      vec4 L = texture2D(tLabels, vUv);
+      c = mix(c, L.rgb, L.a * labels);
+      gl_FragColor = vec4(c, 1.0);
+    }`,
+});
+composer.addPass(finalPass);
+// ShaderPass clones its uniforms, textures included: hand it the live ones.
+finalPass.uniforms.tBloom.value = bloomComposer.readBuffer.texture;
+finalPass.uniforms.tEmit.value = savePass.renderTarget.texture;
+finalPass.uniforms.tLabels.value = labelTex;
+if (CALIB) {
+  for (const k of ['grain', 'vignette', 'dither', 'labels', 'shoulder']) finalPass.uniforms[k].value = 0;
+  finalPass.uniforms.exposure.value = 1;
+  finalPass.uniforms.wb.value.set(1, 1, 1);
+}
+
+const stash = new Map();
+function renderBloomLayer() {
+  scene.traverse(o => { if (o.isMesh && !o.userData.bloom) { stash.set(o, o.material); o.material = dark; } });
+  const bg = scene.background; scene.background = null;
+  bloomComposer.render();
+  stash.forEach((m, o) => { o.material = m; });
+  stash.clear(); scene.background = bg;
+}
+
+// ───────────────────────────── one frame ─────────────────────────────
+const C3 = new THREE.Color(), M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), V = new THREE.Vector3(), S3 = new THREE.Vector3(), mascotCentre = new THREE.Vector3();
+const EMPTY = new THREE.Matrix4().makeScale(0, 0, 0);
+
+function cameraAt(f) {
+  const push = smoother(50, 104, f) * (1 - smoother(296, 344, f));          // 25% push-in over the hops
+  const punch = f >= T.flipLand ? easeOutCubic(clamp((f - T.flipLand) / 5)) * (1 - smoother(402, 458, f)) : 0;
+  const d = 44 * (1 - 0.25 * push) * (1 - 0.04 * punch);
+  const az = THREE.MathUtils.degToRad(10) * Math.sin(2 * Math.PI * f / FRAMES), el = THREE.MathUtils.degToRad(30);
+  camTarget.set(0.45 * push * sampleTable(X_TRACK, f), lerp(1.55, 1.1, push), 0);   // tracks the hops at 45%
+  camera.position.set(camTarget.x + d * Math.sin(az) * Math.cos(el), camTarget.y + d * Math.sin(el), d * Math.cos(az) * Math.cos(el));
+  camera.lookAt(camTarget);
+  camera.updateMatrixWorld();
+}
+
+function update(f) {
+  const fi = Math.floor(f + 1e-6), live = fi < T.off;
+  const kL = keyLevel(f), rL = rimLevel(f), tL = topLevel(f);
+
+  keyLight.intensity = LIGHT.key * kL;
+  rimLight.intensity = LIGHT.rim * LIGHT.rimDist ** 2 * rL;
+  rimLocal.intensity = LIGHT.rimLocal * rL;
+  topSpot.intensity = LIGHT.topCd * tL;
+  const B = LIGHT.bounce, fillI = LIGHT.fill + B.key * kL + B.rim * rL + B.top * tL;
+  fill.intensity = fillI;
+  fill.color.copy(FILL_COL).multiplyScalar(LIGHT.fill).add(C3.copy(KEY_COL).multiplyScalar(B.key * kL))
+    .add(C3.copy(RIM_COL).multiplyScalar(B.rim * rL))
+    .add(C3.copy(TOP_COL).multiplyScalar(B.top * tL))
+    .multiplyScalar(1 / fillI);
+  fill.groundColor.copy(fill.color).multiplyScalar(0.72);
+  softFace.material.emissiveIntensity = 1.6 * kL;
+  rimFace.material.emissiveIntensity = 1.5 * rL;
+  lens.material.emissiveIntensity = 1.6 * tL;
+  lensRim.material.emissiveIntensity = 3.0 * tL;
+  softFace.userData.bloom = kL > 0; rimFace.userData.bloom = rL > 0; lens.userData.bloom = lensRim.userData.bloom = tL > 0;
+
+  // the mascot
+  const b = bodyAt(f);
+  mascot.position.set(b.x, G + b.y + CENTER, 0);
+  spin.rotation.z = b.rot;
+  squash.scale.set(b.sx, b.sy, b.sx);
+  const armA = sampleTable(LIMBS.arm, f), legA = sampleTable(LIMBS.leg, f);
+  arms.forEach(a => { a.pivot.rotation.z = a.side * armA; });
+  legs.forEach(l => { l.rotation.z = legA; });
+  const e = eyeAt(f);
+  eyes.position.set(e.x * VOX, EYE_Y + e.y * VOX, 0);
+  eyes.scale.y = blinkAt(f);
+  mascotCentre.set(b.x, G + b.y + CENTER * b.sy, 0);
+
+  // cells ripple
+  cellXZ.forEach(([x, z], i) => cells.setMatrixAt(i, M4.makeTranslation(x, 0.015 + rippleAt(x, z, f), z)));
+  cells.instanceMatrix.needsUpdate = true;
+
+  // diamonds
+  diamonds.forEach((d, i) => {
+    const lit = live && fi >= d.litAt;
+    d.grp.position.y = rippleAt(DX[i], 0, f);
+    d.fill.visible = !lit;
+    d.lit.visible = lit;
+    const flash = lit ? 1 + 1.6 * Math.exp(-(f - d.litAt) / 7) : 0;
+    d.light.intensity = LIGHT.diamond * flash;
+  });
+
+  // playhead
+  playhead.visible = live;
+  const px = playheadX(f);
+  playhead.position.x = px;
+  for (let s = 0; s < PH.segs; s++) {
+    const z = PH.z0 + (s + 0.5) * (PH.z1 - PH.z0) / PH.segs;
+    phLine.setMatrixAt(s, M4.makeTranslation(0, G + 0.012 + rippleAt(px, z, f), z));
+  }
+  phLine.instanceMatrix.needsUpdate = true;
+  phBead.position.y = G + 0.06 + rippleAt(px, PH.z1, f);
+  phLight.intensity = live ? LIGHT.playhead : 0;
+
+  // sparks
+  SPARKS.forEach((sp, i) => {
+    const tau = (f - sp.L) / FPS;
+    if (tau < 0 || tau > sp.life || !live) { sparks.setMatrixAt(i, EMPTY); return; }
+    V.copy(sp.p0).addScaledVector(sp.v, tau);
+    V.y += -0.5 * 14 * tau * tau;
+    if (V.y < G + sp.size / 2) V.y = G + sp.size / 2;
+    const sc = sp.size * (1 - smooth(0.55 * sp.life, sp.life, tau)) * Math.min(1, tau * FPS / 1.5 + 0.2);
+    Q.setFromAxisAngle(sp.axis, sp.spin * tau);
+    sparks.setMatrixAt(i, M4.compose(V, Q, S3.setScalar(Math.max(sc, 1e-4))));
+  });
+  sparks.instanceMatrix.needsUpdate = true;
+
+  // the dotted arc: draws in over 303–318, eaten by the flip as it passes
+  ARC.forEach((d, i) => {
+    let sc = 0;
+    if (live && f >= d.on) {
+      sc = 0.075 * easeOutBack(clamp((f - d.on) / 5));
+      if (f >= d.eaten) sc *= 1 - clamp((f - d.eaten) / 3);
+    }
+    dots.setMatrixAt(i, sc > 0 ? M4.compose(d.p, Q.identity(), S3.setScalar(sc)) : EMPTY);
+  });
+  dots.instanceMatrix.needsUpdate = true;
+
+  drawLabels(f);
+  cameraAt(f);
+  bokeh.uniforms.focus.value = camera.position.distanceTo(mascotCentre);
+  finalPass.uniforms.frame.value = fi % FRAMES;
+}
+
+function renderAt(t) {
+  const f = frameOf(t);
+  update(f);
+  renderer.shadowMap.needsUpdate = true;
+  renderBloomLayer();
+  composer.render();
+}
+
+// ───────────────────────────── the score ─────────────────────────────
+// 120 BPM, 4 bars, F major. Synthesised; nothing is loaded. Each hit lands 1 frame after its
+// picture. Rendered as three loops; the middle one is kept, so tails wrap and the loop is seamless.
+const SR = 48000;
+const midiHz = m => 440 * Math.pow(2, (m - 69) / 12);
+const hitTime = f => (f + 1) / FPS;
+const xPan = x => clamp(x / 6.5, -0.85, 0.85);
+
+function scoreLoop(S, t0) {
+  const ctx = S.ctx, at = f => t0 + hitTime(f);
+  const R = id => mulberry32(id * 7919 + 13);              // each event has its own seed, the same every loop
+
+  let part = '';                                            // which stem the next sounds belong to
+  const out = (pan, send = 0.2, gain = 1) => {
+    const g = ctx.createGain(); g.gain.value = (S.solo && !S.solo.includes(part)) ? 0 : gain;
+    const p = ctx.createStereoPanner(); p.pan.value = pan;
+    g.connect(p); p.connect(S.dry);
+    if (send) { const s = ctx.createGain(); s.gain.value = send; p.connect(s); s.connect(S.rev); }
+    return { g, p };
+  };
+  const osc = (type, freq, start, stop) => { const o = ctx.createOscillator(); o.type = type; o.frequency.value = freq; o.start(start); o.stop(stop); return o; };
+  const noise = (start, dur, seed) => { const n = ctx.createBufferSource(); n.buffer = S.noise; n.start(start, 0.05 + R(seed)() * 1.4, dur); return n; };
+  const filt = (type, f, q = 0.7) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; };
+  const env = (param, t, a, peak, d, floor = 0.0001) => {
+    param.setValueAtTime(0.0001, t); param.exponentialRampToValueAtTime(peak, t + a);
+    param.exponentialRampToValueAtTime(floor, t + a + d);
+  };
+
+  // Bed: pads that follow their lights' flicker. A3 E4 the key, C5 the top, G5 the rim.
+  part = 'pads';
+  const pad = (midi, lv, pan, gain) => {
+    const o = out(pan, 0.5), lp = filt('lowpass', 1500, 0.4), vca = ctx.createGain();
+    vca.gain.value = 0; lp.connect(vca); vca.connect(o.g);
+    for (const [det, type, g] of [[-8, 'sawtooth', 0.32], [7, 'sawtooth', 0.32], [0, 'triangle', 0.7]]) {
+      const v = osc(type, midiHz(midi), t0, t0 + DUR + 1.2); v.detune.value = det;
+      const og = ctx.createGain(); og.gain.value = g; v.connect(og); og.connect(lp);
+    }
+    let prev = 0;
+    for (let f = 0; f < FRAMES; f++) {
+      const l = lv(f);
+      if (l !== prev) { vca.gain.setTargetAtTime(l * gain, at(f), l > prev ? 0.005 : 0.012); prev = l; }
+    }
+  };
+  pad(57, keyLevel, -0.3, 0.062); pad(64, keyLevel, 0.3, 0.053);
+  pad(72, topLevel, 0.15, 0.038); pad(79, rimLevel, -0.55, 0.028);
+
+  // Shaker 8ths from 45; kick and bass from 60; kick and shaker rest 330 to 420.
+  const rest = f => f >= 330 && f < 420;
+  part = 'shaker';
+  for (let f = 45; f < T.off; f += 15) {
+    if (rest(f)) continue;
+    const t = at(f), accent = (f / 15) % 2 ? 1 : 0.6, o = out(0.35, 0.08);
+    const n = noise(t, 0.12, 100 + f), hp = filt('highpass', 6500, 0.7), bp = filt('bandpass', 9500, 1.1), g = ctx.createGain();
+    n.connect(hp); hp.connect(bp); bp.connect(g); g.connect(o.g);
+    env(g.gain, t, 0.004, 0.26 * accent, 0.07);
+  }
+  part = 'kick';
+  for (let f = 60; f < T.off; f += 30) {
+    if (rest(f)) continue;
+    const t = at(f), o = out(0, 0.03), g = ctx.createGain(), k = osc('sine', 150, t, t + 0.5);
+    k.frequency.setValueAtTime(155, t); k.frequency.exponentialRampToValueAtTime(48, t + 0.09);
+    k.connect(g); g.connect(o.g); env(g.gain, t, 0.002, 0.45, 0.34);
+    const c = noise(t, 0.01, 200 + f), cb = filt('bandpass', 3200, 1.5), cg = ctx.createGain();
+    c.connect(cb); cb.connect(cg); cg.connect(o.g); env(cg.gain, t, 0.0008, 0.12, 0.012);
+  }
+  const bass = (f, dur, midi) => {
+    const t = at(f), o = out(0, 0.02), lp = filt('lowpass', 520, 0.9), g = ctx.createGain();
+    for (const [type, mul, gain] of [['triangle', 1, 0.8], ['sawtooth', 1, 0.16], ['sine', 0.5, 0.5]]) {
+      const v = osc(type, midiHz(midi) * mul, t, t + dur + 0.1), vg = ctx.createGain(); vg.gain.value = gain;
+      v.connect(vg); vg.connect(lp);
+    }
+    lp.frequency.setValueAtTime(950, t); lp.frequency.exponentialRampToValueAtTime(380, t + 0.18);
+    lp.connect(g); g.connect(o.g);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.21, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.125, t + 0.16); g.gain.setValueAtTime(0.125, t + Math.max(0.17, dur - 0.04));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.05);
+  };
+  part = 'bass';
+  const ROOTS = [41, 38, 34, 41];                            // F D Bb F by bar
+  for (let f = 60; f < 330; f += 30) bass(f, 0.4, ROOTS[Math.floor(f / 120)]);
+  bass(330, (384 - 330) / FPS, 36);                          // holds C under the flip
+  bass(384, (420 - 384) / FPS, 41);                          // then F on the landing
+  for (let f = 420; f < T.off; f += 30) bass(f, Math.min(0.4, (T.off - f) / FPS - 0.02), 41);
+
+  // Clicks: the lights on at 6, 24, 42, all off at 468.
+  const click = (f, pan, big) => {
+    const t = at(f), o = out(pan, big ? 0.35 : 0.2);
+    for (const [dt, amp, fc] of [[0, 0.5, 2600], [0.011, 0.32, 4300]]) {
+      const n = noise(t + dt, 0.03, 300 + f + dt * 1000), bp = filt('bandpass', fc, 1.8), g = ctx.createGain();
+      n.connect(bp); bp.connect(g); g.connect(o.g); env(g.gain, t + dt, 0.0006, amp * (big ? 1.3 : 1), 0.028);
+    }
+    const th = osc('sine', 140, t, t + 0.3), tg = ctx.createGain();
+    th.frequency.setValueAtTime(big ? 120 : 170, t); th.frequency.exponentialRampToValueAtTime(big ? 45 : 80, t + (big ? 0.16 : 0.06));
+    th.connect(tg); tg.connect(o.g); env(tg.gain, t, 0.002, big ? 0.55 : 0.3, big ? 0.26 : 0.09);
+  };
+  part = 'clicks';
+  click(T.keyOn, 0.6); click(T.rimOn, -0.6); click(T.topOn, 0.15); click(T.off, 0, true);
+
+  // Crouches: a creak and an inhale that rises to the takeoff.
+  part = 'crouches';
+  const CROUCHES = [...T.crouch.map((f, k) => [f, CROUCH_LEN, DX[k]]), [T.flipCrouch, T.flipTake - T.flipCrouch, DX[4]]];
+  CROUCHES.forEach(([f, len, x], i) => {
+    const t = at(f), dur = len / FPS, o = out(xPan(x), 0.15);
+    const cr = osc('sawtooth', 26, t, t + dur + 0.05), b1 = filt('bandpass', 780, 8), b2 = filt('bandpass', 1650, 6), cg = ctx.createGain();
+    cr.frequency.setValueAtTime(24, t); cr.frequency.exponentialRampToValueAtTime(i === 4 ? 70 : 58, t + dur * 0.9);
+    cr.connect(b1); cr.connect(b2); b1.connect(cg); b2.connect(cg); cg.connect(o.g);
+    cg.gain.setValueAtTime(0.0001, t); cg.gain.exponentialRampToValueAtTime(0.85, t + 0.02);
+    cg.gain.setValueAtTime(0.85, t + dur * 0.55); cg.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const n = noise(t, dur + 0.02, 400 + f), bp = filt('bandpass', 500, 1.4), ng = ctx.createGain();
+    bp.frequency.setValueAtTime(500, t); bp.frequency.exponentialRampToValueAtTime(i === 4 ? 3400 : 2600, t + dur);
+    n.connect(bp); bp.connect(ng); ng.connect(o.g);
+    ng.gain.setValueAtTime(0.0001, t); ng.gain.linearRampToValueAtTime(i === 4 ? 0.36 : 0.26, t + dur); ng.gain.linearRampToValueAtTime(0.0001, t + dur + 0.015);
+  });
+
+  // Takeoffs: an upward swish.
+  part = 'takeoffs';
+  [...T.take.map((f, k) => [f, DX[k]]), [T.flipTake, DX[4]]].forEach(([f, x], i) => {
+    const t = at(f), o = out(xPan(x), 0.2), big = i === 4;
+    const n = noise(t, 0.3, 500 + f), bp = filt('bandpass', 700, 1.6), g = ctx.createGain();
+    bp.frequency.setValueAtTime(700, t); bp.frequency.exponentialRampToValueAtTime(big ? 6500 : 5200, t + 0.14);
+    n.connect(bp); bp.connect(g); g.connect(o.g); env(g.gain, t, 0.008, big ? 0.75 : 0.6, 0.2);
+    const w = osc('sine', 260, t, t + 0.2), wg = ctx.createGain();
+    w.frequency.setValueAtTime(260, t); w.frequency.exponentialRampToValueAtTime(1100, t + 0.09);
+    w.connect(wg); wg.connect(o.g); env(wg.gain, t, 0.004, 0.16, 0.11);
+  });
+
+  // Landings: a rubber squash pitched by the squash scale, and the sparks' tings. 384 is the biggest.
+  part = 'landings';
+  const NOTES = [60, 62, 65, 67, 53];                        // C4 D4 F4 G4, then F3 for the flip
+  LANDINGS.forEach(([f, x, sq], i) => {
+    const t = at(f), big = i === 4, o = out(xPan(x), 0.22), [sx, sy] = sq, f0 = midiHz(NOTES[i]);
+    const glide = big ? 0.15 : 0.09;
+    const v = osc('triangle', f0, t, t + 0.6), v2 = osc('sine', f0, t, t + 0.6), lp = filt('lowpass', 1800, 4), g = ctx.createGain();
+    for (const p of [v.frequency, v2.frequency]) { p.setValueAtTime(f0 * sx / sy, t); p.exponentialRampToValueAtTime(f0 * sy, t + glide); }
+    v2.detune.value = -1200;
+    v.connect(lp); v2.connect(lp); lp.connect(g); g.connect(o.g);
+    env(g.gain, t, 0.005, big ? 0.32 : 0.24, big ? 0.42 : 0.26);
+    const n = noise(t, 0.08, 600 + f), nl = filt('lowpass', 1100, 1), ng = ctx.createGain();
+    n.connect(nl); nl.connect(ng); ng.connect(o.g); env(ng.gain, t, 0.002, big ? 0.22 : 0.15, 0.05);
+    if (big) {
+      const sub = osc('sine', 70, t, t + 0.6), sg = ctx.createGain();
+      sub.frequency.setValueAtTime(75, t); sub.frequency.exponentialRampToValueAtTime(38, t + 0.3);
+      sub.connect(sg); sg.connect(o.g); env(sg.gain, t, 0.012, 0.3, 0.42);
+    }
+    const r = R(700 + f), POOL = [89, 91, 93, 96, 98, 101]; // F6 G6 A6 C7 D7 F7
+    for (let s = 0; s < 12; s++) {
+      const tt = t + 0.012 + 0.17 * Math.pow(r(), 1.6), hz = midiHz(POOL[Math.floor(r() * POOL.length)]);
+      const dec = 0.12 + 0.24 * r(), amp = (0.03 + 0.03 * r()) * (big ? 1.35 : 1), to = out(clamp(xPan(x) + (r() - 0.5) * 0.9, -1, 1), 0.4);
+      [[1, 1], [2.76, 0.35], [5.4, 0.12]].forEach(([m, a]) => {
+        const p = osc('sine', hz * m, tt, tt + dec + 0.05), pg = ctx.createGain();
+        p.connect(pg); pg.connect(to.g); env(pg.gain, tt, 0.0015, amp * a, dec / m);
+      });
+    }
+  });
+
+  // Label pings: A5 C6 D6 F6 A6.
+  part = 'pings';
+  [[69, 81], [140, 84], [200, 86], [285, 89], [303, 93]].forEach(([f, m]) => {
+    const t = at(f), o = out(-0.45, 0.5);
+    [[1, 1], [2, 0.18], [3.01, 0.06]].forEach(([mul, a]) => {
+      const p = osc('sine', midiHz(m) * mul, t, t + 1.4), g = ctx.createGain();
+      p.connect(g); g.connect(o.g); env(g.gain, t, 0.004, 0.13 * a, 1.1 / mul);
+    });
+  });
+
+  // Dot ticks 303 to 318, panned with the arc as it draws.
+  part = 'ticks';
+  for (let f = T.arcFrom; f <= T.arcTo; f++) {
+    const i = f - T.arcFrom, t = at(f), x = arcPoint(i / (T.arcTo - T.arcFrom)).x, o = out(xPan(x), 0.25);
+    const p = osc('sine', 2200 * Math.pow(2, i / 20), t, t + 0.05), g = ctx.createGain();
+    p.connect(g); g.connect(o.g); env(g.gain, t, 0.001, 0.11, 0.018);
+  }
+
+  // The flip's whoosh, 330 to 384: brightest at the fastest turn, travelling right to left.
+  part = 'whoosh';
+  {
+    const t = at(T.flipTake), dur = (T.flipLand - T.flipTake) / FPS, N = 96;
+    const fc = new Float32Array(N), gn = new Float32Array(N), pn = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      const u = i / (N - 1), v = clamp(u / 0.88), w = (1 - Math.cos(2 * Math.PI * v)) / 2;
+      fc[i] = 380 + 2600 * w; gn[i] = (0.03 + 0.3 * w) * smooth(0, 0.08, u) * (1 - smooth(0.9, 1, u)); pn[i] = xPan(lerp(DX[4], DX[0], u));
+    }
+    const o = out(0, 0.3), n = noise(t, dur + 0.05, 800), bp = filt('bandpass', 400, 0.9), g = ctx.createGain();
+    g.gain.value = 0;
+    bp.frequency.setValueCurveAtTime(fc, t, dur); g.gain.setValueCurveAtTime(gn, t, dur); o.p.pan.setValueCurveAtTime(pn, t, dur);
+    n.connect(bp); bp.connect(g); g.connect(o.g);
+  }
+
+  // The blink's blip.
+  part = 'blip';
+  {
+    const t = at(T.blink), o = out(xPan(DX[0]), 0.2), p = osc('sine', 1600, t, t + 0.1), g = ctx.createGain();
+    p.frequency.setValueAtTime(1600, t); p.frequency.exponentialRampToValueAtTime(2500, t + 0.03);
+    p.connect(g); g.connect(o.g); env(g.gain, t, 0.002, 0.22, 0.05);
+  }
+}
+
+function makeNoise(ctx, seconds, seed) {
+  const r = mulberry32(seed), buf = ctx.createBuffer(1, Math.round(ctx.sampleRate * seconds), ctx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = r() * 2 - 1;
+  return buf;
+}
+function makeRoom(ctx, seconds, seed) {
+  const r = mulberry32(seed), n = Math.round(ctx.sampleRate * seconds), buf = ctx.createBuffer(2, n, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch); let lp = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / ctx.sampleRate, pre = t < 0.012 ? 0 : 1;
+      lp += 0.35 * ((r() * 2 - 1) - lp);
+      d[i] = pre * lp * Math.exp(-t / 0.38);
+    }
+  }
+  return buf;
+}
+
+// Mastering: integrated loudness (BS.1770-4) and true peak (4x oversampled), both measured
+// around the loop, so the WAV loops without a seam. Gain to -14 LUFS, then a look-ahead
+// limiter (also circular) holds -1 dBTP.
+const KW = [
+  { b: [1.53512485958697, -2.69169618940638, 1.19839281085285], a: [-1.69065929318241, 0.73248077421585] },
+  { b: [1.0, -2.0, 1.0], a: [-1.99004745483398, 0.99007225036621] },
+];
+function kWeighted(x) {
+  const n = x.length, y = new Float64Array(n);
+  const st = KW.map(() => [0, 0, 0, 0]);
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 0; i < n; i++) {
+      let v = x[i];
+      KW.forEach((q, k) => {
+        const s = st[k], o = q.b[0] * v + q.b[1] * s[0] + q.b[2] * s[1] - q.a[0] * s[2] - q.a[1] * s[3];
+        s[1] = s[0]; s[0] = v; s[3] = s[2]; s[2] = o; v = o;
+      });
+      if (pass) y[i] = v;
+    }
+  }
+  return y;
+}
+function loudness(L, R) {
+  const kl = kWeighted(L), kr = kWeighted(R), n = L.length, blk = Math.round(0.4 * SR), hop = Math.round(0.1 * SR);
+  const z = [];
+  for (let s = 0; s < n; s += hop) {
+    let a = 0;
+    for (let i = 0; i < blk; i++) { const j = (s + i) % n; a += kl[j] * kl[j] + kr[j] * kr[j]; }
+    z.push(a / blk);
+  }
+  const lk = v => -0.691 + 10 * Math.log10(v);
+  const abs = z.filter(v => lk(v) > -70);
+  if (!abs.length) return -Infinity;
+  const rel = lk(abs.reduce((s, v) => s + v, 0) / abs.length) - 10;
+  const gated = abs.filter(v => lk(v) > rel);
+  return lk(gated.reduce((s, v) => s + v, 0) / gated.length);
+}
+const TP_TAPS = (() => {                                    // 4x polyphase interpolator, 12 taps a phase
+  const ph = [];
+  for (let p = 1; p < 4; p++) {
+    const h = [];
+    for (let k = -5; k <= 6; k++) {
+      const x = k - p / 4, w = 0.5 + 0.5 * Math.cos(Math.PI * x / 6.5);
+      h.push((x === 0 ? 1 : Math.sin(Math.PI * x) / (Math.PI * x)) * w);
+    }
+    ph.push(h);
+  }
+  return ph;
+})();
+function truePeaks(x) {                                     // per sample: the largest |value| up to the next sample
+  const n = x.length, out = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    let m = Math.abs(x[i]);
+    for (const h of TP_TAPS) {
+      let v = 0;
+      for (let k = 0; k < 12; k++) v += x[(i + k - 5 + n) % n] * h[k];
+      if (Math.abs(v) > m) m = Math.abs(v);
+    }
+    out[i] = m;
+  }
+  return out;
+}
+function limit(L, R, ceiling) {
+  const n = L.length, pl = truePeaks(L), pr = truePeaks(R), W = Math.round(0.0015 * SR), rel = 1 - Math.exp(-1 / (0.06 * SR));
+  const need = new Float64Array(n);
+  for (let i = 0; i < n; i++) need[i] = Math.min(1, ceiling / Math.max(pl[i], pr[i], 1e-9));
+  const ahead = new Float64Array(n);                         // the smallest gain needed in the next W samples
+  for (let i = 0; i < n; i++) { let m = 1; for (let k = 0; k <= W; k++) m = Math.min(m, need[(i + k) % n]); ahead[i] = m; }
+  const g = new Float64Array(n); let cur = 1;
+  for (let pass = 0; pass < 2; pass++) for (let i = 0; i < n; i++) { cur = Math.min(ahead[i], cur + (1 - cur) * rel); g[i] = cur; }
+  let deepest = 1;
+  for (let i = 0; i < n; i++) {                              // average over the window behind: never above what a peak needs
+    let s = 0; for (let k = 0; k <= W; k++) s += g[(i - k + n) % n];
+    const gi = s / (W + 1); L[i] *= gi; R[i] *= gi; deepest = Math.min(deepest, gi);
+  }
+  return 20 * Math.log10(deepest);
+}
+function master(L, R, target = -14, tpCeil = -1) {
+  const src = [Float64Array.from(L), Float64Array.from(R)];
+  let gain = Math.pow(10, (target - loudness(src[0], src[1])) / 20), outL, outR, lufs, tp, gr;
+  for (let it = 0; it < 6; it++) {
+    outL = src[0].map(v => v * gain); outR = src[1].map(v => v * gain);
+    gr = limit(outL, outR, Math.pow(10, (tpCeil - 0.35) / 20));
+    lufs = loudness(outL, outR);
+    if (Math.abs(lufs - target) < 0.02) break;
+    gain *= Math.pow(10, (target - lufs) / 20);
+  }
+  let peak = 0;
+  for (const x of [truePeaks(outL), truePeaks(outR)]) for (let i = 0; i < x.length; i++) if (x[i] > peak) peak = x[i];
+  tp = 20 * Math.log10(peak);
+  return { left: Float32Array.from(outL), right: Float32Array.from(outR), stats: { lufs, truePeakDb: tp, gainDb: 20 * Math.log10(gain), limiterDb: gr } };
+}
+
+async function renderScore({ mastered = true, solo = null } = {}) {
+  const LOOPS = 3, ctx = new OfflineAudioContext({ numberOfChannels: 2, length: SR * DUR * LOOPS, sampleRate: SR });
+  const S = { ctx, solo, noise: makeNoise(ctx, 2, 0xC1A0DE) };
+  S.dry = ctx.createGain(); S.dry.connect(ctx.destination);
+  const room = ctx.createConvolver(); room.normalize = true; room.buffer = makeRoom(ctx, 2.2, 0x2004);
+  const roomOut = ctx.createGain(); roomOut.gain.value = 0.28;
+  S.rev = ctx.createGain(); S.rev.connect(room); room.connect(roomOut); roomOut.connect(ctx.destination);
+  for (let n = 0; n < LOOPS; n++) scoreLoop(S, n * DUR);
+  const buf = await ctx.startRendering(), a = SR * DUR;
+  const left = buf.getChannelData(0).slice(a, 2 * a), right = buf.getChannelData(1).slice(a, 2 * a);
+  if (!mastered) return { left, right, sampleRate: SR, stats: { lufs: loudness(left, right) } };
+  return { ...master(left, right), sampleRate: SR };
+}
+
+// ───────────────────────────── start ─────────────────────────────
+async function boot() {
+  const fontLoad = Promise.all([
+    document.fonts.load('500 28px "Geist Mono"'),
+    document.fonts.load('500 160px "Geist Mono"'),
+  ]);
+  await Promise.race([fontLoad, new Promise(r => setTimeout(r, 8000))]);
+  rulerFace.material.map = buildRulerTexture();
+  rulerFace.material.needsUpdate = true;
+  renderAt(0);
+}
+window.renderAt = renderAt;
+window.renderScore = renderScore;
+window.loopInfo = { fps: FPS, frames: FRAMES, size: SIZE, duration: DUR };
+window.debug = {
+  renderer, scene, camera, composer, bloomComposer, finalPass, update, frameOf,
+  bodyAt, cameraAt, LIMBS, playheadX, keyLevel, rimLevel, topLevel,
+  project(x, y, z, t) {
+    if (t !== undefined) update(frameOf(t));
+    const p = new THREE.Vector3(x, y, z).project(camera);
+    return [(p.x + 1) / 2 * SIZE, (1 - p.y) / 2 * SIZE];
+  },
+  mascotFace(t) {                                            // pixel at the middle of the lit front face, below the eyes
+    update(frameOf(t));
+    const p = new THREE.Vector3(0, LEG_H + 0.32, BODY_D / 2 * VOX + 0.01);
+    squash.localToWorld(p);
+    p.project(camera);
+    return [(p.x + 1) / 2 * SIZE, (1 - p.y) / 2 * SIZE];
+  },
+};
+window.ready = boot();
+
+// Playback: the page loops on its own; a click starts the score, and the picture follows its clock.
+if (!CAPTURE) {
+  const hold = QUERY.has('frame') ? Number(QUERY.get('frame')) / FPS : null;
+  let audio = null, startAt = 0, clockStart = performance.now();
+  const now = () => audio && audio.ctx.state === 'running' ? audio.ctx.currentTime - startAt : (performance.now() - clockStart) / 1000;
+  window.ready.then(() => {
+    const tick = () => { renderAt(hold ?? now()); if (hold === null) requestAnimationFrame(tick); };
+    tick();
+  });
+  stage.addEventListener('click', async () => {
+    if (!audio) {
+      const ctx = new AudioContext({ sampleRate: SR });
+      const s = await renderScore();
+      const buf = ctx.createBuffer(2, s.left.length, SR);
+      buf.copyToChannel(s.left, 0); buf.copyToChannel(s.right, 1);
+      const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true; src.connect(ctx.destination);
+      startAt = ctx.currentTime + 0.1; src.start(startAt);
+      audio = { ctx, src };
+      document.getElementById('hint').textContent = 'click to mute';
+    } else if (audio.ctx.state === 'running') {
+      clockStart = performance.now() - (audio.ctx.currentTime - startAt) * 1000;
+      await audio.ctx.suspend(); document.getElementById('hint').textContent = 'click for sound';
+    } else {
+      await audio.ctx.resume(); startAt = audio.ctx.currentTime - (performance.now() - clockStart) / 1000;
+      document.getElementById('hint').textContent = 'click to mute';
+    }
+  });
+}
+</script>
+</body>
+</html>
