@@ -3,7 +3,8 @@
  *
  * Declares  characters: CHARS (role -> file name), FACINGS, WALK, WALKERS, ART (each
  *           figure's cell, scale and proportions), STOCK_ART, artOf, artRise, artDrop,
- *           ACT (the strike's timing, ms), sortDepth, facingFor, CHAR_LABELS;
+ *           ACT (the strike's timing, ms), FEEL and springBack (how a blow and an
+ *           arrival move, and the hold on heavy blows), sortDepth, facingFor, CHAR_LABELS;
  *           the hero: HERO_SIZE, HP_BAR, HERO_BAR_UP, HERO_RING_DOWN, PORTRAIT, WEAR and
  *           WORN (dyes tried by ?wear=);
  *           icons: ICON_FRAMES (the frames of assets/icons/*.png, in order: printed by
@@ -119,6 +120,23 @@ const STOCK_ART = { still: 96, cell: WALK.cell, per: WALK.frames + 1, scale: 1 }
 const artOf = char => ART[char] || STOCK_ART;
 // A strike: how long a figure is drawn back, strikes, and comes out of it, in ms.
 const ACT = { cells: 3, back: 70, strike: 100, out: 70 };
+// How a blow and an arrival move (requirements 2.50). Struck, a figure squashes and springs
+// back past round before it settles (damping ratio 0.4, 7 Hz: follow-through), where it
+// used to fade straight back in 140 ms. Arriving, it overshoots its size a little and
+// settles (ease-out-back). The heaviest blows hold the fight still for a few frames, so
+// they land. A toast leaves in about half the time it took to come.
+const FEEL = {
+  squash: { ms: 320, x: 0.17, y: 0.15, zeta: 0.4, hz: 7 },
+  pop: { ms: 260 },
+  hitStop: { slam: 55, boss: 110, elite: 45, hitFrom: 0.12, hitMin: 40, hitMax: 90 },
+  toast: { in: 200, hold: 700, out: 110 },
+};
+// A damped spring let go from 1 at rest: 1 at t = 0, through 0, a little past, and back.
+function springBack(t, zeta, hz) {
+  if (t <= 0) return 1;
+  const w = 2 * Math.PI * hz, k = Math.sqrt(1 - zeta * zeta);
+  return Math.exp(-zeta * w * t) * (Math.cos(w * k * t) + (zeta / k) * Math.sin(w * k * t));
+}
 // A larger figure stands on the same spot, so its head is higher and its feet lower than
 // the stock figure's would be at the same `size` (what charSprite is asked for). By how
 // much: a cut still has its feet 44% of its height below the middle, and its head as far

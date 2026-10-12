@@ -445,7 +445,7 @@ class LootScene extends SystemsScene {
     const s = e.slam;
     e.slam = null;
     this.release(e);              // the blow itself: out of the wind-up and down
-    e.squash = 140;
+    e.squash = FEEL.squash.ms;
     if (e.telegraphGfx) { e.telegraphGfx.destroy(); e.telegraphGfx = null; }
     e.slamTimer = e.slamCooldown + Phaser.Math.Between(-250, 350);
 
@@ -454,6 +454,7 @@ class LootScene extends SystemsScene {
     else s.blobs.forEach(bl => this.slamFx(bl.x, bl.y, bl.r, SLAM_FX, 4));
     const hit = this.inSlam(s, this.player.x, this.player.y);   // one hit per slam, not per blob
     this.shake(230, SLAM[s.type].shake);
+    this.holdStill(FEEL.hitStop.slam);
     this.sfx('slam-land', { rate: e.isMega ? 0.8 : 1 });
     if (!hit && s.touched && this.boonRank('readslam')) {
       this.slamBuffMs = BOONS.readslam.ms;
@@ -570,7 +571,7 @@ class LootScene extends SystemsScene {
     if (!e || e.hp <= 0) return false;
     if (e.shieldOn) { e.domeHit = 160; return false; }        // the dome flashes where it is struck
     const scale = this.weakScale(e);
-    if (scale < 1) this.resistFx(e); else e.squash = 140;
+    if (scale < 1) this.resistFx(e); else e.squash = FEEL.squash.ms;
     e.hp -= dmg * scale;
     // Vritra must pass through its shield phase: clamp a big hit at the 55% line
     // instead of letting it skip the second half of the fight.
@@ -659,6 +660,7 @@ class LootScene extends SystemsScene {
     };
     this.playerFacing = 'front';
     this.playerAnim = { age: 1e6 };       // the state of the hero's motion (see animate)
+    this.hitStopMs = 0;                   // what is left of a hold on a heavy blow (holdStill)
     this.playerSprite = this.charSprite(CHARS.player, this.player.x, this.player.y, HERO_SIZE);
     // The ring stays a vector circle: it is the phase-colour tell, and must not inherit ship art.
     // Stance ring at the hero's feet, not a circle around the body - a ring around a
@@ -1164,6 +1166,8 @@ class LootScene extends SystemsScene {
   killEnemy(enemy) {
     const spr = this.enemySprites.get(enemy.id);
     if (spr && spr.visible && !this.silent) this.deathFx(enemy, spr);      // it comes apart rather than blinking out
+    if (enemy.isBoss) this.holdStill(FEEL.hitStop.boss);                   // a boss's fall lands
+    else if (enemy.isElite || enemy.type === 'tank') this.holdStill(FEEL.hitStop.elite);
     if (spr) spr.destroy();
     this.enemySprites.delete(enemy.id);
     if (enemy.gateLabel) { enemy.gateLabel.destroy(); enemy.gateLabel = null; }
@@ -1448,6 +1452,7 @@ class LootScene extends SystemsScene {
     if (this.state !== 'playing') return;
     this.pollLessons();
     if (this.state !== 'playing') return;   // a lesson has stopped the fight
+    if (this.hitStopMs > 0) { this.hitStopMs -= delta; return; }   // a heavy blow: the fight holds still a moment (FEEL.hitStop)
     const dt = delta / 1000;
 
     if (this.tejasBtn) {
