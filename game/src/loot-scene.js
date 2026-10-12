@@ -1374,18 +1374,18 @@ class LootScene extends SystemsScene {
     else near = `${bossName} waits ${levelsBelow(this.sector)}.`;
 
     this.clearUI();
-    const say = (y, str, size, colour) => this.uiObjects.push(this.add.text(W/2, y, str,
-      { resolution: RES, fontSize: size + 'px', color: colour }).setOrigin(0.5));
+    const say = (y, str, size, colour) => { const t = this.add.text(W/2, y, str,
+      { resolution: RES, fontSize: size + 'px', color: colour }).setOrigin(0.5); this.uiObjects.push(t); return t; };
     this.uiPanel(W/2, H/2, W-50, 336, victory ? 0x2fbf71 : 0xff5c5c);
     this.uiObjects.push(this.add.text(W/2, H/2-132,
       victory ? (this.bossSlain ? `${bossName.toUpperCase()} SLAIN` : 'EXTRACTED SAFELY') : (abandoned ? 'RUN ABANDONED' : 'YOU FELL'),
       { resolution: RES, fontSize: '24px', color: victory ? '#2fbf71' : '#ff5c5c', fontStyle: 'bold' }).setOrigin(0.5));
     say(H/2-96, victory ? `You surfaced from ${where}.` : (abandoned ? `You turned back in ${where}.` : `You fell in ${where}.`), 13, '#fffbef');
     say(H/2-74, near, 13, this.bossSlain ? '#9fe8d8' : '#ffb38a');
-    if (victory) {
-      say(H/2-40, `${N.currency} banked: ${banked}`, 15, '#ffd23c');
-    } else {
-      say(H/2-44, `${N.currency} gathered: ${this.runGold}`, 15, '#ffd23c');
+    // The haul, with the sign of treasure beside it as on the title screen and the HUD.
+    const haul = victory ? say(H/2-40, `${N.currency} banked: ${banked}`, 15, '#ffd23c') : say(H/2-44, `${N.currency} gathered: ${this.runGold}`, 15, '#ffd23c');
+    if (this.painted) { haul.x += 9; this.uiObjects.push(this.icon(haul.x - haul.width / 2 - 11, haul.y, ['sign-treasure'], 15)); }
+    if (!victory) {
       say(H/2-22, abandoned ? `Half is forfeit. You keep ${banked}.` : `Half is lost in the fall. You keep ${banked}.`, 12, '#ff9a80');
     }
     say(H/2+4, `Treasury: ${session.metaGold} ${N.currency}`, 13, '#c8a96e');

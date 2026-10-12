@@ -1059,13 +1059,24 @@ try {
     const seen = {}, shown = list => { const im = list.filter(o => o.type === 'Image' && /^icons/.test(o.texture.key));
       return { n: im.length, names: im.map(frameOf), tinted: im.filter(o => o.isTinted).length, missing: list.filter(o => o.type === 'Image' && o.texture.key === '__MISSING').length }; };
     s.pauseGame('pause'); await wait(150); seen.pause = shown(s.overlay); s.resumeGame();
+    // Three perks worn, the most there can be: they take two lines on the pause screen, and
+    // every word on it still lies inside the panel, clear of every other.
+    { const was = session.perksOn.slice(); session.perksOn = ['guard', 'eye', 'scale'];
+      s.pauseGame('pause'); await wait(150);
+      const tx = s.overlay.filter(o => o.type === 'Text' && o.text).map(t => ({ t: t.text, l: t.x - t.width * t.originX, top: t.y - t.height * t.originY, w: t.width, h: t.height }));
+      const meet = (a, b) => a.l < b.l + b.w && b.l < a.l + a.w && a.top < b.top + b.h && b.top < a.top + a.h;
+      out.pausePerks = { perks: tx.filter(a => Object.values(PERKS).some(p => p.name === a.t)).length, icons: shown(s.overlay).names.filter(n => n.startsWith('perk-')).length,
+        spill: tx.filter(a => a.l < 32 || a.l + a.w > 368 || a.top + a.h > 683 - 8).map(a => a.t.slice(0, 24)),
+        overlap: tx.flatMap((a, i) => tx.slice(i + 1).filter(b => meet(a, b)).map(b => a.t.slice(0, 16) + ' / ' + b.t.slice(0, 16))) };
+      s.resumeGame(); session.perksOn = was; }
     s.pauseGame('profile'); await wait(150); seen.profile = shown(s.overlay); s.closeOverlay(); s.resumeGame();
     s.pauseGame('satchel'); await wait(150); seen.satchel = shown(s.overlay); s.closeOverlay(); s.resumeGame();
     s.queueBoon(); s.openBoons(); await wait(150); seen.boons = shown(s.overlay); s.closeBoons();
     out.hud = { coin: !!s.goldSign && s.goldSign.visible && frameOf(s.goldSign) === 'sign-treasure', power: !!s.powerSign && frameOf(s.powerSign) === 'sign-power',
       phase: !!s.phaseSign && frameOf(s.phaseSign) === 'hud-' + s.phase, satchel: frameOf(s.satchelTabIcon) === 'hud-satchel', gold: s.goldText.text };
-    s.endRun(false); await wait(200); s.showHub(); await wait(200);
+    s.endRun(false); await wait(200); seen.summary = shown(s.uiObjects); s.showHub(); await wait(200);
     s.showHowTo(2, () => {}); await wait(120); seen.howto = shown(s.overlay); s.closeOverlay();
+    s.showHowTo(s.howToCards(false).findIndex(c => c.title === 'THE COSMIC CYCLE'), () => {}); await wait(120); seen.cycle = shown(s.overlay); s.closeOverlay();
     for (const tab of ['weapons', 'trinkets', 'tejas', 'boons']) { s.showCodex(tab); await wait(80); seen[tab] = shown(s.uiObjects); }
     s.showHub();
     out.seen = seen;
@@ -1092,8 +1103,11 @@ try {
       Object.values(v).every(k => k.n > 0 && k.tinted === 0 && k.missing === 0) && has('pause', 'loot-venom-rare') && has('pause', 'loot-aegis-epic') && has('pause', 'sign-poison') && has('pause', 'boon-fork')
       && has('profile', 'sign-health') && has('profile', 'sign-shield') && has('profile', 'sign-damage') && has('profile', 'sign-power') && has('profile', 'boon-keen') && v.profile.names.some(n => n.startsWith('perk-'))
       && has('satchel', 'loot-chain-epic') && has('satchel', 'loot-swift-common') && v.boons.names.filter(n => n.startsWith('boon-')).length >= 3
-      && has('howto', 'loot-chain-common') && has('howto', 'loot-mystery') && has('tejas', 'sign-lightning') && v.boons.n >= 3 && v.weapons.n === 4 && v.trinkets.n === 5,
+      && has('howto', 'loot-chain-common') && has('howto', 'loot-mystery') && has('tejas', 'sign-lightning') && v.boons.n >= 3 && v.weapons.n === 4 && v.trinkets.n === 5
+      && v.pause.names.some(n => n.startsWith('perk-')) && has('summary', 'sign-treasure') && ['drift', 'surge', 'eclipse', 'convergence'].every(k => has('cycle', 'hud-' + k)),
       total + ' icons on ' + Object.keys(v).length + ' screens; ' + Object.entries(v).map(([k, o]) => k + ' ' + o.n).join(', ')); }
+  check('three perks worn show on the pause screen in two lines, each with its sign, and every word there stays in the panel clear of the others',
+    icons.pausePerks.perks === 3 && icons.pausePerks.icons === 3 && icons.pausePerks.spill.length === 0 && icons.pausePerks.overlap.length === 0, JSON.stringify(icons.pausePerks));
   check('the HUD carries the signs of treasure, power, the phase and the satchel beside their words and numbers',
     icons.hud.coin && icons.hud.power && icons.hud.phase && icons.hud.satchel && /^\S+: \d+$/.test(icons.hud.gold), JSON.stringify(icons.hud));
 
