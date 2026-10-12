@@ -1001,7 +1001,7 @@ const hitTime = f => (f + 1) / FPS;
 const xPan = x => clamp(x / 6.5, -0.85, 0.85);
 
 function scoreLoop(S, t0) {
-  const ctx = S.ctx, at = f => t0 + hitTime(f);
+  const ctx = S.ctx, at = (f, leadMs = 0) => t0 + hitTime(f) - leadMs / 1000;   // lead: the hit's rise, so its peak lands on frame + 1
   const R = id => mulberry32(id * 7919 + 13);              // each event has its own seed, the same every loop
 
   let part = '';                                            // which stem the next sounds belong to
@@ -1035,8 +1035,8 @@ function scoreLoop(S, t0) {
       if (l !== prev) { vca.gain.setTargetAtTime(l * gain, at(f), l > prev ? 0.005 : 0.012); prev = l; }
     }
   };
-  pad(57, keyLevel, -0.3, 0.062); pad(64, keyLevel, 0.3, 0.053);
-  pad(72, topLevel, 0.15, 0.038); pad(79, rimLevel, -0.55, 0.028);
+  pad(57, keyLevel, -0.3, 0.078); pad(64, keyLevel, 0.3, 0.067);
+  pad(72, topLevel, 0.15, 0.048); pad(79, rimLevel, -0.55, 0.035);
 
   // Shaker 8ths from 45; kick and bass from 60; kick and shaker rest 330 to 420.
   const rest = f => f >= 330 && f < 420;
@@ -1046,7 +1046,7 @@ function scoreLoop(S, t0) {
     const t = at(f), accent = (f / 15) % 2 ? 1 : 0.6, o = out(0.35, 0.08);
     const n = noise(t, 0.12, 100 + f), hp = filt('highpass', 6500, 0.7), bp = filt('bandpass', 9500, 1.1), g = ctx.createGain();
     n.connect(hp); hp.connect(bp); bp.connect(g); g.connect(o.g);
-    env(g.gain, t, 0.004, 0.26 * accent, 0.07);
+    env(g.gain, t, 0.004, 0.3 * accent, 0.07);
   }
   part = 'kick';
   for (let f = 60; f < T.off; f += 30) {
@@ -1077,18 +1077,18 @@ function scoreLoop(S, t0) {
   for (let f = 420; f < T.off; f += 30) bass(f, Math.min(0.4, (T.off - f) / FPS - 0.02), 41);
 
   // Clicks: the lights on at 6, 24, 42, all off at 468.
-  const click = (f, pan, big) => {
-    const t = at(f), o = out(pan, big ? 0.35 : 0.2);
-    for (const [dt, amp, fc] of [[0, 0.5, 2600], [0.011, 0.32, 4300]]) {
+  const click = (f, pan, big, gain = 1) => {
+    const t = at(f, 2.2), o = out(pan, big ? 0.35 : 0.2, gain);
+    for (const [dt, amp, fc] of [[0, 0.63, 2600], [0.011, 0.4, 4300]]) {
       const n = noise(t + dt, 0.03, 300 + f + dt * 1000), bp = filt('bandpass', fc, 1.8), g = ctx.createGain();
       n.connect(bp); bp.connect(g); g.connect(o.g); env(g.gain, t + dt, 0.0006, amp * (big ? 1.3 : 1), 0.028);
     }
     const th = osc('sine', 140, t, t + 0.3), tg = ctx.createGain();
     th.frequency.setValueAtTime(big ? 120 : 170, t); th.frequency.exponentialRampToValueAtTime(big ? 45 : 80, t + (big ? 0.16 : 0.06));
-    th.connect(tg); tg.connect(o.g); env(tg.gain, t, 0.002, big ? 0.55 : 0.3, big ? 0.26 : 0.09);
+    th.connect(tg); tg.connect(o.g); env(tg.gain, t, 0.002, big ? 0.55 : 0.38, big ? 0.26 : 0.09);
   };
   part = 'clicks';
-  click(T.keyOn, 0.6); click(T.rimOn, -0.6); click(T.topOn, 0.15); click(T.off, 0, true);
+  click(T.keyOn, 0.6); click(T.rimOn, -0.6); click(T.topOn, 0.15, false, 1.4); click(T.off, 0, true);   // the top spot's click sits over two pads already playing
 
   // Crouches: a creak and an inhale that rises to the takeoff.
   part = 'crouches';
@@ -1098,8 +1098,8 @@ function scoreLoop(S, t0) {
     const cr = osc('sawtooth', 26, t, t + dur + 0.05), b1 = filt('bandpass', 780, 8), b2 = filt('bandpass', 1650, 6), cg = ctx.createGain();
     cr.frequency.setValueAtTime(24, t); cr.frequency.exponentialRampToValueAtTime(i === 4 ? 70 : 58, t + dur * 0.9);
     cr.connect(b1); cr.connect(b2); b1.connect(cg); b2.connect(cg); cg.connect(o.g);
-    cg.gain.setValueAtTime(0.0001, t); cg.gain.exponentialRampToValueAtTime(0.85, t + 0.02);
-    cg.gain.setValueAtTime(0.85, t + dur * 0.55); cg.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    cg.gain.setValueAtTime(0.0001, t); cg.gain.exponentialRampToValueAtTime(1.35, t + 0.02);
+    cg.gain.setValueAtTime(1.35, t + dur * 0.55); cg.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     const n = noise(t, dur + 0.02, 400 + f), bp = filt('bandpass', 500, 1.4), ng = ctx.createGain();
     bp.frequency.setValueAtTime(500, t); bp.frequency.exponentialRampToValueAtTime(i === 4 ? 3400 : 2600, t + dur);
     n.connect(bp); bp.connect(ng); ng.connect(o.g);
@@ -1109,32 +1109,32 @@ function scoreLoop(S, t0) {
   // Takeoffs: an upward swish.
   part = 'takeoffs';
   [...T.take.map((f, k) => [f, DX[k]]), [T.flipTake, DX[4]]].forEach(([f, x], i) => {
-    const t = at(f), o = out(xPan(x), 0.2), big = i === 4;
+    const t = at(f, i === 4 ? 14 : 10), o = out(xPan(x), 0.2), big = i === 4;
     const n = noise(t, 0.3, 500 + f), bp = filt('bandpass', 700, 1.6), g = ctx.createGain();
     bp.frequency.setValueAtTime(700, t); bp.frequency.exponentialRampToValueAtTime(big ? 6500 : 5200, t + 0.14);
-    n.connect(bp); bp.connect(g); g.connect(o.g); env(g.gain, t, 0.008, big ? 0.75 : 0.6, 0.2);
+    n.connect(bp); bp.connect(g); g.connect(o.g); env(g.gain, t, 0.008, big ? 2.2 : 1.9, 0.3);
     const w = osc('sine', 260, t, t + 0.2), wg = ctx.createGain();
     w.frequency.setValueAtTime(260, t); w.frequency.exponentialRampToValueAtTime(1100, t + 0.09);
-    w.connect(wg); wg.connect(o.g); env(wg.gain, t, 0.004, 0.16, 0.11);
+    w.connect(wg); wg.connect(o.g); env(wg.gain, t, 0.004, 0.45, 0.11);
   });
 
   // Landings: a rubber squash pitched by the squash scale, and the sparks' tings. 384 is the biggest.
   part = 'landings';
   const NOTES = [60, 62, 65, 67, 53];                        // C4 D4 F4 G4, then F3 for the flip
   LANDINGS.forEach(([f, x, sq], i) => {
-    const t = at(f), big = i === 4, o = out(xPan(x), 0.22), [sx, sy] = sq, f0 = midiHz(NOTES[i]);
+    const t = at(f, i === 4 ? 9 : 5.5), big = i === 4, o = out(xPan(x), 0.22), [sx, sy] = sq, f0 = midiHz(NOTES[i]);
     const glide = big ? 0.15 : 0.09;
     const v = osc('triangle', f0, t, t + 0.6), v2 = osc('sine', f0, t, t + 0.6), lp = filt('lowpass', 1800, 4), g = ctx.createGain();
     for (const p of [v.frequency, v2.frequency]) { p.setValueAtTime(f0 * sx / sy, t); p.exponentialRampToValueAtTime(f0 * sy, t + glide); }
     v2.detune.value = -1200;
     v.connect(lp); v2.connect(lp); lp.connect(g); g.connect(o.g);
-    env(g.gain, t, 0.005, big ? 0.32 : 0.24, big ? 0.42 : 0.26);
+    env(g.gain, t, 0.005, big ? 0.36 : 0.3, big ? 0.42 : 0.26);
     const n = noise(t, 0.08, 600 + f), nl = filt('lowpass', 1100, 1), ng = ctx.createGain();
-    n.connect(nl); nl.connect(ng); ng.connect(o.g); env(ng.gain, t, 0.002, big ? 0.22 : 0.15, 0.05);
+    n.connect(nl); nl.connect(ng); ng.connect(o.g); env(ng.gain, t, 0.002, big ? 0.24 : 0.19, 0.05);
     if (big) {
       const sub = osc('sine', 70, t, t + 0.6), sg = ctx.createGain();
       sub.frequency.setValueAtTime(75, t); sub.frequency.exponentialRampToValueAtTime(38, t + 0.3);
-      sub.connect(sg); sg.connect(o.g); env(sg.gain, t, 0.012, 0.3, 0.42);
+      sub.connect(sg); sg.connect(o.g); env(sg.gain, t, 0.003, 0.24, 0.42);
     }
     const r = R(700 + f), POOL = [89, 91, 93, 96, 98, 101]; // F6 G6 A6 C7 D7 F7
     for (let s = 0; s < 12; s++) {
@@ -1150,19 +1150,19 @@ function scoreLoop(S, t0) {
   // Label pings: A5 C6 D6 F6 A6.
   part = 'pings';
   [[69, 81], [140, 84], [200, 86], [285, 89], [303, 93]].forEach(([f, m]) => {
-    const t = at(f), o = out(-0.45, 0.5);
+    const t = at(f, 4.2), o = out(-0.45, 0.5, f === 303 ? 1.3 : 1);   // the last one sits over the dot ticks
     [[1, 1], [2, 0.18], [3.01, 0.06]].forEach(([mul, a]) => {
       const p = osc('sine', midiHz(m) * mul, t, t + 1.4), g = ctx.createGain();
-      p.connect(g); g.connect(o.g); env(g.gain, t, 0.004, 0.13 * a, 1.1 / mul);
+      p.connect(g); g.connect(o.g); env(g.gain, t, 0.004, 0.21 * a, 1.1 / mul);
     });
   });
 
   // Dot ticks 303 to 318, panned with the arc as it draws.
   part = 'ticks';
   for (let f = T.arcFrom; f <= T.arcTo; f++) {
-    const i = f - T.arcFrom, t = at(f), x = arcPoint(i / (T.arcTo - T.arcFrom)).x, o = out(xPan(x), 0.25);
+    const i = f - T.arcFrom, t = at(f, 1.2), x = arcPoint(i / (T.arcTo - T.arcFrom)).x, o = out(xPan(x), 0.25);
     const p = osc('sine', 2200 * Math.pow(2, i / 20), t, t + 0.05), g = ctx.createGain();
-    p.connect(g); g.connect(o.g); env(g.gain, t, 0.001, 0.11, 0.018);
+    p.connect(g); g.connect(o.g); env(g.gain, t, 0.001, 0.35, 0.018);
   }
 
   // The flip's whoosh, 330 to 384: brightest at the fastest turn, travelling right to left.
@@ -1183,9 +1183,9 @@ function scoreLoop(S, t0) {
   // The blink's blip.
   part = 'blip';
   {
-    const t = at(T.blink), o = out(xPan(DX[0]), 0.2), p = osc('sine', 1600, t, t + 0.1), g = ctx.createGain();
+    const t = at(T.blink, 2), o = out(xPan(DX[0]), 0.2), p = osc('sine', 1600, t, t + 0.1), g = ctx.createGain();
     p.frequency.setValueAtTime(1600, t); p.frequency.exponentialRampToValueAtTime(2500, t + 0.03);
-    p.connect(g); g.connect(o.g); env(g.gain, t, 0.002, 0.22, 0.05);
+    p.connect(g); g.connect(o.g); env(g.gain, t, 0.002, 0.67, 0.05);
   }
 }
 
@@ -1311,7 +1311,9 @@ async function renderScore({ mastered = true, solo = null } = {}) {
   const buf = await ctx.startRendering(), a = SR * DUR;
   const left = buf.getChannelData(0).slice(a, 2 * a), right = buf.getChannelData(1).slice(a, 2 * a);
   if (!mastered) return { left, right, sampleRate: SR, stats: { lufs: loudness(left, right) } };
-  return { ...master(left, right), sampleRate: SR };
+  // AAC lifts true peak by about 0.5 dB, so the WAV is limited to about -2 dBTP and the MP4 made
+  // from it still stays under -1.
+  return { ...master(left, right, -14, -1.65), sampleRate: SR };
 }
 
 // ───────────────────────────── start ─────────────────────────────

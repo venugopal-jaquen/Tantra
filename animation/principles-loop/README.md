@@ -5,15 +5,18 @@ a timeline. The pixel Claude mascot, built of 0.1 voxels, hops along it to show 
 of animation: anticipation, squash and stretch, overlapping action, follow-through and arcs. The
 score is synthesised in the page with the Web Audio API.
 
-Made 2026-10-12 from the founder's spec, its four rounds of revisions and its sound prompt.
-Each is quoted below with where it lives in the code. It has nothing to do with the game.
+Made 2026-10-12 from the spec the founder sent, its four rounds of revisions and its sound
+prompt. They are Experiment 2 of Florence's (@flxrnc) X Article *Opus 5.5 Motion Lab*, which
+`docs/animation-prompting-best-practices.md` summarises. Each is quoted below with where it lives
+in the code. It has nothing to do with the game. `principles-loop-contact.jpg` is a contact
+sheet: every 40th frame.
 
 | File | What it is |
 |---|---|
 | `index.html` | The loop: one page, three.js 0.160.0 from jsDelivr through an import map, Geist Mono from Google Fonts |
 | `render.mjs` | Renders the page in headless Chromium: 480 frames, the score as a WAV, both muxed into the MP4 |
-| `principles-loop.mp4` | The render: H.264 at CRF 16, AAC 320 kb/s, 8.000 s |
-| `principles-loop.wav` | The score: 48 kHz, stereo, 24-bit, -14 LUFS, -1.3 dBTP, loops without a seam |
+| `principles-loop.mp4` | The render: H.264 High at CRF 20 (4.1 MB), AAC 320 kb/s, 8.000 s, 480 frames |
+| `principles-loop.wav` | The score: 48 kHz, stereo, 24-bit, -14 LUFS, -2.0 dBTP, loops without a seam |
 
 ## Watching it
 
@@ -28,6 +31,7 @@ node animation/principles-loop/render.mjs              # all 480 frames, the sco
 node animation/principles-loop/render.mjs --frames=0,105,384   # stills into .cache/stills/
 node animation/principles-loop/render.mjs --probe=60,450       # colours at the mascot's face and diamond 3
 node animation/principles-loop/render.mjs --audio              # the score alone, with ffmpeg's loudness reading
+node animation/principles-loop/render.mjs --mux                # the MP4 again from frames already rendered
 ```
 
 It needs Node 18+, Playwright with Chromium, ffmpeg, curl and tar. On a machine without a GPU
@@ -110,13 +114,29 @@ is 1.15, the body springs back at 3.2 Hz, and the arc's dots are 0.075 cubes, 30
 **4. The top spot: a 34° pool at 45 cd, with a glowing lens rim.** A SpotLight with a 17°
 half-angle at 45 candela, and an emissive ring at the lens.
 
-**Sound.** Everything is synthesised in `scoreLoop`: 120 BPM, 4 bars, F major, every hit one
-frame after its picture. The score is rendered as three loops and the middle one kept, so tails
-wrap round the seam. `master()` measures loudness (BS.1770-4) and true peak (4x oversampled)
-round the loop, sets the gain and limits with look-ahead. Mastering adds 6.9 dB, and the
-limiter works at most 4.3 dB, on the flip's landing. The landing squashes are pitched by their
-squash. Each glides from `note x sx/sy` down to `note x sy`, on C4 D4 F4 G4, and F3 for the
-flip.
+**Sound.** Everything is synthesised in `scoreLoop`: 120 BPM, 4 bars, F major. The score is
+rendered as three loops and the middle one kept, so tails wrap round the seam. The landing
+squashes are pitched by their squash. Each glides from `note x sx/sy` down to `note x sy`, on
+C4 D4 F4 G4, and F3 for the flip.
+
+It was then checked the way the source article checks its scores (docs/animation-prompting-best-practices.md §7),
+by measuring stems, not by listening:
+
+- **Each hit's first peak lands on frame + 1.** Hits are scheduled a few ms early by their rise
+  time (the `lead` in `at(f, leadMs)`). Measured on the isolated stems, clicks, landings, pings
+  and the blip peak 0 to 2.5 ms after frame + 1, and takeoffs within 3 ms.
+- **Hits sit 3 to 6 dB over the bed**, K-weighted over their first 60 ms. Landings measure 3.9 to
+  6.2 dB (6.2 is the flip's), takeoffs 4.2 to 6.6, pings 4.5 to 5.3, the blip 3.1. The quieter
+  ones share a frame with another hit: the ping at 69 rides on the crouch's creak, and the
+  takeoff at 330 rides under the flip's whoosh.
+- **-14 LUFS, and under -1 dBTP in the MP4.** `master()` measures loudness (BS.1770-4) and true
+  peak (4x oversampled) round the loop, then limits with look-ahead. AAC lifted the true peak by
+  about 0.5 dB, from -1.3 in the WAV to -0.9 in the MP4. So the WAV is limited to -2.0 dBTP, and
+  the decoded MP4 reads -13.9 LUFS and -1.8 dBTP (-1.4 looped three times). The limiter takes
+  up to 5.8 dB off the noise swishes' peaks.
+- **The MP4's copy of the score** fades in and out over 2 ms (raised cosine), because AAC pads
+  the start of the track and a looping player would otherwise step at the seam. Decoded, it lines
+  up with the WAV to the sample. The WAV stays the seamless master.
 
 ## Grading
 

@@ -5,6 +5,7 @@
 //   node animation/principles-loop/render.mjs --frames=0,105,384 [--calib]   just those frames, as PNGs
 //   node animation/principles-loop/render.mjs --probe=60,300  colours at the mascot's face and diamond 3
 //   node animation/principles-loop/render.mjs --audio         the score alone
+//   node animation/principles-loop/render.mjs --mux           the MP4 again from the frames and WAV already made
 //
 // The page asks for three.js on jsDelivr and Geist Mono on Google Fonts. Each is fetched once
 // with curl into .cache/ and served from there, so a render is repeatable and works behind a
@@ -173,7 +174,7 @@ async function main() {
       return;
     }
 
-    const doVideo = !args.audio, doAudio = !args['no-audio'];
+    const doVideo = !args.audio, doAudio = !args['no-audio'] && !args.mux;
     if (doAudio) {
       const page = await openPage(browser);
       const t0 = Date.now();
@@ -190,29 +191,34 @@ async function main() {
     }
     if (!doVideo) return;
 
-    const { frames } = { frames: 480 };
-    const workers = Number(args.workers || 2);
-    fs.mkdirSync(OUT.frames, { recursive: true });
-    const pages = await Promise.all(Array.from({ length: workers }, () => openPage(browser)));
-    const t0 = Date.now();
-    let done = 0;
-    await Promise.all(pages.map(async (page, w) => {
-      for (let f = w; f < frames; f += workers) {
-        const png = await grab(page, f);
-        fs.writeFileSync(path.join(OUT.frames, `${String(f).padStart(4, '0')}.png`), Buffer.from(png, 'base64'));
-        if (++done % 24 === 0) console.log(`${done}/${frames} frames, ${((Date.now() - t0) / done / 1000 * workers).toFixed(2)} s a frame a worker`);
-      }
-    }));
-    // Frame 480 must be frame 0.
-    const a = await grab(pages[0], 0), b = await grab(pages[0], 480);
-    console.log(a === b ? 'frame 480 == frame 0: identical' : 'frame 480 != frame 0');
+    const frames = 480;
+    if (!args.mux) {
+      const workers = Number(args.workers || 2);
+      fs.mkdirSync(OUT.frames, { recursive: true });
+      const pages = await Promise.all(Array.from({ length: workers }, () => openPage(browser)));
+      const t0 = Date.now();
+      let done = 0;
+      await Promise.all(pages.map(async (page, w) => {
+        for (let f = w; f < frames; f += workers) {
+          const png = await grab(page, f);
+          fs.writeFileSync(path.join(OUT.frames, `${String(f).padStart(4, '0')}.png`), Buffer.from(png, 'base64'));
+          if (++done % 24 === 0) console.log(`${done}/${frames} frames, ${((Date.now() - t0) / done / 1000 * workers).toFixed(2)} s a frame a worker`);
+        }
+      }));
+      // Frame 480 must be frame 0.
+      const a = await grab(pages[0], 0), b = await grab(pages[0], 480);
+      console.log(a === b ? 'frame 480 == frame 0: identical' : 'frame 480 != frame 0');
+    }
 
     const enc = ['-y', '-hide_banner', '-loglevel', 'error', '-framerate', '60', '-i', path.join(OUT.frames, '%04d.png')];
     if (fs.existsSync(OUT.wav)) enc.push('-i', OUT.wav);
     enc.push('-map', '0:v:0');
-    if (fs.existsSync(OUT.wav)) enc.push('-map', '1:a:0', '-c:a', 'aac', '-b:a', '320k', '-ar', '48000');
+    // AAC pads the start of the track, so a looping player steps at the seam: the MP4's copy of the
+    // score gets a 2 ms raised-cosine fade at each end. The WAV stays the seamless master.
+    if (fs.existsSync(OUT.wav)) enc.push('-map', '1:a:0', '-af', 'afade=t=in:d=0.002:curve=hsin,afade=t=out:st=7.998:d=0.002:curve=hsin',
+      '-c:a', 'aac', '-b:a', '320k', '-ar', '48000');
     enc.push('-vf', 'scale=in_range=full:out_range=tv:out_color_matrix=bt709,format=yuv420p',
-      '-c:v', 'libx264', '-preset', 'slow', '-crf', String(args.crf || 16), '-profile:v', 'high',
+      '-c:v', 'libx264', '-preset', 'slow', '-crf', String(args.crf || 20), '-profile:v', 'high',
       '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
       '-frames:v', '480', '-t', '8', '-movflags', '+faststart', OUT.mp4);
     execFileSync('ffmpeg', enc, { stdio: 'inherit' });
