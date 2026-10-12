@@ -178,3 +178,43 @@ flagged one caution and asked which word the founder means: Sanskrit *ānantarya
 succession, without interval", but in Buddhist texts *ānantarya-karma* is the term for the five
 gravest acts — the same class of problem as Kalachakra under *indian-cultural-identity-pivot*.
 No Devanagari is shown for the title until the founder confirms the intended word.
+
+## animation-loop-prompts
+
+*Short animated pieces are prompted, built and checked by docs/animation-prompting-best-practices.md (saved 2026-10-12).*
+
+On 2026-10-12 the founder sent Florence's X Article *Opus 5.5 Motion Lab: Make Claude Animate
+Like a Studio* (<https://x.com/flxrnc/status/2105311836190978392>) and asked for its information
+and instructions to be saved as best practices. The doc summarises it: the render contract, the
+GOAL / OUTPUT / TIME / LOOK / MOTION / SHOTS / BANNED / QA template, the motion numbers, the
+render-look-fix loop, sound, loops and export for X. It adds what building the article's
+Experiment 2 here taught (`animation/principles-loop/`). x.com was blocked at first; the founder
+added it to the cloud environment's allowed domains.
+
+**Why:** a vague prompt buys the model's default look. Numbers, frame ranges, hex colours and a
+ban list take each decision back, and a pure `renderAt(t)` makes every frame checkable.
+
+**How to apply:** for any clip, trailer or store-page motion, write the prompt on that template
+with the render contract under it. Check by measuring, not by eye: stills and contact sheets at
+named frames, colours sampled, props projected against UI regions on every frame, frame N-1
+flowing into 0, and for sound the first peak on frame + 1, hits 3 to 6 dB over the bed, -14 LUFS
+and -1 dBTP in the decoded MP4.
+
+## motion-tools-for-launch
+
+*For any launch or devlog motion (trailer, store GIF, animated short, title motion), start from docs/motion-tools-for-launch.md (saved 2026-10-12).*
+
+The founder sent Mnimiy's X post of 15 motion repos and kits (HyperFrames, Remotion, GSAP and
+LottieFiles skills, and community kits for launch videos, footage editing and animated shorts),
+asking for it to be used "wherever and whenever needed during our game development and launch
+tasks".
+
+**Why:** the launch roadmap plans the trailer by hand in OBS and DaVinci Resolve, and the store
+page, advertising and devlogs all need motion. These kits let it be made in code, checked frame
+by frame, and redone cheaply when the cast or the name changes.
+
+**How to apply:** when a task needs motion, open the doc's "Where each fits" table and propose
+the matching kit to the founder. Before installing one, vet it as *vet-assets-before-shortlisting*
+says: licence, last change, and what it runs, since a skill is instructions and scripts an agent
+will follow. The post's descriptions are unchecked. Pair it with
+docs/animation-prompting-best-practices.md for how to prompt and measure.

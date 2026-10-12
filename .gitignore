@@ -18,6 +18,8 @@ tools/_blender/
 # Title pictures being tried, as they came from the tool. The one chosen is added on purpose.
 game/assets/incoming/title-candidate-*
 tools/3d/_work/
+# The animation loop's render cache: fetched libraries and fonts, frames, stills. render.mjs refills it.
+animation/principles-loop/.cache/
 
 # What Python leaves beside the tools it runs.
 __pycache__/
