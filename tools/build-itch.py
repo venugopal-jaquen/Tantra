@@ -54,8 +54,16 @@ title, build = title.group(1), build.group(1)
 # The page's code is the files it names, in the order it names them: every script in
 # game/src and every sheet in game/styles is named once, nothing named is missing, and
 # no code is written into the page itself.
-scripts = re.findall(r'<script\b[^>]*\bsrc="([^"]+)"', html)
-sheets = re.findall(r'<link rel="stylesheet" href="([^"]+)"', html)
+# Each is asked for at the build's own address (?v=0.16; BUILD_TAG in src/config.js), so a
+# player's cache never mixes two builds. The file is the name without it, and every tag
+# must be this build's.
+tag = build.split(" ")[0]
+asked = re.findall(r'<script\b[^>]*\bsrc="([^"]+)"', html) + re.findall(r'<link rel="stylesheet" href="([^"]+)"', html)
+stale = [a for a in asked if not a.startswith("vendor/") and not a.endswith("?v=" + tag)]
+if stale:
+    fail("the page asks for these at another build's address, not ?v=" + tag + ": " + ", ".join(stale))
+scripts = [re.sub(r"\?.*$", "", s) for s in re.findall(r'<script\b[^>]*\bsrc="([^"]+)"', html)]
+sheets = [re.sub(r"\?.*$", "", s) for s in re.findall(r'<link rel="stylesheet" href="([^"]+)"', html)]
 if re.search(r"<script(?![^>]*\bsrc=)", html) or re.search(r"<style\b", html):
     fail("the page carries code or styles of its own: they belong in game/src and game/styles")
 for kind, named, folder, ending in (("script", [n for n in scripts if not n.startswith("vendor/")], "src", ".js"), ("stylesheet", sheets, "styles", ".css")):

@@ -32,12 +32,23 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 // ---------- the page's scripts, in its order ----------
 const html = readFileSync(PAGE, 'utf8');
-const scripts = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map(m => m[1]);
+const named = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map(m => m[1]);
+const scripts = named.map(s => s.replace(/\?.*$/, ''));        // the file, without the build it is asked for at
 const own = scripts.filter(s => !s.startsWith('vendor/'));
 const inSrc = readdirSync(join(GAME, 'src')).filter(n => n.endsWith('.js')).map(n => 'src/' + n).sort();
 check('the page names every script in game/src once, and the engine between those that come before it and those that need it',
   same([...own].sort(), inSrc) && new Set(own).size === own.length && scripts.filter(s => s.startsWith('vendor/')).length === 1 && !/<script(?![^>]*\bsrc=)/.test(html),
   own.length + ' scripts; ' + own.map(s => s.slice(4, -3)).join(' > '));
+
+// Each of the game's own scripts and its stylesheet is asked for at the build's own address
+// (BUILD_TAG, config.js): a phone with the last build in its cache must not mix the two.
+{ const tag = (/const BUILD = '([^ ']+)/.exec(readFileSync(join(GAME, 'src/config.js'), 'utf8')) || [])[1];
+  const sheets = [...html.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)].map(m => m[1]);
+  // and the site's front page sends a player to the game at it too
+  const front = existsSync(join(GAME, '..', 'index.html')) ? [...readFileSync(join(GAME, '..', 'index.html'), 'utf8').matchAll(/(?:url=|href=")(game\/[^"\s>]+)/g)].map(m => m[1]) : [];
+  const untagged = named.filter(s => !s.startsWith('vendor/')).concat(sheets, front).filter(s => !s.endsWith('?v=' + tag));
+  check('the page asks for each of its scripts and its stylesheet at the build\'s own address, ?v=' + tag + ', and the front page sends players there',
+    !!tag && sheets.length === 1 && (PACKAGE || front.length >= 1) && untagged.length === 0, untagged.slice(0, 4).join('; ')); }
 
 // A stand-in for the browser, enough for the scripts to define themselves. `store` is what
 // the browser would keep; `search` is the page's address after the question mark.
@@ -127,7 +138,7 @@ const filesIn = (root) => ['assets/chars', 'assets/floors', 'assets/icons', 'ass
   check('every sheet is whole frames of the size the game cuts it by, with frames enough, and every still is the size ART says', wrong.length === 0, wrong.slice(0, 4).join('; ')); }
 if (PACKAGE) {
   const page = readFileSync(join(PACKAGE, 'index.html'), 'utf8'), named = [...page.matchAll(/<script\b[^>]*\bsrc="([^"]+)"|<link rel="stylesheet" href="([^"]+)"/g)].map(m => m[1] || m[2]);
-  const missing = [...named, ...paths].filter(p => !existsSync(join(PACKAGE, p))), stray = filesIn(PACKAGE).filter(p => !paths.includes(p));
+  const missing = [...named.map(p => p.replace(/\?.*$/, '')), ...paths].filter(p => !existsSync(join(PACKAGE, p))), stray = filesIn(PACKAGE).filter(p => !paths.includes(p));
   const extra = ['incoming', 'music', 'tools', 'docs'].filter(d => existsSync(join(PACKAGE, 'assets', d)) || existsSync(join(PACKAGE, d)));
   check('the package holds every script, sheet, picture and sound the game names, and none of the sources, music or tools',
     missing.length === 0 && stray.length === 0 && extra.length === 0 && same(named, [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"|<link rel="stylesheet" href="([^"]+)"/g)].map(m => m[1] || m[2])),
