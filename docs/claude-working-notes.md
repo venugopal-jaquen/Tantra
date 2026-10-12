@@ -199,3 +199,22 @@ with the render contract under it. Check by measuring, not by eye: stills and co
 named frames, colours sampled, props projected against UI regions on every frame, frame N-1
 flowing into 0, and for sound the first peak on frame + 1, hits 3 to 6 dB over the bed, -14 LUFS
 and -1 dBTP in the decoded MP4.
+
+## motion-tools-for-launch
+
+*For any launch or devlog motion (trailer, store GIF, animated short, title motion), start from docs/motion-tools-for-launch.md (saved 2026-10-12).*
+
+The founder sent Mnimiy's X post of 15 motion repos and kits (HyperFrames, Remotion, GSAP and
+LottieFiles skills, and community kits for launch videos, footage editing and animated shorts),
+asking for it to be used "wherever and whenever needed during our game development and launch
+tasks".
+
+**Why:** the launch roadmap plans the trailer by hand in OBS and DaVinci Resolve, and the store
+page, advertising and devlogs all need motion. These kits let it be made in code, checked frame
+by frame, and redone cheaply when the cast or the name changes.
+
+**How to apply:** when a task needs motion, open the doc's "Where each fits" table and propose
+the matching kit to the founder. Before installing one, vet it as *vet-assets-before-shortlisting*
+says: licence, last change, and what it runs, since a skill is instructions and scripts an agent
+will follow. The post's descriptions are unchecked. Pair it with
+docs/animation-prompting-best-practices.md for how to prompt and measure.

@@ -21,6 +21,7 @@ docs/
   requirements.md           what the game does and why, with the founder's decisions, dated
   design-document.md        milestones, the roadmap, the pinned backlog
   animation-prompting-best-practices.md   how to prompt for, build and check animation loops
+  motion-tools-for-launch.md   which motion kits to reach for, for the trailer, store page and devlogs
   launch-roadmap.md         platforms and costs
   itch-page.md              the store page's text and settings
   pre-launch-security-checklist.md
