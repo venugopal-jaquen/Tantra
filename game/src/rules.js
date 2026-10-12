@@ -306,7 +306,9 @@ const CONVERGENCE_INTERVAL = 90000;
 // day ("reduce the hit circle by 10%"): 1.25 x 0.9.
 const HIT = 1.125;
 // The hero's hit circle: how near an enemy's edge can come, and how near a bolt must pass.
-const HERO_RADIUS = 15 * HIT;
+// A tenth larger than the others' measure, with the hero drawn a quarter larger
+// (2026-10-12, the founder: "hit area 10% bigger").
+const HERO_RADIUS = 15 * HIT * 1.1;
 const INV_MAX = 8;   // satchel capacity; oldest falls out past this
 
 const ENEMY_TYPES = {

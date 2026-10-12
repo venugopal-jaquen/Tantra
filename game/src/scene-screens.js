@@ -198,7 +198,10 @@ class ScreensScene extends FxScene {
   showPauseMenu() {
     this.openOverlay(0.78);
     const cx = W / 2;
-    this.ovPanel(cx, 372, 336, 486);
+    // The perks worn, two to a line, push what is below them down; a player with none
+    // sees the screen as it was.
+    const perks = session.perksOn, more = perks.length ? 24 + 22 * Math.ceil(perks.length / 2) : 0;
+    this.ovPanel(cx, 372 + more / 2, 336, 486 + more);
     this.ovText(cx, N.pauseSub ? 156 : 166, N.pause.toUpperCase(), { fontSize: '26px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
     if (N.pauseSub) this.ovText(cx, 181, N.pauseSub, { fontSize: '11px', color: '#c8a96e' }).setOrigin(0.5);
 
@@ -221,14 +224,22 @@ class ScreensScene extends FxScene {
     else row(314, LOCKED_ICON, `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}`);
     this.ovText(left, 350, 'YOUR BOONS', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
     if (!this.drawBoonRow(left + 16, 374, 18)) this.ovText(left, 367, 'None yet. One comes after every wave.', { fontSize: '10px', color: '#8a7360' });
-    this.ovText(cx, 400, `${this.tier > 1 ? 'Depth ' + this.tier + ' · ' : ''}${stageLabel(this.sector)} · Wave ${Math.min(this.wave, 5)}/5 · ${this.runGold} ${N.currency} this run`,
+    if (more) {
+      this.ovText(left, 396, 'YOUR PERKS', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
+      perks.forEach((key, i) => {
+        const x = left + 16 + (i % 2) * 146, y = 420 + Math.floor(i / 2) * 22;
+        this.ov(this.icon(x, y, perkIcon(key), 18), 102);
+        this.ovText(x + 15, y, PERKS[key].name, { fontSize: '11px', color: '#e2b6ff', fontStyle: 'bold' }).setOrigin(0, 0.5);
+      });
+    }
+    this.ovText(cx, 400 + more, `${this.tier > 1 ? 'Depth ' + this.tier + ' · ' : ''}${stageLabel(this.sector)} · Wave ${Math.min(this.wave, 5)}/5 · ${this.runGold} ${N.currency} this run`,
       { fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
 
-    this.ovButton(cx, 440, 240, 44, 'RESUME', 0x7a3a0a, () => this.resumeGame(), { sound: null, stroke: FORGE.gold, size: 16 });
-    this.ovButton(cx - 62, 488, 116, 38, 'PROFILE', 0x3a1a08, () => this.showProfile(() => this.showPauseMenu()), { stroke: FORGE.gold });
-    this.ovButton(cx + 62, 488, 116, 38, 'HOW TO PLAY', 0x3a1a08, () => this.showHowTo(0, () => this.showPauseMenu()), { size: 12 });
-    this.ovButton(cx, 531, 240, 38, 'SETTINGS', 0x3a1a08, () => this.showSettings(() => this.showPauseMenu()));
-    this.ovButton(cx, 583, 240, 38, 'ABANDON RUN', 0x3a0f08, () => this.showAbandonConfirm(),
+    this.ovButton(cx, 440 + more, 240, 44, 'RESUME', 0x7a3a0a, () => this.resumeGame(), { sound: null, stroke: FORGE.gold, size: 16 });
+    this.ovButton(cx - 62, 488 + more, 116, 38, 'PROFILE', 0x3a1a08, () => this.showProfile(() => this.showPauseMenu()), { stroke: FORGE.gold });
+    this.ovButton(cx + 62, 488 + more, 116, 38, 'HOW TO PLAY', 0x3a1a08, () => this.showHowTo(0, () => this.showPauseMenu()), { size: 12 });
+    this.ovButton(cx, 531 + more, 240, 38, 'SETTINGS', 0x3a1a08, () => this.showSettings(() => this.showPauseMenu()));
+    this.ovButton(cx, 583 + more, 240, 38, 'ABANDON RUN', 0x3a0f08, () => this.showAbandonConfirm(),
       { sound: 'ui-error', color: '#ff9a80' });
   }
 
@@ -428,16 +439,21 @@ class ScreensScene extends FxScene {
         body: `The bar at the top loops through three phases. ${PHASE_DEFS.drift.label} is calm. ${PHASE_DEFS.surge.label} floods the arena but pays richer loot. In ${PHASE_DEFS.eclipse.label} everyone hits 30% harder - you included. Every 90 seconds, ${PHASE_DEFS.convergence.label} brings an elite and the best drops. The ring at your feet always shows the phase.`,
         draw: (cx, cy) => {
           const seq = [['drift', 20], ['surge', 12], ['eclipse', 10]], total = 42, bw = 270;
+          // A phase's sign on a dark stud, as the HUD shows it at the head of its bar.
+          const sign = (k, sx, sy) => { if (!this.painted) return;
+            this.ov(this.add.circle(sx, sy, 11, 0x2a0f04, 1).setStrokeStyle(1.5, FORGE.bronze, 0.9), 102); pic(['hud-' + k], sx, sy, 14); };
           let x = cx - bw / 2;
           seq.forEach(([k, d]) => {
             const w = bw * d / total;
             this.ov(this.add.rectangle(x + w / 2, cy - 36, w - 2, 20, PHASE_DEFS[k].color, 1), 102);
             label(x + w / 2, cy - 36, PHASE_DEFS[k].label, '#1a0600', 9);
+            sign(k, x + w / 2, cy - 12);
             x += w;
           });
           label(cx, cy - 58, 'loops forever', '#8a7360', 8);
           this.ov(this.add.rectangle(cx + 92, cy + 20, 70, 18, PHASE_DEFS.convergence.color, 1), 102);
           label(cx + 92, cy + 20, PHASE_DEFS.convergence.label, '#1a0600', 9);
+          sign('convergence', cx + 43, cy + 20);
           label(cx + 92, cy + 38, 'every 90s', '#8a7360', 8);
           img(`${CHARS.player}-front`, cx - 60, cy + 22, 44);
           this.ov(this.add.ellipse(cx - 60, cy + 38, 34, 13, 0, 0).setStrokeStyle(2, PHASE_DEFS.eclipse.color, 0.95), 102);
