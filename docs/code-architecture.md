@@ -97,6 +97,7 @@ when it opens and drawn again when that changes; nothing keeps a copy.
 | What is saved, or how an old save is read | `persistence.js`; add a fixture to `check-game.mjs` | `check-game` |
 | A boss, a slam, the order of a frame | `loot-scene.js`. Read §6 first | smoke, and `tools/lazy-players.mjs` |
 | What is packaged | `TAKE` in `tools/build-itch.py` | the three commands of §5 |
+| The build number | `BUILD` in `config.js`, **and** the `?v=` tag on every script and the stylesheet in the page and on the front page's link (`requirements.md` §2.51); the loader tags pictures and sounds itself | `check-game` (it fails if a tag differs) |
 
 ## 4. Two worked examples
 
