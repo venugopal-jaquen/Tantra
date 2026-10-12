@@ -322,8 +322,8 @@ cells, one object in each, in this order, left to right, top row first:
  1. Dagger: a plain, quick dagger.
  2. Venom Dagger: a dagger with a green, dripping edge.
  3. Blood Sword: a short sword with a crimson edge and a red drop at the guard.
- 4. Storm Disc: a plain steel throwing ring with a teal-white crackle of lightning on
-    it. A plain ring: not a spoked wheel, not a flaming disc.
+ 4. Storm Disc: a plain steel throwing ring with a yellow and red crackle of lightning
+    on it. A plain ring: not a spoked wheel, not a flaming disc.
  5. Executioner's Axe: a heavy axe with one notched blade and a dark leather grip.
  6. Life Gem: a red faceted gem in a simple metal setting.
  7. Aegis: a small round shield with a boss at its middle.
@@ -349,7 +349,7 @@ RULES
   or gold itself, to show how good the item is. Nothing that is not metal may be grey or
   white.
 - What is not metal keeps a strong colour of its own: green venom, crimson blood,
-  teal-white lightning, the red gem, green leaves, brown leather, cream cloth.
+  yellow and red lightning, the red gem, green leaves, brown leather, cream cloth.
 - All eleven are seen from the same angle, a little from above and to one side, and lit
   as the characters are: warm light from above.
 - The look of the characters: stylised low-poly 3D, faceted planes, painted, matte.
