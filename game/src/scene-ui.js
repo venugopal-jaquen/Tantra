@@ -34,7 +34,9 @@ class UiScene extends Phaser.Scene {
     catch (e) { /* audio not unlocked yet - skip rather than throw mid-frame */ }
   }
 
-  shake(duration, intensity) { if (settings.shake) this.cameras.main.shake(duration, intensity); }
+  // A shake asked for while another runs is dropped, unless it is `force`d: a slam's must
+  // not be lost to the small one of a blow taken a moment before.
+  shake(duration, intensity, force) { if (settings.shake) this.cameras.main.shake(duration, intensity, !!force); }
 
   // ---------- THE SCREEN AND THE ARENA (requirements 2.33) ----------
   // Pins things to the screen: they stay put when the camera moves. Whatever is not part

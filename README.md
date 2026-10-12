@@ -55,7 +55,17 @@ node tools/smoke-test.mjs
 
 Five minutes, in a private, muted, headless Chrome: every screen, a full run, bots.
 Needs Chrome or Edge and Node 22 or later. Nothing appears on screen and your own saved
-game is not touched.
+game is not touched. `tools/find-browser.mjs` says where the browser tools look; set
+`CHROME_PATH` to use one they do not find. On a machine with no graphics chip, such as
+the cloud machines Claude works on, the game runs at a few frames a second and the
+checks that time a walk or a fight fail for that alone; the test says so when it starts.
+
+```bash
+node tools/measure-pictures.mjs
+```
+
+How much memory the game's pictures take once loaded, at a phone's pixel density, picture
+by picture: the figure to hold a phone test against.
 
 ## Packaging it for itch.io
 

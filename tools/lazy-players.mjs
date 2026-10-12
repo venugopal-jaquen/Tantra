@@ -19,10 +19,11 @@
  * than a person. Needs Chrome or Edge and Node 22+. No packages.
  */
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { findBrowser, MACHINE_FLAGS } from './find-browser.mjs';
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const STYLES = (process.argv[2] || 'plays,lap,stutter,circle,corner,still,milk').split(',');
@@ -34,11 +35,11 @@ const REPO = process.argv[7] ? resolve(process.argv[7]) : HERE;
 const QUERY = '', TARGET = 3, LABEL = REPO === HERE ? 'this build' : REPO;
 const BOT = pathToFileURL(join(HERE, 'tools', 'playtest-bot.js')).href;   // always today's bot, whatever build is played
 const PORT = 9333 + Math.floor(Math.random() * 500);
-const exe = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(existsSync);
+const exe = findBrowser();
+if (!exe) { console.error('No Chrome or Edge found.'); process.exit(2); }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const profile = mkdtempSync(join(tmpdir(), 'anantarya-profile-'));
-const browser = spawn(exe, ['--headless=new', '--mute-audio', '--allow-file-access-from-files', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
+const browser = spawn(exe, ['--headless=new', ...MACHINE_FLAGS, '--mute-audio', '--allow-file-access-from-files', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
   '--no-first-run', '--no-default-browser-check', '--window-size=420,740', 'about:blank'], { stdio: 'ignore' });
 let ws, nextId = 1; const pending = new Map();
 const send = (method, params = {}) => new Promise((res, rej) => { const id = nextId++; pending.set(id, { res, rej }); ws.send(JSON.stringify({ id, method, params })); });

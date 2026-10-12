@@ -14,32 +14,25 @@
  * Exit code 0 = every check passed.
  */
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { findBrowser, MACHINE_FLAGS } from './find-browser.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = resolve(process.argv[2] || join(tmpdir(), 'anantarya-smoke'));
 const PAGE = pathToFileURL(resolve(process.argv[3] || join(REPO, 'game', 'loot-chase-v0.1.html'))).href;
 const BOT = pathToFileURL(join(REPO, 'tools', 'playtest-bot.js')).href;
 const PORT = 9333 + Math.floor(Math.random() * 500);
-const BROWSERS = [
-  'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-  'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'
-];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 mkdirSync(OUT, { recursive: true });
-const exe = BROWSERS.find(existsSync);
+const exe = findBrowser();
 if (!exe) { console.error('No Chrome or Edge found.'); process.exit(2); }
 const profile = mkdtempSync(join(tmpdir(), 'anantarya-profile-'));
 const browser = spawn(exe, [
-  '--headless=new', '--mute-audio', '--autoplay-policy=no-user-gesture-required',
+  '--headless=new', ...MACHINE_FLAGS, '--mute-audio', '--autoplay-policy=no-user-gesture-required',
   '--allow-file-access-from-files',        // the game is loaded straight off disk
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
   '--no-first-run', '--no-default-browser-check', '--window-size=420,740', 'about:blank'
@@ -127,6 +120,11 @@ try {
   await sleep(900);
   const hub = await page(`const s = game.scene.keys.LootScene; return { state: s.state, title: s.uiObjects.find(o => o.type === 'Text').text, families: [...new Set(s.uiObjects.filter(o => o.type === 'Text').map(o => o.style.fontFamily.split(',')[0]))] };`);
   check('Begin opens the title screen', hub.state === 'hub', JSON.stringify(hub));
+  // A machine that draws without a graphics chip (the cloud machines) may run the game at a
+  // few frames a second. The checks that time a walk, a sound or a fight then fail there for
+  // that alone; say so, so that such a failure is not taken for the game's.
+  const fps = await page(`return Math.round(game.loop.actualFps);`);
+  if (fps < 30) console.log(`NOTE  the game runs at ${fps} frames a second on this machine: checks that time movement, sound or a fight may fail for that alone`);
   const art = await page(`const s = game.scene.keys.LootScene, im = s.uiObjects.find(o => o.type === 'Image' && o.texture.key === 'title_art'), h = TITLE_ART.hero;
     const src = im && im.texture.getSourceImage();
     // What of the menu lies on the hero: any words, the depth chooser, any button.
@@ -229,10 +227,21 @@ try {
     foe.x = s.arenaBounds.right - 20; foe.y = s.arenaBounds.bottom - 20;         // out of reach: nothing left to strike
     const far = !s.enemies.some(e => Math.hypot(e.x - s.player.x, e.y - s.player.y) < 200);
     await wait(450); out.rests = !far || (!s.playerAnim.act && cellOf(s.playerSprite) <= WALK.frames);
-    s.killEnemy(foe); s.player.iframes = was;
+    s.killEnemy(foe);
+    // On the move he jabs, and his legs keep walking under it (2026-10-12): an Asura kept in
+    // reach above him while he walks across, and what his sheet shows sampled meanwhile.
+    const foe2 = s.spawnEnemyOfType('melee', s.player.x, s.player.y - 44, 1); foe2.speed = 0; foe2.dmg = 0; foe2.maxHp = foe2.hp = 1e6;
+    s.setMoveTarget(s.player.x > s.arenaBounds.centerX ? s.arenaBounds.x + 40 : s.arenaBounds.right - 40, s.player.y);
+    let walking = 0, striking = 0; const steps = new Set();
+    for (let i = 0; i < 60 && s.pointerTarget; i++) { await wait(16); foe2.x = s.player.x; foe2.y = s.player.y - 44;
+      const c = cellOf(s.playerSprite); if (c >= 1 && c <= WALK.frames) { walking++; steps.add(c); } else if (c > WALK.frames) striking++; }
+    s.pointerTarget = null; s.killEnemy(foe2); s.player.iframes = was;
+    out.onTheMove = { walking, striking, steps: steps.size };
     return out;`);
   check('the hero strikes with every attack, turned to what he strikes at, and rests when there is nothing to strike',
     acts.hero.cells.length >= 3 && acts.hero.rows.split(',').includes(String(acts.hero.right)) && acts.rests, JSON.stringify(acts));
+  check('on the move the hero jabs and his legs keep walking: walk cells at least twice as often as strike cells',
+    acts.onTheMove.striking > 0 && acts.onTheMove.walking >= 2 * acts.onTheMove.striking && acts.onTheMove.steps >= 4, JSON.stringify(acts.onTheMove));
   check('the hero and his enemies step through their walk frames, and stand when they stop', legs.standing === 0 && legs.kiran.steps >= 5 && legs.kiran.rows === String(legs.right) && legs.stopped === 0
     && legs.asura.steps >= 4 && legs.asuraStopped === 0, JSON.stringify(legs));
 
@@ -346,7 +355,7 @@ try {
     p.x = s.arenaBounds.x + 20; p.y = s.arenaBounds.bottom - 20;
     await until(() => !e.slam, 3000);
     await new Promise(r => setTimeout(r, 120));
-    const loosed = { held: !!(e.act && e.act.held), cell: e.act ? e.act.cell : -1 };
+    const loosed = { held: !!(e.act && e.act.held), cell: e.act ? e.act.cell : -1, slam: !!(e.act && e.act.slam) };
     const out = { wound, loosed, touched, buff: Math.round(s.slamBuffMs), mult: +s.dmgMult().toFixed(2), unhurt: p.hp >= hp, arc: s.boonFx.commandBuffer.length > 0 };
     // Hold Your Ground: the gold ring shows only while it is live.
     s.boons = { ground: 1 }; s.slamBuffMs = 0; s.stillMs = 0;
@@ -357,8 +366,8 @@ try {
     out.walking = s.boonFx.commandBuffer.length === 0 && s.dmgMult() === 1; s.pointerTarget = null;
     s.boons = {}; s.killEnemy(e);
     return out;`);
-  check('a boss stays drawn back for as long as its slam is warned of, even if it lands a blow meanwhile, and lets go when the slam lands',
-    read.wound.held && read.wound.cell === 0 && !read.loosed.held, JSON.stringify({ wound: read.wound, loosed: read.loosed }));
+  check('a boss stays drawn back for as long as its slam is warned of, even if it lands a blow meanwhile, lets go when the slam lands, and is still in the blow a moment after',
+    read.wound.held && read.wound.cell === 0 && !read.loosed.held && read.loosed.slam && read.loosed.cell === 1, JSON.stringify({ wound: read.wound, loosed: read.loosed }));
   check('reading a slam makes the next hits harder', read.touched && read.buff > 3000 && read.mult === 1.5 && read.unhurt, JSON.stringify(read));
   check('timed boons show on the hero while they are live', read.arc && read.planted && read.walking, JSON.stringify(read));
 
@@ -1015,8 +1024,10 @@ try {
     const pic = s.overlay.find(o => o.type === 'Image' && o.texture.key === CHARS.player + '-portrait'), still = s.textures.get(CHARS.player + '-front').getSourceImage().height;
     const out = pic ? { source: pic.texture.getSourceImage().height, still, tall: Math.round(pic.displayHeight), feet: Math.round(pic.y), wants: [PORTRAIT.tall, PORTRAIT.feet], plain: !Object.keys(WORN).length } : null;
     s.closeOverlay(); return out;`);
-  check('the profile shows the hero from a portrait three times the size of the still, standing where the ring is',
-    portrait && portrait.source >= 3 * portrait.still && portrait.tall === portrait.wants[0] && portrait.feet === portrait.wants[1] && portrait.plain, JSON.stringify(portrait));
+  // Sharp on a 3x phone, and well over twice the still (three times it until the hero's
+  // stills were cut larger with him, 2026-10-12).
+  check('the profile shows the hero from his full-size portrait, sharp on a 3x screen and well over twice the still, standing where the ring is',
+    portrait && portrait.source >= 3 * portrait.wants[0] && portrait.source >= 2 * portrait.still && portrait.tall === portrait.wants[0] && portrait.feet === portrait.wants[1] && portrait.plain, JSON.stringify(portrait));
 
   // ---------- 9c. the painted icons (requirements 2.46) ----------
   // The record tools/cut-icons.py wrote, read off the disk: the game's list of frames must
@@ -1061,13 +1072,24 @@ try {
     const seen = {}, shown = list => { const im = list.filter(o => o.type === 'Image' && /^icons/.test(o.texture.key));
       return { n: im.length, names: im.map(frameOf), tinted: im.filter(o => o.isTinted).length, missing: list.filter(o => o.type === 'Image' && o.texture.key === '__MISSING').length }; };
     s.pauseGame('pause'); await wait(150); seen.pause = shown(s.overlay); s.resumeGame();
+    // Three perks worn, the most there can be: they take two lines on the pause screen, and
+    // every word on it still lies inside the panel, clear of every other.
+    { const was = session.perksOn.slice(); session.perksOn = ['guard', 'eye', 'scale'];
+      s.pauseGame('pause'); await wait(150);
+      const tx = s.overlay.filter(o => o.type === 'Text' && o.text).map(t => ({ t: t.text, l: t.x - t.width * t.originX, top: t.y - t.height * t.originY, w: t.width, h: t.height }));
+      const meet = (a, b) => a.l < b.l + b.w && b.l < a.l + a.w && a.top < b.top + b.h && b.top < a.top + a.h;
+      out.pausePerks = { perks: tx.filter(a => Object.values(PERKS).some(p => p.name === a.t)).length, icons: shown(s.overlay).names.filter(n => n.startsWith('perk-')).length,
+        spill: tx.filter(a => a.l < 32 || a.l + a.w > 368 || a.top + a.h > 683 - 8).map(a => a.t.slice(0, 24)),
+        overlap: tx.flatMap((a, i) => tx.slice(i + 1).filter(b => meet(a, b)).map(b => a.t.slice(0, 16) + ' / ' + b.t.slice(0, 16))) };
+      s.resumeGame(); session.perksOn = was; }
     s.pauseGame('profile'); await wait(150); seen.profile = shown(s.overlay); s.closeOverlay(); s.resumeGame();
     s.pauseGame('satchel'); await wait(150); seen.satchel = shown(s.overlay); s.closeOverlay(); s.resumeGame();
     s.queueBoon(); s.openBoons(); await wait(150); seen.boons = shown(s.overlay); s.closeBoons();
     out.hud = { coin: !!s.goldSign && s.goldSign.visible && frameOf(s.goldSign) === 'sign-treasure', power: !!s.powerSign && frameOf(s.powerSign) === 'sign-power',
       phase: !!s.phaseSign && frameOf(s.phaseSign) === 'hud-' + s.phase, satchel: frameOf(s.satchelTabIcon) === 'hud-satchel', gold: s.goldText.text };
-    s.endRun(false); await wait(200); s.showHub(); await wait(200);
+    s.endRun(false); await wait(200); seen.summary = shown(s.uiObjects); s.showHub(); await wait(200);
     s.showHowTo(2, () => {}); await wait(120); seen.howto = shown(s.overlay); s.closeOverlay();
+    s.showHowTo(s.howToCards(false).findIndex(c => c.title === 'THE COSMIC CYCLE'), () => {}); await wait(120); seen.cycle = shown(s.overlay); s.closeOverlay();
     for (const tab of ['weapons', 'trinkets', 'tejas', 'boons']) { s.showCodex(tab); await wait(80); seen[tab] = shown(s.uiObjects); }
     s.showHub();
     out.seen = seen;
@@ -1094,8 +1116,11 @@ try {
       Object.values(v).every(k => k.n > 0 && k.tinted === 0 && k.missing === 0) && has('pause', 'loot-venom-rare') && has('pause', 'loot-aegis-epic') && has('pause', 'sign-poison') && has('pause', 'boon-fork')
       && has('profile', 'sign-health') && has('profile', 'sign-shield') && has('profile', 'sign-damage') && has('profile', 'sign-power') && has('profile', 'boon-keen') && v.profile.names.some(n => n.startsWith('perk-'))
       && has('satchel', 'loot-chain-epic') && has('satchel', 'loot-swift-common') && v.boons.names.filter(n => n.startsWith('boon-')).length >= 3
-      && has('howto', 'loot-chain-common') && has('howto', 'loot-mystery') && has('tejas', 'sign-lightning') && v.boons.n >= 3 && v.weapons.n === 4 && v.trinkets.n === 5,
+      && has('howto', 'loot-chain-common') && has('howto', 'loot-mystery') && has('tejas', 'sign-lightning') && v.boons.n >= 3 && v.weapons.n === 4 && v.trinkets.n === 5
+      && v.pause.names.some(n => n.startsWith('perk-')) && has('summary', 'sign-treasure') && ['drift', 'surge', 'eclipse', 'convergence'].every(k => has('cycle', 'hud-' + k)),
       total + ' icons on ' + Object.keys(v).length + ' screens; ' + Object.entries(v).map(([k, o]) => k + ' ' + o.n).join(', ')); }
+  check('three perks worn show on the pause screen in two lines, each with its sign, and every word there stays in the panel clear of the others',
+    icons.pausePerks.perks === 3 && icons.pausePerks.icons === 3 && icons.pausePerks.spill.length === 0 && icons.pausePerks.overlap.length === 0, JSON.stringify(icons.pausePerks));
   check('the HUD carries the signs of treasure, power, the phase and the satchel beside their words and numbers',
     icons.hud.coin && icons.hud.power && icons.hud.phase && icons.hud.satchel && /^\S+: \d+$/.test(icons.hud.gold), JSON.stringify(icons.hud));
 

@@ -159,6 +159,10 @@ node tools/check-game.mjs --package dist/itch
 node tools/smoke-test.mjs "" dist/itch/index.html
 ```
 
+`node tools/measure-pictures.mjs` prints what the pictures take in memory once loaded, at
+a phone's pixel density. The browser tools find Chrome or Edge through
+`tools/find-browser.mjs`.
+
 `check-game` takes a second and needs no browser: script order, words, icons, files, the
 save, the sums. The smoke test takes five minutes in a private, muted, headless Chrome:
 every screen, a full run, the bots.
