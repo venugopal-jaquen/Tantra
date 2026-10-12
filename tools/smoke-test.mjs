@@ -1024,8 +1024,10 @@ try {
     const pic = s.overlay.find(o => o.type === 'Image' && o.texture.key === CHARS.player + '-portrait'), still = s.textures.get(CHARS.player + '-front').getSourceImage().height;
     const out = pic ? { source: pic.texture.getSourceImage().height, still, tall: Math.round(pic.displayHeight), feet: Math.round(pic.y), wants: [PORTRAIT.tall, PORTRAIT.feet], plain: !Object.keys(WORN).length } : null;
     s.closeOverlay(); return out;`);
-  check('the profile shows the hero from a portrait three times the size of the still, standing where the ring is',
-    portrait && portrait.source >= 3 * portrait.still && portrait.tall === portrait.wants[0] && portrait.feet === portrait.wants[1] && portrait.plain, JSON.stringify(portrait));
+  // Sharp on a 3x phone, and well over twice the still (three times it until the hero's
+  // stills were cut larger with him, 2026-10-12).
+  check('the profile shows the hero from his full-size portrait, sharp on a 3x screen and well over twice the still, standing where the ring is',
+    portrait && portrait.source >= 3 * portrait.wants[0] && portrait.source >= 2 * portrait.still && portrait.tall === portrait.wants[0] && portrait.feet === portrait.wants[1] && portrait.plain, JSON.stringify(portrait));
 
   // ---------- 9c. the painted icons (requirements 2.46) ----------
   // The record tools/cut-icons.py wrote, read off the disk: the game's list of frames must
