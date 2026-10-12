@@ -361,6 +361,80 @@ Do not change any other file, and do not run any git command.
 Tell me its size in pixels and anything you could not do as asked.
 ```
 
+## 4a. Three loot icons painted again
+
+Asked for on 2026-10-12: "Repaint those 3 icons". The game shows an item's quality by
+recolouring its steel copper, silver or gold. On the Swift Sandals, the Healing Herb and
+the unknown bundle the only steel is a small buckle, clasp or toggle (2 to 4% of the
+picture), so at the size loot lies on the floor all three qualities look alike. The
+eight others are approved and stay as they are, the yellow and red Storm Disc among them.
+
+Attach: `game/assets/incoming/well-delver/loot-icons.png` (the look, the steel, which
+three to redo), the hero turnaround (the look), and if you like
+`concept/icons-2026-10-11-loot-metal.jpg` (how the game recolours the steel). Send it in
+the conversation that made the loot icons if you can. The lines starting "Idea:" are yours
+to change.
+
+```text
+You made the loot icons for my game (loot-icons.png, attached), in the same Well Delver
+look as the hero (hero-turnaround.png, attached). Eight of them are approved and stay
+exactly as they are. Three need painting again: the Swift Sandals, the Healing Herb and
+the unknown item (the bottom row). Paint only these three.
+
+Another tool cuts your picture into game icons. Your job is ONLY to make the picture
+described here. Do not cut it, shrink it or change any game file.
+
+WHY
+The game shows how good an item is by recolouring its steel copper, silver or gold. On
+these three the only steel is a small buckle, clasp or toggle, so at 20 pixels on a phone
+the three qualities look the same. Each needs MUCH more of itself in steel: at least a
+third of what you see, and close to half is better, in large plain pieces, not small
+details.
+
+WHAT TO MAKE
+One PNG with a transparent background, 1536 x 1024 pixels: the three objects side by
+side, each in the middle of its own third of the picture, in this order, left to right:
+ 1. Swift Sandals: one sandal, seen as before.
+    [Idea: the sole is a thick plate of steel, its faceted edge showing all round; a wide
+    steel cuff round the ankle with a big square steel buckle; a steel heel guard; the
+    straps across the foot in brown leather; a small tuft of teal feathers at the ankle.]
+ 2. Healing Herb: a bunch of broad green leaves.
+    [Idea: their stems gathered in a thick, faceted steel holder, a cuff about a third
+    as tall as the whole object with a heavy steel knob at its end, the leaves fanning
+    out of it.] The leaves stay the largest part, about half of what you see.
+ 3. Unknown item: a round cloth bundle, closed, gathered at its neck.
+    [Idea: deep indigo cloth; a broad steel collar round the neck and a broad steel band
+    round its middle, the two bands parallel; a large plain steel toggle on the collar.]
+    Nothing shows what is inside: no coins, no flap, no lock.
+
+RULES (the cutting depends on each of these)
+- Match the eight approved icons in loot-icons.png exactly: the same angle (a little
+  from above and to one side), the same warm light from above, the same size of facets,
+  the same pale steel as the dagger blades. Stylised low-poly 3D, faceted planes,
+  painted, matte.
+- Each object about 400 pixels at its longest, with clear space all round. Nothing
+  crosses into the next third.
+- A truly transparent background. No lines, no labels, no numbers, no text, no ground
+  shadow, no glow.
+- EVERY METAL PART IS PLAIN PALE GREY STEEL: the sole, cuffs, buckle, holder, knob,
+  collar, band and toggle. The game colours the steel itself. Make the steel large,
+  simple pieces; no rivets, chains or thin wires standing in for it.
+- NOTHING THAT IS NOT METAL MAY BE GREY, WHITE, CREAM, BEIGE OR PALE. The leather is the
+  same brown as the dagger grips (not black); the feathers are teal, not white; the
+  leaves are green; the cloth is a strong colour, not cream or sacking. The tool finds
+  the metal by its pale grey, and anything else pale would be taken for metal.
+- Every icon must read when it is 20 pixels across on a phone: one bold, chunky shape,
+  two or three colours, no fine detail, no thin lines. Each must still be told apart at
+  a glance from the other eight, and from a leather satchel with a flap, a purse of
+  coins and a padlock, which are other icons in the game.
+- No symbol of any faith. No bands that cross each other to make a cross. No wings on
+  the sandal: a small tuft of feathers only.
+
+Save it as game/assets/incoming/well-delver/loot-icons-2.png, at the full size it was
+made. Do not change loot-icons.png or any other file, and do not run any git command.
+Tell me its size in pixels and anything you could not do as asked.
+```
+
 ## 5. The other icons
 
 Asked for on 2026-10-11: "create a list of other visual icons (boons, drops etc) that
@@ -548,6 +622,7 @@ Make PICTURE 1 first, the six copper tokens, and show me before making the rest.
 | `<name>-walk-side.png` | the same | If the four figures match the turnaround, the side walk is made from them and not from the still |
 | `pieces/<slot>-<name>.png` | the same | Cuts the changed slot out, bends it as the hero is bent, and shows it on the profile and in a fight |
 | `loot-icons.png` | the same | **Done (2026-10-11):** `tools/cut-icons.py` cuts the eleven and makes each in copper, silver and gold, recolouring only its metal |
+| `loot-icons-2.png` | the same | The three of §4a: `tools/cut-icons.py` is taught to take those three from it and leave the old three, and each is checked for how much of it the metal is (at least a third) |
 | `icons/boons-*.png`, `perks.png`, `signs.png`, `hud.png` | the same | **Done (2026-10-11):** cut by the same tool and shown wherever the white shapes were. A remade sheet of the same name is cut the same way |
 | `floor-N.png` | the same | **Done for the first three (2026-10-11):** laid on the arena with its steps round it, the game's lamps and glows moved to the picture's. A remade floor of the same name is put in the same way |
 

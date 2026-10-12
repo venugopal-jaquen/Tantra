@@ -583,7 +583,7 @@ class SystemsScene extends ScreensScene {
     const ox = this.camOff.x, oy = this.camOff.y, v = this.viewBounds, p = this.player;
     const seen = (x, y, m) => x - ox > v.x + m && x - ox < v.right - m && y - oy > v.y + m && y - oy < v.bottom - m;
     if (id === 'move') {                                     // once the level's banner has gone
-      return (this.banner || []).some(t => t.active) ? null : { ring: true, holes: [{ x: p.x - ox, y: p.y - oy - 8, r: 46 }] };
+      return (this.banner || []).some(t => t.active) ? null : { ring: true, holes: [{ x: p.x - ox, y: p.y - oy - 10, r: 58 }] };
     }
     if (id === 'loot') {
       const k = this.pickups.find(k => !k.isMystery && seen(k.x, k.y, 24));
@@ -605,7 +605,7 @@ class SystemsScene extends ScreensScene {
     if (sl.type === 'circle') holes[0].r = sl.r + 10;
     else if (sl.type === 'line') for (let d = 0; d <= sl.len; d += sl.w * 0.55) holes.push({ x: sl.x + Math.cos(sl.a) * d - ox, y: sl.y + Math.sin(sl.a) * d - oy, r: sl.w * 0.85 });
     else sl.blobs.forEach(bl => holes.push({ x: bl.x - ox, y: bl.y - oy, r: bl.r + 8 }));
-    holes.push({ x: p.x - ox, y: p.y - oy - 6, r: 34 });     // and the hero: where you stand is the question
+    holes.push({ x: p.x - ox, y: p.y - oy - 8, r: 42 });     // and the hero: where you stand is the question
     return { boss: e, holes };
   }
 
