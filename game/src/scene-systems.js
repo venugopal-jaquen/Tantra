@@ -629,6 +629,8 @@ class SystemsScene extends ScreensScene {
     if (id === 'slam') {
       spot.boss.slam.t = 0;
       spot.boss.slam.dur = SLAM[spot.boss.slam.type].windup * (session.slamTaught ? 1 : LESSON.slamGrace);
+      // and he winds up afresh with it, even if he had begun to come down (SLAM_ACT.drop)
+      if (spot.boss.act && spot.boss.act.slam) { spot.boss.act.held = true; spot.boss.act.t = 0; }
       session.slamTaught = true; saveSession();
     }
     // A boss just explained holds his first slam until its own lesson can follow: otherwise

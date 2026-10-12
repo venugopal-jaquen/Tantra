@@ -1838,7 +1838,7 @@ class LootScene extends SystemsScene {
       if (inRange.length) {
         this.atkTimer = this.player.weapon.atkSpeed / this.attackRate();
         this.playerAnim.punch = 90;
-        this.act(this.playerAnim, this.player.x, this.player.y, inRange[0].e.x, inRange[0].e.y, false, this.moving ? 'quick' : undefined);   // on the move a jab, so the legs keep walking
+        this.act(this.playerAnim, this.player.x, this.player.y, inRange[0].e.x, inRange[0].e.y, false, this.playerAnim.walkHold > 0 ? 'quick' : undefined);   // walking, a jab, so the legs keep walking
         this.attackFx.clear();
         const wfx = this.player.weapon.effect;
         this.sfx(inRange.every(o => o.e.shieldOn || this.weakScale(o.e) < 1) ? 'hit-blocked'

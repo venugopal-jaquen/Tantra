@@ -637,8 +637,11 @@ class FxScene extends UiScene {
       const ease = q => 1 - Math.pow(1 - q, 3);
       let up = 0, push = 0;
       if (a.act.held && slam) {
-        const gatherAt = Math.max(1, slam.dur - SLAM_ACT.gather);
-        const q = ease(Math.min(1, slam.t / gatherAt));
+        // Eased toward where the warning says he should be, so a slam restarted (the
+        // lesson that teaches it) lets him down gently rather than in one frame.
+        const gatherAt = Math.max(1, slam.dur - SLAM_ACT.gather), want = ease(Math.min(1, slam.t / gatherAt));
+        a.act.q = a.act.q === undefined ? want : a.act.q + (want - a.act.q) * Math.min(1, delta / 80);
+        const q = a.act.q;
         up = q; push = -SLAM_ACT.lean * q; sy += 0.06 * q; sx -= 0.03 * q; turn -= 0.06 * q * dx;
         if (slam.t >= gatherAt) {                                  // at the top, trembling
           turn += Math.sin(a.age / 14) * 0.045;

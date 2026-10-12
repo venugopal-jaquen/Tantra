@@ -364,10 +364,12 @@ Tell me its size in pixels and anything you could not do as asked.
 ## 4a. Three loot icons painted again
 
 Asked for on 2026-10-12: "Repaint those 3 icons". The game shows an item's quality by
-recolouring its steel copper, silver or gold. On the Swift Sandals, the Healing Herb and
-the unknown bundle the only steel is a small buckle, clasp or toggle (2 to 4% of the
-picture), so at the size loot lies on the floor all three qualities look alike. The
-eight others are approved and stay as they are, the yellow and red Storm Disc among them.
+recolouring its steel copper, silver or gold. On the Swift Sandals and the Healing Herb
+the only steel is a small buckle or clasp (2 to 4% of the picture), so at the size loot
+lies on the floor all three qualities look alike. An item not yet known has no quality
+shown: its steel is turned violet to mark it unknown, and the bundle's small toggle leaves
+too little violet to see. The eight others are approved and stay as they are, the yellow
+and red Storm Disc among them.
 
 Attach: `game/assets/incoming/well-delver/loot-icons.png` (the look, the steel, which
 three to redo), the hero turnaround (the look), and if you like
@@ -385,11 +387,11 @@ Another tool cuts your picture into game icons. Your job is ONLY to make the pic
 described here. Do not cut it, shrink it or change any game file.
 
 WHY
-The game shows how good an item is by recolouring its steel copper, silver or gold. On
-these three the only steel is a small buckle, clasp or toggle, so at 20 pixels on a phone
-the three qualities look the same. Each needs MUCH more of itself in steel: at least a
-third of what you see, and close to half is better, in large plain pieces, not small
-details.
+The game shows how good an item is by recolouring its steel copper, silver or gold, and
+marks an item not yet known by turning its steel violet. On these three the only steel is
+a small buckle, clasp or toggle, so at 20 pixels on a phone the colour does not show.
+Each needs MUCH more of itself in steel: at least a third of what you see, and close to
+half is better, in large plain pieces, not small details.
 
 WHAT TO MAKE
 One PNG with a transparent background, 1536 x 1024 pixels: the three objects side by
