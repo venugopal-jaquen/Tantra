@@ -301,17 +301,18 @@ class LootScene extends SystemsScene {
   }
 
   updateBoss(e, edx, edy, edist, dt, delta) {
-    // Rooted while shielded (the anchor puzzle is a stand-off) and while winding up a
-    // slam (so the telegraph stays honest), but never idle.
-    if (!e.shieldOn && !e.slam) {
+    // Rooted while shielded (the anchor puzzle is a stand-off), while winding up a slam
+    // (so the telegraph stays honest) and while it comes down, but never idle.
+    if (!e.shieldOn && !e.slam && !(e.act && e.act.slam)) {
       e.x += (edx/edist) * e.speed * dt;
       e.y += (edy/edist) * e.speed * dt;
     }
 
     // Reach, not just body contact: collision holds the hero at exactly his own radius plus
     // the boss's, and a rooted (shielded) boss never steps back into him, so a body-contact
-    // check almost never fired. Bosses swing with a reach of the hero's radius again.
-    if (edist < (2 * HERO_RADIUS + e.radius) && e.hitCooldown <= 0) {
+    // check almost never fired. Bosses swing with a reach of the hero's radius again: of
+    // the measure the hero had before he was made larger, so his reach did not grow too.
+    if (edist < (HERO_RADIUS + 15 * HIT + e.radius) && e.hitCooldown <= 0) {
       e.hitCooldown = 750;
       this.enemyLunge(e);
       if (this.damagePlayer(e.contactDmg * PHASE_DEFS[this.phase].enemyDmgMult, e, 'melee')) return true;
@@ -335,7 +336,7 @@ class LootScene extends SystemsScene {
       const cap = Math.min(7, 4 + Math.floor((e.tribute || 0) / 5));
       this.hint('tribute', `Bosses summon ${N.enemies.melee}. Each one you kill before the boss falls is tribute: ${this.tributeAt.item} earns an extra item, ${this.tributeAt.boon} a boon. But the summons speed up.`);
       if (this.enemies.length < 16 && alive < cap) {
-        if (!e.slam) this.act(e, 0, 0, 0, 1);          // he calls them: the same strike, turned to face us
+        if (!e.slam && !(e.act && e.act.slam)) this.act(e, 0, 0, 0, 1);          // he calls them: the same strike, turned to face us
         const b = this.arenaBounds;
         for (let i = 0; i < 2; i++) {
           const a = Math.random() * Math.PI * 2;
@@ -357,6 +358,7 @@ class LootScene extends SystemsScene {
       e.slam.t += delta;
       if (!e.slam.touched && this.inSlam(e.slam, this.player.x, this.player.y)) e.slam.touched = true;   // for Read the Slam
       this.drawSlamTelegraph(e);
+      if (e.act && e.act.held && e.slam.t >= e.slam.dur - SLAM_ACT.drop) this.release(e);     // he comes down as the fill meets the edge
       if (e.slam.t >= e.slam.dur && this.resolveSlam(e)) return true;
     }
     return false;
@@ -390,8 +392,8 @@ class LootScene extends SystemsScene {
     e.telegraphGfx = this.add.graphics().setDepth(Z.telegraph);
     e.slam = slam;
     // He draws back for as long as the warning runs, facing where it will land.
-    if (type === 'line') this.act(e, 0, 0, Math.cos(slam.a), Math.sin(slam.a), true);
-    else this.act(e, e.x, e.y, this.player.x, this.player.y, true);
+    if (type === 'line') this.act(e, 0, 0, Math.cos(slam.a), Math.sin(slam.a), true, 'slam');
+    else this.act(e, e.x, e.y, this.player.x, this.player.y, true, 'slam');
     SLAM_WARN[type].forEach(([ms, rate]) => {
       if (ms) this.time.delayedCall(ms, () => this.sfx('slam-warn', { rate }));
       else this.sfx('slam-warn', { rate });
@@ -444,16 +446,16 @@ class LootScene extends SystemsScene {
   resolveSlam(e) {
     const s = e.slam;
     e.slam = null;
-    this.release(e);              // the blow itself: out of the wind-up and down
-    e.squash = FEEL.squash.ms;
+    this.release(e, SLAM_ACT.drop);   // the blow, if he has not come down already (a slam resolved at once)
     if (e.telegraphGfx) { e.telegraphGfx.destroy(); e.telegraphGfx = null; }
     e.slamTimer = e.slamCooldown + Phaser.Math.Between(-250, 350);
 
     if (s.type === 'circle') this.slamFx(s.x, s.y, s.r, SLAM_FX);
     else if (s.type === 'line') this.lineImpact(s);
     else s.blobs.forEach(bl => this.slamFx(bl.x, bl.y, bl.r, SLAM_FX, 4));
+    this.slamBlowFx(e, s);
     const hit = this.inSlam(s, this.player.x, this.player.y);   // one hit per slam, not per blob
-    this.shake(230, SLAM[s.type].shake);
+    this.shake(260, SLAM[s.type].shake, true);
     this.holdStill(FEEL.hitStop.slam);
     this.sfx('slam-land', { rate: e.isMega ? 0.8 : 1 });
     if (!hit && s.touched && this.boonRank('readslam')) {
@@ -571,7 +573,7 @@ class LootScene extends SystemsScene {
     if (!e || e.hp <= 0) return false;
     if (e.shieldOn) { e.domeHit = 160; return false; }        // the dome flashes where it is struck
     const scale = this.weakScale(e);
-    if (scale < 1) this.resistFx(e); else e.squash = FEEL.squash.ms;
+    if (scale < 1) this.resistFx(e); else if (!(e.act && e.act.slam)) e.squash = FEEL.squash.ms;
     e.hp -= dmg * scale;
     // Vritra must pass through its shield phase: clamp a big hit at the 55% line
     // instead of letting it skip the second half of the fight.
@@ -666,7 +668,7 @@ class LootScene extends SystemsScene {
     // Stance ring at the hero's feet, not a circle around the body - a ring around a
     // character sprite reads as a bubble, but on the floor it reads as a stance and
     // leaves the silhouette clean. This is the Cosmic Cycle phase tell.
-    this.playerRing = this.add.ellipse(this.player.x, this.player.y + HERO_RING_DOWN, 34, 13, 0xffffff, 0)
+    this.playerRing = this.add.ellipse(this.player.x, this.player.y + HERO_RING_DOWN, 42, 16, 0xffffff, 0)
       .setStrokeStyle(2, PHASE_DEFS.drift.color, 0.9);
     this.boonFx = this.add.graphics();   // tells for Hold Your Ground and Read the Slam
 
@@ -1378,18 +1380,18 @@ class LootScene extends SystemsScene {
     else near = `${bossName} waits ${levelsBelow(this.sector)}.`;
 
     this.clearUI();
-    const say = (y, str, size, colour) => this.uiObjects.push(this.add.text(W/2, y, str,
-      { resolution: RES, fontSize: size + 'px', color: colour }).setOrigin(0.5));
+    const say = (y, str, size, colour) => { const t = this.add.text(W/2, y, str,
+      { resolution: RES, fontSize: size + 'px', color: colour }).setOrigin(0.5); this.uiObjects.push(t); return t; };
     this.uiPanel(W/2, H/2, W-50, 336, victory ? 0x2fbf71 : 0xff5c5c);
     this.uiObjects.push(this.add.text(W/2, H/2-132,
       victory ? (this.bossSlain ? `${bossName.toUpperCase()} SLAIN` : 'EXTRACTED SAFELY') : (abandoned ? 'RUN ABANDONED' : 'YOU FELL'),
       { resolution: RES, fontSize: '24px', color: victory ? '#2fbf71' : '#ff5c5c', fontStyle: 'bold' }).setOrigin(0.5));
     say(H/2-96, victory ? `You surfaced from ${where}.` : (abandoned ? `You turned back in ${where}.` : `You fell in ${where}.`), 13, '#fffbef');
     say(H/2-74, near, 13, this.bossSlain ? '#9fe8d8' : '#ffb38a');
-    if (victory) {
-      say(H/2-40, `${N.currency} banked: ${banked}`, 15, '#ffd23c');
-    } else {
-      say(H/2-44, `${N.currency} gathered: ${this.runGold}`, 15, '#ffd23c');
+    // The haul, with the sign of treasure beside it as on the title screen and the HUD.
+    const haul = victory ? say(H/2-40, `${N.currency} banked: ${banked}`, 15, '#ffd23c') : say(H/2-44, `${N.currency} gathered: ${this.runGold}`, 15, '#ffd23c');
+    if (this.painted) { haul.x += 9; this.uiObjects.push(this.icon(haul.x - haul.width / 2 - 11, haul.y, ['sign-treasure'], 15)); }
+    if (!victory) {
       say(H/2-22, abandoned ? `Half is forfeit. You keep ${banked}.` : `Half is lost in the fall. You keep ${banked}.`, 12, '#ff9a80');
     }
     say(H/2+4, `Treasury: ${session.metaGold} ${N.currency}`, 13, '#c8a96e');
@@ -1604,12 +1606,12 @@ class LootScene extends SystemsScene {
     this.boonFx.clear();
     if (this.boonRank('ground') && this.stillMs >= 200) {
       this.boonFx.lineStyle(2, FORGE.gold, 0.65 + 0.3 * Math.sin(time / 160));
-      this.boonFx.strokeEllipse(this.player.x, this.player.y + 16, 52, 21);
+      this.boonFx.strokeEllipse(this.player.x, this.player.y + HERO_RING_DOWN, 64, 26);
     }
     if (this.slamBuffMs > 0) {
       this.boonFx.lineStyle(3, FORGE.gold, 0.95);
       this.boonFx.beginPath();
-      this.boonFx.arc(this.player.x, this.player.y - 2, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.slamBuffMs / BOONS.readslam.ms);
+      this.boonFx.arc(this.player.x, this.player.y - 2, 32, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.slamBuffMs / BOONS.readslam.ms);
       this.boonFx.strokePath();
     }
 
@@ -1737,11 +1739,11 @@ class LootScene extends SystemsScene {
           if (k >= 1) enemy.hatch = null;
           else { const back = (1 - k) * (1 - k); ox += enemy.hatch.dx * back; oy += enemy.hatch.dy * back - Math.sin(k * Math.PI) * 13; }
         }
-        if (enemy.act && enemy.act.held && !enemy.slam) this.release(enemy);
+        if (enemy.act && enemy.act.held && !enemy.slam) { if (enemy.act.slam) enemy.act = null; else this.release(enemy); }   // a slam called off: he stands again, no blow
         const lift = this.animate(spr, enemy, delta, (enemy.x - (enemy.lastX === undefined ? enemy.x : enemy.lastX)) / dt,
-          (enemy.y - (enemy.lastY === undefined ? enemy.y : enemy.lastY)) / dt, !!enemy.isBoss, enemy.slam ? Math.min(1, enemy.slam.t / enemy.slam.dur) : 0);
+          (enemy.y - (enemy.lastY === undefined ? enemy.y : enemy.lastY)) / dt, !!enemy.isBoss, enemy.slam || 0);
         enemy.lastX = enemy.x; enemy.lastY = enemy.y;
-        spr.setPosition(enemy.x + ox, enemy.y + oy - lift).setDepth(sortDepth(enemy.y + this.feetDown(enemy)));
+        spr.setPosition(enemy.x + ox + enemy.shoveX, enemy.y + oy + enemy.shoveY - lift).setDepth(sortDepth(enemy.y + this.feetDown(enemy)));
         // 4-direction art is never turned to face - the facing frame is swapped instead.
         // Face the player, which is also the direction almost every enemy is moving.
         if (enemy.char) {
@@ -1841,7 +1843,7 @@ class LootScene extends SystemsScene {
       if (inRange.length) {
         this.atkTimer = this.player.weapon.atkSpeed / this.attackRate();
         this.playerAnim.punch = 90;
-        this.act(this.playerAnim, this.player.x, this.player.y, inRange[0].e.x, inRange[0].e.y);
+        this.act(this.playerAnim, this.player.x, this.player.y, inRange[0].e.x, inRange[0].e.y, false, this.playerAnim.walkHold > 0 ? 'quick' : undefined);   // walking, a jab, so the legs keep walking
         this.attackFx.clear();
         const wfx = this.player.weapon.effect;
         this.sfx(inRange.every(o => o.e.shieldOn || this.weakScale(o.e) < 1) ? 'hit-blocked'

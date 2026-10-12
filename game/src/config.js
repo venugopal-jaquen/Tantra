@@ -28,7 +28,7 @@ const QUERY = new URLSearchParams(location.search);
 // root index.html redirect page carries its own copy.)
 const GAME_TITLE = 'Anantarya';
 
-const BUILD = '0.15 (2026-10-10)';
+const BUILD = '0.16 (2026-10-12)';
 
 const W = 400, H = 700;
 

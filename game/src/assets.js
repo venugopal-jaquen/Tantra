@@ -3,8 +3,9 @@
  *
  * Declares  characters: CHARS (role -> file name), FACINGS, WALK, WALKERS, ART (each
  *           figure's cell, scale and proportions), STOCK_ART, artOf, artRise, artDrop,
- *           ACT (the strike's timing, ms), FEEL and springBack (how a blow and an
- *           arrival move, and the hold on heavy blows), sortDepth, facingFor, CHAR_LABELS;
+ *           ACT (the strike's timing, ms), SLAM_ACT (a boss's slam on the figure), FEEL and
+ *           springBack (how a blow and an arrival move, and the hold on heavy blows),
+ *           sortDepth, facingFor, CHAR_LABELS;
  *           the hero: HERO_SIZE, HP_BAR, HERO_BAR_UP, HERO_RING_DOWN, PORTRAIT, WEAR and
  *           WORN (dyes tried by ?wear=);
  *           icons: ICON_FRAMES (the frames of assets/icons/*.png, in order: printed by
@@ -64,7 +65,12 @@ const FACINGS = ['front', 'back', 'left', 'right'];
 // rest are one walk cycle. Cells are larger than the 96px stills so that a stride never
 // clips, and a sheet is drawn larger by the same amount (pad), which leaves the figure the
 // size it was. Built by tools/extract-walk.py.
-const WALK = { frames: 8, cell: 112, pad: 112 / 96 };
+// The pace of a walk (2026-10-12, the founder: "the legs just move every few seconds"): a
+// figure takes `base` strides a second standing almost still, and `perHeight` more for
+// every body-height it covers in a second, so a larger figure strides longer, not slower
+// to the eye. A foot coming down settles the body by `land` of its height, and seen from
+// the front or back it rocks from foot to foot by `rock` (radians).
+const WALK = { frames: 8, cell: 112, pad: 112 / 96, base: 1.0, heavyBase: 0.8, perHeight: 0.5, land: 0.04, rock: 0.04 };
 const WALKERS = Object.values(CHARS);          // every figure has a sheet, Vritra too since 2026-10-11
 // Art made for this game comes one figure at a time (requirements 2.39), so a figure named
 // here has files of its own while the others keep the stock ones: stills of `still` pixels
@@ -83,14 +89,14 @@ const WALKERS = Object.values(CHARS);          // every figure has a sheet, Vrit
 // their size 50% bigger"). It is measured from the stock hit circle, not today's, so the
 // circles can be changed (HIT) without anything being drawn differently.
 const ART = {
-  kiran:       { still: 224, cell: 256, per: 12, scale: 2.25, wide: 0.46 },
+  kiran:       { still: 320, cell: 368, per: 12, scale: 2.8125, wide: 0.46 },      // a quarter larger, 2026-10-12: "Player looks too small"
   asura:       { still: 160, cell: 192, per: 12, scale: 2.55, wide: 0.58 },
   rakshasa:    { still: 160, cell: 192, per: 12, scale: 3.2, wide: 0.5 },
   mahish:      { still: 192, cell: 224, per: 12, scale: 2.25, wide: 0.87 },
   raktabija:   { still: 160, cell: 192, per: 12, scale: 2.55, tall: 0.8, wide: 0.96 },
   bakasura:    { still: 224, cell: 256, per: 12, scale: 2.6, wide: 0.56 },
   nidhiraksha: { still: 224, cell: 256, per: 12, scale: 2.2, tall: 0.75, wide: 0.96 },
-  vritra:      { still: 224, cell: 256, per: 12, scale: 2.0, wide: 0.7 }
+  vritra:      { still: 224, cell: 256, per: 12, scale: 2.0, wide: 0.7, sways: true }   // his cells are a sway, not a stride
 };
 // Figures are drawn in the order they stand, the one nearest the top of the floor first,
 // so that whoever is nearer the bottom of the screen is in front. They keep to a band of
@@ -120,7 +126,13 @@ const STOCK_ART = { still: 96, cell: WALK.cell, per: WALK.frames + 1, scale: 1 }
 const artOf = char => ART[char] || STOCK_ART;
 // A strike: how long a figure is drawn back, strikes, and comes out of it, in ms.
 const ACT = { cells: 3, back: 70, strike: 100, out: 70 };
-// How a blow and an arrival move (requirements 2.50). Struck, a figure squashes and springs
+// A boss's slam on his own figure (2026-10-12, the founder: "Slam animations still didn't
+// work"). Through the warning he rises by `rise` of his height and draws back `lean` from
+// where it will land; for the last `gather` ms he holds at the top and trembles. He lets go
+// `drop` ms before it lands and comes down hard, lunging `lunge` toward it; he stays in the
+// blow for `hold` ms and comes out of it over `out` ms, rooted till then.
+const SLAM_ACT = { gather: 300, drop: 80, hold: 200, out: 280, rise: 0.08, lean: 6, lunge: 12 };
+// How a blow and an arrival move (requirements 2.51). Struck, a figure squashes and springs
 // back past round before it settles (damping ratio 0.4, 7 Hz: follow-through), where it
 // used to fade straight back in 140 ms. Arriving, it overshoots its size a little and
 // settles (ease-out-back). The heaviest blows hold the fight still for a few frames, so

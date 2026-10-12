@@ -35,7 +35,9 @@ class UiScene extends Phaser.Scene {
     catch (e) { /* audio not unlocked yet - skip rather than throw mid-frame */ }
   }
 
-  shake(duration, intensity) { if (settings.shake) this.cameras.main.shake(duration, intensity); }
+  // A shake asked for while another runs is dropped, unless it is `force`d: a slam's must
+  // not be lost to the small one of a blow taken a moment before.
+  shake(duration, intensity, force) { if (settings.shake) this.cameras.main.shake(duration, intensity, !!force); }
   // A heavy blow holds the fight still for a few frames (FEEL.hitStop); update() waits it out.
   holdStill(ms) { if (!this.silent) this.hitStopMs = Math.max(this.hitStopMs || 0, ms); }
 

@@ -2,7 +2,7 @@
  * scene-fx.js: the second layer: how the fight is drawn. No rule is decided here.
  *
  * class FxScene extends UiScene
- * Owns      the faceted effects (fxPiece, chipFx, starFx, novaFx, slamFx, boltFx ...),
+ * Owns      the faceted effects (fxPiece, chipFx, starFx, novaFx, slamFx, slamBlowFx, boltFx ...),
  *           what stands round a figure (drawBossFx, drawDome, gild, deathFx, splitFx),
  *           figures and their motion (charSprite, pose, animate, act, release,
  *           enemyLunge, dressHero, and the sizes stockSize, headUp, girth, feetDown),
@@ -145,6 +145,29 @@ class FxScene extends UiScene {
       this.tweens.add({ targets: slab, alpha: 0, delay: 200, duration: 130 });
     }
     this.fxFade(g, { alpha: 0 }, 400, 'Quad.easeOut');
+  }
+
+  // A boss's slam where he stands (2026-10-12): dust thrown out along the floor from his
+  // feet and chips of it kicked up, whatever the slam's shape; a slam that lands away from
+  // him (a cleave's far end, a scatter round the hero) also cracks the floor under him.
+  // The dust in front of his feet is drawn over him, the rest under.
+  slamBlowFx(e, s) {
+    if (this.silent) return;
+    const fx = e.x + (e.shoveX || 0), fy = e.y + this.feetDown(e) + (e.shoveY || 0), r = this.girth(e);
+    const front = sortDepth(e.y + this.feetDown(e)) + 1e-4, dust = [0xd8b48a, 0x7a5236];
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2 + Math.random() * 0.4, cx = Math.cos(a), cy = Math.sin(a) * FLAT;
+      const puff = this.fxPiece('fx_lump', fx + cx * r * 0.5, fy + cy * r * 0.5, 16 + Math.random() * 8, dust, cy > 0 ? front : Z.fx + 0.1)
+        .setAlpha(0.75).setRotation(Math.random() * 6.28);
+      this.fxFade(puff, { x: fx + cx * (r + 40), y: fy + cy * (r + 40) - 6, scale: puff.scale * 1.7, alpha: 0 }, 420 + Math.random() * 120);
+    }
+    for (let i = 0; i < 7; i++) {
+      const a = Math.random() * 6.28, d = r * (0.4 + Math.random() * 0.5);
+      const bit = this.fxPiece(i % 3 ? 'fx_chip' : 'fx_slab', fx, fy, 8 + Math.random() * 6, SLAM_FX, front).setRotation(a);
+      this.tweens.add({ targets: bit, x: fx + Math.cos(a) * d, duration: 380, ease: 'Quad.easeOut' });
+      this.tweens.add({ targets: bit, y: fy + Math.sin(a) * d * FLAT - 22 - Math.random() * 14, angle: bit.angle + 120, duration: 190, ease: 'Quad.easeOut', yoyo: true, onComplete: () => bit.destroy() });
+    }
+    if (s.type !== 'circle') this.slamFx(fx, fy, r * 0.9, SLAM_FX, 4);
   }
 
   // Poison: lumps of it that keep to the hero and wander round him while the power lasts.
@@ -543,6 +566,9 @@ class FxScene extends UiScene {
                       : this.add.image(x, y, `${char}-front`).setDisplaySize(drawn, drawn);
     spr.walks = walks;
     spr.figure = size;
+    spr.tall = drawn * (art.tall || 0.86);                                     // the figure's own height
+    spr.feet = walks ? ((art.cell - art.still) / 2 + 0.94 * art.still) / art.cell - 0.5 : 0.44;   // its soles, below the middle, as a part of the picture
+    spr.sways = !!art.sways;
     return spr.setDepth(sortDepth(y));
   }
 
@@ -561,52 +587,102 @@ class FxScene extends UiScene {
   }
 
   // Life beyond the frames (requirements 2.31). The walk sheets carry the stride; the rest
-  // is made here: a lean into the turn, a breath at rest, a squash when struck, a swell on
-  // arrival, a crouch before a slam - and, for a character with no sheet, a hop in place of
-  // the stride. `a` carries the state (the enemy itself, or playerAnim). Returns how far
-  // the sprite should be lifted off its spot this frame.
-  animate(spr, a, delta, vx, vy, heavy, crouch) {
+  // is made here: a lean into the turn, a settle on each footfall, a breath at rest, a
+  // squash when struck, a swell on arrival, a boss's slam - and, for a character with no
+  // sheet, a hop in place of the stride. `a` carries the state (the enemy itself, or
+  // playerAnim); `slam` is the slam a boss is winding up, if any. Returns how far the
+  // sprite should be lifted off its spot this frame, and leaves in a.shoveX/a.shoveY how
+  // far it is pushed along the floor.
+  animate(spr, a, delta, vx, vy, heavy, slam) {
     if (spr.baseSX === undefined) { spr.baseSX = spr.scaleX; spr.baseSY = spr.scaleY; spr.strideLen = (spr.figure || spr.displayWidth) * 2.4; }
-    if (a.gait === undefined) { a.gait = Math.random() * 6.28; a.age = a.age || 0; }
+    if (a.gait === undefined) { a.gait = Math.random() * 6.28; a.walk = Math.random(); a.age = a.age || 0; }   // not all on the same foot
     a.age += delta;
     const speed = Math.hypot(vx, vy), moving = speed > 12, rate = heavy ? 0.0085 : 0.0135;
     a.gait += delta * (moving ? rate + Math.min(0.006, speed * 0.00003) : rate * 0.22);
     const stride = Math.sin(a.gait), k = heavy ? 0.55 : 1;
-    let sx = 1, sy = 1, lift = 0;
+    let sx = 1, sy = 1, lift = 0, turn = 0;
+    a.shoveX = a.shoveY = 0;
     if (spr.walks) {
-      // The cycle keeps pace with the ground covered, so feet do not slide; a slow giant
-      // still steps at a walk. The pose is held a moment after stopping, so a character
-      // jostled in a crowd does not flicker between standing and walking.
-      if (moving) { a.walkHold = 140; a.walk = (a.walk || 0) + Math.max(0.7, speed / spr.strideLen) * delta / 1000; }
+      // The pace (WALK): a larger figure strides longer, and a slow giant still steps.
+      // Vritra's cells are a sway, kept at its own slow pace. The pose is held a moment
+      // after stopping, so a character jostled in a crowd does not flicker.
+      const pace = spr.sways ? Math.max(0.7, speed / spr.strideLen) : (heavy ? WALK.heavyBase : WALK.base) + WALK.perHeight * speed / spr.tall;
+      if (moving) { a.walkHold = 140; a.walk = (a.walk || 0) + pace * delta / 1000; }
       else if (a.walkHold > 0) a.walkHold -= delta;
-      a.step = a.walkHold > 0 ? 1 + Math.floor((a.walk || 0) * WALK.frames) % WALK.frames : 0;
+      a.step = a.walkHold > 0 ? 1 + Math.round((a.walk || 0) * WALK.frames) % WALK.frames : 0;
+      // Each time a foot comes down the body settles onto it; seen from the front or the
+      // back it also rocks from one foot to the other.
+      if (a.walkHold > 0 && !a.act && !spr.sways) {
+        const p = (a.walk || 0) * 2 * Math.PI, land = Math.pow(Math.cos(p), 8) * k * WALK.land;
+        sy -= land; sx += land * 0.6;
+        turn += Math.sin(p) * WALK.rock * k * Math.abs(vy) / (speed || 1);
+      }
     } else if (moving) { sy += 0.055 * stride * k; sx -= 0.04 * stride * k; lift = Math.abs(stride) * (heavy ? 1.6 : 2.8); }
     // A strike runs through its three cells and is over. One that is held stays drawn
-    // back until release() lets it go: a boss winding up a slam.
+    // back until release() lets it go: a boss winding up a slam. A slam's own blow is
+    // longer (SLAM_ACT), and a quick jab, struck on the move, is the blow alone.
     if (a.act) {
+      const T = a.act.slam ? { back: 0, strike: SLAM_ACT.drop + SLAM_ACT.hold, out: SLAM_ACT.out } : ACT;
       if (!a.act.held) a.act.t += delta;
-      a.act.cell = a.act.t < ACT.back ? 0 : a.act.t < ACT.back + ACT.strike ? 1 : 2;
-      if (a.act.t >= ACT.back + ACT.strike + ACT.out) a.act = null;
+      a.act.cell = a.act.held ? 0 : a.act.t < T.back ? 0 : a.act.t < T.back + T.strike ? 1 : 2;
+      if (a.act.t >= (a.act.quick ? ACT.back + ACT.strike : T.back + T.strike + T.out)) a.act = null;
     }
     if (!moving) { const breath = Math.sin(a.gait * 2) * 0.02; sy += breath; sx -= breath * 0.6; }
+    const blow = a.act && a.act.slam && spr.walks;
     if (a.squash > 0) {          // struck: squashed, then a spring back past round (FEEL.squash)
       a.squash -= delta;
       const S = FEEL.squash, q = a.squash > 0 ? springBack((S.ms - a.squash) / 1000, S.zeta, S.hz) : 0;
-      sx += S.x * q; sy -= S.y * q;
+      if (!blow) { sx += S.x * q; sy -= S.y * q; }
     }
     if (a.punch > 0) { a.punch -= delta; const q = Math.max(0, a.punch / 90); sx += 0.07 * q; sy += 0.07 * q; }
-    // Winding up a slam: a figure with strike cells is already drawn back, and rises as
-    // it gathers; one without them crouches, as it always did.
-    const gathering = crouch > 0 && a.act && a.act.held && spr.walks;
-    if (gathering) { sy += 0.12 * crouch; sx += 0.05 * crouch; lift += 7 * crouch; }
-    else if (crouch > 0) { sy -= 0.12 * crouch; sx += 0.09 * crouch; }
+    if (blow) {
+      // A boss's slam (SLAM_ACT): he rises and draws back through the warning, holds at
+      // the top trembling, then comes down hard toward where it lands, stays in the blow
+      // and comes out of it. `R` is how high he rises.
+      const R = SLAM_ACT.rise * spr.tall, dx = a.act.dx || 0, dy = a.act.dy || 0;
+      const ease = q => 1 - Math.pow(1 - q, 3);
+      let up = 0, push = 0;
+      if (a.act.held && slam) {
+        // Eased toward where the warning says he should be, so a slam restarted (the
+        // lesson that teaches it) lets him down gently rather than in one frame.
+        const gatherAt = Math.max(1, slam.dur - SLAM_ACT.gather), want = ease(Math.min(1, slam.t / gatherAt));
+        a.act.q = a.act.q === undefined ? want : a.act.q + (want - a.act.q) * Math.min(1, delta / 80);
+        const q = a.act.q;
+        up = q; push = -SLAM_ACT.lean * q; sy += 0.06 * q; sx -= 0.03 * q; turn -= 0.06 * q * dx;
+        if (slam.t >= gatherAt) {                                  // at the top, trembling
+          turn += Math.sin(a.age / 14) * 0.045;
+          push += Math.sin(a.age / 19) * 1.5;
+          sy += Math.sin(a.age / 23) * 0.015;
+        }
+      } else if (!a.act.held) {
+        const t = a.act.t, drop = SLAM_ACT.drop, hold = SLAM_ACT.hold;
+        if (t < drop) {                                            // the drop
+          const q = t / drop;
+          up = 1 - q * q; push = -SLAM_ACT.lean + (SLAM_ACT.lean + SLAM_ACT.lunge) * q;
+          sy += 0.06 - 0.18 * q; turn += 0.08 * q * dx;
+        } else if (t < drop + hold) {                              // in the blow, flattened against the floor
+          const q = 1 - (t - drop) / hold;
+          push = SLAM_ACT.lunge; sx += 0.24 * q * q; sy -= 0.2 * q * q; turn += 0.08 * q * dx;
+        } else {                                                   // coming out of it
+          const q = (t - drop - hold) / SLAM_ACT.out;
+          push = SLAM_ACT.lunge * (1 - ease(q));
+        }
+      }
+      lift += R * up;
+      a.shoveX = dx * push; a.shoveY = dy * push * FLAT;
+    } else if (slam && !spr.walks) {                               // a figure with no strike cells crouches, as it always did
+      const c = Math.min(1, slam.t / slam.dur); sy -= 0.12 * c; sx += 0.09 * c;
+    }
     if (a.age < FEEL.pop.ms) {   // arriving: grows in, overshoots a little, settles (ease-out-back)
       const q = a.age / FEEL.pop.ms - 1, pop = 0.55 + 0.45 * (1 + 2.70158 * q * q * q + 1.70158 * q * q);
       sx *= pop; sy *= pop;
     }
     spr.setScale(spr.baseSX * sx, spr.baseSY * sy);
-    let turn = moving ? Phaser.Math.Clamp(vx / 260, -1, 1) * (spr.walks ? 0.06 : 0.1) : 0;
-    if (gathering) turn += Math.sin(a.age / 24) * 0.035 * Math.max(0, crouch - 0.55) / 0.45;      // he shakes with it at the last
+    // A figure on a sheet is scaled about its middle; it is moved so that its feet stay
+    // on the floor, and a squash or a settle presses down from the head, not up from the
+    // soles.
+    if (spr.walks) lift += (sy - 1) * spr.baseSY * spr.height * spr.feet;
+    if (moving) turn += Phaser.Math.Clamp(vx / 260, -1, 1) * (spr.walks ? 0.06 : 0.1);
     spr.setRotation(turn);
     return lift;
   }
@@ -615,15 +691,20 @@ class FxScene extends UiScene {
   // through the strike cells of its sheet: drawing back, striking, coming out of it. The
   // same three serve a thrust, a throw, a cast and a slam. `a` is the state animate()
   // keeps (an enemy, or playerAnim). A `held` strike stays drawn back until release().
-  act(a, fromX, fromY, toX, toY, held) {
-    a.act = { t: 0, cell: 0, facing: facingFor(toX - fromX, toY - fromY), held: !!held };
+  // `kind` is 'quick' for a jab struck on the move (the legs keep walking under it), or
+  // 'slam' for a boss's slam, which has its own, longer blow (SLAM_ACT).
+  act(a, fromX, fromY, toX, toY, held, kind) {
+    const d = Math.hypot(toX - fromX, toY - fromY) || 1, quick = kind === 'quick';
+    a.act = { t: quick ? ACT.back : 0, cell: 0, facing: facingFor(toX - fromX, toY - fromY), held: !!held,
+              quick, slam: kind === 'slam', dx: (toX - fromX) / d, dy: (toY - fromY) / d };
   }
-  release(a) { if (a.act && a.act.held) { a.act.held = false; a.act.t = ACT.back; } }
+  // Lets a held strike go: into its blow, or `into` ms past the start of it.
+  release(a, into = 0) { if (a.act && a.act.held) { a.act.held = false; a.act.t = (a.act.slam ? 0 : ACT.back) + into; } }
 
   // The attacker visibly lunges at you. Stored as an offset rather than tweened, because
   // the update loop re-positions every sprite from its logical position each frame.
   enemyLunge(e) {
-    if (!(e.act && e.act.held)) this.act(e, e.x, e.y, this.player.x, this.player.y);     // a blow in passing does not break a wind-up
+    if (!(e.act && (e.act.held || e.act.slam))) this.act(e, e.x, e.y, this.player.x, this.player.y);     // a blow in passing breaks neither a wind-up nor a slam
     const d = Math.hypot(this.player.x - e.x, this.player.y - e.y) || 1;
     e.lunge = { t: 0, dur: 200, dx: (this.player.x - e.x) / d, dy: (this.player.y - e.y) / d,
                 amp: Math.min(16, 6 + e.radius * 0.5) };

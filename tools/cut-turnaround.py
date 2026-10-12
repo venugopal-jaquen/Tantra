@@ -93,9 +93,14 @@ GAP = 12         # clear columns that separate two figures
 SHADOW = 0.34    # how dark the shadow under the feet is
 HIP = 0.56       # where the legs begin, down the figure, seen from the front or the back
 CUFF = 0.8       # where, down a side view, the legs come out from under what is worn
-STEP = 0.07      # how far a foot swings ahead of and behind where it stood, as a part of the figure's height
-RAISE = 0.035    # how high a foot comes up on its way forward
-BOB = 0.012      # how far the body rises as the legs pass
+# The stride was made larger on 2026-10-12 (the founder: "The legs just move every few
+# seconds"): at 0.07, 0.035 and 0.012 a foot moved four to seven pixels on a phone.
+STEP = 0.11      # how far a foot swings ahead of and behind where it stood, as a part of the figure's height
+RAISE = 0.06     # how high a foot comes up on its way forward
+BOB = 0.03       # how far the body rises as the legs pass
+LIFT = 0.11      # seen from the front or the back: how high a foot comes up
+RISE = 0.03      # and how far the body rises over the leg that stands
+SWAY = 0.045     # and how far the weight moves across onto it, as a part of the figure's width
 BEHIND = 0.68    # how much of its light the leg behind keeps, where one leg has to stand for two
 
 def fail(msg):
@@ -181,8 +186,8 @@ def stride(fig, i, mid):
     def source(x, y):
         side = 0.5 * (1 + math.tanh((x - mid) / (w * 0.05)))      # 0 on the left leg, 1 on the right
         lift = (1 - side) * lift_l + side * lift_r
-        up = h * 0.075 * lift * leg(y) + h * 0.014 * rise * (1 - leg(y))
-        over = w * 0.022 * math.sin(phase) * (1 - leg(y))
+        up = h * LIFT * lift * leg(y) + h * RISE * rise * (1 - leg(y))
+        over = w * SWAY * math.sin(phase) * (1 - leg(y))
         return x - over, y + up
     return bend(fig, source)
 
