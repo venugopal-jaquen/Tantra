@@ -132,7 +132,7 @@ const ACT = { cells: 3, back: 70, strike: 100, out: 70 };
 // `drop` ms before it lands and comes down hard, lunging `lunge` toward it; he stays in the
 // blow for `hold` ms and comes out of it over `out` ms, rooted till then.
 const SLAM_ACT = { gather: 300, drop: 80, hold: 200, out: 280, rise: 0.08, lean: 6, lunge: 12 };
-// How a blow and an arrival move (requirements 2.51). Struck, a figure squashes and springs
+// How a blow and an arrival move (requirements 2.52). Struck, a figure squashes and springs
 // back past round before it settles (damping ratio 0.4, 7 Hz: follow-through), where it
 // used to fade straight back in 140 ms. Arriving, it overshoots its size a little and
 // settles (ease-out-back). The heaviest blows hold the fight still for a few frames, so

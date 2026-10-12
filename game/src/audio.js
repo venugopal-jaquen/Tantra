@@ -154,7 +154,7 @@ const Music = {
         t.dead = true;
         if (this.key === mood) { const want = this.mood; this.mood = this.key = null; this.play(want); }
       });
-      el.src = def.file;
+      el.src = def.file + '?v=' + encodeURIComponent(BUILD_TAG);      // the build's own copy (config.js)
       if (this.ctx) {
         try {
           const src = this.ctx.createMediaElementSource(el);

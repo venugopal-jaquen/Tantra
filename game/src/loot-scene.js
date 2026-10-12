@@ -23,10 +23,13 @@ class LootScene extends SystemsScene {
   preload() {
     // The first slice of the bar is the page and the engine itself arriving.
     this.load.on('progress', v => Loader.setProgress(0.12 + v * 0.88));
-    // Every file the game uses is named by gameAssets() (assets.js), and loaded in its order.
+    // Every file the game uses is named by gameAssets() (assets.js), and loaded in its order,
+    // at an address that carries the build (BUILD_TAG), so a cached file of another build is
+    // never taken for it.
+    const tagged = path => path + '?v=' + encodeURIComponent(BUILD_TAG);
     for (const a of gameAssets()) {
-      if (a.load === 'spritesheet') this.load.spritesheet(a.key, a.path, { frameWidth: a.frame, frameHeight: a.frame });
-      else this.load[a.load](a.key, a.path);
+      if (a.load === 'spritesheet') this.load.spritesheet(a.key, tagged(a.path), { frameWidth: a.frame, frameHeight: a.frame });
+      else this.load[a.load](a.key, tagged(a.path));
     }
   }
 
