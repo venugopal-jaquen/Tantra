@@ -36,6 +36,10 @@ OUT = os.path.join(HERE, "..", "game", "assets", "icons")
 FRAME, SMALL, COLS = 128, 64, 10
 
 RARITIES = ["common", "rare", "epic"]
+# Icons painted again, in a sheet of their own: name -> the sheet (its grid and the cell the
+# icon stands in). They are cut in the place the first sheet kept them, so that the frames
+# keep their order. loot-icons-2.png is one row of three strips (docs/art-brief-for-chatgpt.md 4a).
+REPAINT = ("loot-icons-2.png", 3, 1, {"swift": 0, "regen": 1, "mystery": 2})
 # Each sheet: its grid, the kind of icon in it, and what stands in each cell, left to
 # right and top row first. None is a cell left empty on purpose.
 SHEETS = [
@@ -63,15 +67,16 @@ METALS = {
     "common": [0x4a1f0c, 0x9c4f24, 0xd9844a, 0xffd0a0],
     "rare":   [0x39424e, 0x7f8b99, 0xc4ced8, 0xfbfdff],
     "epic":   [0x6a3f06, 0xc98a14, 0xffc93c, 0xfff3b0],
-    "unknown": [0x2e1a5c, 0x6a48b8, 0xb48cff, 0xf0e4ff],
+    "unknown": [0x5e3cb0, 0xb094ff, 0xd2baff, 0xffffff],      # lighter than the cloth it sits on: the bundle is deep indigo
 }
 # Where the metal of a loot icon is looked for. `sat`: steel is no more saturated than
-# this. `only`: boxes, as parts of the icon's cell, outside which nothing is metal.
+# this. `only`: boxes, as parts of the icon's cell, outside which nothing is metal. The
+# three painted again carry their steel in broad plates (sole and cuff, holder, collar and
+# band), and leather, leaves and indigo cloth are far more saturated than steel, so they
+# need no box.
 STEEL = {
     "default": {"sat": 0.42},
-    "swift":   {"sat": 0.42, "only": [[0.66, 0.06, 0.93, 0.36]]},        # the buckle; not the pale feather
-    "regen":   {"sat": 0.42, "only": [[0.27, 0.57, 0.53, 0.80]]},        # the clasp round the stems
-    "mystery": {"sat": 0.30, "only": [[0.50, 0.24, 0.72, 0.45]]},        # the toggle on the cord; not the cloth
+    "mystery": {"sat": 0.30},
 }
 
 
@@ -234,6 +239,16 @@ def fit(icon, kind, size):
 def main():
     qa = sys.argv[sys.argv.index("--qa") + 1] if "--qa" in sys.argv else None
     frames, record, masks = [], [], []
+    rfile, rcols, rrows, rcells = REPAINT
+    rpath = os.path.join(SRC, rfile)
+    if not os.path.exists(rpath):
+        fail("missing " + rfile)
+    rfound, rxs, rys = cells_of(clean_alpha(Image.open(rpath).convert("RGBA")), rcols, rrows)
+    repaint = {}
+    for name, cell in rcells.items():
+        if rfound[cell][1] is None:
+            fail(f"{rfile}: nothing found in cell {cell} ({name})")
+        repaint[name] = (rfound[cell][1], rfound[cell][2], (rxs[cell], rys[0], rxs[cell + 1], rys[1]), cell)
     for file, cols, rows, kind, names in SHEETS:
         path = os.path.join(SRC, file)
         if not os.path.exists(path):
@@ -248,7 +263,10 @@ def main():
             if icon is None:
                 fail(f"{file}: nothing found in cell {cell} ({name})")
             cellbox = (xs[cell % cols], ys[cell // cols], xs[cell % cols + 1], ys[cell // cols + 1])
-            base = {"source": "game/assets/incoming/well-delver/" + file, "cell": cell, "cut": list(box)}
+            src, at = file, cell
+            if kind == "loot" and name in repaint:
+                icon, box, cellbox, at = repaint[name]; src = rfile
+            base = {"source": "game/assets/incoming/well-delver/" + src, "cell": at, "cut": list(box)}
             if kind == "loot":
                 rule = STEEL.get(name, STEEL["default"])
                 mask = steel_mask(icon, box, cellbox, rule)
