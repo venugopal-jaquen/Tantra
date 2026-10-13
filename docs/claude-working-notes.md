@@ -218,3 +218,41 @@ the matching kit to the founder. Before installing one, vet it as *vet-assets-be
 says: licence, last change, and what it runs, since a skill is instructions and scripts an agent
 will follow. The post's descriptions are unchecked. Pair it with
 docs/animation-prompting-best-practices.md for how to prompt and measure.
+
+## no-scheduled-checkins
+
+*Do not arm scheduled check-ins (send_later, Routines) to re-check a PR; the GitHub subscription is enough.*
+
+On 2026-10-12 a cloud session watching PR #23 kept a safety-net reminder that woke it every few
+hours to re-check the PR. The founder asked "Why are you running requests again and again?" and
+had it cancelled.
+
+**Why:** each wake-up spends the founder's usage while nothing has changed, and from their phone
+it looks like Claude is busy for no reason.
+
+**How to apply:** after opening a PR, subscribe to its GitHub activity and stop there: comments,
+reviews, merges and closes wake the session by themselves. Set a timed check-in only if the
+founder asks for one, and cancel it when they say so.
+
+## cloud-session-testing
+
+*In a cloud container, `check-game.mjs` is reliable but the smoke test is not; time-based checks step `update()` by hand.*
+
+Learned on 2026-10-12 (PRs #22 to #24). The founder often works from the Claude app on a phone,
+and every game change is tried on a phone before it goes live.
+
+- `node tools/check-game.mjs` runs as on the PC and is the check to trust here.
+- `node tools/smoke-test.mjs` stops at "a first run stops to teach moving" in the cloud container.
+  `main` stopped at the same step with the same error, so it is the container, not the change.
+  Say so in the PR and ask for the full run on the founder's PC.
+- The container draws about three frames a second, so anything timed (a hold, a tween, a spring)
+  is checked by calling the scene's `update(time, delta)` with known deltas, not by waiting.
+- Any changed script means a new build: `BUILD` in `game/src/config.js` and every `?v=` tag in
+  `game/loot-chase-v0.1.html` and the root `index.html` move together (requirements §2.51), or a
+  phone mixes two builds. `check-game` fails if they differ.
+
+**Why:** a red smoke test from the container is not evidence against a change, and a timing
+check against the container's clock proves nothing.
+
+**How to apply:** run `check-game` first, step timed behaviour by hand, and compare any smoke-test
+failure against `main` before reporting it. See *test-headless-and-muted*.
