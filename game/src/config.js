@@ -28,7 +28,7 @@ const QUERY = new URLSearchParams(location.search);
 // root index.html redirect page carries its own copy.)
 const GAME_TITLE = 'Anantarya';
 
-const BUILD = '0.20 (2026-10-13)';
+const BUILD = '0.21 (2026-10-13)';
 // Every file the game fetches carries the build in its address (?v=0.16), so that a phone
 // holding files of the last build from its cache cannot mix them with this one's: a new
 // build is new addresses throughout (2026-10-12: a phone ran build 0.15's code against
