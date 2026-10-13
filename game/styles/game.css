@@ -21,11 +21,11 @@
   /* A slab. The element itself is the bronze edge, its corners cut; the stone lies inside
      it on a layer of its own, cut the same and lit along its top. A cut shape can carry no
      border and no outline, so the ring that shows where the keyboard is, is drawn inside. */
-  .card, .well, .fb-box, .fb-cancel {
+  .card, .well, .fb-box, .fb-cancel, .side, .rotate-box {
     position: relative; isolation: isolate; border: 0; border-radius: 0; box-shadow: none;
     background: linear-gradient(var(--edge), var(--edge-low)); clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
   }
-  .card::before, .well::before, .fb-box::before, .fb-cancel::before {
+  .card::before, .well::before, .fb-box::before, .fb-cancel::before, .side::before, .rotate-box::before {
     content: ""; position: absolute; inset: 2px; z-index: -1; --c: calc(var(--cc) - 1px); clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
     background: linear-gradient(var(--lit), transparent 2px), linear-gradient(rgba(255,226,176,.08), transparent 46%), linear-gradient(var(--stone), var(--stone-low));
   }
@@ -36,10 +36,61 @@
     height: 100%; width: 100%; overflow: hidden;
     font-family: "Baloo 2", system-ui, -apple-system, "Segoe UI", sans-serif;
   }
+  /* The engine centres the game in this box itself (Scale.CENTER_BOTH), by its margins. The
+     box used to centre it as well, and the two added up: on a wide screen the game stood a
+     quarter of the spare room right of the middle, and on a phone a quarter of it low. */
   #game-container {
+    position: relative; z-index: 1;
     width: 100%; height: 100%;
-    display: flex; align-items: center; justify-content: center;
   }
+
+  /* ---------- The page round the game on a wide screen (requirements 2.54) ---------- */
+  /* The level's floor or the title picture, blurred and darkened beforehand
+     (tools/make-backdrops.py), stretched over the screen behind the game. It reaches past
+     the edges so that the blur has no rim, and darkens toward them so the game stands out. */
+  #backdrop {
+    position: fixed; inset: -2%; z-index: 0;
+    background: var(--deep) center / cover no-repeat;
+  }
+  #backdrop::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 55% 75% at 50% 50%, transparent 40%, rgba(20,6,0,.6) 100%);
+  }
+  /* On a computer, beside the game: the controls on the left, the goal on the right
+     (boot.js shows them when the bands have room). Sized off the screen's height. */
+  .side {
+    position: fixed; z-index: 2; top: 50%; transform: translateY(-50%); box-sizing: border-box;
+    --c: .7em; --cc: .7em; padding: 1em 1.25em 1.1em; color: var(--cream);
+    font-size: clamp(13px, 1.65vh, 20px); line-height: 1.35;
+  }
+  .side[hidden] { display: none; }
+  .side h2 { font-family: "Yatra One", "Baloo 2", serif; font-weight: 400; font-size: 1.55em; line-height: 1.1; color: var(--gold); margin: 0 0 .55em; }
+  .side dl { display: grid; grid-template-columns: auto 1fr; gap: .5em .75em; margin: 0; align-items: baseline; }
+  .side dt { text-align: right; white-space: nowrap; }
+  .side dd { margin: 0; color: #f0dcc0; }
+  .side kbd {
+    display: inline-block; min-width: 1.1em; text-align: center; margin: 0 0 .15em .15em; padding: .05em .4em;
+    font: 700 .85em "Baloo 2", system-ui, sans-serif; color: var(--deep);
+    background: linear-gradient(#f1d9a4, var(--bronze)); border-radius: .3em; box-shadow: 0 .14em 0 var(--edge-low);
+  }
+  .side p { margin: 0 0 .65em; color: #f0dcc0; }
+  .side p:last-child { margin-bottom: 0; }
+  .side b { color: var(--gold); font-weight: 700; }
+  /* A phone held sideways: the game would be a sliver, so it asks to be turned (the fight
+     waits: boot.js pauses it). Tablets are taller than this and keep the game with its bands. */
+  #rotate { display: none; }
+  @media (orientation: landscape) and (pointer: coarse) and (max-height: 520px) {
+    #rotate {
+      display: flex; position: fixed; inset: 0; z-index: 30; align-items: center; justify-content: center;
+      padding: 1em; box-sizing: border-box; background: rgba(26,8,2,.94); color: var(--cream); text-align: center;
+      font-size: clamp(13px, 4.2vh, 20px);
+    }
+  }
+  .rotate-box { --c: .8em; --cc: .8em; padding: 1.2em 1.6em; max-width: 26em; }
+  .rotate-box h2 { font-family: "Yatra One", "Baloo 2", serif; font-weight: 400; font-size: 1.6em; color: var(--gold); margin: .3em 0 .2em; }
+  .rotate-box p { margin: 0; color: #f0dcc0; line-height: 1.35; }
+  .rotate-phone { width: 2.2em; height: 3.5em; fill: none; stroke: var(--bronze); stroke-width: 3; stroke-linecap: round; animation: turn-upright 2.4s ease-in-out infinite; }
+  @keyframes turn-upright { 0%, 25% { transform: rotate(-90deg); } 55%, 100% { transform: rotate(0); } }
   #game-container canvas { box-shadow: 0 0 40px rgba(255,140,66,0.18); border-radius: 8px; }
 
   /* ---------- Loading screen: one glossary card per load (requirements 2.19) ---------- */
