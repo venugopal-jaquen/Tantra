@@ -437,186 +437,130 @@
    "scale": 0.3699
   },
   {
-   "source": "game/assets/incoming/well-delver/loot-icons.png",
-   "cell": 8,
+   "source": "game/assets/incoming/well-delver/loot-icons-2.png",
+   "cell": 0,
    "cut": [
-    44,
-    740,
-    377,
-    1045
+    55,
+    326,
+    493,
+    757
    ],
    "name": "loot-swift-common",
    "metal": "common",
-   "metalShare": 0.03,
+   "metalShare": 0.468,
    "steel": {
-    "sat": 0.42,
-    "only": [
-     [
-      0.66,
-      0.06,
-      0.93,
-      0.36
-     ]
-    ]
+    "sat": 0.42
    },
    "frame": 24,
-   "scale": 0.3544
+   "scale": 0.2656
   },
   {
-   "source": "game/assets/incoming/well-delver/loot-icons.png",
-   "cell": 8,
+   "source": "game/assets/incoming/well-delver/loot-icons-2.png",
+   "cell": 0,
    "cut": [
-    44,
-    740,
-    377,
-    1045
+    55,
+    326,
+    493,
+    757
    ],
    "name": "loot-swift-rare",
    "metal": "rare",
-   "metalShare": 0.03,
+   "metalShare": 0.468,
    "steel": {
-    "sat": 0.42,
-    "only": [
-     [
-      0.66,
-      0.06,
-      0.93,
-      0.36
-     ]
-    ]
+    "sat": 0.42
    },
    "frame": 25,
-   "scale": 0.3544
+   "scale": 0.2656
   },
   {
-   "source": "game/assets/incoming/well-delver/loot-icons.png",
-   "cell": 8,
+   "source": "game/assets/incoming/well-delver/loot-icons-2.png",
+   "cell": 0,
    "cut": [
-    44,
-    740,
-    377,
-    1045
+    55,
+    326,
+    493,
+    757
    ],
    "name": "loot-swift-epic",
    "metal": "epic",
-   "metalShare": 0.03,
+   "metalShare": 0.468,
    "steel": {
-    "sat": 0.42,
-    "only": [
-     [
-      0.66,
-      0.06,
-      0.93,
-      0.36
-     ]
-    ]
+    "sat": 0.42
    },
    "frame": 26,
-   "scale": 0.3544
+   "scale": 0.2656
   },
   {
-   "source": "game/assets/incoming/well-delver/loot-icons.png",
-   "cell": 9,
+   "source": "game/assets/incoming/well-delver/loot-icons-2.png",
+   "cell": 1,
    "cut": [
-    445,
-    736,
-    699,
-    1055
+    586,
+    236,
+    1007,
+    794
    ],
    "name": "loot-regen-common",
    "metal": "common",
-   "metalShare": 0.043,
+   "metalShare": 0.415,
    "steel": {
-    "sat": 0.42,
-    "only": [
-     [
-      0.27,
-      0.57,
-      0.53,
-      0.8
-     ]
-    ]
+    "sat": 0.42
    },
    "frame": 27,
-   "scale": 0.3699
+   "scale": 0.2115
   },
   {
-   "source": "game/assets/incoming/well-delver/loot-icons.png",
-   "cell": 9,
+   "source": "game/assets/incoming/well-delver/loot-icons-2.png",
+   "cell": 1,
    "cut": [
-    445,
-    736,
-    699,
-    1055
+    586,
+    236,
+    1007,
+    794
    ],
    "name": "loot-regen-rare",
    "metal": "rare",
-   "metalShare": 0.043,
+   "metalShare": 0.415,
    "steel": {
-    "sat": 0.42,
-    "only": [
-     [
-      0.27,
-      0.57,
-      0.53,
-      0.8
-     ]
-    ]
+    "sat": 0.42
    },
    "frame": 28,
-   "scale": 0.3699
+   "scale": 0.2115
   },
   {
-   "source": "game/assets/incoming/well-delver/loot-icons.png",
-   "cell": 9,
+   "source": "game/assets/incoming/well-delver/loot-icons-2.png",
+   "cell": 1,
    "cut": [
-    445,
-    736,
-    699,
-    1055
+    586,
+    236,
+    1007,
+    794
    ],
    "name": "loot-regen-epic",
    "metal": "epic",
-   "metalShare": 0.043,
+   "metalShare": 0.415,
    "steel": {
-    "sat": 0.42,
-    "only": [
-     [
-      0.27,
-      0.57,
-      0.53,
-      0.8
-     ]
-    ]
+    "sat": 0.42
    },
    "frame": 29,
-   "scale": 0.3699
+   "scale": 0.2115
   },
   {
-   "source": "game/assets/incoming/well-delver/loot-icons.png",
-   "cell": 10,
+   "source": "game/assets/incoming/well-delver/loot-icons-2.png",
+   "cell": 2,
    "cut": [
-    767,
-    742,
-    1041,
-    1056
+    1135,
+    321,
+    1487,
+    769
    ],
    "name": "loot-mystery",
    "metal": "unknown",
-   "metalShare": 0.021,
+   "metalShare": 0.38,
    "steel": {
-    "sat": 0.3,
-    "only": [
-     [
-      0.5,
-      0.24,
-      0.72,
-      0.45
-     ]
-    ]
+    "sat": 0.3
    },
    "frame": 30,
-   "scale": 0.3597
+   "scale": 0.2549
   },
   {
    "source": "game/assets/incoming/well-delver/icons/boons-copper.png",
