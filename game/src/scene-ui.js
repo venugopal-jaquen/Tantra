@@ -6,8 +6,9 @@
  *           (uiObjects for the title's screens, overlay for what opens over a fight) and
  *           their clearing (clearUI, openOverlay, closeOverlay); frost; panels and
  *           buttons (glass, ovPanel, uiPanel, ovButton, makeButton, pressed); icons
- *           (icon, makeLootIcons); toasts; sound and touch feedback (sfx, shake, buzz).
- * Needs     ui.js (MAT, FORGE, drawSlab), assets.js (ICON), audio.js (SFX).
+ *           (icon, makeLootIcons); toasts; sound and touch feedback (sfx, shake, buzz), and the
+ *           hold on a heavy blow (holdStill).
+ * Needs     ui.js (MAT, FORGE, drawSlab), assets.js (ICON, FEEL), audio.js (SFX).
  * Expects   of the layers above: this.state, this.silent, this.camOff.
  *
  * The scene is one object in five files, each a class extending the one before:
@@ -37,6 +38,8 @@ class UiScene extends Phaser.Scene {
   // A shake asked for while another runs is dropped, unless it is `force`d: a slam's must
   // not be lost to the small one of a blow taken a moment before.
   shake(duration, intensity, force) { if (settings.shake) this.cameras.main.shake(duration, intensity, !!force); }
+  // A heavy blow holds the fight still for a few frames (FEEL.hitStop); update() waits it out.
+  holdStill(ms) { if (!this.silent) this.hitStopMs = Math.max(this.hitStopMs || 0, ms); }
 
   // ---------- THE SCREEN AND THE ARENA (requirements 2.33) ----------
   // Pins things to the screen: they stay put when the camera moves. Whatever is not part
@@ -370,9 +373,9 @@ class UiScene extends Phaser.Scene {
   showToast(msg, color) {
     const t = this.fix(this.add.text(W/2, HUD_H + 20, msg, { resolution: RES, fontSize: '14px', color, fontStyle: 'bold',
       stroke: '#2a0800', strokeThickness: 4 }).setOrigin(0.5).setAlpha(0).setDepth(ARENA_SCALE > 1 ? Z.hud + 2 : 45));
-    this.tweens.add({
-      targets: t, alpha: 1, y: HUD_H + 8, duration: 200, yoyo: true, hold: 700,
-      onComplete: () => t.destroy()
-    });
+    const T = FEEL.toast;       // in with an ease-out; out in about half the time, with an ease-in
+    this.tweens.add({ targets: t, alpha: 1, y: HUD_H + 8, duration: T.in, ease: 'Cubic.easeOut' });
+    this.tweens.add({ targets: t, alpha: 0, y: HUD_H + 2, delay: T.in + T.hold, duration: T.out, ease: 'Cubic.easeIn',
+      onComplete: () => t.destroy() });
   }
 }

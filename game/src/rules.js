@@ -4,8 +4,8 @@
  * Declares  the well and its depths (WATER, WELL_FULL, DEPTH_*, DEPTHS, PERK_SLOTS, PERKS),
  *           levels and bosses (GATEKEEPER_WAVE, MEGA_BOSS_SECTOR, FINAL_SECTOR, SLAM,
  *           SLAM_WARN, BOSS_RESIST, sectorDmgMult, sectorHpMult, WIDE), the hero and the
- *           fight (HIT, HERO_RADIUS, IFRAMES_MS, SECTOR_CLEAR_HEAL, DEATH_KEEP, INV_MAX,
- *           HUNT), loot (RARITY, rollRarity, WEAPON_EFFECTS, TRINKET_EFFECTS, the two
+ *           fight (HIT, HERO_RADIUS, PICKUP_REACH, BREATH, IFRAMES_MS, SECTOR_CLEAR_HEAL,
+ *           DEATH_KEEP, INV_MAX, HUNT), loot (RARITY, rollRarity, WEAPON_EFFECTS, TRINKET_EFFECTS, the two
  *           pick... functions), boons (BOONS, BOON_ODDS, BOON_REROLLS), waves (WAVE_BASE,
  *           WAVE_SHAPES, STRAYS, ENEMY_TYPES, pickEnemyType), tribute (TRIBUTE), power
  *           (POWER), the supercharge (TEJAS, TEJAS_FORMS, TEJAS_UNLOCK_SECTOR), the
@@ -110,11 +110,17 @@ const SLAM_WARN = {
 // Unlocks the first time the player reaches TEJAS_UNLOCK_SECTOR, which also makes it a
 // reward for choosing Descend over Extract.
 const TEJAS_UNLOCK_SECTOR = 2;
+// `reach`: every form but the chain reaches its radius times a boss's slam reach (WIDE) times
+// this, so from outside a boss's ring it still reaches him (2026-10-13, the founder: "Tejas
+// AOE feels too small and not worth the risk. It makes me go near the guardian every time").
+// The slams grew 30% with the wide arena and Tejas had not: its 104-128 sat inside a
+// Hoard Guardian's ring of 117 and Vritra's of 134 (requirements 2.53).
 const TEJAS = {
   passivePerSec: 1.1,
   perKill: { melee: 3.5, ranged: 4.5, tank: 7, splitter: 2.5 },
   eliteBonus: 10,
-  duration: 6000
+  duration: 6000,
+  reach: 1.15
 };
 const TEJAS_FORMS = {
   none:        { name: N.forms.none[0], meaning: N.forms.none[1], desc: 'Fire novas burst out around you',     kind: 'nova',  every: 420, radius: 128, dmgMult: 1.1, colour: 0xff8c42 },
@@ -309,6 +315,16 @@ const HIT = 1.125;
 // A tenth larger than the others' measure, with the hero drawn a quarter larger
 // (2026-10-12, the founder: "hit area 10% bigger").
 const HERO_RADIUS = 15 * HIT * 1.1;
+// What the hero picks up (requirements 2.53): an item this near any point of him from his
+// middle down to his feet, where a player puts him. It was 26 round his middle alone, so an
+// item walked over with his feet was missed (2026-10-13, the founder: "Item pickups is too
+// buggy... I tried walking over it a few times and the items weren't picked up").
+const PICKUP_REACH = 30;
+// Catching breath (requirements 2.53; the founder, 2026-10-13: "If I am at low hp, I need to
+// gain hp by a small rate"). Unhurt for `after` ms, the hero heals `perSec` of his health a
+// second, up to `upTo` of it: whoever stops being hit climbs back to half, and nobody fills
+// up by hiding. Healing above half still comes from bosses, the Regen trinket and Vampiric.
+const BREATH = { after: 3000, perSec: 0.015, upTo: 0.5 };
 const INV_MAX = 8;   // satchel capacity; oldest falls out past this
 
 const ENEMY_TYPES = {

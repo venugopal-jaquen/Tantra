@@ -462,6 +462,8 @@ class FxScene extends UiScene {
   hitFeedback(amount, source, kind) {
     const frac = Phaser.Math.Clamp(amount / Math.max(1, this.player.maxHp), 0, 1);
     this.shake(90 + frac * 280, 0.0025 + frac * 0.02);
+    const H = FEEL.hitStop;
+    if (frac >= H.hitFrom) this.holdStill(Math.min(H.hitMax, H.hitMin + (frac - H.hitFrom) * 250));
     this.sfx('hurt', { vol: 0.7 + frac * 1.5, rate: kind === 'slam' ? 0.85 : 1 });
     this.buzz(kind === 'slam' ? 90 : 25 + frac * 80);
 
@@ -627,7 +629,11 @@ class FxScene extends UiScene {
     }
     if (!moving) { const breath = Math.sin(a.gait * 2) * 0.02; sy += breath; sx -= breath * 0.6; }
     const blow = a.act && a.act.slam && spr.walks;
-    if (a.squash > 0) { a.squash -= delta; const q = Math.max(0, a.squash / 140); if (!blow) { sx += 0.17 * q; sy -= 0.15 * q; } }
+    if (a.squash > 0) {          // struck: squashed, then a spring back past round (FEEL.squash)
+      a.squash -= delta;
+      const S = FEEL.squash, q = a.squash > 0 ? springBack((S.ms - a.squash) / 1000, S.zeta, S.hz) : 0;
+      if (!blow) { sx += S.x * q; sy -= S.y * q; }
+    }
     if (a.punch > 0) { a.punch -= delta; const q = Math.max(0, a.punch / 90); sx += 0.07 * q; sy += 0.07 * q; }
     if (blow) {
       // A boss's slam (SLAM_ACT): he rises and draws back through the warning, holds at
@@ -667,7 +673,10 @@ class FxScene extends UiScene {
     } else if (slam && !spr.walks) {                               // a figure with no strike cells crouches, as it always did
       const c = Math.min(1, slam.t / slam.dur); sy -= 0.12 * c; sx += 0.09 * c;
     }
-    if (a.age < 220) { const q = a.age / 220, pop = 0.55 + 0.45 * (1 - Math.pow(1 - q, 3)); sx *= pop; sy *= pop; }
+    if (a.age < FEEL.pop.ms) {   // arriving: grows in, overshoots a little, settles (ease-out-back)
+      const q = a.age / FEEL.pop.ms - 1, pop = 0.55 + 0.45 * (1 + 2.70158 * q * q * q + 1.70158 * q * q);
+      sx *= pop; sy *= pop;
+    }
     spr.setScale(spr.baseSX * sx, spr.baseSY * sy);
     // A figure on a sheet is scaled about its middle; it is moved so that its feet stay
     // on the floor, and a squash or a settle presses down from the head, not up from the
