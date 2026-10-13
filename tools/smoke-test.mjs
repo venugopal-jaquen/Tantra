@@ -468,13 +468,18 @@ try {
     s.tejasPulse(); out.pulse = { inside: inside.hp < 1e6, beyond: beyond.hp === 1e6 };
     [inside, beyond].forEach(e => { e.hp = 0; s.killEnemy(e); });
     p.weapon = keep.w;
-    // Catching breath: nothing for the first 3 s unhurt, then health climbs, but only to half.
-    p.trinket = null; p.hp = p.maxHp * 0.2; p.unhurtMs = BREATH.after - 100;
+    // Catching breath: nothing for the first 3 s unhurt, then health climbs, but only to half;
+    // and only in the fight: a runner who has struck nothing for as long gets none.
+    p.trinket = null; p.hp = p.maxHp * 0.2; p.unhurtMs = BREATH.after - 100; s.lullMs = 0;
     frame(50); const early = p.hp; frame(100); const climbing = p.hp;
-    p.hp = p.maxHp * 0.49; p.unhurtMs = 1e6; for (let i = 0; i < 10; i++) frame(100); const capped = p.hp;
-    p.hp = p.maxHp * 0.6; frame(100); const above = p.hp;
+    p.hp = p.maxHp * 0.49; p.unhurtMs = 1e6; for (let i = 0; i < 10; i++) { s.lullMs = 0; frame(100); } const capped = p.hp;
+    p.hp = p.maxHp * 0.6; s.lullMs = 0; frame(100); const above = p.hp;
+    const chaser = s.spawnEnemyOfType('melee', b.right - 30, b.bottom - 30, 1, false); chaser.speed = 0;
+    p.hp = p.maxHp * 0.3; p.unhurtMs = 1e6; s.lullMs = BREATH.after + 500; frame(100); const runner = p.hp;
+    chaser.hp = 0; s.killEnemy(chaser); s.lullMs = 0;
     p.hp = p.maxHp * 0.3; s.damagePlayer(1, null, 'slam'); const reset = p.unhurtMs;
-    out.breath = { early: early === p.maxHp * 0.2, climbing: climbing > early, capped: Math.abs(capped - p.maxHp * BREATH.upTo) < 1e-6, above: above === p.maxHp * 0.6, reset };
+    out.breath = { early: early === p.maxHp * 0.2, climbing: climbing > early, capped: Math.abs(capped - p.maxHp * BREATH.upTo) < 1e-6, above: above === p.maxHp * 0.6,
+      runner: runner === p.maxHp * 0.3, reset };
     p.trinket = keep.t; p.hp = keep.hp; s.hitStopMs = 0; session.lessonsOff = keep.lessons; s.boonQueue = []; s.refreshBoonButton();
     s.pickups.forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); }); s.pickups = [];
     out.stateAfter = s.state;
@@ -485,8 +490,8 @@ try {
     !feet.ring.outside && feet.ring.inside && feet.scatterOnFeet && feet.lineAtFeet, JSON.stringify({ ring: feet.ring, scatter: feet.scatterOnFeet, line: feet.lineAtFeet }));
   check("Tejas reaches past a boss's slam ring, and strikes within its reach and not beyond",
     Object.entries(feet.reach).every(([k, r]) => r > feet.ringMost + 20) && feet.pulse.inside && feet.pulse.beyond, JSON.stringify({ reach: feet.reach, ring: feet.ringMost, pulse: feet.pulse }));
-  check('unhurt for 3 seconds, the hero catches his breath: health climbs back to half and no further, and a hit starts the wait again',
-    feet.breath.early && feet.breath.climbing && feet.breath.capped && feet.breath.above && feet.breath.reset === 0 && feet.stateAfter === 'playing', JSON.stringify(feet.breath));
+  check('unhurt for 3 seconds in the fight, the hero catches his breath: health climbs back to half and no further, a runner gets none, and a hit starts the wait again',
+    feet.breath.early && feet.breath.climbing && feet.breath.capped && feet.breath.above && feet.breath.runner && feet.breath.reset === 0 && feet.stateAfter === 'playing', JSON.stringify(feet.breath));
 
   // Each sector's floor, with a boss and a slam zone on it to judge legibility.
   await page(`const s = game.scene.keys.LootScene; s.player.iframes = 1e9; s.dismissHint(); const e = s.spawnGatekeeper(); e.slamTimer = 1e9; s.beginSlam(e); s.spawnLootPickup(120, 420, 'epic'); s.spawnLootPickup(280, 500, 'rare');`);

@@ -1943,9 +1943,11 @@ class LootScene extends SystemsScene {
     }
 
     // --- catching breath (BREATH, 2.53): unhurt for a moment, health creeps back up to half ---
+    // Only in the fight: a blow struck in the last few seconds, or nothing chasing (the lull,
+    // 2.36). A runner who never strikes gets none, or running laps outlived playing (lazy-players).
     this.player.unhurtMs += delta;
     const breathTo = this.player.maxHp * BREATH.upTo;
-    const breathing = this.player.unhurtMs >= BREATH.after && this.player.hp > 0 && this.player.hp < breathTo;
+    const breathing = this.player.unhurtMs >= BREATH.after && this.lullMs < BREATH.after && this.player.hp > 0 && this.player.hp < breathTo;
     if (breathing) {
       this.player.hp = Math.min(breathTo, this.player.hp + this.player.maxHp * BREATH.perSec * dt);
       this.hint('breath', 'Catching your breath: stay out of harm and your health creeps back, up to half.');
