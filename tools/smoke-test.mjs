@@ -322,6 +322,7 @@ try {
 
   // Power: a gear score every item and boon adds to, shown on the HUD and broken down on the profile.
   const pow = await page(`const s = game.scene.keys.LootScene, p = s.player, keepW = p.weapon, keepT = p.trinket; s.boons = {};
+    s.hitStopMs = 0;                  // the blows above left the fight held (FEEL.hitStop): the HUD must redraw in the wait below
     p.weapon = { type: 'weapon', name: 'x', rarity: 'common', shots: 1, effect: 'none', dmg: 10, range: 130, atkSpeed: 500 }; p.trinket = null;
     const base = s.powerParts();
     p.weapon = Object.assign({}, p.weapon, { rarity: 'epic', shots: 3, effect: 'venom' }); const gun = s.powerParts().total - base.total;
@@ -356,6 +357,7 @@ try {
     await until(() => !e.slam, 3000);
     await new Promise(r => setTimeout(r, 120));
     const loosed = { held: !!(e.act && e.act.held), cell: e.act ? e.act.cell : -1, slam: !!(e.act && e.act.slam) };
+    await until(() => s.boonFx.commandBuffer.length > 0, 600);    // the landing holds the fight a moment (FEEL.hitStop) before the arc is drawn
     const out = { wound, loosed, touched, buff: Math.round(s.slamBuffMs), mult: +s.dmgMult().toFixed(2), unhurt: p.hp >= hp, arc: s.boonFx.commandBuffer.length > 0 };
     // Hold Your Ground: the gold ring shows only while it is live.
     s.boons = { ground: 1 }; s.slamBuffMs = 0; s.stillMs = 0;
@@ -397,6 +399,7 @@ try {
 
   // Tribute: summoned enemies killed before the boss falls are counted on the boss and paid out.
   const trib = await page(`const s = game.scene.keys.LootScene, p = s.player; p.iframes = 1e9; s.boons = {}; s.dismissHint(); s.boonQueue = []; s.refreshBoonButton();
+    s.hitStopMs = 0;                  // the Gatekeeper killed above left the fight held (FEEL.hitStop): he must summon in the wait below
     const e = s.spawnGatekeeper(); e.slamTimer = 1e9; e.speed = 0; e.summonTimer = 0; const every0 = e.summonEvery;
     await new Promise(r => setTimeout(r, 250));
     const summoned = s.enemies.filter(m => m.summonedBy === e.id);
@@ -413,6 +416,21 @@ try {
   check('tribute pays an extra item and a better boon, to be chosen at leisure', trib.items === 2 && trib.queued === '15' && trib.state === 'playing'
     && trib.pick.state === 'boon' && /TRIBUTE OF 15 PAID/.test(trib.pick.head) && trib.pick.metals.every(m => m !== 'common')
     && trib.after.state === 'playing' && trib.after.left === 0, JSON.stringify(trib));
+
+  // The hold on a heavy blow (requirements 2.52): a boss's fall and a Brute's hold the fight
+  // still for a moment, an ordinary kill does not, and a silent scene (the bot) never does.
+  const hitStop = await page(`const s = game.scene.keys.LootScene, b = s.arenaBounds, out = { state: s.state }; s.hitStopMs = 0;
+    s.killEnemy(s.spawnEnemyOfType('melee', b.centerX, b.y + 30, 1, false)); out.plain = s.hitStopMs;
+    s.killEnemy(s.spawnEnemyOfType('tank', b.centerX, b.y + 30, 1, false)); out.brute = s.hitStopMs;
+    const k = s.spawnGatekeeper(); k.slamTimer = k.summonTimer = 1e9; s.killEnemy(k); out.boss = s.hitStopMs;
+    const clock = s.convergenceCountdown; s.update(0, 40);          // a frame while held: the fight's own clock stands still
+    out.still = s.convergenceCountdown === clock; out.left = Math.round(s.hitStopMs);
+    s.hitStopMs = 0; s.silent = true; s.holdStill(100); out.silent = s.hitStopMs; s.silent = false; s.hitStopMs = 0;
+    s.boonQueue = []; s.refreshBoonButton();
+    s.pickups.forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); }); s.pickups = [];
+    return out;`);
+  check('a heavy blow holds the fight a moment (a boss 110 ms, a Brute 45 ms); an ordinary kill and the bot never do',
+    hitStop.state === 'playing' && hitStop.plain === 0 && hitStop.brute === 45 && hitStop.boss === 110 && hitStop.still && hitStop.left === 70 && hitStop.silent === 0, JSON.stringify(hitStop));
 
   // Each sector's floor, with a boss and a slam zone on it to judge legibility.
   await page(`const s = game.scene.keys.LootScene; s.player.iframes = 1e9; s.dismissHint(); const e = s.spawnGatekeeper(); e.slamTimer = 1e9; s.beginSlam(e); s.spawnLootPickup(120, 420, 'epic'); s.spawnLootPickup(280, 500, 'rare');`);
