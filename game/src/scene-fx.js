@@ -747,6 +747,7 @@ class FxScene extends UiScene {
   // Swap the floor for this sector's. With `fade` the new one rises through the old.
   setFloor(sector, fade) {
     const key = this.floorKey(sector), b = this.arenaBounds, theme = FLOORS[(sector - 1) % FLOORS.length];
+    Surround.backdrop(sector);            // and the page round the game shows the same floor (2.54)
     this.starfield.setTint(theme.ember).setAlpha(theme.emberAlpha);
     this.floorEdge.setStrokeStyle(1, theme.edge, 0.7);
     this.setFrame(sector, theme);

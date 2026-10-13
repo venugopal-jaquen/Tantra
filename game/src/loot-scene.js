@@ -612,6 +612,7 @@ class LootScene extends SystemsScene {
     this.time.paused = false;   // a run never starts frozen, whatever screen came before
     this.tweens.resumeAll();
     this.state = 'playing';
+    Surround.backdrop(1);       // beside the game, the first level's floor (2.54)
 
     // Satchel: items swapped out during this run, so a pickup no longer destroys
     // whatever you were holding. Run-scoped by design - carrying loot between runs

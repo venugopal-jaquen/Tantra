@@ -28,7 +28,7 @@ CONFIG = "src/config.js"        # where the game's title and build are said, and
 
 # What the page loads, as (folder under game/, file ending). Anything else found in those
 # folders stops the build, so a stray file can never ride along unnoticed.
-TAKE = [("src", ".js"), ("styles", ".css"), ("assets/chars", ".png"), ("assets/floors", ".jpg"), ("assets/icons", ".png"), ("assets/sfx", ".wav"), ("vendor", ".js"), ("vendor", ".md"),
+TAKE = [("src", ".js"), ("styles", ".css"), ("assets/chars", ".png"), ("assets/floors", ".jpg"), ("assets/backdrop", ".jpg"), ("assets/icons", ".png"), ("assets/sfx", ".wav"), ("vendor", ".js"), ("vendor", ".md"),
         ("vendor/fonts", ".woff2"), ("vendor/fonts", ".txt")]
 SINGLE = ["assets/bg-stars.png", "assets/title-art.jpg"]
 # Addresses the page may name. The first is the feedback form's mail relay (requirements

@@ -608,6 +608,7 @@ class ScreensScene extends FxScene {
     this.setHudLine('', '');
     this.showPauseButton(false);
     this.setFloor(1);
+    Surround.backdrop('title');           // beside the game, the stepwell of the title picture (2.54)
     this.playMusic('hub');
     this.makeMenuTextures();
 

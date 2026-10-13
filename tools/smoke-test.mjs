@@ -1276,6 +1276,41 @@ try {
   check('a resisting boss has plates at his feet, and nothing drawn round a figure outlives it',
     round.gate.plates && round.gate.steel && round.gone.round && round.gone.pieces === 0 && round.gone.fx === 0, JSON.stringify({ gate: round.gate, gone: round.gone }));
 
+  // The page round the game (requirements 2.54). On a computer's wide screen the game stands
+  // in the middle at the screen's full height, the bands either side show the level's own
+  // floor (the title picture between runs), and the controls and the goal sit in them, clear
+  // of the game. A touch screen gets no panels, and a phone held sideways is asked to turn
+  // upright while the fight waits.
+  await send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
+  await sleep(700);
+  const surround = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms));
+    const shown = () => (document.getElementById('backdrop').style.backgroundImage.match(/backdrop\\/([\\w-]+)\\.jpg\\?v=([\\w.]+)/) || []).slice(1).join(' ');
+    const box = id => { const e = document.getElementById(id); return e.hidden ? null : e.getBoundingClientRect(); };
+    s.showHub(); await wait(300); const hub = shown();
+    s.startRun(); ${FREEZE} s.player.iframes = 1e9; await wait(400); const run = shown();
+    s.setFloor(2); const level2 = shown(); s.setFloor(1);
+    const r = game.canvas.getBoundingClientRect(), L = box('side-left'), R = box('side-right');
+    return { hub, run, level2, build: BUILD_TAG, canvas: [Math.round(r.left), Math.round(r.width), Math.round(r.height)],
+      centred: Math.abs(r.left + r.width / 2 - innerWidth / 2) <= 1 && Math.round(r.height) === innerHeight,
+      panels: !!L && !!R && L.right <= r.left - 16 && R.left >= r.right + 16 && L.left >= 0 && R.right <= innerWidth,
+      words: /Space/.test(document.getElementById('side-left').textContent) && /Seven depths/.test(document.getElementById('side-right').textContent) };`);
+  await shot('9-wide-screen');
+  check("on a computer's wide screen the game stands in the middle, the level's own floor or the title picture either side, and the controls and the goal beside it",
+    surround.centred && surround.panels && surround.words && surround.hub === `title ${surround.build}` && surround.run === `level-1 ${surround.build}` && surround.level2 === `level-2 ${surround.build}`, JSON.stringify(surround));
+  await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  await send('Emulation.setDeviceMetricsOverride', { width: 844, height: 390, deviceScaleFactor: 2, mobile: true, screenOrientation: { type: 'landscapePrimary', angle: 90 } });
+  await sleep(700);
+  const turned = await page(`const s = game.scene.keys.LootScene, out = { state: s.state, prompt: getComputedStyle(document.getElementById('rotate')).display,
+      panels: !document.getElementById('side-left').hidden || !document.getElementById('side-right').hidden };
+    return out;`);
+  await shot('9-phone-sideways');
+  await send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  await send('Emulation.setDeviceMetricsOverride', { width: 420, height: 740, deviceScaleFactor: 2, mobile: false });
+  await sleep(500);
+  turned.upright = await page(`const s = game.scene.keys.LootScene; s.resumeGame(); return getComputedStyle(document.getElementById('rotate')).display;`);
+  check('a touch screen gets no panels, and a phone held sideways is asked to turn upright while the fight waits',
+    turned.prompt === 'flex' && turned.state === 'paused' && !turned.panels && turned.upright === 'none', JSON.stringify(turned));
+
   // The engine and the typefaces sit beside the game (launch track L9): nothing may come
   // from another site, and nothing the page asks for may be absent. The bot is the test's
   // own file, loaded from tools/.

@@ -44,7 +44,7 @@ owns. Read the header first.
 | 14 | `scene-screens.js` | Scene layer 3: title, profile, satchel, boons, pause, settings ... |
 | 15 | `scene-systems.js` | Scene layer 4: boons, perks, tribute, Tejas, tips, lessons |
 | 16 | `loot-scene.js` | The scene: its life, the run, waves, bosses, damage, `update()` |
-| 17 | `boot.js` | Starts the one game |
+| 17 | `boot.js` | Starts the one game; `Surround`, the page round it on a wide screen (backdrop, side panels, the request to turn a phone upright) |
 
 **The scene is one object in five files.** `UiScene < FxScene < ScreensScene <
 SystemsScene < LootScene`, each a class extending the one before, so that a method may
@@ -94,6 +94,7 @@ when it opens and drawn again when that changes; nothing keeps a copy.
 | One screen | its method in `scene-screens.js` | smoke |
 | An effect, an animation | `scene-fx.js` | smoke |
 | The loading screen, the dialogs | `loader.js`, `dialogs.js`, `game.css` | smoke |
+| The page round the game on a wide screen: its backdrops, the controls and goal beside it, the request to turn a phone upright | `Surround` in `boot.js`, `game.css`, the markup in the page; the backdrops are made by `tools/make-backdrops.py` (`requirements.md` §2.54) | smoke, and look at several screen shapes |
 | What is saved, or how an old save is read | `persistence.js`; add a fixture to `check-game.mjs` | `check-game` |
 | A boss, a slam, the order of a frame | `loot-scene.js`. Read §6 first | smoke, and `tools/lazy-players.mjs` |
 | What is packaged | `TAKE` in `tools/build-itch.py` | the three commands of §5 |
@@ -171,6 +172,8 @@ every screen, a full run, the bots.
 **Art.** `tools/cut-turnaround.py` (a figure), `tools/cut-icons.py` (the icons),
 `tools/fit-title.py` (the title picture). Each reads a picture in
 `game/assets/incoming/` or one the founder holds, and writes what the game loads.
+`tools/make-backdrops.py` makes the blurred backdrops a wide screen shows beside the game
+from the floors and the title picture; run it again when either changes.
 
 **Entry pages.** `index.html` at the top redirects to `game/loot-chase-v0.1.html`, which
 is the only game page on this branch. The candidate page `game/well-delver-playtest.html`
