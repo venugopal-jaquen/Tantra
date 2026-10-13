@@ -179,7 +179,7 @@ try {
 
   // A tap far away must be WALKED to at the same speed the keys give, never jumped to.
   const walk = await page(`const s = game.scene.keys.LootScene; s.player.iframes = 1e9; ${FREEZE} s.enemies.slice().forEach(e => { e.x = 60; e.y = 640; e.speed = 0; });
-    s.player.x = 200; s.player.y = 600; s.setMoveTarget(200, 150); const t0 = performance.now();
+    s.player.x = 200; s.player.y = 600; s.setMoveTarget(200, 150 + HERO_RING_DOWN); const t0 = performance.now();   // his feet go where the finger is (2.53)
     await new Promise(r => setTimeout(r, 500));
     const moved = 600 - s.player.y, secs = (performance.now() - t0) / 1000;
     await new Promise(r => setTimeout(r, 2200));
@@ -431,6 +431,62 @@ try {
     return out;`);
   check('a heavy blow holds the fight a moment (a boss 110 ms, a Brute 45 ms); an ordinary kill and the bot never do',
     hitStop.state === 'playing' && hitStop.plain === 0 && hitStop.brute === 45 && hitStop.boss === 110 && hitStop.still && hitStop.left === 70 && hitStop.silent === 0, JSON.stringify(hitStop));
+
+  // The hero stands on his feet (requirements 2.53): an item under them is picked up, a slam
+  // is read and laid at them, and Tejas reaches a boss from outside his ring. Each step
+  // below is one frame of the game's own update, run by hand with nothing else moving.
+  const feet = await page(`const s = game.scene.keys.LootScene, p = s.player, b = s.arenaBounds, out = { state: s.state };
+    const keep = { w: p.weapon, t: p.trinket, inv: s.inventory.slice(), max: p.maxHp, hp: p.hp, lessons: session.lessonsOff };
+    session.lessonsOff = true; p.iframes = 1e9; s.pointerTarget = null;
+    const frame = (ms = 16) => { s.hitStopMs = 0; s.update(0, ms); };
+    p.x = b.centerX - 100; p.y = b.centerY; const f = s.heroFeet();
+    out.feetDown = f.y - p.y;
+    // An item taken or not, wherever it lies against him.
+    const takes = (dx, dy) => { s.spawnLootPickup(p.x + dx, p.y + dy); const n = s.pickups.length; frame(); const took = s.pickups.length < n;
+      s.pickups.forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); }); s.pickups = []; return took; };
+    out.pick = { feet: takes(0, HERO_RING_DOWN + 4), waist: takes(0, 24), middle: takes(8, 0), beside: takes(PICKUP_REACH + 12, HERO_RING_DOWN), below: takes(0, HERO_RING_DOWN + PICKUP_REACH + 12) };
+    p.weapon = keep.w; p.trinket = keep.t; s.inventory = keep.inv; p.maxHp = keep.max; p.hp = keep.hp;
+    // A ring slam: his feet just outside it are safe, though his middle is inside; his feet
+    // just inside it are struck, though his middle is outside.
+    const k = s.spawnGatekeeper(); k.slamTimer = k.summonTimer = 1e9; k.speed = 0; k.x = b.centerX; k.y = b.centerY - 40;
+    const lands = (type, place) => { k.slamTypes = [type]; s.beginSlam(k); place(k.slam); const hp0 = p.hp; k.slam.t = k.slam.dur; frame(); const hit = p.hp < hp0; p.hp = keep.hp; return hit; };
+    out.ring = {
+      outside: lands('circle', sl => { p.x = k.x; p.y = k.y + sl.r + 8 - HERO_RING_DOWN; }),
+      inside: lands('circle', sl => { p.x = k.x; p.y = k.y - sl.r + 8 - HERO_RING_DOWN; }) };
+    k.slamTypes = ['scatter']; p.x = b.centerX + 60; p.y = b.centerY + 120; s.beginSlam(k); const f2 = s.heroFeet(), bl = k.slam.blobs[0];
+    out.scatterOnFeet = Math.hypot(bl.x - f2.x, bl.y - f2.y) < 1;
+    k.slamTypes = ['line']; s.beginSlam(k); out.lineAtFeet = Math.abs(k.slam.a - Math.atan2(f2.y - k.y, f2.x - k.x)) < 1e-6;
+    k.slam = null; if (k.telegraphGfx) { k.telegraphGfx.destroy(); k.telegraphGfx = null; } s.killEnemy(k);
+    // Tejas reaches past the widest ring on this level, and a pulse strikes inside its reach and not beyond.
+    const ring = 96 * s.slamReach();
+    out.reach = Object.fromEntries(Object.entries(TEJAS_FORMS).map(([key, form]) => [key, Math.round(s.tejasRadius(form))]));
+    out.ringMost = Math.round(ring);
+    p.weapon = Object.assign({}, keep.w, { effect: 'none' }); p.x = b.centerX - 100; p.y = b.centerY;
+    const R = s.tejasRadius(s.tejasForm());
+    const inside = s.spawnEnemyOfType('melee', p.x + R - 6, p.y, 1, false), beyond = s.spawnEnemyOfType('melee', p.x + R + 12, p.y, 1, false);
+    inside.hp = inside.maxHp = beyond.hp = beyond.maxHp = 1e6; inside.speed = beyond.speed = 0;
+    s.tejasPulse(); out.pulse = { inside: inside.hp < 1e6, beyond: beyond.hp === 1e6 };
+    [inside, beyond].forEach(e => { e.hp = 0; s.killEnemy(e); });
+    p.weapon = keep.w;
+    // Catching breath: nothing for the first 3 s unhurt, then health climbs, but only to half.
+    p.trinket = null; p.hp = p.maxHp * 0.2; p.unhurtMs = BREATH.after - 100;
+    frame(50); const early = p.hp; frame(100); const climbing = p.hp;
+    p.hp = p.maxHp * 0.49; p.unhurtMs = 1e6; for (let i = 0; i < 10; i++) frame(100); const capped = p.hp;
+    p.hp = p.maxHp * 0.6; frame(100); const above = p.hp;
+    p.hp = p.maxHp * 0.3; s.damagePlayer(1, null, 'slam'); const reset = p.unhurtMs;
+    out.breath = { early: early === p.maxHp * 0.2, climbing: climbing > early, capped: Math.abs(capped - p.maxHp * BREATH.upTo) < 1e-6, above: above === p.maxHp * 0.6, reset };
+    p.trinket = keep.t; p.hp = keep.hp; s.hitStopMs = 0; session.lessonsOff = keep.lessons; s.boonQueue = []; s.refreshBoonButton();
+    s.pickups.forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); }); s.pickups = [];
+    out.stateAfter = s.state;
+    return out;`);
+  check('the hero picks up what he walks over, from his feet to his middle, and not what lies beside him',
+    feet.state === 'playing' && feet.feetDown > 40 && feet.pick.feet && feet.pick.waist && feet.pick.middle && !feet.pick.beside && !feet.pick.below, JSON.stringify({ feetDown: feet.feetDown, pick: feet.pick }));
+  check("a slam is read at the hero's feet, where his ring is: just outside is safe and just inside is struck",
+    !feet.ring.outside && feet.ring.inside && feet.scatterOnFeet && feet.lineAtFeet, JSON.stringify({ ring: feet.ring, scatter: feet.scatterOnFeet, line: feet.lineAtFeet }));
+  check("Tejas reaches past a boss's slam ring, and strikes within its reach and not beyond",
+    Object.entries(feet.reach).every(([k, r]) => r > feet.ringMost + 20) && feet.pulse.inside && feet.pulse.beyond, JSON.stringify({ reach: feet.reach, ring: feet.ringMost, pulse: feet.pulse }));
+  check('unhurt for 3 seconds, the hero catches his breath: health climbs back to half and no further, and a hit starts the wait again',
+    feet.breath.early && feet.breath.climbing && feet.breath.capped && feet.breath.above && feet.breath.reset === 0 && feet.stateAfter === 'playing', JSON.stringify(feet.breath));
 
   // Each sector's floor, with a boss and a slam zone on it to judge legibility.
   await page(`const s = game.scene.keys.LootScene; s.player.iframes = 1e9; s.dismissHint(); const e = s.spawnGatekeeper(); e.slamTimer = 1e9; s.beginSlam(e); s.spawnLootPickup(120, 420, 'epic'); s.spawnLootPickup(280, 500, 'rare');`);
@@ -1008,7 +1064,8 @@ try {
   await sleep(120);
   const wide2 = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
     const rc = game.canvas.getBoundingClientRect(), gx = (${tapAt.x} - rc.left) * W / rc.width, gy = (${tapAt.y} - rc.top) * H / rc.height;
-    out.tap = { target: s.pointerTarget && [Math.round(s.pointerTarget.x), Math.round(s.pointerTarget.y)], want: [Math.round(gx + s.camOff.x), Math.round(gy + s.camOff.y)] };
+    // The hero's feet go where the finger lands (2.53), so it is his middle, HERO_RING_DOWN higher, that is sent there.
+    out.tap = { target: s.pointerTarget && [Math.round(s.pointerTarget.x), Math.round(s.pointerTarget.y)], want: [Math.round(gx + s.camOff.x), Math.round(gy + s.camOff.y - HERO_RING_DOWN)] };
     s.pointerTarget = null;
     s.endRun(false); await wait(300);
     out.summary = s.uiObjects.length > 4 && s.uiObjects.every(o => o.scrollFactorX === 0);

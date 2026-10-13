@@ -66,14 +66,17 @@
     const s = S(), p = s.player, b = s.arenaBounds;
     let vx = 0, vy = 0, danger = false;
 
+    // A slam is read where the hero stands, at his feet (requirements 2.53); an older build
+    // without heroFeet measured it from his middle.
+    const f = s.heroFeet ? s.heroFeet() : p;
     for (const e of s.enemies) {                              // 1. get out of slam zones
       const sl = e.slam;
       if (!sl) continue;
       if (sl.type === 'circle') {
-        const d = Math.hypot(p.x - sl.x, p.y - sl.y) || 1;
-        if (d < sl.r + 14) { danger = true; vx += (p.x - sl.x) / d * 6; vy += (p.y - sl.y) / d * 6; }
+        const d = Math.hypot(f.x - sl.x, f.y - sl.y) || 1;
+        if (d < sl.r + 14) { danger = true; vx += (f.x - sl.x) / d * 6; vy += (f.y - sl.y) / d * 6; }
       } else if (sl.type === 'line') {
-        const dx = p.x - sl.x, dy = p.y - sl.y;
+        const dx = f.x - sl.x, dy = f.y - sl.y;
         const along = dx * Math.cos(sl.a) + dy * Math.sin(sl.a);
         const across = -dx * Math.sin(sl.a) + dy * Math.cos(sl.a);
         if (along > -10 && along < sl.len + 10 && Math.abs(across) < sl.w / 2 + 14) {
@@ -83,8 +86,8 @@
         }
       } else if (sl.blobs) {
         for (const bl of sl.blobs) {
-          const d = Math.hypot(p.x - bl.x, p.y - bl.y) || 1;
-          if (d < bl.r + 12) { danger = true; vx += (p.x - bl.x) / d * 5; vy += (p.y - bl.y) / d * 5; }
+          const d = Math.hypot(f.x - bl.x, f.y - bl.y) || 1;
+          if (d < bl.r + 12) { danger = true; vx += (f.x - bl.x) / d * 5; vy += (f.y - bl.y) / d * 5; }
         }
       }
     }

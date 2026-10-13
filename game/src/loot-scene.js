@@ -160,12 +160,20 @@ class LootScene extends SystemsScene {
     this.showHub();
   }
 
-  // Where the player has asked to walk to. Kept inside the arena, so the walk can always
-  // arrive (a tap on the HUD would otherwise leave the hero pushing at the wall forever).
+  // Where the player has asked to walk to: his feet go where the finger is (2.53). Kept
+  // inside the arena, so the walk can always arrive (a tap on the HUD would otherwise leave
+  // the hero pushing at the wall forever).
   setMoveTarget(x, y) {
     const b = this.arenaBounds;
-    this.pointerTarget = { x: Phaser.Math.Clamp(x, b.x + 15, b.right - 15), y: Phaser.Math.Clamp(y, b.y + 15, b.bottom - 15) };
+    this.pointerTarget = { x: Phaser.Math.Clamp(x, b.x + 15, b.right - 15), y: Phaser.Math.Clamp(y - HERO_RING_DOWN, b.y + 15, b.bottom - 15) };
   }
+
+  // Where the hero stands (2.53): his feet, at his ring, which is what a player watches. A
+  // tap, a slam's red zone and an item on the floor are measured from them. `this.player`
+  // is the middle of his figure, HERO_RING_DOWN higher, and stays the point that bodies
+  // touch, bolts strike and Tejas spreads from. Everything used to be measured from the
+  // middle, so his ring could stand clear of a slam's red and he was still struck.
+  heroFeet() { return { x: this.player.x, y: this.player.y + HERO_RING_DOWN }; }
 
   // The part of the arena the screen shows under the HUD, in the arena's own coordinates.
   viewRect() { return new Phaser.Geom.Rectangle(this.camOff.x, this.camOff.y + HUD_H, W, H - HUD_H); }
@@ -359,7 +367,8 @@ class LootScene extends SystemsScene {
       if (e.slamTimer <= 0) this.beginSlam(e);
     } else {
       e.slam.t += delta;
-      if (!e.slam.touched && this.inSlam(e.slam, this.player.x, this.player.y)) e.slam.touched = true;   // for Read the Slam
+      const feet = this.heroFeet();
+      if (!e.slam.touched && this.inSlam(e.slam, feet.x, feet.y)) e.slam.touched = true;   // for Read the Slam
       this.drawSlamTelegraph(e);
       if (e.act && e.act.held && e.slam.t >= e.slam.dur - SLAM_ACT.drop) this.release(e);     // he comes down as the fill meets the edge
       if (e.slam.t >= e.slam.dur && this.resolveSlam(e)) return true;
@@ -375,11 +384,12 @@ class LootScene extends SystemsScene {
     const clampY = y => Phaser.Math.Clamp(y, b.y + 10, b.bottom - 10);
     const slam = { type, t: 0, dur: SLAM[type].windup, x: e.x, y: e.y };
     const reach = this.slamReach();         // the whole shape grows together, gaps included
+    const feet = this.heroFeet();           // a slam is laid on the floor, where the hero stands (2.53)
 
     if (type === 'circle') {
       slam.r = e.slamRadius * reach;
     } else if (type === 'line') {
-      slam.a = Math.atan2(this.player.y - e.y, this.player.x - e.x);   // aimed where you stand NOW
+      slam.a = Math.atan2(feet.y - e.y, feet.x - e.x);   // aimed where you stand NOW
       slam.len = 280 * reach; slam.w = 48 * reach;
     } else {
       const n = e.isMega ? 6 : 4;
@@ -387,8 +397,8 @@ class LootScene extends SystemsScene {
       for (let i = 0; i < n; i++) {
         const off = i === 0 ? 0 : Phaser.Math.Between(42, 118) * reach;   // one always on you
         const a = Math.random() * Math.PI * 2;
-        slam.blobs.push({ x: clampX(this.player.x + Math.cos(a) * off),
-                          y: clampY(this.player.y + Math.sin(a) * off), r: 36 * reach, delay: i * 90 });
+        slam.blobs.push({ x: clampX(feet.x + Math.cos(a) * off),
+                          y: clampY(feet.y + Math.sin(a) * off), r: 36 * reach, delay: i * 90 });
       }
     }
     // Reusing telegraphGfx means killEnemy and run cleanup already destroy it.
@@ -457,7 +467,7 @@ class LootScene extends SystemsScene {
     else if (s.type === 'line') this.lineImpact(s);
     else s.blobs.forEach(bl => this.slamFx(bl.x, bl.y, bl.r, SLAM_FX, 4));
     this.slamBlowFx(e, s);
-    const hit = this.inSlam(s, this.player.x, this.player.y);   // one hit per slam, not per blob
+    const feet = this.heroFeet(), hit = this.inSlam(s, feet.x, feet.y);   // one hit per slam, not per blob
     this.shake(260, SLAM[s.type].shake, true);
     this.holdStill(FEEL.hitStop.slam);
     this.sfx('slam-land', { rate: e.isMega ? 0.8 : 1 });
@@ -653,6 +663,7 @@ class LootScene extends SystemsScene {
       maxHp: baseMaxHP, hp: baseMaxHP,
       speed: 200,
       flashTimer: 0,
+      unhurtMs: 0,                                    // since health was last lost: catching breath (BREATH)
       shieldCharge: 0,
       guardCharge: this.perkOn('guard') ? 1 : 0,     // Sentinel's Guard: one hit blocked on every level
       shieldRechargeTimer: 0,
@@ -1144,6 +1155,7 @@ class LootScene extends SystemsScene {
       if (amount <= 0) { if (kind !== 'slam') this.player.iframes = IFRAMES_MS; return false; }
     }
     this.player.hp -= amount;
+    this.player.unhurtMs = 0;                                    // a breath caught is lost (BREATH)
     if (kind !== 'slam') this.player.iframes = IFRAMES_MS;
     // The existing hit flicker now lasts exactly as long as the invulnerability, so the
     // player can read "I'm safe for a moment" off the hero himself.
@@ -1900,9 +1912,12 @@ class LootScene extends SystemsScene {
     }
 
     // --- loot pickups (walk over to equip, no pause) ---
+    // Anything of him that stands over an item takes it, from his middle down to his feet
+    // (PICKUP_REACH, 2.53): it was a circle round his middle alone, and missed an item under his feet.
+    const footY = this.player.y + HERO_RING_DOWN;
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const pk = this.pickups[i];
-      if (Math.hypot(pk.x - this.player.x, pk.y - this.player.y) < 26) {
+      if (Math.hypot(pk.x - this.player.x, pk.y - Phaser.Math.Clamp(pk.y, this.player.y, footY)) < PICKUP_REACH) {
         this.applyLoot(pk.item, pk.isMystery);
         const lootSfx = LOOT_SFX[pk.item.rarity];
         if (pk.isMystery) { this.sfx('loot-mystery'); this.time.delayedCall(260, () => this.sfx(lootSfx)); }
@@ -1927,6 +1942,15 @@ class LootScene extends SystemsScene {
       }
     }
 
+    // --- catching breath (BREATH, 2.53): unhurt for a moment, health creeps back up to half ---
+    this.player.unhurtMs += delta;
+    const breathTo = this.player.maxHp * BREATH.upTo;
+    const breathing = this.player.unhurtMs >= BREATH.after && this.player.hp > 0 && this.player.hp < breathTo;
+    if (breathing) {
+      this.player.hp = Math.min(breathTo, this.player.hp + this.player.maxHp * BREATH.perSec * dt);
+      this.hint('breath', 'Catching your breath: stay out of harm and your health creeps back, up to half.');
+    }
+
     this.drawFarPointers();
 
     // --- HP bar update ---
@@ -1935,6 +1959,7 @@ class LootScene extends SystemsScene {
     this.hpBarBg.setPosition(hbX, hbY); this.hpBarFill.setPosition(hbX, hbY); this.bloodBar.setPosition(hbX, hbY - HP_BAR.h / 2 - 2);
     this.hpBarFill.width = this.hpBarW * hpPct;
     this.hpBarFill.fillColor = hpPct > 0.5 ? 0x2fbf71 : (hpPct > 0.25 ? 0xffd23c : 0xff5c5c);
+    this.hpBarFill.setAlpha(breathing ? 0.7 + 0.3 * Math.sin(time / 160) : 1);   // a breath being caught shows on the bar
     const shield = this.player.bloodShield || 0;
     this.bloodBar.width = this.hpBarW * Math.min(1, shield / this.player.maxHp);
 

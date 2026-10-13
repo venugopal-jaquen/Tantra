@@ -9,7 +9,7 @@
  *           runner.
  * Needs     rules.js for every number; persistence.js (session) for what is kept.
  * Expects   of LootScene: this.player, this.enemies, this.phase, damageEnemy,
- *           damagePlayer, pauseGame, resumeGame.
+ *           damagePlayer, pauseGame, resumeGame, slamReach (how far Tejas reaches).
  * State     this.boons, this.boonQueue, this.inventory, this.tejas*, the tips and
  *           lessons on show: all belong to one run and are made anew by startRun.
  */
@@ -53,10 +53,10 @@ class SystemsScene extends ScreensScene {
     const f = this.tejasForm();
     this.tejasActive = TEJAS.duration;
     this.tejasTick = 0;
-    const auraR = f.kind === 'chain' ? 44 : Math.min(f.radius, 130), c = this.tejasFx();
+    const auraR = f.kind === 'chain' ? 44 : this.tejasRadius(f), c = this.tejasFx();   // the ring shows how far it reaches
     this.tejasAura = this.tejasRing(auraR, c).setPosition(this.player.x, this.player.y);
     this.tweens.add({ targets: this.tejasAura, alpha: 0.5, duration: 260, yoyo: true, repeat: -1 });
-    this.tejasParts = f.poison ? this.venomCloud(f.radius, c) : [];
+    this.tejasParts = f.poison ? this.venomCloud(this.tejasRadius(f), c) : [];
     if (f.kind === 'chain') this.tejasBolts = this.add.graphics().setDepth(30);
     this.tejasBurst(this.player.x, this.player.y, c);
     this.restorePlayerTint();
@@ -121,10 +121,15 @@ class SystemsScene extends ScreensScene {
     }
   }
 
+  // How far a form reaches (TEJAS.reach, 2.53): its radius, grown with a boss's slams and a
+  // little past them, so that it reaches him from outside his ring. The chain keeps its own:
+  // it already reaches past any ring.
+  tejasRadius(f) { return f.kind === 'chain' ? f.radius : f.radius * this.slamReach() * TEJAS.reach; }
+
   tejasPulse() {
-    const f = this.tejasForm(), c = this.tejasFx(), px = this.player.x, py = this.player.y;
+    const f = this.tejasForm(), c = this.tejasFx(), px = this.player.x, py = this.player.y, R = this.tejasRadius(f);
     const base = this.player.weapon.dmg * PHASE_DEFS[this.phase].playerDmgMult * f.dmgMult * this.dmgMult();
-    const near = this.enemies.filter(e => Math.hypot(e.x - px, e.y - py) <= f.radius);
+    const near = this.enemies.filter(e => Math.hypot(e.x - px, e.y - py) <= R);
 
     if (f.kind === 'chain') {
       // Arc to the nearest few, each hop jumping onward to its own nearest - a live web.
@@ -145,12 +150,12 @@ class SystemsScene extends ScreensScene {
     }
 
     if (f.kind === 'slam') {
-      this.slamFx(px, py, f.radius, c);
+      this.slamFx(px, py, R, c);
       this.shake(140, 0.005);
       this.sfx('slam-land', { vol: 0.5, rate: 1.3 });
     } else if (f.kind === 'nova') {
       this.sfx('thud');
-      this.novaFx(px, py, f.radius, c);
+      this.novaFx(px, py, R, c);
     }
 
     let dealt = 0, shown = 0;

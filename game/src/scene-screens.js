@@ -398,7 +398,8 @@ class ScreensScene extends FxScene {
         } },
       { title: 'MOVE · FIGHT',
         body: (touch ? 'Tap a spot and you walk there; hold and drag to steer.' : 'Move with WASD or the arrow keys (or click and drag).') +
-              ' Attacks are automatic: you strike the nearest enemy in range. Your whole job is where you stand.',
+              ' Attacks are automatic: you strike the nearest enemy in range. Your whole job is where you stand.' +
+              ' Keep out of harm for a few seconds and you catch your breath: health creeps back, up to half.',
         draw: (cx, cy) => {
           const gr = g();
           gr.lineStyle(1, FORGE.cool, 0.35); gr.strokeCircle(cx - 50, cy, 70);
