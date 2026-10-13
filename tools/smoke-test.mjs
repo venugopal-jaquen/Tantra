@@ -448,8 +448,11 @@ try {
     p.weapon = keep.w; p.trinket = keep.t; s.inventory = keep.inv; p.maxHp = keep.max; p.hp = keep.hp;
     // A ring slam: his feet just outside it are safe, though his middle is inside; his feet
     // just inside it are struck, though his middle is outside.
+    // Nothing may turn the blow: an Aegis found earlier in this run, a perk's guard or a blood
+    // shield would block the slam that is meant to land, and the check would fail by luck.
+    p.trinket = null; p.shieldCharge = 0; p.guardCharge = 0; p.bloodShield = 0;
     const k = s.spawnGatekeeper(); k.slamTimer = k.summonTimer = 1e9; k.speed = 0; k.x = b.centerX; k.y = b.centerY - 40;
-    const lands = (type, place) => { k.slamTypes = [type]; s.beginSlam(k); place(k.slam); const hp0 = p.hp; k.slam.t = k.slam.dur; frame(); const hit = p.hp < hp0; p.hp = keep.hp; return hit; };
+    const lands =(type, place) => { k.slamTypes = [type]; s.beginSlam(k); place(k.slam); const hp0 = p.hp; k.slam.t = k.slam.dur; frame(); const hit = p.hp < hp0; p.hp = keep.hp; return hit; };
     out.ring = {
       outside: lands('circle', sl => { p.x = k.x; p.y = k.y + sl.r + 8 - HERO_RING_DOWN; }),
       inside: lands('circle', sl => { p.x = k.x; p.y = k.y - sl.r + 8 - HERO_RING_DOWN; }) };
