@@ -240,7 +240,7 @@ const DEPTHS = [null,
   { name: 'Thin Air',          twist: 'Beating a boss heals 20%, not 35%.' },
   { name: 'Wrath',             twist: 'Bosses slam a quarter more often.' },
   { name: 'Horde',             twist: 'Two more enemies in every wave.' },
-  { name: 'Restless',          twist: 'Convergence comes every 60 seconds, not 90.' },
+  { name: 'Restless',          twist: `${N.phases.convergence} comes every 60 seconds, not 90.` },
   { name: "The Serpent's Own", twist: 'Everything hits a fifth harder.' }
 ];
 

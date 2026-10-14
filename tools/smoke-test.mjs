@@ -39,7 +39,7 @@ const browser = spawn(exe, [
 ], { stdio: 'ignore' });
 
 let ws, nextId = 1;
-const pending = new Map(), problems = [];
+const pending = new Map(), problems = [], blocked = [];        // blocked: what the page's security policy refused
 const asked = new Map(), missing = [];          // every address the page fetched, and the ones that did not arrive
 const send = (method, params = {}) => new Promise((res, rej) => {
   const id = nextId++;
@@ -76,6 +76,7 @@ try {
     const m = JSON.parse(ev.data);
     if (m.id && pending.has(m.id)) { const p = pending.get(m.id); pending.delete(m.id); m.error ? p.rej(new Error(m.error.message)) : p.res(m.result); }
     else if (m.method === 'Runtime.exceptionThrown') problems.push('exception: ' + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text).split('\n')[0]);
+    else if (m.method === 'Log.entryAdded' && /Content Security Policy/.test(m.params.entry.text)) blocked.push(m.params.entry.text.slice(0, 160));
     else if (m.method === 'Log.entryAdded' && m.params.entry.level === 'error') problems.push('console: ' + m.params.entry.text + ' ' + (m.params.entry.url || '').split('/').pop());
     else if (m.method === 'Network.requestWillBeSent') asked.set(m.params.requestId, m.params.request.url);
     else if (m.method === 'Network.loadingFailed' && !m.params.canceled) missing.push((asked.get(m.params.requestId) || '?').split('/').slice(-2).join('/') + ' ' + m.params.errorText);
@@ -245,6 +246,38 @@ try {
   check('the hero and his enemies step through their walk frames, and stand when they stop', legs.standing === 0 && legs.kiran.steps >= 5 && legs.kiran.rows === String(legs.right) && legs.stopped === 0
     && legs.asura.steps >= 4 && legs.asuraStopped === 0, JSON.stringify(legs));
 
+  // Walking over a drop (build 0.23): worn only when plainly better than what is held, else
+  // kept in the satchel with a mark on its tab; a full satchel drops its weakest; and the
+  // Overdrive button names the power the weapon in hand gives.
+  const pickup = await page(`const s = game.scene.keys.LootScene, p = s.player, out = {};
+    const keep = { w: p.weapon, t: p.trinket, inv: s.inventory.slice(), max: p.maxHp, hp: p.hp, unlocked: session.tejasUnlocked };
+    const like = (base, more) => Object.assign({}, base, more);
+    s.inventory = []; s.satchelNew = false; s.refreshSatchel();
+    const venom1 = like(keep.w, { effect: 'venom', rarity: 'common', shots: 1, name: 'Copper Venom Dagger' }); p.weapon = venom1;
+    s.takeLoot(like(venom1, { rarity: 'rare', name: 'Silver Venom Dagger' }), false);
+    out.upgraded = p.weapon.rarity === 'rare' && s.inventory.includes(venom1);
+    const silver = p.weapon; s.inventory = []; s.satchelNew = false; s.refreshSatchel();
+    s.takeLoot(like(silver, { rarity: 'common', name: 'Copper Venom Dagger' }), false);
+    out.worseStored = p.weapon === silver && s.inventory.length === 1 && s.satchelNew && s.satchelDot.visible;
+    session.tejasUnlocked = true; s.buildTejasUI(); s.drawTejasMeter();
+    const label = s.tejasLabel.text;
+    s.takeLoot(like(silver, { effect: 'chain', rarity: 'epic', shots: 3, name: 'Gold Storm Disc' }), false);
+    out.otherKept = p.weapon === silver && s.inventory.length === 2 && s.tejasForm() === TEJAS_FORMS.venom;
+    out.buttonSays = label === TEJAS_FORMS.venom.name.toUpperCase();
+    s.equipFromSatchel(s.inventory.findIndex(i => i.effect === 'chain')); s.drawTejasMeter();
+    out.followsWeapon = p.weapon.effect === 'chain' && s.tejasLabel.text === TEJAS_FORMS.chain.name.toUpperCase();
+    p.trinket = null; s.takeLoot({ type: 'trinket', effect: 'swift', rarity: 'common', name: 'Copper Swift Sandals', speedBonus: 10 }, false);
+    out.emptyFilled = !!p.trinket && p.trinket.effect === 'swift';
+    s.inventory = Array.from({ length: INV_MAX }, (_, i) => like(silver, { rarity: i ? 'epic' : 'rare', name: 'kept ' + i }));
+    const weak = like(silver, { rarity: 'common', name: 'weakest' }); s.takeLoot(weak, false);
+    out.fullDropsWeakest = s.inventory.length === INV_MAX && !s.inventory.includes(weak) && s.inventory.some(i => i.name === 'kept 0');
+    s.pauseGame('satchel'); out.seenClearsMark = !s.satchelNew && !s.satchelDot.visible; s.resumeGame();
+    p.weapon = keep.w; p.trinket = keep.t; s.inventory = keep.inv; p.maxHp = keep.max; p.hp = keep.hp; s.refreshSatchel();
+    if (!keep.unlocked) { s.destroyTejasUI(); session.tejasUnlocked = false; }
+    return out;`);
+  check('a drop is worn only when plainly better, else kept in the satchel with a mark; a full satchel drops its weakest; the Overdrive button names the power of the weapon held',
+    Object.values(pickup).every(v => v === true), JSON.stringify(pickup));
+
   // The satchel pauses the fight, says what each item does, and swaps on a tap.
   const satchel = await page(`const s = game.scene.keys.LootScene;
     for (const r of ['rare', 'epic', 'common']) { s.spawnLootPickup(s.player.x, s.player.y, r); await new Promise(r2 => setTimeout(r2, 150)); }
@@ -342,6 +375,26 @@ try {
   check('power counts gear and boons, and sleeps a weapon boon with its weapon', pow.base === 120 && pow.gun === 105 && pow.awake === 125 && pow.asleep === 85, JSON.stringify(pow));
   check('the HUD shows power and the profile shows the stats', /Power \d+$/.test(pow.hud) && pow.hud.endsWith(' ' + pow.total) && pow.prof.state === 'paused' && pow.prof.power && pow.prof.rows
     && pow.prof.spill.length === 0 && pow.perSecond === 2.24 && pow.move === 240 && pow.targets === 4, JSON.stringify(pow));
+
+  // As many boons as can be carried at once: every one but Strike on the Run, which never comes
+  // with Hold Your Ground. Each has a slot on the profile, and the rows of icons on the pause
+  // screen and the boon pick stay inside their panels (ChatGPT's Beta audit, A-001).
+  const many = await page(`const s = game.scene.keys.LootScene;
+    s.boons = Object.fromEntries(Object.keys(BOONS).filter(k => k !== 'run').map(k => [k, 1]));
+    const n = Object.keys(s.boons).length, settle = () => new Promise(r => setTimeout(r, 120));
+    const isBoon = o => o.type === 'Image' && (o.texture.key.startsWith('boon_') || String(ICON_FRAMES[o.frame.name] || '').startsWith('boon-'));
+    const boxes = () => s.overlay.filter(isBoon).map(o => ({ l: o.x - o.displayWidth / 2, r: o.x + o.displayWidth / 2, t: o.y - o.displayHeight / 2, b: o.y + o.displayHeight / 2 }));
+    s.pauseGame('profile'); await settle();
+    const prof = boxes(), detail = s.overlay.find(o => o.type === 'Text' && /^Tap anything/.test(o.text));
+    s.resumeGame(); s.pauseGame(); await settle();
+    const pause = boxes();
+    s.resumeGame(); s.queueBoon(); s.openBoons(); await settle();
+    const pick = boxes().filter(b => b.t > 560);
+    s.closeBoons(); s.boons = {}; s.boonQueue = []; s.refreshBoonButton();
+    return { n, profile: prof.length, profileClear: !!detail && prof.every(b => b.b <= detail.y), pause: pause.length, pauseRight: Math.round(Math.max(...pause.map(b => b.r))),
+      pick: pick.length, pickRight: Math.round(Math.max(...pick.map(b => b.r))), state: s.state };`);
+  check('seventeen boons, as many as can be carried: each has a slot on the profile, and the rows on pause and the boon pick stay inside their panels',
+    many.n === 17 && many.profile === 17 && many.profileClear && many.pause === 17 && many.pauseRight <= 368 && many.pick === 17 && many.pickRight <= 375 && many.state === 'playing', JSON.stringify(many));
 
   // Read the Slam: stand in a ring, step out before it lands, hit harder.
   const read = await page(`const s = game.scene.keys.LootScene, p = s.player; s.boons = { readslam: 1 }; s.slamBuffMs = 0; p.iframes = 1e9;
@@ -448,8 +501,11 @@ try {
     p.weapon = keep.w; p.trinket = keep.t; s.inventory = keep.inv; p.maxHp = keep.max; p.hp = keep.hp;
     // A ring slam: his feet just outside it are safe, though his middle is inside; his feet
     // just inside it are struck, though his middle is outside.
+    // Nothing may turn the blow: an Aegis found earlier in this run, a perk's guard or a blood
+    // shield would block the slam that is meant to land, and the check would fail by luck.
+    p.trinket = null; p.shieldCharge = 0; p.guardCharge = 0; p.bloodShield = 0;
     const k = s.spawnGatekeeper(); k.slamTimer = k.summonTimer = 1e9; k.speed = 0; k.x = b.centerX; k.y = b.centerY - 40;
-    const lands = (type, place) => { k.slamTypes = [type]; s.beginSlam(k); place(k.slam); const hp0 = p.hp; k.slam.t = k.slam.dur; frame(); const hit = p.hp < hp0; p.hp = keep.hp; return hit; };
+    const lands =(type, place) => { k.slamTypes = [type]; s.beginSlam(k); place(k.slam); const hp0 = p.hp; k.slam.t = k.slam.dur; frame(); const hit = p.hp < hp0; p.hp = keep.hp; return hit; };
     out.ring = {
       outside: lands('circle', sl => { p.x = k.x; p.y = k.y + sl.r + 8 - HERO_RING_DOWN; }),
       inside: lands('circle', sl => { p.x = k.x; p.y = k.y - sl.r + 8 - HERO_RING_DOWN; }) };
@@ -543,7 +599,7 @@ try {
   check('a run shows how far the goal is', goal.hud.startsWith('Level 1 of 3') && /waits two levels below/.test(goal.banner), goal.hud + ' || ' + goal.banner);
   await shot('5b-level-banner');
   const fell = await page(`const s = game.scene.keys.LootScene; s.sector = 2; s.runGold = 100; s.endRun(false); return ${texts};`);
-  check('falling says how close you came', /You fell in The Drowned Steps, level 2 of 3/.test(fell) && /Vritra waits one level below/.test(fell), fell);
+  check('falling says how close you came', /You fell in The Drowned Steps, level 2 of 3/.test(fell) && /The Thirst waits one level below/.test(fell), fell);
   await sleep(250); await shot('5c-fell');
   const paid = await page(`const s = game.scene.keys.LootScene; ${press};
     s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; s.wave = 6;
@@ -570,8 +626,8 @@ try {
     const summary = ${texts}; const banked = session.metaGold - before; ${press};
     await new Promise(r => setTimeout(r, 300));
     return { banked, carried, summary, title: ${texts} };`);
-  check('surfacing after the win banks everything', surfaced.banked === surfaced.carried && surfaced.carried >= 300 && /VRITRA SLAIN/.test(surfaced.summary), `banked ${surfaced.banked} of ${surfaced.carried} carried | ` + surfaced.summary);
-  check('the title screen shows the water and the next depth', /The well is 14% full/.test(surfaced.title) && /DEPTH 2 OF 7  ·  SWIFT/.test(surfaced.title) && /Enemies move 12% faster\./.test(surfaced.title) && /\+4% enemy health  ·  a stray in some waves  ·  \+20% Nidhi/.test(surfaced.title), surfaced.title.replace(/\n/g, ' ').slice(0, 330));
+  check('surfacing after the win banks everything', surfaced.banked === surfaced.carried && surfaced.carried >= 300 && /THE THIRST SLAIN/.test(surfaced.summary), `banked ${surfaced.banked} of ${surfaced.carried} carried | ` + surfaced.summary);
+  check('the title screen shows the water and the next depth', /The well is 14% full/.test(surfaced.title) && /DEPTH 2 OF 7  ·  SWIFT/.test(surfaced.title) && /Enemies move 12% faster\./.test(surfaced.title) && /\+4% enemy health  ·  a stray in some waves  ·  \+20% Hoard/.test(surfaced.title), surfaced.title.replace(/\n/g, ' ').slice(0, 330));
   await sleep(900); await shot('5e-title-with-water');
   const packs = await page(`const shape = o => Object.keys(o).sort().map(k => k + (o[k] && typeof o[k] === 'object' && !Array.isArray(o[k]) ? '{' + Object.keys(o[k]).sort().join(',') + '}' : '')).join(';');
     return Object.fromEntries(Object.keys(NAME_PACKS).map(k => [k, shape(NAME_PACKS[k]) === shape(NAME_PACKS.sanskrit)]));`);
@@ -903,7 +959,7 @@ try {
     && nick.clean === 'Ravi the bBold|ABCDEFGHIJKLMN|' && nick.dialog.open && nick.dialog.keysOff && nick.dialog.focus === 'nm-text', JSON.stringify(nick));
   check('a nickname is saved and shown on the title screen, the profile and the victory', nick2.saved.name === 'Ravi the Bold' && nick2.saved.stored === 'Ravi the Bold' && nick2.saved.closed && nick2.saved.keysOn && nick2.saved.chip
     && nick2.profile.name === 'RAVI THE BOLD' && /tap to rename/.test(nick2.profile.sub) && nick2.fromProfile && nick2.long.name === 14 && nick2.long.right <= 232 && nick2.long.font < 25
-    && /Ravi the Bold has slain Vritra\./.test(nick2.victory), JSON.stringify(nick2).replace(/\\n/g, ' ').slice(0, 700));
+    && /Ravi the Bold has slain The Thirst\./.test(nick2.victory), JSON.stringify(nick2).replace(/\\n/g, ' ').slice(0, 700));
 
   // ---------- 5. every text stays inside its panel ----------
   const spill = await page(`const s = game.scene.keys.LootScene, bad = [];
@@ -941,6 +997,21 @@ try {
     await new Promise(r => setTimeout(r, 1500)); window.fetch = window.__fetch;
     return { url: first.url, message: first.body && first.body.message, hasBuild: !!(first.body && first.body.build), note, closed: !Feedback.isOpen, gameKeys: game.input.keyboard.enabled };`);
   check('feedback is posted to the mail relay and the dialog closes', /formsubmit\.co\/ajax\//.test(fbSent.url || '') && fbSent.message === typed && fbSent.hasBuild && fbSent.closed && fbSent.gameKeys === true, JSON.stringify(fbSent));
+  // The robot field goes with every message, empty; a fourth message in ten minutes is held back.
+  const fbGuard = await page(`const sent = []; window.__fetch = window.fetch;
+    window.fetch = (url, opts) => { sent.push(JSON.parse(opts.body)); return Promise.resolve(new Response(JSON.stringify({ success: 'true' }), { status: 200, headers: { 'Content-Type': 'application/json' } })); };
+    const honey = document.getElementById('fb-honey');
+    const keep = STORE.read('loot-chase-feedback-sent');
+    STORE.write('loot-chase-feedback-sent', JSON.stringify([Date.now(), Date.now(), Date.now()]));
+    Feedback.open(); const box = honey.getBoundingClientRect(), seen = box.right > 0 && box.bottom > 0 && getComputedStyle(honey).opacity !== '0';
+    document.getElementById('fb-text').value = 'a fourth message'; document.getElementById('fb-send').click();
+    await new Promise(r => setTimeout(r, 300));
+    const held = { posted: sent.length, note: document.getElementById('fb-note').textContent };
+    if (keep === null) STORE.write('loot-chase-feedback-sent', '[]'); else STORE.write('loot-chase-feedback-sent', keep);
+    Feedback.close(); window.fetch = window.__fetch;
+    return { honeyHidden: !seen, honeyInLast: window.__sent && window.__sent[0] && window.__sent[0].body._honey === '', held };`);
+  check('feedback carries an empty robot field, and a fourth message in ten minutes is held back', fbGuard.honeyHidden && fbGuard.honeyInLast
+    && fbGuard.held.posted === 0 && /Try again in a few minutes/.test(fbGuard.held.note), JSON.stringify(fbGuard));
 
   // ---------- 6. playtest bot: errors and leaks ----------
   const bot = await page(`
@@ -1284,7 +1355,7 @@ try {
   await send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
   await sleep(700);
   const surround = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms));
-    const shown = () => (document.getElementById('backdrop').style.backgroundImage.match(/backdrop\\/([\\w-]+)\\.jpg\\?v=([\\w.]+)/) || []).slice(1).join(' ');
+    const shown = () => (document.getElementById('backdrop').style.backgroundImage.match(/backdrop\\/([\\w-]+)\\.jpg\\?v=([\\w.-]+)/) || []).slice(1).join(' ');
     const box = id => { const e = document.getElementById(id); return e.hidden ? null : e.getBoundingClientRect(); };
     s.showHub(); await wait(300); const hub = shown();
     s.startRun(); ${FREEZE} s.player.iframes = 1e9; await wait(400); const run = shown();
@@ -1320,6 +1391,9 @@ try {
   check('the game fetches nothing from the internet, and every file it asks for is there', outside.length === 0 && missing.length === 0
     && urls.some(u => /vendor\/phaser-[\d.]+\.min\.js$/.test(u)) && urls.some(u => /vendor\/fonts\/.+\.woff2$/.test(u)),
     outside.concat(missing).slice(0, 6).join('; ') || kinds);
+  const policy = await page(`const m = document.querySelector('meta[http-equiv="Content-Security-Policy"]'); return m ? m.content : '';`);
+  check('the page carries its security policy, and nothing it loads or does is refused by it', /script-src 'self';/.test(policy) && /connect-src 'self' https:\/\/formsubmit\.co\/ajax\/;/.test(policy)
+    && blocked.length === 0, blocked.slice(0, 4).join(' | ') || policy.slice(0, 80));
   const real = problems.filter(p => !/navigator\.vibrate/.test(p));
   check('no page errors', real.length === 0, real.join('; '));
 } catch (e) {

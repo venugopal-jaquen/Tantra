@@ -799,4 +799,4 @@ const FLOORS_PAINTED = [
 ];
 const FLOOR_SETS = { classic: FLOORS_CLASSIC, carved: FLOORS_CARVED, painted: FLOORS_PAINTED };
 const FLOOR_SET = 'painted';
-const FLOORS = FLOOR_SETS[QUERY.get('floors')] || FLOOR_SETS[FLOOR_SET];
+const FLOORS = pickFrom(FLOOR_SETS, QUERY.get('floors'), FLOOR_SET);

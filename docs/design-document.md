@@ -50,6 +50,17 @@ Work agreed in principle and not to be started on a date, but when a stated cond
 
 ## 1.2 Launch track — itch.io POC (added 2026-09-27)
 
+**Where the launch stands, 2026-10-14 (read this first; the rows below keep their history).** Built and live: L3 How to play, L4 and L12 the tutorial, L6 pause and settings, L7 the loading screen, L13 free rides, L14 the cast, L15 wide screens. The release is made from **Version Beta** (§1.2.0): build 0.23 on the branch `release-prep`, not yet on `main`.
+
+| Stage | Items | State on 2026-10-14 |
+|---|---|---|
+| Built, waiting for the founder's eye on a phone | L12 tutorial, L13 free rides | Played by the bot and the tests only |
+| Done in Beta, waiting to reach `main` | Build 0.22: every boon has a place, lighter small labels, the security pass (L11). Build 0.23: six names (The Thirst, Overdrive, Imp, Hoard, Storm Disc, Zenith), a pickup that never makes the hero weaker, Overdrive's button naming its power | Local; the founder's word to push and merge |
+| Waiting on the founder | L1 the name (they are brainstorming), L10 the FormSubmit alias, L8 a mid-range Android, the history decision in L11 | |
+| Claude's, under way | V14 the store's pictures from build 0.22 | |
+| Agreed plan for release (2026-10-14) | L9: an itch.io draft page shared by secret link with five outside players (P11), then public | The founder creates the page; Claude prepares everything for it |
+| Parallel, not in the release | L16 / Version Gamma, ChatGPT's build of the restyle in its own repository | At its first review stop (title, boon pick, profile) |
+
 Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the condition P1 and P3 were waiting on ("mechanics final"), so both move from pinned to **due**. What stands between the current build and an itch.io page, in order:
 
 | # | Item | State today | Done when |
@@ -72,7 +83,17 @@ Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the cond
 
 **Not needed for the POC:** P2 (look-builder), P4 (commissioned art), P5 (visual-story polish), M8 (narrative), M9 (capstone boss). These wait on the itch.io response, as the "prove it, then invest" rule in `launch-roadmap.md` says.
 
-**Immediate priority (2026-10-02): the goal and ending are built; the founder is playing the reference games before deciding the rest of §1.3 (gameplay depth, the names, seven worlds).** A slide deck of the whole loop and every mechanic was made for that review; it closes with the gaps found (no stated goal, no ending, an unreadable sector track), three options for sector names, and a split of what to fix before launch against what can wait. Sector names are not yet changed. Still open on the launch track: music (L5), the title screen verdict (L2), activating the feedback form (L10), the real-device check (L8), the final name (L1) and the itch.io page (L9). M7 is effectively closed for the POC; its remainder is L2 plus the post-launch P4.
+**History, superseded by the summary at the top of §1.2.** **Immediate priority (2026-10-02): the goal and ending are built; the founder is playing the reference games before deciding the rest of §1.3 (gameplay depth, the names, seven worlds).** A slide deck of the whole loop and every mechanic was made for that review; it closes with the gaps found (no stated goal, no ending, an unreadable sector track), three options for sector names, and a split of what to fix before launch against what can wait. Sector names are not yet changed. Still open on the launch track: music (L5), the title screen verdict (L2), activating the feedback form (L10), the real-device check (L8), the final name (L1) and the itch.io page (L9). M7 is effectively closed for the POC; its remainder is L2 plus the post-launch P4.
+
+### 1.2.0 Two versions: Beta and Gamma (2026-10-13)
+The founder, on handing the screens to ChatGPT to redesign and to Claude to build: "I am not sure how the handoff from chatgpt and code from you will work perfectly or not. So put Build 0.21 as version beta of the game and prep for the next steps towards release to itch.io ... For the work coming from ChatGPT, we can mark that as Version Gamma. If that works perfectly, then we can discard Version beta but I don't want to lose the progress we have made so far."
+
+| Version | What it is | Where it lives | What may happen to it |
+|---|---|---|---|
+| **Beta** | Build 0.21: the game as merged on 2026-10-13, with the cut-stone screens of `requirements.md` §2.47 | `main`; the tag `beta-build-0.21` marks the commit and is never moved | The itch.io release is prepared from it (L9, L11). Fixes and release work reach `main` by pull request, at the founder's word, and take the next build number |
+| **Gamma** | The screens restyled as "Modern Relic" from ChatGPT's kit (L16 on that branch) | The branch `modern-relic` | Never merged into `main`, and never packaged for itch.io, until the founder says it works. `main` is merged into it, so it carries every fix made to Beta; nothing goes the other way |
+
+On 2026-10-13 the founder made Gamma an experiment between two builders: ChatGPT builds it itself in a clone of build 0.21 (`Tantra-gamma-chatgpt`, branch `gamma-chatgpt`, no remote), and Claude's own restyle (`modern-relic`) is kept for comparison. The founder judges both against Beta on a phone. If Gamma proves out it becomes `main` and Beta is no longer kept up; the tag stays, so the game of build 0.21 can always be had again. If it does not, nothing of it has touched the game that is released.
 
 ### 1.2.1 The visual redesign: what is in and what is left (2026-10-10)
 The founder: "What we are aiming with PR18 is a comprehensive visual redesign which I think will be the last big step before launch on itch.io." Everything below is on the branch `well-delver-cast` (pull request 18), which is not merged until the redesign is whole. While it is being tried, changes are tested and shown but the itch.io package is not rebuilt.

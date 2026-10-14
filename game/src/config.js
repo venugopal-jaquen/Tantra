@@ -22,13 +22,17 @@
 // The switches the page's address carries (?arena=fixed&names=plain ...), read once.
 // Each is used where it belongs; the list is in this file's header.
 const QUERY = new URLSearchParams(location.search);
+// What an address switch asks for, taken only from the switch's own list (pre-launch
+// security checklist, line 14): a word every object answers to, such as "constructor",
+// must not count as a choice.
+const pickFrom = (list, key, otherwise) => Object.prototype.hasOwnProperty.call(list, key) ? list[key] : list[otherwise];
 
 // One line to rename the game: the browser tab, the loading screen and the hub all read
 // this. (Working title, 2026-10-02 - the founder will settle the final name later. The
 // root index.html redirect page carries its own copy.)
 const GAME_TITLE = 'Anantarya';
 
-const BUILD = '0.21 (2026-10-13)';
+const BUILD = '0.23 (2026-10-14)';
 // Every file the game fetches carries the build in its address (?v=0.16), so that a phone
 // holding files of the last build from its cache cannot mix them with this one's: a new
 // build is new addresses throughout (2026-10-12: a phone ran build 0.15's code against
@@ -58,6 +62,6 @@ const ARENA_MODE = 'wide';
 const ARENA_SCALE = (() => {
   // Named arenas only. Any size from 1 to 2.2 could be asked for while the wide arena was
   // being tried out; a bigger arena is an easier game, so that is gone (requirements 2.36).
-  return ARENA_SCALES[QUERY.get('arena')] || ARENA_SCALES[ARENA_MODE];
+  return pickFrom(ARENA_SCALES, QUERY.get('arena'), ARENA_MODE);
 })();
 const CAMERA_EASE = 0.012;                 // how fast the camera closes on the hero, per millisecond

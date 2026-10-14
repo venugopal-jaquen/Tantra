@@ -26,7 +26,10 @@ class SystemsScene extends ScreensScene {
     this.tejasBtn = this.add.circle(x, y, 25, FORGE.deep, 0.62)
       .setStrokeStyle(2, FORGE.bronze, 0.8).setInteractive({ useHandCursor: true }).setDepth(20);
     this.tejasArc = this.add.graphics().setDepth(21);
-    this.tejasLabel = this.add.text(x, y - 4, N.supercharge.toUpperCase(), { resolution: RES, fontSize: '8px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(0.5).setDepth(22);
+    // The button names the power it will give, which follows the weapon in hand (build 0.23;
+    // it said the supercharge's own name, and which power came out was a surprise).
+    const power = this.tejasForm().name.toUpperCase();
+    this.tejasLabel = this.add.text(x, y - 4, power, { resolution: RES, fontSize: power.length > 6 ? '7px' : '8px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(0.5).setDepth(22);
     this.tejasPct = this.add.text(x, y + 7, '0%', { resolution: RES, fontSize: '8px', color: '#8a7360' }).setOrigin(0.5).setDepth(22);
     // The sign of the form the weapon gives, over the word.
     this.tejasSign = this.painted ? this.icon(x, y - 13, formIcon(this.player && this.player.weapon ? this.player.weapon.effect : 'none'), 11).setDepth(22) : null;
@@ -104,6 +107,8 @@ class SystemsScene extends ScreensScene {
       const want = ICON_FRAMES.indexOf(formIcon(this.player.weapon.effect)[0]);
       if (this.tejasSign.frame.name !== want) this.tejasSign.setFrame(want);
     }
+    const power = f.name.toUpperCase();
+    if (this.tejasLabel.text !== power) this.tejasLabel.setText(power).setFontSize(power.length > 6 ? 7 : 8);
     g.clear();
     g.lineStyle(4, 0x3a1a08, 0.9); g.strokeCircle(x, y, 25);
     g.lineStyle(4, this.tejasActive > 0 ? f.colour : FORGE.gold, 1);
@@ -116,7 +121,7 @@ class SystemsScene extends ScreensScene {
     } else {
       this.tejasBtn.setFillStyle(FORGE.deep, 0.62);
       this.tejasLabel.setColor(this.tejasActive > 0 ? '#fffbef' : '#c8a96e');
-      this.tejasPct.setText(this.tejasActive > 0 ? f.name : `${Math.floor(p * 100)}%`)
+      this.tejasPct.setText(this.tejasActive > 0 ? `${Math.ceil(this.tejasActive / 1000)}s` : `${Math.floor(p * 100)}%`)
         .setColor(this.tejasActive > 0 ? '#fffbef' : '#8a7360');
     }
   }
@@ -359,8 +364,8 @@ class SystemsScene extends ScreensScene {
     const parts = {
       base: POWER.base,
       upgrades: (session.vitalityLevel + session.powerLevel) * POWER.upgrade,
-      weapon: POWER.weapon[w.rarity] + ((w.shots || 1) - 1) * POWER.shot + (w.effect && w.effect !== 'none' ? POWER.effect : 0),
-      trinket: t ? POWER.trinket[t.rarity] : 0,
+      weapon: itemPower(w),
+      trinket: itemPower(t),
       // A weapon boon that is asleep adds nothing until its weapon is back in hand.
       boons: Object.keys(boons).reduce((sum, k) => sum + (BOONS[k].weapon && BOONS[k].weapon !== w.effect ? 0 : boons[k] * POWER.boon[BOONS[k].metal]), 0),
       tejas: session.tejasUnlocked ? POWER.tejas : 0,
@@ -507,7 +512,7 @@ class SystemsScene extends ScreensScene {
     t.setY(top + 7);
     const bg = this.add.rectangle(cx, top + h / 2, w, h, FORGE.deep, 0.78).setStrokeStyle(1.5, FORGE.gold, 0.9)
       .setDepth(70).setInteractive();
-    const sub = this.add.text(cx, top + h - 9, 'tap to dismiss', { resolution: RES, fontSize: '8px', color: '#8a7360' })
+    const sub = this.add.text(cx, top + h - 9, 'tap to dismiss', { resolution: RES, fontSize: '8px', color: '#b8a58e' })
       .setOrigin(0.5).setDepth(71);
     bg.on('pointerdown', () => this.dismissHint());
     this.hintBox = [bg, t, sub];
@@ -618,7 +623,7 @@ class SystemsScene extends ScreensScene {
     const touch = this.sys.game.device.input.touch;
     const stand = 'You strike on your own: your whole job is choosing where to stand.';
     if (id === 'move') return { title: 'MOVING', body: (touch ? 'Tap where you want to go, or hold and drag. ' : 'Move with WASD or the arrow keys, or click where you want to go. ') + stand };
-    if (id === 'loot') return { title: 'LOOT', body: 'Walk over a drop to pick it up. It is equipped at once, with no menu. Copper is common, silver is better and gold is best.' };
+    if (id === 'loot') return { title: 'LOOT', body: `Walk over a drop to pick it up. A better one of what you hold is worn at once; anything else goes to your ${N.satchel}, the tab on the right edge. Copper is common, silver is better and gold is best.` };
     if (id === 'boon') return { title: 'A BOON IS WAITING', body: 'Every wave you clear earns a boon. ' + (touch ? 'Tap +' : 'Press + or click the button') + ' whenever you like: the fight waits while you choose one of three.' };
     if (id === 'core') return { title: 'THE TIMER OVER A BOSS', body: spot.boss.gateOpen
       ? 'A boss can only be hurt properly some of the time. This one is open now, and the timer over his head shows for how long. When it runs out he resists most of your damage until it counts down again.'
@@ -673,7 +678,7 @@ class SystemsScene extends ScreensScene {
 
     // The panel goes on whichever side of the subject has more room, and points at it.
     const cx = W / 2, pw = 330, wrap = pw - 40;
-    const head = this.ovText(cx, 0, 'TUTORIAL', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5, 0);
+    const head = this.ovText(cx, 0, 'TUTORIAL', { fontSize: '10px', color: '#b8a58e', fontStyle: 'bold' }).setOrigin(0.5, 0);
     const title = this.ovText(cx, 0, copy.title, { fontSize: '18px', color: '#ffd23c', fontStyle: 'bold', align: 'center', wordWrap: { width: wrap } }).setOrigin(0.5, 0);
     const body = this.ovText(cx, 0, copy.body, { fontSize: '13px', color: '#f0dcc0', align: 'left', lineSpacing: 4, wordWrap: { width: wrap } }).setOrigin(0.5, 0);
     const ph = 14 + head.height + 4 + title.height + 8 + body.height + 16 + 40 + 6 + 24 + 10;
@@ -741,12 +746,17 @@ class SystemsScene extends ScreensScene {
     this.satchelTabIcon = this.painted ? this.icon(tx, ty - 15, ['hud-satchel'], 18)
       : this.add.text(tx, ty - 12, '◀', { resolution: RES, fontSize: '11px', color: '#ffd23c' }).setOrigin(0.5);
     this.satchelTabCount = this.add.text(tx, ty + 8, '0', { resolution: RES, fontSize: '13px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(0.5);
+    // Something stored from the floor and not yet looked at (build 0.23): a gold dot on the tab.
+    this.satchelDot = this.add.circle(tx + 7, ty - tabH / 2 + 7, 4, FORGE.gold).setStrokeStyle(1.5, 0x2a0800).setVisible(false);
+    this.satchelNew = false;
     this.satchelTab.on('pointerdown', () => this.pauseGame('satchel'));
-    this.fix(this.satchelTab, this.satchelTabIcon, this.satchelTabCount);
+    this.fix(this.satchelTab, this.satchelTabIcon, this.satchelTabCount, this.satchelDot);
   }
 
   refreshSatchel() {
-    if (this.satchelTab) this.satchelTabCount.setText(String(this.inventory.length));
+    if (!this.satchelTab) return;
+    this.satchelTabCount.setText(String(this.inventory.length));
+    this.satchelDot.setVisible(!!this.satchelNew);
   }
 
   // Swap: the equipped item of the same slot goes back into the satchel, so nothing
@@ -761,28 +771,49 @@ class SystemsScene extends ScreensScene {
     if (this.state === 'paused') this.showSatchel();     // redraw with the swap made
   }
 
-  stashItem(item) {
-    if (!item || !this.inventory) return;
+  // Into the satchel. Past INV_MAX the weakest item falls out (least Power; of equals, the one
+  // stored first): a full satchel never blocks a pickup, and never throws away the best
+  // (build 0.23; it was the oldest). Returns what fell out, which may be the item itself.
+  stashItem(item, fromFloor) {
+    if (!item || !this.inventory) return null;
     this.inventory.push(item);
-    // Oldest falls out rather than blocking pickups - losing the thing you stopped
-    // using ages ago is a kinder failure than being unable to pick anything up.
-    if (this.inventory.length > INV_MAX) this.inventory.shift();
+    let lost = null;
+    if (this.inventory.length > INV_MAX) {
+      let k = 0;
+      this.inventory.forEach((it, i) => { if (itemPower(it) < itemPower(this.inventory[k])) k = i; });
+      lost = this.inventory.splice(k, 1)[0];
+    }
+    if (fromFloor && lost !== item) this.satchelNew = true;
     this.refreshSatchel();
-    this.hint('satchel', `Your old item went into the ${N.satchel} - the tab on the right edge. Tap it to swap back; the fight pauses while you choose.`);
+    this.hint('satchel', `Kept in the ${N.satchel} - the tab on the right edge. Tap it to wear anything there; the fight pauses while you choose.`);
+    return lost;
+  }
+
+  // A drop walked over (build 0.23): worn at once only when plainly better than what is held
+  // (calculations.js), else kept in the satchel.
+  takeLoot(item, isMystery) {
+    if (plainlyBetter(item, item.type === 'weapon' ? this.player.weapon : this.player.trinket)) { this.applyLoot(item, isMystery); return true; }
+    const lost = this.stashItem(item, true), name = isMystery ? `${item.name} (revealed)` : item.name;
+    const more = lost && lost !== item ? ` · dropped ${lost.name}` : '';
+    this.showToast(lost === item ? `${N.satchel} full: ${name} left behind` : `Stored: ${name}` + (`Stored: ${name}${more}`.length <= 46 ? more : ''), isMystery ? '#ffd23c' : '#f0dcc0');
+    return false;
   }
 
   destroySatchelUI() {
-    [this.satchelTab, this.satchelTabIcon, this.satchelTabCount].forEach(o => o && o.destroy());
-    this.satchelTab = this.satchelTabIcon = this.satchelTabCount = null;
+    [this.satchelTab, this.satchelTabIcon, this.satchelTabCount, this.satchelDot].forEach(o => o && o.destroy());
+    this.satchelTab = this.satchelTabIcon = this.satchelTabCount = this.satchelDot = null;
   }
 
   applyLoot(item, isMystery) {
     const tag = isMystery ? 'Mystery Revealed: ' : '';
     if (item.type === 'weapon') {
       // The outgoing weapon goes to the satchel rather than being lost.
+      const was = this.tejasForm();
       if (this.player.weapon) this.stashItem(this.player.weapon);
       this.player.weapon = item;
-      this.showToast(`${tag}Equipped: ${item.name}`, isMystery ? '#ffd23c' : '#4dd0ff');
+      // Overdrive's power follows the weapon: say so when it changes (build 0.23).
+      const now = this.tejasForm(), told = session.tejasUnlocked && now !== was ? ` · ${N.supercharge}: ${now.name}` : '';
+      this.showToast(`${tag}Equipped: ${item.name}${told}`, isMystery ? '#ffd23c' : '#4dd0ff');
     } else {
       const oldHpBonus = (this.player.trinket && this.player.trinket.hpBonus) || 0;
       if (this.player.trinket) this.stashItem(this.player.trinket);

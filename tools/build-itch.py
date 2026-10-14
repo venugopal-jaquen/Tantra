@@ -33,7 +33,7 @@ TAKE = [("src", ".js"), ("styles", ".css"), ("assets/chars", ".png"), ("assets/f
 SINGLE = ["assets/bg-stars.png", "assets/title-art.jpg"]
 # Addresses the page may name. The first is the feedback form's mail relay (requirements
 # 2.22); the second is the name of the SVG format inside a drawn background, not a request.
-ALLOWED = ["https://formsubmit.co/ajax/", "http://www.w3.org/2000/svg"]
+ALLOWED = ["https://formsubmit.co/ajax/", "http://www.w3.org/2000/svg"]          # the feedback relay (dialogs.js and the page's security policy); an SVG namespace
 # itch.io's limits for an HTML5 upload.
 MAX_FILES, MAX_PATH, MAX_FILE_MB, MAX_TOTAL_MB = 1000, 240, 200, 500
 
