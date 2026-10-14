@@ -32,7 +32,7 @@ const pickFrom = (list, key, otherwise) => Object.prototype.hasOwnProperty.call(
 // root index.html redirect page carries its own copy.)
 const GAME_TITLE = 'Anantarya';
 
-const BUILD = '0.23 (2026-10-14)';
+const BUILD = '0.24 (2026-10-14)';
 // Every file the game fetches carries the build in its address (?v=0.16), so that a phone
 // holding files of the last build from its cache cannot mix them with this one's: a new
 // build is new addresses throughout (2026-10-12: a phone ran build 0.15's code against

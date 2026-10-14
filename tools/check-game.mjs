@@ -219,5 +219,11 @@ check('healing stops at full health; from blood, what is over becomes Blood Shie
 check('enemies grow by the level, and by the depth of the run: level 1 of depth 1 is the measure',
   g.get('sectorDmgMult(1)') === 1 && g.get('sectorHpMult(1)') === 1 && g.get('sectorHpMult(3)') === Math.pow(1.26, 2) && g.get('DEPTH_NOW = 3, sectorHpMult(1)') === 1 + g.get('DEPTH_HEALTH') * 2 && g.get('DEPTH_NOW = 1'));
 
+// No address of anyone's is in the game's files (pre-launch security checklist, line 1): feedback
+// goes to FormSubmit's alias. The one address allowed is the example shown in the reply field.
+{ const files = [...inSrc, 'loot-chase-v0.1.html'].map(n => join(GAME, n)).concat(existsSync(join(GAME, '..', 'index.html')) ? [join(GAME, '..', 'index.html')] : []);
+  const found = files.flatMap(f => (readFileSync(f, 'utf8').match(/[\w.%+-]+@[\w-]+(?:\.[\w-]+)+|gmail|yahoo|hotmail|outlook\.com/gi) || []).filter(m => m !== 'you@example.com'));
+  check("no email address is in the game, and feedback goes to the relay's alias", found.length === 0, found.slice(0, 4).join(', ')); }
+
 console.log(`\n${passed}/${passed + failed} checks passed.`);
 process.exit(failed ? 1 : 0);

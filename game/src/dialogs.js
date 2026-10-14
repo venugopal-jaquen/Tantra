@@ -9,12 +9,13 @@
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
-// that needs no account. If the relay fails, the player is offered their own mail app.
-// The address is assembled at run time only to keep the laziest scrapers off it; once
-// the form is activated, replace it with the private alias FormSubmit emails you.
+// that needs no account. Since build 0.24 it goes to the private alias FormSubmit issued
+// when the form was activated, so no address of the founder's is anywhere in the game
+// (pre-launch security checklist, line 1). That is also why a failed send offers no mail
+// app to fall back on: it would need the address. The message stays in the box to try again.
 const Feedback = (() => {
   const $ = id => document.getElementById(id);
-  const TO = ['vyjakhot', 'gmail.com'].join('@');
+  const TO = 'a821312a06dc6b970adddda4e0a29f57';        // FormSubmit's alias for the founder's inbox
   const root = $('feedback'), text = $('fb-text'), email = $('fb-email'), note = $('fb-note'), send = $('fb-send'), honey = $('fb-honey');
   // At most LIMIT messages in WINDOW from one browser (pre-launch security checklist, line 11).
   const LIMIT = 3, WINDOW = 10 * 60 * 1000, SENT = 'loot-chase-feedback-sent';
@@ -34,9 +35,6 @@ const Feedback = (() => {
     root.hidden = false; gameKeys(false);
     setTimeout(() => text.focus(), 50);
   };
-  const mailto = msg => 'mailto:' + TO + '?subject=' + encodeURIComponent(GAME_TITLE + ' feedback') + '&body=' +
-    encodeURIComponent(msg + '\n\n--\n' + Object.entries(details()).map(([k, v]) => k + ': ' + v).join('\n'));
-
   $('fb-form').addEventListener('submit', async e => {
     e.preventDefault();
     if (busy) return;
@@ -64,10 +62,7 @@ const Feedback = (() => {
       setTimeout(close, 1500);
     } else {
       note.className = 'fb-note fb-bad';
-      note.textContent = "Couldn't send it from here. ";
-      const a = document.createElement('a');
-      a.href = mailto(msg); a.textContent = 'Email it instead';
-      note.appendChild(a);
+      note.textContent = "Couldn't send it from here. Check your connection and try again: your message is kept.";
       send.disabled = false; send.textContent = 'Try again';
     }
   });
