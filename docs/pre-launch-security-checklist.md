@@ -5,7 +5,7 @@ things need to be executed so I want you to save it and execute at the right tim
 
 **When:** after the build for itch.io is final and before it is uploaded (launch track L9,
 `design-document.md` §1.2). Go through every line, do what applies, and write the result
-beside it in a dated copy of the table below. **Run on 2026-10-14 against build 0.22 (Version Beta): see the last section.** Three things are left: the FormSubmit alias (line 1), the founder's call on the address in the history (line 2), and a look inside itch.io's frame (line 18).
+beside it in a dated copy of the table below. **Run on 2026-10-14 against build 0.22 (Version Beta): see the last section.** Two things are left: the FormSubmit alias (line 1) and a look inside itch.io's frame (line 18). Line 2's decision was made on 2026-10-14: the history stays as it is.
 
 ## The list, as given
 
@@ -78,7 +78,7 @@ Run by Claude in the Beta worktree (`release-prep`), at the founder's word ("yes
 | # | Item | Result | What was done, and what is left |
 |---|---|---|---|
 | 1 | Hide API keys | ⏳ One thing left | No keys or tokens anywhere in the game. The founder's email address is still in `dialogs.js`, assembled at run time. **Left:** swap it for the private alias FormSubmit issued, when the founder sends it |
-| 2 | Purge secrets from Git | ✅ No secrets; one decision left | All 130 commits on every branch were searched for the shapes of cloud keys, API tokens, GitHub tokens, Slack tokens and private keys: none. The feedback address is in the history (23 times written whole, more often split). It stays there unless the history is rewritten, which would break every copy of the repository, ChatGPT's Gamma clone included. **Proposed:** leave it, and let the alias (line 1) keep it out of the game from now on. The founder's to decide. Commits carry the founder's Apple relay address as author, which is what a relay is for |
+| 2 | Purge secrets from Git | ✅ No secrets; one decision left | All 130 commits on every branch were searched for the shapes of cloud keys, API tokens, GitHub tokens, Slack tokens and private keys: none. The feedback address is in the history (23 times written whole, more often split). It stays there unless the history is rewritten, which would break every copy of the repository, ChatGPT's Gamma clone included. **Decided by the founder on 2026-10-14: left as it is** ("Handle the email the way you recommend"): the history is not rewritten, and the alias (line 1) keeps the address out of the game from now on. Commits carry the founder's Apple relay address as author, which is what a relay is for |
 | 3 | Expose only the public DB key | — No database | |
 | 4 | Enable row-level security | — No database | |
 | 5 | Encrypt sensitive data | ✅ Nothing sensitive | The save, in the player's own browser, holds progress, a nickname, settings, records and the times of recent feedback. A feedback message carries the build, the deepest level, the screen's size, the browser's description and a reply address only if one is typed; the form says so |
