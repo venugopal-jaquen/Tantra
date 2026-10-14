@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Security (pre-launch checklist, line 18): the page loads only its own files and sends
+     only to the feedback relay (dialogs.js). Pictures made in the page are data: and blob:
+     addresses; the sound that wakes an iPhone is a blob:. Nothing inline runs. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://formsubmit.co/ajax/; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="theme-color" content="#2a0800">
 <title>Anantarya</title>
 <!-- Typefaces (requirements 2.18): Yatra One for display, Baloo 2 for everything else.
@@ -54,6 +58,7 @@
     <textarea id="fb-text" maxlength="2000" rows="5" placeholder="Type here"></textarea>
     <label class="fb-label" for="fb-email">Your email <span>(optional, only if you want a reply)</span></label>
     <input id="fb-email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com">
+    <input id="fb-honey" class="fb-honey" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
     <p class="fb-note" id="fb-note">Sent by email, with your game version, how deep you have got and device type. Nothing else.</p>
     <div class="fb-actions">
       <button type="button" class="fb-btn fb-cancel" id="fb-cancel">Cancel</button>
@@ -98,8 +103,7 @@
 <script src="src/loader.js?v=0.22"></script>
 <script src="src/dialogs.js?v=0.22"></script>
 <!-- The engine: Phaser 3.70.0, the published file, kept beside the game (vendor/phaser-LICENSE.md). -->
-<script src="vendor/phaser-3.70.0.min.js"
-        onerror="Loader.fail('The game engine could not be loaded. Check your connection and reload.')"></script>
+<script src="vendor/phaser-3.70.0.min.js"></script>
 <!-- These need the engine. boot.js starts the one game. -->
 <script src="src/audio.js?v=0.22"></script>
 <script src="src/assets.js?v=0.22"></script>

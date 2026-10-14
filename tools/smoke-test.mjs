@@ -39,7 +39,7 @@ const browser = spawn(exe, [
 ], { stdio: 'ignore' });
 
 let ws, nextId = 1;
-const pending = new Map(), problems = [];
+const pending = new Map(), problems = [], blocked = [];        // blocked: what the page's security policy refused
 const asked = new Map(), missing = [];          // every address the page fetched, and the ones that did not arrive
 const send = (method, params = {}) => new Promise((res, rej) => {
   const id = nextId++;
@@ -76,6 +76,7 @@ try {
     const m = JSON.parse(ev.data);
     if (m.id && pending.has(m.id)) { const p = pending.get(m.id); pending.delete(m.id); m.error ? p.rej(new Error(m.error.message)) : p.res(m.result); }
     else if (m.method === 'Runtime.exceptionThrown') problems.push('exception: ' + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text).split('\n')[0]);
+    else if (m.method === 'Log.entryAdded' && /Content Security Policy/.test(m.params.entry.text)) blocked.push(m.params.entry.text.slice(0, 160));
     else if (m.method === 'Log.entryAdded' && m.params.entry.level === 'error') problems.push('console: ' + m.params.entry.text + ' ' + (m.params.entry.url || '').split('/').pop());
     else if (m.method === 'Network.requestWillBeSent') asked.set(m.params.requestId, m.params.request.url);
     else if (m.method === 'Network.loadingFailed' && !m.params.canceled) missing.push((asked.get(m.params.requestId) || '?').split('/').slice(-2).join('/') + ' ' + m.params.errorText);
@@ -964,6 +965,21 @@ try {
     await new Promise(r => setTimeout(r, 1500)); window.fetch = window.__fetch;
     return { url: first.url, message: first.body && first.body.message, hasBuild: !!(first.body && first.body.build), note, closed: !Feedback.isOpen, gameKeys: game.input.keyboard.enabled };`);
   check('feedback is posted to the mail relay and the dialog closes', /formsubmit\.co\/ajax\//.test(fbSent.url || '') && fbSent.message === typed && fbSent.hasBuild && fbSent.closed && fbSent.gameKeys === true, JSON.stringify(fbSent));
+  // The robot field goes with every message, empty; a fourth message in ten minutes is held back.
+  const fbGuard = await page(`const sent = []; window.__fetch = window.fetch;
+    window.fetch = (url, opts) => { sent.push(JSON.parse(opts.body)); return Promise.resolve(new Response(JSON.stringify({ success: 'true' }), { status: 200, headers: { 'Content-Type': 'application/json' } })); };
+    const honey = document.getElementById('fb-honey');
+    const keep = STORE.read('loot-chase-feedback-sent');
+    STORE.write('loot-chase-feedback-sent', JSON.stringify([Date.now(), Date.now(), Date.now()]));
+    Feedback.open(); const box = honey.getBoundingClientRect(), seen = box.right > 0 && box.bottom > 0 && getComputedStyle(honey).opacity !== '0';
+    document.getElementById('fb-text').value = 'a fourth message'; document.getElementById('fb-send').click();
+    await new Promise(r => setTimeout(r, 300));
+    const held = { posted: sent.length, note: document.getElementById('fb-note').textContent };
+    if (keep === null) STORE.write('loot-chase-feedback-sent', '[]'); else STORE.write('loot-chase-feedback-sent', keep);
+    Feedback.close(); window.fetch = window.__fetch;
+    return { honeyHidden: !seen, honeyInLast: window.__sent && window.__sent[0] && window.__sent[0].body._honey === '', held };`);
+  check('feedback carries an empty robot field, and a fourth message in ten minutes is held back', fbGuard.honeyHidden && fbGuard.honeyInLast
+    && fbGuard.held.posted === 0 && /Try again in a few minutes/.test(fbGuard.held.note), JSON.stringify(fbGuard));
 
   // ---------- 6. playtest bot: errors and leaks ----------
   const bot = await page(`
@@ -1343,6 +1359,9 @@ try {
   check('the game fetches nothing from the internet, and every file it asks for is there', outside.length === 0 && missing.length === 0
     && urls.some(u => /vendor\/phaser-[\d.]+\.min\.js$/.test(u)) && urls.some(u => /vendor\/fonts\/.+\.woff2$/.test(u)),
     outside.concat(missing).slice(0, 6).join('; ') || kinds);
+  const policy = await page(`const m = document.querySelector('meta[http-equiv="Content-Security-Policy"]'); return m ? m.content : '';`);
+  check('the page carries its security policy, and nothing it loads or does is refused by it', /script-src 'self';/.test(policy) && /connect-src 'self' https:\/\/formsubmit\.co\/ajax\/;/.test(policy)
+    && blocked.length === 0, blocked.slice(0, 4).join(' | ') || policy.slice(0, 80));
   const real = problems.filter(p => !/navigator\.vibrate/.test(p));
   check('no page errors', real.length === 0, real.join('; '));
 } catch (e) {

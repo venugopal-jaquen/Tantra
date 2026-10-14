@@ -15,7 +15,10 @@
 const Feedback = (() => {
   const $ = id => document.getElementById(id);
   const TO = ['vyjakhot', 'gmail.com'].join('@');
-  const root = $('feedback'), text = $('fb-text'), email = $('fb-email'), note = $('fb-note'), send = $('fb-send');
+  const root = $('feedback'), text = $('fb-text'), email = $('fb-email'), note = $('fb-note'), send = $('fb-send'), honey = $('fb-honey');
+  // At most LIMIT messages in WINDOW from one browser (pre-launch security checklist, line 11).
+  const LIMIT = 3, WINDOW = 10 * 60 * 1000, SENT = 'loot-chase-feedback-sent';
+  const recent = () => { try { return (JSON.parse(STORE.read(SENT)) || []).filter(t => Date.now() - t < WINDOW); } catch (e) { return []; } };
   const NOTE = note.textContent;
   let busy = false;
   // Phaser claims W, A, S, D, E, P, Space and the arrows, and would swallow them as typed.
@@ -39,10 +42,11 @@ const Feedback = (() => {
     if (busy) return;
     const msg = text.value.trim();
     if (msg.length < 3) { note.textContent = 'Type a few words first.'; note.className = 'fb-note fb-bad'; text.focus(); return; }
+    if (recent().length >= LIMIT) { note.textContent = 'That is a lot of messages at once. Try again in a few minutes.'; note.className = 'fb-note fb-bad'; return; }
     busy = true; send.disabled = true; send.textContent = 'Sending';
     const reply = email.value.trim();
     const body = Object.assign({ _subject: GAME_TITLE + ' feedback', _template: 'table', _captcha: 'false',
-                                 message: msg, reply_to: reply || '(not given)' }, details());
+                                 _honey: honey.value, message: msg, reply_to: reply || '(not given)' }, details());
     if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(reply)) body._replyto = reply;
     let ok = false;
     try {
@@ -53,6 +57,7 @@ const Feedback = (() => {
     } catch (err) { ok = false; }
     busy = false;
     if (ok) {
+      try { STORE.write(SENT, JSON.stringify(recent().concat(Date.now()))); } catch (e) { /* no storage: no limit */ }
       text.value = '';
       note.textContent = 'Sent. Thank you!'; note.className = 'fb-note fb-good';
       send.textContent = 'Sent';

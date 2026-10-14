@@ -136,6 +136,7 @@ it is; players can filter on it, and a wrong answer is worse than a filtered pag
    activated again for the new address. If its activation email arrives, click it and
    send a second message to confirm.
 4. **Try the fullscreen button** on a computer and on the phone.
+4a. **The security policy inside itch.io's frame** (`pre-launch-security-checklist.md`, line 18): the game reaches Begin, the pictures and sounds are there, and the feedback message in step 3 is sent. If anything is missing, the policy is blocking itch.io's address for the game's own files: tell Claude before going public.
 5. Then set Visibility to Public, and watch itch.io's analytics for the first two weeks
    (L10).
 

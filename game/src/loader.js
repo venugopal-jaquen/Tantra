@@ -7,7 +7,8 @@
  *           (SAVE_KEY: it reads the raw save itself, to draw the well).
  * State     its own: the bar, the card on show, whether Begin has been pressed.
  *
- * The engine's script tag in the page calls Loader.fail if the engine cannot be fetched.
+ * If the engine's own file cannot be fetched, Loader.fail says so (the listener at the end:
+ * the page's security policy allows no handler written into the tag).
  */
 
 // The loading screen. Plain DOM rather than Phaser, so it is on screen before the engine
@@ -125,3 +126,10 @@ const Loader = (() => {
   };
 })();
 Loader.setProgress(0.04);
+
+// The engine's file failing to arrive. A file that fails to load raises its error on its
+// own tag and the error does not bubble, so it is caught on the way down.
+window.addEventListener('error', e => {
+  const t = e.target;
+  if (t && t.tagName === 'SCRIPT' && /vendor\/phaser-/.test(t.src)) Loader.fail('The game engine could not be loaded. Check your connection and reload.');
+}, true);

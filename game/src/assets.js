@@ -118,7 +118,7 @@ const WORN = (() => {
   const worn = {};
   (QUERY.get('wear') || '').split(',').forEach(pair => {
     const [slot, piece] = pair.split(':');
-    if (WEAR.slots.includes(slot) && WEAR.dyes[piece] !== undefined) worn[slot] = piece;
+    if (WEAR.slots.includes(slot) && Object.prototype.hasOwnProperty.call(WEAR.dyes, piece)) worn[slot] = piece;
   });
   return worn;
 })();
