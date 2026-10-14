@@ -1,4 +1,4 @@
-# Anantarya (working title; the repository is still "Loot Chase")
+# Sevenwell (the repository and its files are still called "Loot Chase")
 
 A one-thumb arena roguelite set in a stepwell: descend three levels, beat the serpent
 who drank the well dry, and bring the water back. Mobile-first, plays in a browser.

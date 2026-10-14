@@ -8,7 +8,7 @@ creating the itch.io account and signing in cannot be done for them.
 
 | What | Whose | Why it matters here |
 |---|---|---|
-| The game's name (L1) | Founder | The title, the page address and the cover all carry it. Everything below says "Anantarya", the working title |
+| ~~The game's name (L1)~~ | Done, 2026-10-14 | **Sevenwell.** The page address is made from it: `sevenwell` |
 | ~~The FormSubmit alias (L10)~~ | Done, build 0.24 | The founder's address is no longer in the page |
 | A mid-range Android (L8) | Founder | The wide arena has only run on an iPhone 16 Pro Max |
 | The security pass (L11) | Claude, just before the upload | `pre-launch-security-checklist.md` |
@@ -34,7 +34,7 @@ cannot be changed later without breaking every link sent.
 
 | File | What it is | Where it goes |
 |---|---|---|
-| `dist/anantarya-0.23-itch.zip` | The game: 127 files, 9.55 MB. Made by `python tools/build-itch.py` | Uploads |
+| `dist/sevenwell-0.25-itch.zip` | The game: 127 files, 9.55 MB. Made by `python tools/build-itch.py` | Uploads |
 | `store/itch/cover-draft.png` | Cover, 630 by 500. **A draft: it carries the working title** | Cover image |
 | `store/itch/1-title.png` | The title screen, the well part filled | Screenshots, in this order |
 | `store/itch/2-drowned-steps.png` | Brutes, Hexers and imps on level 2, the flooded landing | |
@@ -60,7 +60,7 @@ itch.io's own wording may differ a little from what is written here.
 
 | Field | Put |
 |---|---|
-| Title | Anantarya (the final name, once chosen) |
+| Title | Sevenwell |
 | Project URL | the name in lower case; it cannot be changed without breaking links, so set it after the name is final |
 | Short description or tagline | see §3 |
 | Classification | Games |
@@ -94,7 +94,7 @@ keeps no Sanskrit word in its default names), no hero's name, nothing sacred.
 
 > **The Thirst, a serpent, has drunk the well dry. He is at the bottom of it.**
 >
-> Anantarya is an arena roguelite made for a phone and one thumb. Your hero strikes on
+> Sevenwell is an arena roguelite made for a phone and one thumb. Your hero strikes on
 > their own. Your whole job is choosing where to stand.
 >
 > - **Three levels down, a boss on each.** The Gatekeeper bars the way. The Hoard

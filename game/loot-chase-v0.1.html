@@ -8,17 +8,17 @@
      addresses; the sound that wakes an iPhone is a blob:. Nothing inline runs. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://formsubmit.co/ajax/; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="theme-color" content="#2a0800">
-<title>Anantarya</title>
+<title>Sevenwell</title>
 <!-- Typefaces (requirements 2.18): Yatra One for display, Baloo 2 for everything else.
      Both are open-licence (OFL) and carry Devanagari and Latin in one design. The files
      sit beside the game in vendor/fonts/ with their licences, cut into the same three
      ranges Google Fonts serves, so a browser fetches only the ones a page uses. The
      loader below waits for them, with a timeout. -->
-<link rel="stylesheet" href="styles/game.css?v=0.24">
+<link rel="stylesheet" href="styles/game.css?v=0.25">
 </head>
 <body>
 <div id="loader">
-  <h1 class="ldr-title" id="ldr-title">Anantarya</h1>
+  <h1 class="ldr-title" id="ldr-title">Sevenwell</h1>
   <p class="ldr-tag">auto-battle · collect loot · descend deeper</p>
   <div class="card" id="ldr-card" role="button" tabindex="0" aria-label="Glossary card. Activate for another word.">
     <div class="card-kind" id="ldr-kind"></div>
@@ -95,25 +95,25 @@
 <div id="game-container"></div>
 <!-- The game is ordered classic scripts sharing one scope (docs/code-architecture.md). These run before the engine.
      Each carries the build (?v=, BUILD_TAG in src/config.js), so a phone never mixes two builds; change all of them with BUILD. -->
-<script src="src/config.js?v=0.24"></script>
-<script src="src/names.js?v=0.24"></script>
-<script src="src/rules.js?v=0.24"></script>
-<script src="src/calculations.js?v=0.24"></script>
-<script src="src/persistence.js?v=0.24"></script>
-<script src="src/loader.js?v=0.24"></script>
-<script src="src/dialogs.js?v=0.24"></script>
+<script src="src/config.js?v=0.25"></script>
+<script src="src/names.js?v=0.25"></script>
+<script src="src/rules.js?v=0.25"></script>
+<script src="src/calculations.js?v=0.25"></script>
+<script src="src/persistence.js?v=0.25"></script>
+<script src="src/loader.js?v=0.25"></script>
+<script src="src/dialogs.js?v=0.25"></script>
 <!-- The engine: Phaser 3.70.0, the published file, kept beside the game (vendor/phaser-LICENSE.md). -->
 <script src="vendor/phaser-3.70.0.min.js"></script>
 <!-- These need the engine. boot.js starts the one game. -->
-<script src="src/audio.js?v=0.24"></script>
-<script src="src/assets.js?v=0.24"></script>
-<script src="src/ui.js?v=0.24"></script>
-<script src="src/floors.js?v=0.24"></script>
-<script src="src/scene-ui.js?v=0.24"></script>
-<script src="src/scene-fx.js?v=0.24"></script>
-<script src="src/scene-screens.js?v=0.24"></script>
-<script src="src/scene-systems.js?v=0.24"></script>
-<script src="src/loot-scene.js?v=0.24"></script>
-<script src="src/boot.js?v=0.24"></script>
+<script src="src/audio.js?v=0.25"></script>
+<script src="src/assets.js?v=0.25"></script>
+<script src="src/ui.js?v=0.25"></script>
+<script src="src/floors.js?v=0.25"></script>
+<script src="src/scene-ui.js?v=0.25"></script>
+<script src="src/scene-fx.js?v=0.25"></script>
+<script src="src/scene-screens.js?v=0.25"></script>
+<script src="src/scene-systems.js?v=0.25"></script>
+<script src="src/loot-scene.js?v=0.25"></script>
+<script src="src/boot.js?v=0.25"></script>
 </body>
 </html>
