@@ -1,6 +1,6 @@
 # The itch.io page: what to upload, what to paste, what to tick
 
-Prepared 2026-10-10 for build 0.9 and rebuilt the same day as 0.13 with the teaching pauses and the free rides closed (launch track L9, `design-document.md` §1.2). Everything
+Prepared 2026-10-10 for build 0.9 and rebuilt the same day as 0.13 with the teaching pauses and the free rides closed (launch track L9, `design-document.md` §1.2). **Made again on 2026-10-14 from build 0.22, Version Beta: the zip, the five screenshots, the GIF and the cover, all showing the founder's cast, floors and icons.** Everything
 here is ready to use except where it says otherwise. The upload itself is the founder's:
 creating the itch.io account and signing in cannot be done for them.
 
@@ -13,18 +13,35 @@ creating the itch.io account and signing in cannot be done for them.
 | A mid-range Android (L8) | Founder | The wide arena has only run on an iPhone 16 Pro Max |
 | The security pass (L11) | Claude, just before the upload | `pre-launch-security-checklist.md` |
 
+## 0. How it goes up (agreed 2026-10-14)
+
+The founder's plan: the page goes up first where only invited people can open it, and the
+five outside players (P11, `design-document.md` §1.1) are sent its link. Their feedback
+comes through the in-game form and itch.io's comments. Then it goes public.
+
+1. The founder creates the page as a draft and uploads the zip (§2).
+2. The checks of §5, on the draft page, on a phone.
+3. Visibility set so that only people with the link can open it (itch.io's restricted
+   setting, or a draft's secret link: whichever the page offers when it is made).
+4. The link goes to five people who have never seen the game.
+5. Once their answers are read and anything urgent is fixed (a new zip, the same page),
+   Visibility: Public.
+
+The name (L1) should be final before step 1: the page's address is made from it, and
+cannot be changed later without breaking every link sent.
+
 ## 1. The files
 
 | File | What it is | Where it goes |
 |---|---|---|
-| `dist/anantarya-0.15-itch.zip` | The game: 90 files, 2.9 MB. Made by `python tools/build-itch.py` | Uploads |
+| `dist/anantarya-0.22-itch.zip` | The game: 127 files, 9.55 MB. Made by `python tools/build-itch.py` | Uploads |
 | `store/itch/cover-draft.png` | Cover, 630 by 500. **A draft: it carries the working title** | Cover image |
 | `store/itch/1-title.png` | The title screen, the well part filled | Screenshots, in this order |
-| `store/itch/2-drowned-steps.png` | A fight on level 2 | |
-| `store/itch/3-hoard-guardian.png` | The Hoard Guardian's cleave on level 1 | |
-| `store/itch/4-vritra.png` | Vritra's ring slam on level 3 | |
+| `store/itch/2-drowned-steps.png` | A pack of Asura on level 2, the flooded landing | |
+| `store/itch/3-hoard-guardian.png` | The Hoard Guardian under his dome, slams landing, on level 1 | |
+| `store/itch/4-vritra.png` | Tejas (fire) bursting round Vritra on level 3 | |
 | `store/itch/5-boons.png` | Choosing a boon | |
-| `store/itch/gameplay.gif` | Five seconds of a level 1 fight, 240 by 420, 2.6 MB | In the description, above the first line |
+| `store/itch/gameplay.gif` | Five seconds of a level 1 fight, 240 by 420, 1.8 MB | In the description, above the first line |
 
 The zip holds the game page as `index.html`, the sprites and sounds, the engine and the
 two typefaces with their licences, and a credits file. It does not hold the music, which
