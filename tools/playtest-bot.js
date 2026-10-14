@@ -249,6 +249,16 @@
       const boss = s.enemies.find(e => e.isBoss); if (boss && boss.tribute > cur.tribute) cur.tribute = boss.tribute;
       cur.hunts = s.hunts || 0;
       if (s.tejasBtn && s.tejas >= 100 && s.tejasActive <= 0) s.activateTejas();
+      // Since build 0.23 a drop that is not plainly better waits in the satchel: the bot, like a
+      // player who uses it, wears whatever there has more Power than what it holds.
+      if (s.inventory && s.inventory.length && typeof itemPower === 'function') {
+        for (const kind of ['weapon', 'trinket']) {
+          const held = kind === 'weapon' ? s.player.weapon : s.player.trinket;
+          let best = -1, bp = itemPower(held);
+          s.inventory.forEach((it, i) => { if (it.type === kind && itemPower(it) > bp) { best = i; bp = itemPower(it); } });
+          if (best >= 0) s.equipFromSatchel(best);
+        }
+      }
       // Boons wait on the + button now; the bot spends each one as soon as it is earned.
       if (s.boonQueue && s.boonQueue.length && cur.profile.boons === false) { s.boonQueue.length = 0; s.refreshBoonButton(); }
       else if (s.boonQueue && s.boonQueue.length && cur.profile.boons !== 'late') {

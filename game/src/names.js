@@ -22,7 +22,8 @@
 //   sanskrit - the game's identity since 2026-09-24: Sanskrit names, English glosses.
 //   plain    - a draft in plain English, kept so the founder can judge whether the
 //              Sanskrit helps or costs players. Its wording has not been reviewed.
-//   hybrid   - the default since 2026-10-04: English, with five short Sanskrit words kept.
+//   hybrid   - the default since 2026-10-04: English. Its last Sanskrit words (Asura, Vritra,
+//              Nidhi, Tejas) were replaced on 2026-10-14, build 0.23.
 //
 // Internal keys (melee, drift, common, venom...) are never shown and never change, so
 // saves survive a switch of pack.
@@ -170,16 +171,19 @@ const NAME_PACKS = {
   // Vritra, Nidhi and Tejas. No Devanagari on the loading screen. The hero was "Kiran"
   // until 2026-10-06; the founder did not like it, and the player now names the hero
   // (requirements 2.32). `player` is what an unnamed hero is called.
+  // 2026-10-14 (build 0.23), the founder, of names "sounding too Indian and difficult": Asura is
+  // Imp, Vritra is The Thirst, Nidhi is Hoard, Tejas is Overdrive, the Storm Chakram is the
+  // Storm Disc and Convergence is Zenith. The serpent is still a serpent.
   hybrid: {
-    player: 'Hero', currency: 'Nidhi', satchel: 'Satchel', supercharge: 'Tejas', stage: 'Level',
+    player: 'Hero', currency: 'Hoard', satchel: 'Satchel', supercharge: 'Overdrive', stage: 'Level',
     pause: 'Paused', pauseSub: '',
-    enemies: { melee: 'Asura', ranged: 'Hexer', tank: 'Brute', splitter: 'Bloodseed',
-               gatekeeper: 'Gatekeeper', sectorboss: 'Hoard Guardian', megaboss: 'Vritra' },
-    phases:  { drift: 'Calm', surge: 'Surge', eclipse: 'Eclipse', convergence: 'Convergence' },
+    enemies: { melee: 'Imp', ranged: 'Hexer', tank: 'Brute', splitter: 'Bloodseed',
+               gatekeeper: 'Gatekeeper', sectorboss: 'Hoard Guardian', megaboss: 'The Thirst' },
+    phases:  { drift: 'Calm', surge: 'Surge', eclipse: 'Eclipse', convergence: 'Zenith' },
     metals:  { common: 'Copper', rare: 'Silver', epic: 'Gold' },
     metalGloss: { common: '', rare: '', epic: '' },
     weapons:  { none: ['Dagger', ''], venom: ['Venom Dagger', ''], vampiric: ['Blood Sword', ''],
-                chain: ['Storm Chakram', ''], executioner: ["Slayer's Axe", ''] },
+                chain: ['Storm Disc', ''], executioner: ["Slayer's Axe", ''] },
     trinkets: { vitality: ['Life Gem', ''], aegis: ['Aegis', ''], thorns: ['Thorn Band', ''],
                 swift: ['Swift Sandals', ''], regen: ['Healing Herb', ''] },
     forms:    { none: ['Fire', ''], venom: ['Poison', ''], vampiric: ['Blood', ''], chain: ['Lightning', ''], executioner: ['Execution', ''] },
@@ -194,19 +198,19 @@ const NAME_PACKS = {
     deeper: ['The Abyss', 'deeper than any map remembers'],
     cards: [
       { kind: 'You',        dev: '', name: 'Hero',           meaning: '', you: true, role: 'That is you. You strike on your own - your whole job is choosing where to stand.' },
-      { kind: 'Enemy',      dev: '', name: 'Asura',          meaning: 'demons of Indian myth', role: 'The rank and file. They rush straight at you and hit on contact.' },
+      { kind: 'Enemy',      dev: '', name: 'Imp',            meaning: '', role: 'The rank and file. They rush straight at you and hit on contact.' },
       { kind: 'Enemy',      dev: '', name: 'Hexer',          meaning: '', role: 'Keeps its distance and throws bolts. Keep moving sideways.' },
       { kind: 'Enemy',      dev: '', name: 'Brute',          meaning: '', role: "Slow, heavy, and hits like a cart. Don't let it corner you." },
       { kind: 'Enemy',      dev: '', name: 'Bloodseed',      meaning: '', role: 'Kill one, and two smaller ones spring up.' },
       { kind: 'Boss',       dev: '', name: 'Gatekeeper',     meaning: '', role: 'Bars the way on wave 3. He resists until the timer over his head runs out - then strike.' },
       { kind: 'Boss',       dev: '', name: 'Hoard Guardian', meaning: '', role: 'Hides behind a shield. Kill the gold-glowing anchors to break it.' },
-      { kind: 'Final boss', dev: '', name: 'Vritra',         meaning: "the serpent who drank the world's waters", role: 'Waits at the bottom of the well. Slay him and the water returns.' },
+      { kind: 'Final boss', dev: '', name: 'The Thirst',     meaning: 'the serpent who drank the well dry', role: 'Waits at the bottom of the well. Slay him and the water returns.' },
       { kind: 'Phase',      dev: '', name: 'Surge',          meaning: '', role: 'Enemies pour in faster - and loot drops richer.' },
       { kind: 'Phase',      dev: '', name: 'Eclipse',        meaning: '', role: 'Everyone hits 30% harder. You included.' },
-      { kind: 'Phase',      dev: '', name: 'Convergence',    meaning: '', role: 'Every 90 seconds an elite arrives, and the best loot of the cycle drops.' },
-      { kind: 'Treasure',   dev: '', name: 'Nidhi',          meaning: 'treasure', role: 'What you gather in the depths. Extract to bank all of it. Fall, and you keep half.' },
+      { kind: 'Phase',      dev: '', name: 'Zenith',         meaning: '', role: 'Every 90 seconds an elite arrives, and the best loot of the cycle drops.' },
+      { kind: 'Treasure',   dev: '', name: 'Hoard',          meaning: '', role: 'What you gather in the depths. Extract to bank all of it. Fall, and you keep half.' },
       { kind: 'Loot',       dev: '', name: 'Copper, Silver, Gold', meaning: '', role: 'The metal is the quality. Gold items are more than twice as strong as copper.' },
-      { kind: 'Supercharge', dev: '', name: 'Tejas',         meaning: 'radiance', role: 'It fills as you fight. Unleash it for six seconds of power shaped by your weapon.' },
+      { kind: 'Supercharge', dev: '', name: 'Overdrive',     meaning: '', role: 'It fills as you fight. Unleash it for six seconds of power shaped by your weapon: the button says which.' },
       { kind: 'Boons',      dev: '', name: 'The + button',   meaning: '', role: 'Every wave you clear earns a boon. Tap + whenever you like: the fight waits while you pick one of three.' },
       { kind: 'Bosses',     dev: '', name: 'Tribute',        meaning: '', role: 'Kill what a boss summons before you kill the boss. 5 earns an extra item, 10 a boon, 15 a gold boon.' },
       { kind: 'You',        dev: '', name: 'Power',          meaning: '', role: 'One number for how strong you are. Your weapon, your trinket and every boon add to it. Tap it to see your profile.' },

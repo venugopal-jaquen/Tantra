@@ -418,7 +418,7 @@ class ScreensScene extends FxScene {
           label(cx - 50, cy - 76, 'attack range', '#4dd0ff', 8);
         } },
       { title: `LOOT · ${N.satchel.toUpperCase()}`,
-        body: `Walk over a drop to equip it - no menus. The metal is the quality: ${metalList()}. Violet ??? is unidentified - a gamble that usually pays. What you replace goes to the ${N.satchel} on the right edge: tap it, and the fight pauses while you swap.`,
+        body: `Walk over a drop to take it. A better one of what you hold is worn at once; anything else goes to the ${N.satchel} on the right edge: tap it, and the fight pauses while you choose. The metal is the quality: ${metalList()}. Violet ??? is unidentified - a gamble that usually pays.`,
         draw: (cx, cy) => {
           ['common', 'rare', 'epic'].map(r => [r, N.metals[r]]).forEach(([r, n], i) => {
             pic([`loot-chain-${r}`, 'icon_chain', RARITY[r].color], cx - 118 + i * 58, cy - 18, 34);
@@ -873,6 +873,7 @@ class ScreensScene extends FxScene {
   }
 
   showSatchel() {
+    this.satchelNew = false; this.refreshSatchel();          // what is new in it is seen now
     this.openOverlay(0.8);
     const cx = W / 2, left = cx - 161;
     this.ovPanel(cx, 362, 350, 600);
@@ -887,7 +888,10 @@ class ScreensScene extends FxScene {
       this.ov(this.icon(left + 22, y, lootIcon(item), 24), 102);
       this.ovText(left + 44, y - 16, item.name, { fontSize: '12px', color: '#fffbef', fontStyle: 'bold' });
       this.ovText(left + 44, y + 1, this.itemLine(item), { fontSize: '10px', color: '#c8a96e' });
-      this.ovText(left + 316, y - 15, item.type, { fontSize: '8px', color: '#b8a58e' }).setOrigin(1, 0);
+      // A weapon says which power Overdrive gives with it; gold when it is not the one held now (build 0.23).
+      const power = item.type === 'weapon' && session.tejasUnlocked ? TEJAS_FORMS[item.effect || 'none'] || TEJAS_FORMS.none : null;
+      this.ovText(left + 316, y - 15, power ? `${N.supercharge}: ${power.name}` : item.type,
+        { fontSize: '8px', color: power && power !== this.tejasForm() ? '#ffd23c' : '#b8a58e', fontStyle: power ? 'bold' : '' }).setOrigin(1, 0);
     };
 
     heading(134, 'EQUIPPED');
@@ -897,7 +901,7 @@ class ScreensScene extends FxScene {
 
     heading(238, this.inventory.length ? 'STORED · tap one to equip it' : 'STORED');
     if (!this.inventory.length) {
-      this.ovText(cx, 300, 'Nothing stored yet.\nWhatever you replace lands here.', { fontSize: '11px', color: '#b8a58e', align: 'center', lineSpacing: 4 }).setOrigin(0.5);
+      this.ovText(cx, 300, 'Nothing stored yet.\nWhat you find that is not better than\nwhat you hold, and what you replace, lands here.', { fontSize: '11px', color: '#b8a58e', align: 'center', lineSpacing: 4 }).setOrigin(0.5);
     }
     this.inventory.forEach((item, i) => row(272 + i * 40, item, () => this.equipFromSatchel(i)));
 

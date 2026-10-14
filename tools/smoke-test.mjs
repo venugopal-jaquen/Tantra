@@ -246,6 +246,38 @@ try {
   check('the hero and his enemies step through their walk frames, and stand when they stop', legs.standing === 0 && legs.kiran.steps >= 5 && legs.kiran.rows === String(legs.right) && legs.stopped === 0
     && legs.asura.steps >= 4 && legs.asuraStopped === 0, JSON.stringify(legs));
 
+  // Walking over a drop (build 0.23): worn only when plainly better than what is held, else
+  // kept in the satchel with a mark on its tab; a full satchel drops its weakest; and the
+  // Overdrive button names the power the weapon in hand gives.
+  const pickup = await page(`const s = game.scene.keys.LootScene, p = s.player, out = {};
+    const keep = { w: p.weapon, t: p.trinket, inv: s.inventory.slice(), max: p.maxHp, hp: p.hp, unlocked: session.tejasUnlocked };
+    const like = (base, more) => Object.assign({}, base, more);
+    s.inventory = []; s.satchelNew = false; s.refreshSatchel();
+    const venom1 = like(keep.w, { effect: 'venom', rarity: 'common', shots: 1, name: 'Copper Venom Dagger' }); p.weapon = venom1;
+    s.takeLoot(like(venom1, { rarity: 'rare', name: 'Silver Venom Dagger' }), false);
+    out.upgraded = p.weapon.rarity === 'rare' && s.inventory.includes(venom1);
+    const silver = p.weapon; s.inventory = []; s.satchelNew = false; s.refreshSatchel();
+    s.takeLoot(like(silver, { rarity: 'common', name: 'Copper Venom Dagger' }), false);
+    out.worseStored = p.weapon === silver && s.inventory.length === 1 && s.satchelNew && s.satchelDot.visible;
+    session.tejasUnlocked = true; s.buildTejasUI(); s.drawTejasMeter();
+    const label = s.tejasLabel.text;
+    s.takeLoot(like(silver, { effect: 'chain', rarity: 'epic', shots: 3, name: 'Gold Storm Disc' }), false);
+    out.otherKept = p.weapon === silver && s.inventory.length === 2 && s.tejasForm() === TEJAS_FORMS.venom;
+    out.buttonSays = label === TEJAS_FORMS.venom.name.toUpperCase();
+    s.equipFromSatchel(s.inventory.findIndex(i => i.effect === 'chain')); s.drawTejasMeter();
+    out.followsWeapon = p.weapon.effect === 'chain' && s.tejasLabel.text === TEJAS_FORMS.chain.name.toUpperCase();
+    p.trinket = null; s.takeLoot({ type: 'trinket', effect: 'swift', rarity: 'common', name: 'Copper Swift Sandals', speedBonus: 10 }, false);
+    out.emptyFilled = !!p.trinket && p.trinket.effect === 'swift';
+    s.inventory = Array.from({ length: INV_MAX }, (_, i) => like(silver, { rarity: i ? 'epic' : 'rare', name: 'kept ' + i }));
+    const weak = like(silver, { rarity: 'common', name: 'weakest' }); s.takeLoot(weak, false);
+    out.fullDropsWeakest = s.inventory.length === INV_MAX && !s.inventory.includes(weak) && s.inventory.some(i => i.name === 'kept 0');
+    s.pauseGame('satchel'); out.seenClearsMark = !s.satchelNew && !s.satchelDot.visible; s.resumeGame();
+    p.weapon = keep.w; p.trinket = keep.t; s.inventory = keep.inv; p.maxHp = keep.max; p.hp = keep.hp; s.refreshSatchel();
+    if (!keep.unlocked) { s.destroyTejasUI(); session.tejasUnlocked = false; }
+    return out;`);
+  check('a drop is worn only when plainly better, else kept in the satchel with a mark; a full satchel drops its weakest; the Overdrive button names the power of the weapon held',
+    Object.values(pickup).every(v => v === true), JSON.stringify(pickup));
+
   // The satchel pauses the fight, says what each item does, and swaps on a tap.
   const satchel = await page(`const s = game.scene.keys.LootScene;
     for (const r of ['rare', 'epic', 'common']) { s.spawnLootPickup(s.player.x, s.player.y, r); await new Promise(r2 => setTimeout(r2, 150)); }
@@ -567,7 +599,7 @@ try {
   check('a run shows how far the goal is', goal.hud.startsWith('Level 1 of 3') && /waits two levels below/.test(goal.banner), goal.hud + ' || ' + goal.banner);
   await shot('5b-level-banner');
   const fell = await page(`const s = game.scene.keys.LootScene; s.sector = 2; s.runGold = 100; s.endRun(false); return ${texts};`);
-  check('falling says how close you came', /You fell in The Drowned Steps, level 2 of 3/.test(fell) && /Vritra waits one level below/.test(fell), fell);
+  check('falling says how close you came', /You fell in The Drowned Steps, level 2 of 3/.test(fell) && /The Thirst waits one level below/.test(fell), fell);
   await sleep(250); await shot('5c-fell');
   const paid = await page(`const s = game.scene.keys.LootScene; ${press};
     s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; s.wave = 6;
@@ -594,8 +626,8 @@ try {
     const summary = ${texts}; const banked = session.metaGold - before; ${press};
     await new Promise(r => setTimeout(r, 300));
     return { banked, carried, summary, title: ${texts} };`);
-  check('surfacing after the win banks everything', surfaced.banked === surfaced.carried && surfaced.carried >= 300 && /VRITRA SLAIN/.test(surfaced.summary), `banked ${surfaced.banked} of ${surfaced.carried} carried | ` + surfaced.summary);
-  check('the title screen shows the water and the next depth', /The well is 14% full/.test(surfaced.title) && /DEPTH 2 OF 7  ·  SWIFT/.test(surfaced.title) && /Enemies move 12% faster\./.test(surfaced.title) && /\+4% enemy health  ·  a stray in some waves  ·  \+20% Nidhi/.test(surfaced.title), surfaced.title.replace(/\n/g, ' ').slice(0, 330));
+  check('surfacing after the win banks everything', surfaced.banked === surfaced.carried && surfaced.carried >= 300 && /THE THIRST SLAIN/.test(surfaced.summary), `banked ${surfaced.banked} of ${surfaced.carried} carried | ` + surfaced.summary);
+  check('the title screen shows the water and the next depth', /The well is 14% full/.test(surfaced.title) && /DEPTH 2 OF 7  ·  SWIFT/.test(surfaced.title) && /Enemies move 12% faster\./.test(surfaced.title) && /\+4% enemy health  ·  a stray in some waves  ·  \+20% Hoard/.test(surfaced.title), surfaced.title.replace(/\n/g, ' ').slice(0, 330));
   await sleep(900); await shot('5e-title-with-water');
   const packs = await page(`const shape = o => Object.keys(o).sort().map(k => k + (o[k] && typeof o[k] === 'object' && !Array.isArray(o[k]) ? '{' + Object.keys(o[k]).sort().join(',') + '}' : '')).join(';');
     return Object.fromEntries(Object.keys(NAME_PACKS).map(k => [k, shape(NAME_PACKS[k]) === shape(NAME_PACKS.sanskrit)]));`);
@@ -927,7 +959,7 @@ try {
     && nick.clean === 'Ravi the bBold|ABCDEFGHIJKLMN|' && nick.dialog.open && nick.dialog.keysOff && nick.dialog.focus === 'nm-text', JSON.stringify(nick));
   check('a nickname is saved and shown on the title screen, the profile and the victory', nick2.saved.name === 'Ravi the Bold' && nick2.saved.stored === 'Ravi the Bold' && nick2.saved.closed && nick2.saved.keysOn && nick2.saved.chip
     && nick2.profile.name === 'RAVI THE BOLD' && /tap to rename/.test(nick2.profile.sub) && nick2.fromProfile && nick2.long.name === 14 && nick2.long.right <= 232 && nick2.long.font < 25
-    && /Ravi the Bold has slain Vritra\./.test(nick2.victory), JSON.stringify(nick2).replace(/\\n/g, ' ').slice(0, 700));
+    && /Ravi the Bold has slain The Thirst\./.test(nick2.victory), JSON.stringify(nick2).replace(/\\n/g, ' ').slice(0, 700));
 
   // ---------- 5. every text stays inside its panel ----------
   const spill = await page(`const s = game.scene.keys.LootScene, bad = [];

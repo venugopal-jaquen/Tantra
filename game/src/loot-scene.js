@@ -1912,14 +1912,14 @@ class LootScene extends SystemsScene {
       }
     }
 
-    // --- loot pickups (walk over to equip, no pause) ---
+    // --- loot pickups (walk over to take: worn if plainly better, else stored; no pause) ---
     // Anything of him that stands over an item takes it, from his middle down to his feet
     // (PICKUP_REACH, 2.53): it was a circle round his middle alone, and missed an item under his feet.
     const footY = this.player.y + HERO_RING_DOWN;
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const pk = this.pickups[i];
       if (Math.hypot(pk.x - this.player.x, pk.y - Phaser.Math.Clamp(pk.y, this.player.y, footY)) < PICKUP_REACH) {
-        this.applyLoot(pk.item, pk.isMystery);
+        this.takeLoot(pk.item, pk.isMystery);
         const lootSfx = LOOT_SFX[pk.item.rarity];
         if (pk.isMystery) { this.sfx('loot-mystery'); this.time.delayedCall(260, () => this.sfx(lootSfx)); }
         else this.sfx(lootSfx);

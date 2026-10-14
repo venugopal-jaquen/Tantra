@@ -37,6 +37,7 @@ Kept so a reversal is never mistaken for drift or an error.
 
 | Date | Change | Reason |
 |---|---|---|
+| 2026-10-14 | **Six names change; a pickup never makes the hero weaker; Overdrive's button names its power.** Build 0.23 on Version Beta. §2.12, §2.7, §2.7.1, §2.15. | The founder, of names "sounding too Indian and difficult": "The Thirst for Vritra, Overdrive for Tejas, Imp for Asura, Hoard for Nidhi, Storm Disc for Storm Chakram, Zenith for Convergence" (chosen from options offered the same day). On pickups: "any time I pickup a drop, it should go to the satchel. An inferior drop replacing a superior drop doesn't make sense"; of the two ways offered they chose the second: a drop is worn at once only when plainly better, else kept. On Overdrive: "Tejas order is too random"; the cause was that its power follows the weapon and the weapon changed with every pickup. They chose to keep the power with the weapon and make it plain (option A). |
 | 2026-09-24 | **Secular/no-mythology → Indian cultural identity.** §1.2.5 and the §1.3 non-goal both reversed. | Founder decision: market this as an Indian game, with Sanskrit naming and non-explicit Hindu-mythological flavour. Judged the project's strongest differentiator. |
 | 2026-09-24 | **"Cut Light" → "Cosmic Forge."** §2.10 rewritten. | "Cut Light" rejected as too dark and generic — dark background with purple/cyan accents reads as every other indie roguelite (Hades, Dead Cells). Warm amber/gold chosen instead. A first Cosmic Forge pass on `#170A00` was *also* rejected as still too dark; the background was brightened to saffron-amber. |
 | 2026-09-24 | **Abstract shapes rejected outright.** | Polygons cannot carry an Indian-themed identity. Real sprites now required; sourcing unresolved (§2.12). |
@@ -166,7 +167,7 @@ Kept so a reversal is never mistaken for drift or an error.
 - Two slots: Weapon, Trinket. Three rarity tiers (Common/Rare/Epic) scale effect *magnitude*.
 - Five weapon effects (none/Venom/Vampiric/Chain/Executioner) and five trinket effects (Vitality/Aegis/Thorns/Swift/Regen), each gated by a minimum Sector before appearing in the drop pool.
 - ~25% of drops are Unidentified ("???") — revealed only on pickup, with a small rarity-roll bonus as the incentive to risk it.
-- Loot pickups never pause gameplay — walking over an item equips it instantly with a toast notification.
+- Loot pickups never pause gameplay. ~~Walking over an item equips it instantly with a toast notification.~~ **Since build 0.23 (2026-10-14) a drop walked over is worn at once only when it is plainly better than what is held** (`plainlyBetter`, `calculations.js`): the slot is empty (the first trinket), or it is the same item with more Power (a finer metal, or more targets, by the sum the profile shows). Anything else goes to the satchel (§2.7.1) with a toast, "Stored: Gold Storm Disc", and a gold mark on the satchel's tab until it is opened. So a copper item never replaces a gold one, and a different weapon (which changes Overdrive's power, §2.15) is only ever taken up by choice. An unidentified drop is revealed as it is picked up, then the same rule applies.
 - **Each effect has its own icon** (2026-09-24), generated procedurally at boot rather than shipped as files, so they stay on-palette and cost nothing to download. The icon says *what* dropped; the rarity tint says *how good*. Unidentified drops deliberately show one blank sigil regardless of contents — that ambiguity is the incentive to risk the pickup.
 - **Each weapon effect has its own attack visual** (2026-09-24): Venom drips beads, Vampiric draws a thick crimson pull, Chain arcs jagged, Executioner swings a widening gold wedge, and the plain weapon stays a clean thin bolt. Previously every weapon drew the same cyan line, so a Venom Blade and an Executioner felt identical to use.
 
@@ -174,7 +175,8 @@ Kept so a reversal is never mistaken for drift or an error.
 A tab on the right edge of the arena shows a live item count. Tapping it pauses the fight and opens the satchel screen.
 
 - A pickup no longer destroys what you were holding — **the outgoing item is stashed**, and tapping a stashed item swaps it back, returning the current one to the satchel. Nothing is ever lost to a swap.
-- Capacity **8**; past that the oldest falls out. Losing something you stopped using long ago is a kinder failure than being unable to pick anything up.
+- Capacity **8**. ~~Past that the oldest falls out.~~ Since build 0.23, past that **the weakest falls out** (least Power; of equals, the one stored first), which may be the drop just picked up: "Satchel full: Copper Dagger left behind". A full satchel never blocks a pickup and never throws away the best thing in it. Now that every drop that is not plainly better is kept here, it fills faster than when it held only what was replaced.
+- **A weapon in the satchel says which power Overdrive would give with it** (build 0.23), in gold when that is not the power of the weapon held now.
 - **Run-scoped.** Carrying loot between runs would undermine the Extract/Descend decision (§2.5).
 - **Opening it pauses the fight (reversed 2026-10-03).** The first version did not pause: §2.7 says pickups never interrupt play, and swapping under fire was meant to cost something. The founder rejected it after playing on a phone: "I don't want to be killed while switching weapons". The original reasoning confused two things. Picking loot up should not interrupt play, and still does not. Choosing between items is a build decision, and Vampire Survivors, Brotato and 10 Minutes Till Dawn all stop the clock for those.
 - **The screen says what each item does.** Every row carries the item's name, its effect and its numbers (damage and targets for a weapon, the bonus for a trinket), for both the equipped pair and the stored items. Before, rows showed a name only, so a swap was a guess.
@@ -349,6 +351,8 @@ save data is keyed off them — renaming would break existing saves for no visib
 
 Currency is now Nidhi. The hub is still unnamed in-game — left for the title-screen redesign (roadmap P1).
 
+**Six names changed (2026-10-14, build 0.23), in the default pack only.** The founder found some names "sounding too Indian and difficult" and chose from options: Asura is **Imp**, Vritra is **The Thirst**, Nidhi is **Hoard**, Tejas is **Overdrive**, the Storm Chakram is the **Storm Disc** and Convergence is **Zenith**. With these the default pack has no Sanskrit word left; the stepwell, its story and the serpent stay. The Sanskrit and plain packs are unchanged and still a switch away (`?names=`). Where a sentence names the serpent it now reads as a name: "The Thirst has drunk the well dry", "has slain The Thirst". The loading cards for the four lose their glosses, The Thirst's reading "the serpent who drank the well dry". Nothing in a save names any of them, so no save changes.
+
 ### 2.12.1 First-run Tutorial — live tips (built 2026-09-27)
 **Since 2026-10-10 five of these tips are teaching pauses instead (§2.35):** move, loot, boon, core and slam stop the fight, light the thing itself and explain it. The other ten work as described here, and so do those five once a player has skipped the pauses.
 
@@ -441,6 +445,8 @@ HP lost can exceed 100% because heals are spent along the way. Across 30+ bot ru
 
 - Kiran glows gold for the duration and the meter drains as it runs. The codex has a Tejas tab.
 - Taps on the Tejas button (or the satchel tab) no longer also walk Kiran to that spot.
+
+**Named Overdrive, and plain about its power (2026-10-14, build 0.23).** Tejas is called Overdrive in the default pack (§2.12). Its power still follows the weapon held, as the founder chose ("Option A for Tejas"), but it no longer comes as a surprise: the button names the power it will give (FIRE, POISON, BLOOD, LIGHTNING, EXECUTION) under that power's sign, and counts down the seconds while it runs; equipping a weapon that changes the power says so ("Equipped: Gold Storm Disc · Overdrive: Lightning"); a weapon in the satchel says which power it would give. Above all, since a drop is no longer worn unless it is plainly better (§2.7), the weapon, and with it the power, changes only when the player chooses. An upgrade of the same weapon keeps the same power.
 
 ### 2.16 Audio (built 2026-09-27)
 **Status, 2026-10-06:** the founder confirmed on their phone that the sound effects work (the iPhone fix of 2026-10-03 below had been unverified until then). **2026-10-05:** sound effects are in and stay. Music is switched off (`MUSIC_ON = false`) and stays off for the itch.io launch: the founder found that the first tracks' transitions were not continuous and that some did not suit the game, judged free music not good enough, and will consider buying it after launch (`design-document.md` P10). The music engine described below remains in the code.
