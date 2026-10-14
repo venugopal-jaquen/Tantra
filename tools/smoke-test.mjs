@@ -343,6 +343,26 @@ try {
   check('the HUD shows power and the profile shows the stats', /Power \d+$/.test(pow.hud) && pow.hud.endsWith(' ' + pow.total) && pow.prof.state === 'paused' && pow.prof.power && pow.prof.rows
     && pow.prof.spill.length === 0 && pow.perSecond === 2.24 && pow.move === 240 && pow.targets === 4, JSON.stringify(pow));
 
+  // As many boons as can be carried at once: every one but Strike on the Run, which never comes
+  // with Hold Your Ground. Each has a slot on the profile, and the rows of icons on the pause
+  // screen and the boon pick stay inside their panels (ChatGPT's Beta audit, A-001).
+  const many = await page(`const s = game.scene.keys.LootScene;
+    s.boons = Object.fromEntries(Object.keys(BOONS).filter(k => k !== 'run').map(k => [k, 1]));
+    const n = Object.keys(s.boons).length, settle = () => new Promise(r => setTimeout(r, 120));
+    const isBoon = o => o.type === 'Image' && (o.texture.key.startsWith('boon_') || String(ICON_FRAMES[o.frame.name] || '').startsWith('boon-'));
+    const boxes = () => s.overlay.filter(isBoon).map(o => ({ l: o.x - o.displayWidth / 2, r: o.x + o.displayWidth / 2, t: o.y - o.displayHeight / 2, b: o.y + o.displayHeight / 2 }));
+    s.pauseGame('profile'); await settle();
+    const prof = boxes(), detail = s.overlay.find(o => o.type === 'Text' && /^Tap anything/.test(o.text));
+    s.resumeGame(); s.pauseGame(); await settle();
+    const pause = boxes();
+    s.resumeGame(); s.queueBoon(); s.openBoons(); await settle();
+    const pick = boxes().filter(b => b.t > 560);
+    s.closeBoons(); s.boons = {}; s.boonQueue = []; s.refreshBoonButton();
+    return { n, profile: prof.length, profileClear: !!detail && prof.every(b => b.b <= detail.y), pause: pause.length, pauseRight: Math.round(Math.max(...pause.map(b => b.r))),
+      pick: pick.length, pickRight: Math.round(Math.max(...pick.map(b => b.r))), state: s.state };`);
+  check('seventeen boons, as many as can be carried: each has a slot on the profile, and the rows on pause and the boon pick stay inside their panels',
+    many.n === 17 && many.profile === 17 && many.profileClear && many.pause === 17 && many.pauseRight <= 368 && many.pick === 17 && many.pickRight <= 375 && many.state === 'playing', JSON.stringify(many));
+
   // Read the Slam: stand in a ring, step out before it lands, hit harder.
   const read = await page(`const s = game.scene.keys.LootScene, p = s.player; s.boons = { readslam: 1 }; s.slamBuffMs = 0; p.iframes = 1e9;
     s.pickups.forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); }); s.pickups = [];   // loose loot could swap a trinket and change health mid-check
@@ -1287,7 +1307,7 @@ try {
   await send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
   await sleep(700);
   const surround = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms));
-    const shown = () => (document.getElementById('backdrop').style.backgroundImage.match(/backdrop\\/([\\w-]+)\\.jpg\\?v=([\\w.]+)/) || []).slice(1).join(' ');
+    const shown = () => (document.getElementById('backdrop').style.backgroundImage.match(/backdrop\\/([\\w-]+)\\.jpg\\?v=([\\w.-]+)/) || []).slice(1).join(' ');
     const box = id => { const e = document.getElementById(id); return e.hidden ? null : e.getBoundingClientRect(); };
     s.showHub(); await wait(300); const hub = shown();
     s.startRun(); ${FREEZE} s.player.iframes = 1e9; await wait(400); const run = shown();

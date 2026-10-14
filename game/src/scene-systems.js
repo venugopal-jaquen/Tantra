@@ -507,7 +507,7 @@ class SystemsScene extends ScreensScene {
     t.setY(top + 7);
     const bg = this.add.rectangle(cx, top + h / 2, w, h, FORGE.deep, 0.78).setStrokeStyle(1.5, FORGE.gold, 0.9)
       .setDepth(70).setInteractive();
-    const sub = this.add.text(cx, top + h - 9, 'tap to dismiss', { resolution: RES, fontSize: '8px', color: '#8a7360' })
+    const sub = this.add.text(cx, top + h - 9, 'tap to dismiss', { resolution: RES, fontSize: '8px', color: '#b8a58e' })
       .setOrigin(0.5).setDepth(71);
     bg.on('pointerdown', () => this.dismissHint());
     this.hintBox = [bg, t, sub];
@@ -673,7 +673,7 @@ class SystemsScene extends ScreensScene {
 
     // The panel goes on whichever side of the subject has more room, and points at it.
     const cx = W / 2, pw = 330, wrap = pw - 40;
-    const head = this.ovText(cx, 0, 'TUTORIAL', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5, 0);
+    const head = this.ovText(cx, 0, 'TUTORIAL', { fontSize: '10px', color: '#b8a58e', fontStyle: 'bold' }).setOrigin(0.5, 0);
     const title = this.ovText(cx, 0, copy.title, { fontSize: '18px', color: '#ffd23c', fontStyle: 'bold', align: 'center', wordWrap: { width: wrap } }).setOrigin(0.5, 0);
     const body = this.ovText(cx, 0, copy.body, { fontSize: '13px', color: '#f0dcc0', align: 'left', lineSpacing: 4, wordWrap: { width: wrap } }).setOrigin(0.5, 0);
     const ph = 14 + head.height + 4 + title.height + 8 + body.height + 16 + 40 + 6 + 24 + 10;

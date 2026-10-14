@@ -24,13 +24,16 @@ class ScreensScene extends FxScene {
     return parts.join(' · ');
   }
 
-  // The boons taken so far as a row of icons, with the rank when it stacks.
-  drawBoonRow(x, y, size) {
+  // The boons taken so far as a row of icons, with the rank when it stacks. `room` is how far
+  // the last icon's centre may lie from the first: more boons than fit are drawn smaller and
+  // closer, never past the panel's edge (17 can be carried at once).
+  drawBoonRow(x, y, size, room) {
     const keys = Object.keys(this.boons || {});
+    const step = room && keys.length > 1 ? Math.min(size + 3, room / (keys.length - 1)) : size + 3, s = Math.min(size, step - 2);
     keys.forEach((key, i) => {
-      const bx = x + i * (size + 3);
-      this.ov(this.icon(bx, y, boonIcon(key), size), 102);
-      if (this.boons[key] > 1) this.ovText(bx + size / 2 - 1, y + size / 2 - 2, String(this.boons[key]),
+      const bx = x + i * step;
+      this.ov(this.icon(bx, y, boonIcon(key), s), 102);
+      if (this.boons[key] > 1) this.ovText(bx + s / 2 - 1, y + s / 2 - 2, String(this.boons[key]),
         { fontSize: '9px', color: '#fffbef', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 2.5 }).setOrigin(0.5);
     });
     return keys.length;
@@ -68,8 +71,8 @@ class ScreensScene extends FxScene {
     this.ovButton(cx - 82, 532, 156, 36, rr > 0 ? `REROLL · ${rr} LEFT` : 'NO REROLL LEFT',
       rr > 0 ? 0x3a1a08 : 0x2a0f04, () => this.rerollBoons(), { sound: rr > 0 ? 'ui-page' : 'ui-error', color: rr > 0 ? '#ffd23c' : '#8a7360', size: 12 });
     this.ovButton(cx + 82, 532, 156, 36, 'CHOOSE LATER', 0x3a1a08, () => this.closeBoons(), { sound: 'ui-close', size: 12 });
-    this.ovText(left, 568, 'YOUR BOONS', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
-    if (!this.drawBoonRow(left + 9, 598, 17)) this.ovText(left, 588, 'None yet. Every wave you clear earns one.', { fontSize: '10px', color: '#8a7360' });
+    this.ovText(left, 568, 'YOUR BOONS', { fontSize: '10px', color: '#b8a58e', fontStyle: 'bold' });
+    if (!this.drawBoonRow(left + 9, 598, 17, 309)) this.ovText(left, 588, 'None yet. Every wave you clear earns one.', { fontSize: '10px', color: '#b8a58e' });
   }
 
   // Opens the naming dialog and keeps what comes back; an empty name means unnamed again.
@@ -132,7 +135,7 @@ class ScreensScene extends FxScene {
     };
     // Left: what is equipped, each with the power it adds.
     const col = left + 26, f = this.tejasForm ? TEJAS_FORMS[w.effect || 'none'] || TEJAS_FORMS.none : null;
-    this.ovText(col, 146, 'GEAR', { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
+    this.ovText(col, 146, 'GEAR', { fontSize: '9px', color: '#b8a58e', fontStyle: 'bold' }).setOrigin(0.5);
     slot(col, 178, 48, lootIcon(w), RARITY[w.rarity].color, '+' + parts.weapon, w.name + (w.shots > 1 ? `  x${w.shots}` : ''), (WEAPON_EFFECTS[w.effect] || WEAPON_EFFECTS.none).desc);
     if (t) slot(col, 232, 48, lootIcon(t), RARITY[t.rarity].color, '+' + parts.trinket, t.name, TRINKET_EFFECTS[t.effect].desc);
     else slot(col, 232, 48, EMPTY_ICON, 0x6b4a2e, '', 'No trinket', live ? 'Trinkets drop from enemies: walk over one.' : 'Trinkets are found during a run.', true);
@@ -140,17 +143,20 @@ class ScreensScene extends FxScene {
     else slot(col, 286, 48, LOCKED_ICON, 0x6b4a2e, '', `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}.`, true);
 
     // Right: the boons of this run.
-    this.ovText(right - 46, 146, live ? 'BOONS' : `PERKS  \u00B7  WEAR ${this.perkSlots()}`, { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
+    this.ovText(right - 46, 146, live ? 'BOONS' : `PERKS  \u00B7  WEAR ${this.perkSlots()}`, { fontSize: '9px', color: '#b8a58e', fontStyle: 'bold' }).setOrigin(0.5);
     // The perks worn, at the hero's feet.
     session.perksOn.forEach((key, i) => slot(cx + (i - (session.perksOn.length - 1) / 2) * 30, 304, 24, perkIcon(key), PERK_TINT, '', `${PERKS[key].name}  \u00B7  perk`, PERKS[key].desc));
     const keys = Object.keys(boons);
-    keys.slice(0, 15).forEach((key, i) => {
+    // Five rows of three hold fifteen; past that the slots close up to six rows, so every
+    // boon carried has one to tap (17 can be carried at once).
+    const tight = keys.length > 15, gap = tight ? 27 : 32;
+    keys.forEach((key, i) => {
       const b = BOONS[key], asleep = b.weapon && b.weapon !== w.effect;
-      slot(right - 78 + (i % 3) * 32, 172 + Math.floor(i / 3) * 32, 28, boonIcon(key), RARITY[b.metal].color, boons[key] > 1 ? String(boons[key]) : '',
+      slot(right - 78 + (tight ? 5 : 0) + (i % 3) * gap, 172 + Math.floor(i / 3) * gap, tight ? 24 : 28, boonIcon(key), RARITY[b.metal].color, boons[key] > 1 ? String(boons[key]) : '',
         N.boons[key][0] + (b.max > 1 ? `  ·  rank ${boons[key]} of ${b.max}` : '') + (asleep ? '  ·  asleep' : ''), b.desc, asleep);
     });
     if (!live) this.profilePerks(slot, right, onBack);
-    else if (!keys.length) this.ovText(right - 46, 190, 'none yet:\nclear a wave,\nthen tap +', { fontSize: '10px', color: '#8a7360', align: 'center', lineSpacing: 2 }).setOrigin(0.5, 0);
+    else if (!keys.length) this.ovText(right - 46, 190, 'none yet:\nclear a wave,\nthen tap +', { fontSize: '10px', color: '#b8a58e', align: 'center', lineSpacing: 2 }).setOrigin(0.5, 0);
     detail.setText(note || (live ? 'Tap anything you carry to see what it does.' : 'This is what you start a run with. Tap a perk to wear it or take it off.'));
 
     // The numbers.
@@ -161,7 +167,7 @@ class ScreensScene extends FxScene {
       ['sign-speed', 'boon_quick', 0xffd23c, 'Attack speed', (Math.round(st.perSecond * 100) / 100).toFixed(2) + ' a second'],
       ['sign-move', 'boon_feet', 0x5fe08a, 'Move speed', String(Math.round(st.move))]
     ];
-    this.ovText(left, 372, 'STATS', { fontSize: '9px', color: '#8a7360', fontStyle: 'bold' });
+    this.ovText(left, 372, 'STATS', { fontSize: '9px', color: '#b8a58e', fontStyle: 'bold' });
     rows.forEach(([sign, icon, tint, label, value], i) => {
       const y = 398 + i * 24;
       if (i) { const ln = this.ov(this.add.graphics(), 101); ln.lineStyle(1, 0xffffff, 0.08); ln.lineBetween(left, y - 12, right, y - 12); }
@@ -169,7 +175,7 @@ class ScreensScene extends FxScene {
       this.ovText(left + 26, y, label, { fontSize: '12px', color: '#f0dcc0' }).setOrigin(0, 0.5);
       this.ovText(right, y, value, { fontSize: '13px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(1, 0.5);
     });
-    this.ovText(cx, 514, `range ${Math.round(st.range)}  ·  damage taken ${st.taken}%`, { fontSize: '10px', color: '#8a7360' }).setOrigin(0.5);
+    this.ovText(cx, 514, `range ${Math.round(st.range)}  ·  damage taken ${st.taken}%`, { fontSize: '10px', color: '#b8a58e' }).setOrigin(0.5);
 
     // Where the power comes from: one bar, a colour to each source.
     const src = [['Base', parts.base, 0x8a7360], ['Upgrades', parts.upgrades, 0xfffbef], ['Weapon', parts.weapon, 0xff8c42],
@@ -213,7 +219,7 @@ class ScreensScene extends FxScene {
       this.ovText(textX, y - 4, title, { fontSize: '12px', color: '#fffbef', fontStyle: 'bold', wordWrap: { width: 250 } });
       this.ovText(textX, y + 12, body, { fontSize: '10px', color: '#c8a96e', wordWrap: { width: 250 } });
     };
-    this.ovText(left, 204, 'YOUR BUILD', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
+    this.ovText(left, 204, 'YOUR BUILD', { fontSize: '10px', color: '#b8a58e', fontStyle: 'bold' });
     const w = this.player.weapon, tr = this.player.trinket;
     row(226, lootIcon(w), w.name + (w.shots > 1 ? `  x${w.shots}` : ''),
         (WEAPON_EFFECTS[w.effect] || WEAPON_EFFECTS.none).desc);
@@ -222,10 +228,10 @@ class ScreensScene extends FxScene {
     const f = this.tejasForm();
     if (session.tejasUnlocked) row(314, formIcon(w.effect), `${N.supercharge}: ${f.name}`, f.desc);
     else row(314, LOCKED_ICON, `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}`);
-    this.ovText(left, 350, 'YOUR BOONS', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
-    if (!this.drawBoonRow(left + 16, 374, 18)) this.ovText(left, 367, 'None yet. One comes after every wave.', { fontSize: '10px', color: '#8a7360' });
+    this.ovText(left, 350, 'YOUR BOONS', { fontSize: '10px', color: '#b8a58e', fontStyle: 'bold' });
+    if (!this.drawBoonRow(left + 16, 374, 18, 280)) this.ovText(left, 367, 'None yet. One comes after every wave.', { fontSize: '10px', color: '#b8a58e' });
     if (more) {
-      this.ovText(left, 396, 'YOUR PERKS', { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
+      this.ovText(left, 396, 'YOUR PERKS', { fontSize: '10px', color: '#b8a58e', fontStyle: 'bold' });
       perks.forEach((key, i) => {
         const x = left + 16 + (i % 2) * 146, y = 420 + Math.floor(i / 2) * 22;
         this.ov(this.icon(x, y, perkIcon(key), 18), 102);
@@ -289,7 +295,7 @@ class ScreensScene extends FxScene {
 
     const toggleRow = (y, label, sub, key) => {
       this.ovText(left, y - (sub ? 7 : 0), label, { fontSize: '12px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(0, 0.5);
-      if (sub) this.ovText(left, y + 9, sub, { fontSize: '9px', color: '#8a7360' }).setOrigin(0, 0.5);
+      if (sub) this.ovText(left, y + 9, sub, { fontSize: '9px', color: '#b8a58e' }).setOrigin(0, 0.5);
       const btn = this.ovButton(left + 268, y, 64, 26, '', 0x3a1a08, () => {
         settings[key] = !settings[key]; saveSettings(); paint();
       });
@@ -345,7 +351,7 @@ class ScreensScene extends FxScene {
     this.openOverlay(0.84);
     const cx = W / 2, card = cards[page];
     this.ovPanel(cx, 370, 350, 548);
-    this.ovText(cx, 118, 'HOW TO PLAY', { fontSize: '11px', color: '#8a7360', fontStyle: 'bold' }).setOrigin(0.5);
+    this.ovText(cx, 118, 'HOW TO PLAY', { fontSize: '11px', color: '#b8a58e', fontStyle: 'bold' }).setOrigin(0.5);
     this.ovText(cx, 142, card.title, { fontSize: '19px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
     this.glass(this.ov(this.add.graphics()), cx, 250, 310, 172, { fill: 0x3d1200, alpha: 0.7, stroke: FORGE.bronze, strokeAlpha: 0.5, radius: 12, sheen: 0.05 });
     card.draw(cx, 250);
@@ -423,7 +429,7 @@ class ScreensScene extends FxScene {
           this.ov(this.add.rectangle(cx + 128, cy, 22, 70, FORGE.panel, 1).setStrokeStyle(1, FORGE.bronze, 0.8), 102);
           label(cx + 128, cy - 10, '<', '#ffd23c', 10); label(cx + 128, cy + 8, '2', '#fffbef', 11);
           label(cx + 128, cy + 48, N.satchel.toLowerCase(), '#c8a96e', 8);
-          label(cx - 60, cy + 50, 'finer metal = stronger item', '#8a7360', 9);
+          label(cx - 60, cy + 50, 'finer metal = stronger item', '#b8a58e', 9);
         } },
       { title: 'BOONS',
         body: `Every wave you clear earns a boon. Tap + whenever you like: the fight waits while you choose one of three. Copper boons add to your stats and stack up to three times. Silver ones change how you fight. Gold ones build on the weapon you carry. Boons last until the run ends, and each ${N.stage.toLowerCase()} gives you one free reroll.`,
@@ -451,11 +457,11 @@ class ScreensScene extends FxScene {
             sign(k, x + w / 2, cy - 12);
             x += w;
           });
-          label(cx, cy - 58, 'loops forever', '#8a7360', 8);
+          label(cx, cy - 58, 'loops forever', '#b8a58e', 8);
           this.ov(this.add.rectangle(cx + 92, cy + 20, 70, 18, PHASE_DEFS.convergence.color, 1), 102);
           label(cx + 92, cy + 20, PHASE_DEFS.convergence.label, '#1a0600', 9);
           sign('convergence', cx + 43, cy + 20);
-          label(cx + 92, cy + 38, 'every 90s', '#8a7360', 8);
+          label(cx + 92, cy + 38, 'every 90s', '#b8a58e', 8);
           img(`${CHARS.player}-front`, cx - 60, cy + 22, 44);
           this.ov(this.add.ellipse(cx - 60, cy + 38, 34, 13, 0, 0).setStrokeStyle(2, PHASE_DEFS.eclipse.color, 0.95), 102);
           label(cx - 60, cy + 62, 'phase ring', '#c8a96e', 8);
@@ -513,7 +519,7 @@ class ScreensScene extends FxScene {
           label(cx, cy - 30, 'Extract - bank & end run', '#fffbef', 11);
           this.ov(this.add.rectangle(cx, cy + 22, 230, 40, 0x7a3a0a, 1).setStrokeStyle(1.5, FORGE.gold, 0.9), 102);
           label(cx, cy + 22, `Descend to ${N.stage} 2`, '#ffd23c', 11);
-          label(cx, cy + 62, 'deeper = richer and deadlier', '#8a7360', 9);
+          label(cx, cy + 62, 'deeper = richer and deadlier', '#b8a58e', 9);
         } },
       { title: 'DEPTHS · PERKS',
         body: `Slay ${N.enemies.megaboss} and that depth of the well is won: a step fills, and the next depth opens with a new hardship, tougher enemies, a stray now and then, and richer ${N.currency}. There are seven. Your first boss kills and each depth you win also earn a perk, a gift that lasts. Choose which to wear on your Profile.`,
@@ -725,7 +731,7 @@ class ScreensScene extends FxScene {
 
     const locked = this.lockedPowerCount();
     say(cx, 598, locked > 0 ? `${locked} power${locked === 1 ? '' : 's'} still locked — descend to find them` : 'all powers unlocked',
-      { fontSize: '11px', color: locked > 0 ? '#ffd23c' : '#8a7360' });
+      { fontSize: '11px', color: locked > 0 ? '#ffd23c' : '#b8a58e' });
     const small = (x, label, fn) => this.makeButton(x, 634, 70, 34, label, BTN.quiet, fn, { size: 10 });
     small(48,  'PROFILE',  () => this.showProfile(() => this.closeOverlay()));
     small(124, 'POWERS',   () => this.showCodex());
@@ -804,7 +810,7 @@ class ScreensScene extends FxScene {
       }
       this.uiObjects.push(this.add.text(b.centerX, y + 6,
         `${metalList()}. Finer metal, stronger effect. About 1 drop in 4 is unidentified: riskier, better odds.`,
-        { resolution: RES, fontSize: '10px', color: '#8a7360', align: 'center', wordWrap: { width: b.width - 40 } }).setOrigin(0.5, 0));
+        { resolution: RES, fontSize: '10px', color: '#b8a58e', align: 'center', wordWrap: { width: b.width - 40 } }).setOrigin(0.5, 0));
     } else if (tab === 'boons') {
       // One short page per metal, so the rows keep the size they have on the other tabs.
       ['common', 'rare', 'epic'].forEach((m, i) => {
@@ -873,7 +879,7 @@ class ScreensScene extends FxScene {
     this.ovText(cx, 92, N.satchel.toUpperCase(), { fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
     this.ovText(cx, 115, 'the fight is paused', { fontSize: '10px', color: '#c8a96e' }).setOrigin(0.5);
 
-    const heading = (y, str) => this.ovText(left, y, str, { fontSize: '10px', color: '#8a7360', fontStyle: 'bold' });
+    const heading = (y, str) => this.ovText(left, y, str, { fontSize: '10px', color: '#b8a58e', fontStyle: 'bold' });
     const row = (y, item, onTap) => {
       this.glass(this.ov(this.add.graphics()), cx, y, 322, 38, { fill: onTap ? FORGE.panel : 0x2a0f04, alpha: 0.6, stroke: onTap ? FORGE.bronze : 0x6b4a2e, strokeAlpha: onTap ? 0.8 : 0.5, radius: 9, sheen: 0.06 });
       const bg = this.ov(this.add.rectangle(cx, y, 322, 38, 0xffffff, 0));
@@ -881,17 +887,17 @@ class ScreensScene extends FxScene {
       this.ov(this.icon(left + 22, y, lootIcon(item), 24), 102);
       this.ovText(left + 44, y - 16, item.name, { fontSize: '12px', color: '#fffbef', fontStyle: 'bold' });
       this.ovText(left + 44, y + 1, this.itemLine(item), { fontSize: '10px', color: '#c8a96e' });
-      this.ovText(left + 316, y - 15, item.type, { fontSize: '8px', color: '#8a7360' }).setOrigin(1, 0);
+      this.ovText(left + 316, y - 15, item.type, { fontSize: '8px', color: '#b8a58e' }).setOrigin(1, 0);
     };
 
     heading(134, 'EQUIPPED');
     row(168, this.player.weapon);
     if (this.player.trinket) row(210, this.player.trinket);
-    else this.ovText(cx, 210, 'No trinket yet - they drop from enemies', { fontSize: '10px', color: '#8a7360' }).setOrigin(0.5);
+    else this.ovText(cx, 210, 'No trinket yet - they drop from enemies', { fontSize: '10px', color: '#b8a58e' }).setOrigin(0.5);
 
     heading(238, this.inventory.length ? 'STORED · tap one to equip it' : 'STORED');
     if (!this.inventory.length) {
-      this.ovText(cx, 300, 'Nothing stored yet.\nWhatever you replace lands here.', { fontSize: '11px', color: '#8a7360', align: 'center', lineSpacing: 4 }).setOrigin(0.5);
+      this.ovText(cx, 300, 'Nothing stored yet.\nWhatever you replace lands here.', { fontSize: '11px', color: '#b8a58e', align: 'center', lineSpacing: 4 }).setOrigin(0.5);
     }
     this.inventory.forEach((item, i) => row(272 + i * 40, item, () => this.equipFromSatchel(i)));
 
