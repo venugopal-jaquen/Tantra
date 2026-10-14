@@ -9,7 +9,7 @@ creating the itch.io account and signing in cannot be done for them.
 | What | Whose | Why it matters here |
 |---|---|---|
 | The game's name (L1) | Founder | The title, the page address and the cover all carry it. Everything below says "Anantarya", the working title |
-| The FormSubmit alias (L10) | Founder sends it | Until it is swapped in, the founder's address is readable in the page |
+| ~~The FormSubmit alias (L10)~~ | Done, build 0.24 | The founder's address is no longer in the page |
 | A mid-range Android (L8) | Founder | The wide arena has only run on an iPhone 16 Pro Max |
 | The security pass (L11) | Claude, just before the upload | `pre-launch-security-checklist.md` |
 

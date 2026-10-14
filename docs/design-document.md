@@ -50,13 +50,13 @@ Work agreed in principle and not to be started on a date, but when a stated cond
 
 ## 1.2 Launch track — itch.io POC (added 2026-09-27)
 
-**Where the launch stands, 2026-10-14 (read this first; the rows below keep their history).** Built and live: L3 How to play, L4 and L12 the tutorial, L6 pause and settings, L7 the loading screen, L13 free rides, L14 the cast, L15 wide screens. The release is made from **Version Beta** (§1.2.0): build 0.23 on the branch `release-prep`, not yet on `main`.
+**Where the launch stands, 2026-10-14 (read this first; the rows below keep their history).** Built and live: L3 How to play, L4 and L12 the tutorial, L6 pause and settings, L7 the loading screen, L13 free rides, L14 the cast, L15 wide screens. The release is made from **Version Beta** (§1.2.0): builds 0.22 and 0.23 are on `main` (2026-10-14, PR 29); 0.24, the feedback alias, is on `release-prep`.
 
 | Stage | Items | State on 2026-10-14 |
 |---|---|---|
 | Built, waiting for the founder's eye on a phone | L12 tutorial, L13 free rides | Played by the bot and the tests only |
 | Done in Beta, waiting to reach `main` | Build 0.22: every boon has a place, lighter small labels, the security pass (L11). Build 0.23: six names (The Thirst, Overdrive, Imp, Hoard, Storm Disc, Zenith), a pickup that never makes the hero weaker, Overdrive's button naming its power | Local; the founder's word to push and merge |
-| Waiting on the founder | L1 the name (they are brainstorming), L10 the FormSubmit alias, L8 a mid-range Android, the history decision in L11 | |
+| Waiting on the founder | L1 the name ("Wellkeeper" chosen 2026-10-14, then held: a Steam game called Well Keeper, same genre, also in a well, was found), L8 a mid-range Android | L10's alias went in with build 0.24; L11's history decision was made (left as it is) |
 | Claude's, under way | V14 the store's pictures from build 0.22 | |
 | Agreed plan for release (2026-10-14) | L9: an itch.io draft page shared by secret link with five outside players (P11), then public | The founder creates the page; Claude prepares everything for it |
 | Parallel, not in the release | L16 / Version Gamma, ChatGPT's build of the restyle in its own repository | At its first review stop (title, boon pick, profile) |

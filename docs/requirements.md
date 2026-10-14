@@ -562,6 +562,8 @@ Launch track L10, the basic version the founder asked for: a text box whose cont
 - The dialog is plain DOM, because a canvas has no text box. While it is open the game's keyboard handling is switched off; otherwise W, A, S, D, E, P and Space, which the game claims, could not be typed.
 - To grow later: a proper backend, categories, screenshots.
 
+**The private alias (2026-10-14, build 0.24).** Messages go to the alias FormSubmit issued when the form was activated, in place of the founder's address, which is no longer anywhere in the game (`pre-launch-security-checklist.md`, line 1). The fallback that offered the player's own mail app is gone with it, since it needed the address: a failed send says to check the connection and try again, and keeps the message in the box. The form also carries a hidden robot field and allows three messages in ten minutes from one browser (build 0.22).
+
 ### 2.23 The goal and the ending (2026-10-02)
 Before this the game stated no goal and never ended: Vritra fell in Sector 3 and play simply continued.
 

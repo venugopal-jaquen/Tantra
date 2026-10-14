@@ -5,7 +5,7 @@ things need to be executed so I want you to save it and execute at the right tim
 
 **When:** after the build for itch.io is final and before it is uploaded (launch track L9,
 `design-document.md` §1.2). Go through every line, do what applies, and write the result
-beside it in a dated copy of the table below. **Run on 2026-10-14 against build 0.22 (Version Beta): see the last section.** Two things are left: the FormSubmit alias (line 1) and a look inside itch.io's frame (line 18). Line 2's decision was made on 2026-10-14: the history stays as it is.
+beside it in a dated copy of the table below. **Run on 2026-10-14 against build 0.22 (Version Beta): see the last section.** One thing is left: a look inside itch.io's frame (line 18). The FormSubmit alias went in with build 0.24. Line 2's decision was made on 2026-10-14: the history stays as it is.
 
 ## The list, as given
 
@@ -77,7 +77,7 @@ Run by Claude in the Beta worktree (`release-prep`), at the founder's word ("yes
 
 | # | Item | Result | What was done, and what is left |
 |---|---|---|---|
-| 1 | Hide API keys | ⏳ One thing left | No keys or tokens anywhere in the game. The founder's email address is still in `dialogs.js`, assembled at run time. **Left:** swap it for the private alias FormSubmit issued, when the founder sends it |
+| 1 | Hide API keys | ✅ Done (build 0.24) | No keys or tokens anywhere in the game. Since build 0.24 feedback goes to the private alias FormSubmit issued (the founder sent it on 2026-10-14), and no address of the founder's is in the game. A failed send no longer offers an "Email it instead" link, which needed the address; the message stays in the box to try again. `check-game` now fails if an email address appears in the game's files |
 | 2 | Purge secrets from Git | ✅ No secrets; one decision left | All 130 commits on every branch were searched for the shapes of cloud keys, API tokens, GitHub tokens, Slack tokens and private keys: none. The feedback address is in the history (23 times written whole, more often split). It stays there unless the history is rewritten, which would break every copy of the repository, ChatGPT's Gamma clone included. **Decided by the founder on 2026-10-14: left as it is** ("Handle the email the way you recommend"): the history is not rewritten, and the alias (line 1) keeps the address out of the game from now on. Commits carry the founder's Apple relay address as author, which is what a relay is for |
 | 3 | Expose only the public DB key | — No database | |
 | 4 | Enable row-level security | — No database | |
