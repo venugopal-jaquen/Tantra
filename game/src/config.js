@@ -28,11 +28,12 @@ const QUERY = new URLSearchParams(location.search);
 const pickFrom = (list, key, otherwise) => Object.prototype.hasOwnProperty.call(list, key) ? list[key] : list[otherwise];
 
 // One line to rename the game: the browser tab, the loading screen and the hub all read
-// this. (Working title, 2026-10-02 - the founder will settle the final name later. The
-// root index.html redirect page carries its own copy.)
-const GAME_TITLE = 'Anantarya';
+// this. The founder named the game on 2026-10-14 (build 0.25); "Anantarya" was the working
+// title from 2026-10-02. The root index.html redirect page carries its own copy. File names and
+// the save's keys still say "loot-chase" on purpose: renaming them would lose players' saves.
+const GAME_TITLE = 'Sevenwell';
 
-const BUILD = '0.24 (2026-10-14)';
+const BUILD = '0.25 (2026-10-14)';
 // Every file the game fetches carries the build in its address (?v=0.16), so that a phone
 // holding files of the last build from its cache cannot mix them with this one's: a new
 // build is new addresses throughout (2026-10-12: a phone ran build 0.15's code against
