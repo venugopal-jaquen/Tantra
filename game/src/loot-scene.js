@@ -220,7 +220,16 @@ class LootScene extends SystemsScene {
   // Power, at the right of the HUD, with its sign (the drawn HUD had a diamond for one).
   setPower(power) {
     this.powerText.setText(power === '' ? '' : (this.painted ? 'Power ' : '◆ Power ') + power);
-    if (this.powerSign) this.powerSign.setVisible(power !== '').setPosition(W - 14 - this.powerText.width - 9, 67);
+    if (this.powerSign) this.powerSign.setVisible(power !== '');
+    this.layoutPower();
+  }
+  // From the bounds drawn, not the text's own width: a gain swells the number (1.35, from its
+  // right edge), and the sign must move with it and the number stay inside the HUD (ChatGPT's
+  // audit B-007: it covered the sign and dipped past the HUD's foot).
+  layoutPower() {
+    const t = this.powerText;
+    t.y = Math.min(59, HUD_H - 1 - t.displayHeight);
+    if (this.powerSign && this.powerSign.visible) { const b = t.getBounds(); this.powerSign.setPosition(b.x - 9, b.centerY); }
   }
 
   playMusic(mood) {
@@ -557,7 +566,7 @@ class LootScene extends SystemsScene {
       if (open) {
         // Not on top of the banner that announces him.
         this.time.delayedCall(this.time.now - e.gateBorn < 1500 ? 1500 : 0, () => {
-          if (this.state === 'playing' && e.hp > 0 && e.gateOpen) this.showToast(`${e.baseName.toUpperCase()} IS VULNERABLE - STRIKE NOW`, '#' + col.toString(16).padStart(6, '0'));
+          if (this.state === 'playing' && e.hp > 0 && e.gateOpen) this.showToast(`${e.baseName.toUpperCase()} IS VULNERABLE - STRIKE NOW`, '#' + col.toString(16).padStart(6, '0'), true);
         });
         this.sfx('tejas-bell', { vol: 0.6, rate: 1.25 });
       }
@@ -603,6 +612,7 @@ class LootScene extends SystemsScene {
   startRun() {
     this.clearUI();
     this.closeOverlay();
+    this.clearToasts();
     // The depth of the well this run goes down: the one picked on the title screen, or
     // the deepest that is open.
     const openDepth = Math.min(DEPTH_MAX, session.depthsWon + 1);
@@ -806,7 +816,7 @@ class LootScene extends SystemsScene {
       this.playMusic('boss');
       this.sfx('boom');
       const isMega = this.sector === MEGA_BOSS_SECTOR;
-      this.showToast(isMega ? `${N.enemies.megaboss.toUpperCase()} AWAKENS` : `${N.enemies.sectorboss.toUpperCase()} STIRS`, '#fffbef');
+      this.showToast(isMega ? `${N.enemies.megaboss.toUpperCase()} AWAKENS` : `${N.enemies.sectorboss.toUpperCase()} STIRS`, '#fffbef', true);
       return;
     }
 
@@ -816,7 +826,7 @@ class LootScene extends SystemsScene {
       for (let i = 0; i < 3; i++) this.spawnQueue.push({}); // a little escort pressure alongside the boss
       this.spawnGap = 380;
       this.spawnTimer = 700;
-      this.showToast(`${N.enemies.gatekeeper.toUpperCase()} BARS THE WAY`, '#fffbef');
+      this.showToast(`${N.enemies.gatekeeper.toUpperCase()} BARS THE WAY`, '#fffbef', true);
       return;
     }
 
@@ -1044,14 +1054,14 @@ class LootScene extends SystemsScene {
     }
     boss.shieldMax = boss.keyAddIds.length;       // the dome itself is drawn each frame (drawBossFx)
     this.addShieldBar(boss);
-    this.time.delayedCall(900, () => this.showToast('DESTROY THE ANCHORS', '#9fd8ff'));
+    this.time.delayedCall(900, () => this.showToast('DESTROY THE ANCHORS', '#9fd8ff', true));
     this.hint('shield', `Shielded - no damage gets through. Kill the gold-glowing ${N.enemies.melee} anchoring it and the shield breaks.`);
   }
 
   transitionMegaBossToShield(boss) {
     boss.bossPhase = 'shielded';
     boss.shieldOn = true;
-    this.showToast(`${N.enemies.megaboss.toUpperCase()} COILS - DESTROY THE ANCHORS`, '#9fd8ff');
+    this.showToast(`${N.enemies.megaboss.toUpperCase()} COILS - DESTROY THE ANCHORS`, '#9fd8ff', true);
     this.sfx('toll', { rate: 1.3 });
     this.spawnShieldAdds(boss);
   }
@@ -1376,6 +1386,7 @@ class LootScene extends SystemsScene {
   // ---------- END OF RUN ----------
   endRun(victory, abandoned) {
     this.state = 'summary';
+    this.clearToasts();
     if (this.boonFx) this.boonFx.clear();
     this.clearHints();
     this.clearBanner();
@@ -1493,7 +1504,7 @@ class LootScene extends SystemsScene {
         this.phase = 'convergence';
         this.phaseTimeLeft = PHASE_DEFS.convergence.duration;
         this.convergenceCountdown = this.convergeEvery();
-        this.showToast(`${PHASE_DEFS.convergence.label} - an elite approaches`, '#fffbef');
+        this.showToast(`${PHASE_DEFS.convergence.label} - an elite approaches`, '#fffbef', true);
         this.spawnElite();
         this.sfx('tejas-bell', { rate: 0.7 });
         this.refreshMusic();
@@ -1502,7 +1513,7 @@ class LootScene extends SystemsScene {
         const idx = (PHASE_SEQUENCE.indexOf(this.phase) + 1) % PHASE_SEQUENCE.length;
         this.phase = PHASE_SEQUENCE[idx];
         this.phaseTimeLeft = PHASE_DEFS[this.phase].duration;
-        this.showToast(`${PHASE_DEFS[this.phase].label} begins`, '#' + PHASE_DEFS[this.phase].color.toString(16).padStart(6,'0'));
+        this.showToast(`${PHASE_DEFS[this.phase].label} begins`, '#' + PHASE_DEFS[this.phase].color.toString(16).padStart(6,'0'), true);
         this.sfx('phase');
         this.refreshMusic();
         if (this.phase === 'eclipse') this.hint('grahan', `${N.phases.eclipse}: everyone hits 30% harder - you included. Bosses with a red core are vulnerable now.`);
@@ -1514,7 +1525,7 @@ class LootScene extends SystemsScene {
         this.inConvergence = false;
         this.phase = this.savedPhase;
         this.phaseTimeLeft = this.savedPhaseTimeLeft > 0 ? this.savedPhaseTimeLeft : PHASE_DEFS[this.phase].duration;
-        this.showToast(`${PHASE_DEFS[this.phase].label} resumes`, '#' + PHASE_DEFS[this.phase].color.toString(16).padStart(6,'0'));
+        this.showToast(`${PHASE_DEFS[this.phase].label} resumes`, '#' + PHASE_DEFS[this.phase].color.toString(16).padStart(6,'0'), true);
         this.refreshMusic();
       }
     }
@@ -1977,7 +1988,8 @@ class LootScene extends SystemsScene {
       if (this.powerShown && power > this.powerShown) {
         const gain = this.fix(this.add.text(W - 14, 74, `+${power - this.powerShown}`, { resolution: RES, fontSize: '11px', color: '#fffbef', fontStyle: 'bold', stroke: '#2a0800', strokeThickness: 3 }).setOrigin(1, 0).setDepth(ARENA_SCALE > 1 ? Z.hud + 2 : 45));
         this.tweens.add({ targets: gain, y: 88, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => gain.destroy() });
-        this.powerText.setScale(1.35); this.tweens.add({ targets: this.powerText, scale: 1, duration: 300, ease: 'Back.easeOut' });
+        this.powerText.setScale(1.35); this.layoutPower();
+        this.tweens.add({ targets: this.powerText, scale: 1, duration: 300, ease: 'Back.easeOut', onUpdate: () => this.layoutPower(), onComplete: () => this.layoutPower() });
       }
       this.powerShown = power;
       this.setPower(power);

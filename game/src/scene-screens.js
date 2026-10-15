@@ -607,6 +607,7 @@ class ScreensScene extends FxScene {
   // title in front of a separate hub would put three taps between a player and a fight.
   showHub() {
     this.clearUI();
+    this.clearToasts();
     this.state = 'hub';
     this.cameraOn = false;
     this.aimCamera(true);

@@ -6,7 +6,7 @@
  *           (uiObjects for the title's screens, overlay for what opens over a fight) and
  *           their clearing (clearUI, openOverlay, closeOverlay); frost; panels and
  *           buttons (glass, ovPanel, uiPanel, ovButton, makeButton, pressed); icons
- *           (icon, makeLootIcons); toasts; sound and touch feedback (sfx, shake, buzz), and the
+ *           (icon, makeLootIcons); toasts, one at a time (showToast, clearToasts); sound and touch feedback (sfx, shake, buzz), and the
  *           hold on a heavy blow (holdStill).
  * Needs     ui.js (MAT, FORGE, drawSlab), assets.js (ICON, FEEL), audio.js (SFX).
  * Expects   of the layers above: this.state, this.silent, this.camOff.
@@ -370,12 +370,62 @@ class UiScene extends Phaser.Scene {
     return bg;
   }
 
-  showToast(msg, color) {
-    const t = this.fix(this.add.text(W/2, HUD_H + 20, msg, { resolution: RES, fontSize: '14px', color, fontStyle: 'bold',
+  // ---------- ANNOUNCEMENTS (build 0.27) ----------
+  // One lane at the top of the arena, held by one message at a time. Every message used to
+  // be drawn on its own at the same place, so two at once printed over each other (ChatGPT's
+  // audits, B-004 and B-006). A warning (`urgent`: a boss arriving or opening, the anchors, a
+  // phase turning, an elite, the pack running you down) takes the lane from anything else at
+  // once; anything else waits its turn behind the warnings. At most three wait; one that has
+  // waited longer than TOAST_STALE is dropped, as its moment has passed. The same message
+  // twice is shown once. Words, colours, place and timings are as they were.
+  showToast(msg, color, urgent) {
+    if (!msg) return;
+    const lane = this.toastLane || (this.toastLane = { now: null, queue: [] });
+    if (lane.now && lane.now.msg === msg) return;
+    lane.queue = lane.queue.filter(e => e.msg !== msg);
+    const entry = { msg, color, urgent: !!urgent, at: this.time.now };
+    if (!lane.now) return this.paintToast(entry);
+    if (entry.urgent && !lane.now.urgent) { this.endToast(); return this.paintToast(entry); }
+    const ahead = entry.urgent ? lane.queue.filter(e => e.urgent).length : lane.queue.length;
+    lane.queue.splice(ahead, 0, entry);
+    while (lane.queue.length > TOAST_WAITING) {               // the oldest of the plain ones gives way
+      const plain = lane.queue.findIndex(e => !e.urgent);
+      lane.queue.splice(plain >= 0 ? plain : 0, 1);
+    }
+  }
+
+  paintToast(entry) {
+    const lane = this.toastLane;
+    const t = this.fix(this.add.text(W/2, HUD_H + 20, entry.msg, { resolution: RES, fontSize: '14px', color: entry.color, fontStyle: 'bold',
       stroke: '#2a0800', strokeThickness: 4 }).setOrigin(0.5).setAlpha(0).setDepth(ARENA_SCALE > 1 ? Z.hud + 2 : 45));
+    t.toast = true;
+    lane.now = Object.assign(entry, { text: t });
     const T = FEEL.toast;       // in with an ease-out; out in about half the time, with an ease-in
     this.tweens.add({ targets: t, alpha: 1, y: HUD_H + 8, duration: T.in, ease: 'Cubic.easeOut' });
     this.tweens.add({ targets: t, alpha: 0, y: HUD_H + 2, delay: T.in + T.hold, duration: T.out, ease: 'Cubic.easeIn',
-      onComplete: () => t.destroy() });
+      onComplete: () => { t.destroy(); if (lane.now === entry) { lane.now = null; this.nextToast(); } } });
+  }
+
+  nextToast() {
+    const lane = this.toastLane;
+    while (lane && lane.queue.length) {
+      const e = lane.queue.shift();
+      if (this.time.now - e.at <= TOAST_STALE) return this.paintToast(e);
+    }
+  }
+
+  // Takes the message on show off the lane at once (a warning wants it), leaving what waits.
+  endToast() {
+    const lane = this.toastLane;
+    if (!lane || !lane.now) return;
+    this.tweens.killTweensOf(lane.now.text);
+    lane.now.text.destroy();
+    lane.now = null;
+  }
+
+  // A run begun or ended, or the title screen: nothing of the last fight is announced in the next.
+  clearToasts() {
+    this.endToast();
+    if (this.toastLane) this.toastLane.queue = [];
   }
 }

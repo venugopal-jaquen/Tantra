@@ -1,6 +1,6 @@
 # The itch.io page: what to upload, what to paste, what to tick
 
-Prepared 2026-10-10 for build 0.9 and rebuilt the same day as 0.13 with the teaching pauses and the free rides closed (launch track L9, `design-document.md` §1.2). **Made again on 2026-10-14 from build 0.23, Version Beta: the zip, the five screenshots and the cover, with the founder's cast, floors and icons and the new names. The GIF was made again on 2026-10-15 from build 0.25, filmed at 60 frames a second.** Everything
+Prepared 2026-10-10 for build 0.9 and rebuilt the same day as 0.13 with the teaching pauses and the free rides closed (launch track L9, `design-document.md` §1.2). **Current, 2026-10-16: the five screenshots, the cover and the GIF are from builds 0.23 to 0.25, with the founder's cast, floors and icons, the new names and the name Sevenwell (the title screenshot and cover from 0.25, the GIF from 0.25 at 60 frames a second). The zip is built from whatever `main` is when it is uploaded: run `python tools/build-itch.py` then, and the checks of §6.** Everything
 here is ready to use except where it says otherwise. The upload itself is the founder's:
 creating the itch.io account and signing in cannot be done for them.
 

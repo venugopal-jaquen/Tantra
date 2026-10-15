@@ -33,7 +33,7 @@ const pickFrom = (list, key, otherwise) => Object.prototype.hasOwnProperty.call(
 // the save's keys still say "loot-chase" on purpose: renaming them would lose players' saves.
 const GAME_TITLE = 'Sevenwell';
 
-const BUILD = '0.26 (2026-10-15)';
+const BUILD = '0.27 (2026-10-16)';
 // Every file the game fetches carries the build in its address (?v=0.16), so that a phone
 // holding files of the last build from its cache cannot mix them with this one's: a new
 // build is new addresses throughout (2026-10-12: a phone ran build 0.15's code against
