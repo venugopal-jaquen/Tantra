@@ -544,7 +544,7 @@ class SystemsScene extends ScreensScene {
     this.hunted = true;
     this.hunts++;
     this.paintHunt(true);
-    this.showToast('THE PACK RUNS YOU DOWN - TURN AND FIGHT', '#ff9a80');
+    this.showToast('THE PACK RUNS YOU DOWN - TURN AND FIGHT', '#ff9a80', true);
     this.sfx('slam-warn', { rate: 1.4, vol: 0.7 });
     this.hint('hunted', 'Run for long without fighting and the pack runs you down. Turn and fight: they only sprint while you run.');
   }

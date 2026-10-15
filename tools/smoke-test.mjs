@@ -396,6 +396,34 @@ try {
   check('seventeen boons, as many as can be carried: each has a slot on the profile, and the rows on pause and the boon pick stay inside their panels',
     many.n === 17 && many.profile === 17 && many.profileClear && many.pause === 17 && many.pauseRight <= 368 && many.pick === 17 && many.pickRight <= 375 && many.state === 'playing', JSON.stringify(many));
 
+  // One lane for announcements (build 0.27; ChatGPT's audits B-004, B-006): two never print over
+  // each other, the same one twice shows once, a warning takes the lane, what waits follows,
+  // and a new run starts with the lane clear. And Power's swell keeps clear of its sign and
+  // inside the HUD (B-007).
+  const lane = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms));
+    const live = () => s.children.list.filter(o => o.toast && o.active).map(o => o.text), out = {};
+    s.clearToasts();
+    s.showToast('SHIELD READY', '#4dd0ff'); s.showToast('SHIELD READY', '#4dd0ff'); s.showToast('Stored: a test item', '#f0dcc0');
+    out.first = live();
+    s.showToast('TEST GATE BARS THE WAY', '#fffbef', true);
+    out.warning = live();
+    const seen = new Set(); let most = 0;
+    for (let i = 0; i < 60; i++) { const l = live(); l.forEach(t => seen.add(t)); most = Math.max(most, l.length); await wait(60); }
+    out.followed = seen.has('Stored: a test item'); out.most = most;
+    s.showToast('LEFT OVER', '#fffbef'); s.showToast('ALSO LEFT OVER', '#fffbef'); s.clearToasts();
+    out.cleared = live().length === 0 && s.toastLane.queue.length === 0;
+    // Power: a gain at its widest, against its sign and the HUD's foot.
+    const p = s.powerText; s.powerShown = 1; await wait(30);
+    p.setScale(1.35); s.layoutPower();
+    const tb = p.getBounds(), sb = s.powerSign && s.powerSign.visible ? s.powerSign.getBounds() : null;
+    out.power = { text: [Math.round(tb.x), Math.round(tb.bottom * 10) / 10], sign: sb && Math.round(sb.right), hud: HUD_H,
+      clear: !sb || sb.right <= tb.x, inside: tb.bottom <= HUD_H };
+    p.setScale(1); s.layoutPower();
+    return out;`);
+  check('announcements share one lane: one at a time, a repeat shown once, a warning first, what waits after, none carried into a new run; Power swells clear of its sign and inside the HUD',
+    lane.first.length === 1 && lane.first[0] === 'SHIELD READY' && lane.warning.length === 1 && lane.warning[0] === 'TEST GATE BARS THE WAY'
+    && lane.followed && lane.most === 1 && lane.cleared && lane.power.clear && lane.power.inside, JSON.stringify(lane));
+
   // Read the Slam: stand in a ring, step out before it lands, hit harder.
   const read = await page(`const s = game.scene.keys.LootScene, p = s.player; s.boons = { readslam: 1 }; s.slamBuffMs = 0; p.iframes = 1e9;
     s.pickups.forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); }); s.pickups = [];   // loose loot could swap a trinket and change health mid-check
