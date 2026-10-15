@@ -1359,7 +1359,9 @@ class LootScene extends SystemsScene {
 
     this.pickups.push({ x: px, y: py, item, sprite, label, isMystery });
     if (isMystery) this.hint('mystery', "Violet ??? is unidentified - you won't know what it is until you grab it. It usually pays.");
-    else this.hint('loot', 'Loot! Walk over it to equip. Copper, then silver, then gold: finer metal, stronger item.');
+    // The same words as the loot lesson (build 0.26; the tip still said every pickup is worn,
+    // which stopped being so in 0.23: ChatGPT's report B-005).
+    else this.hint('loot', this.lessonCopy('loot', {}).body);
   }
 
   // Every wave cleared before a boss earns a boon (2.24), to be chosen whenever the
