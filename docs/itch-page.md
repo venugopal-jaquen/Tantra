@@ -1,6 +1,6 @@
 # The itch.io page: what to upload, what to paste, what to tick
 
-Prepared 2026-10-10 for build 0.9 and rebuilt the same day as 0.13 with the teaching pauses and the free rides closed (launch track L9, `design-document.md` §1.2). **Made again on 2026-10-14 from build 0.23, Version Beta: the zip, the five screenshots and the cover, with the founder's cast, floors and icons and the new names. The GIF is still build 0.22's and shows the old names (Asura, Nidhi, the Tejas button): it is to be made again when the PC is not busy, since a film taken under load came out at two to six frames a second.** Everything
+Prepared 2026-10-10 for build 0.9 and rebuilt the same day as 0.13 with the teaching pauses and the free rides closed (launch track L9, `design-document.md` §1.2). **Made again on 2026-10-14 from build 0.23, Version Beta: the zip, the five screenshots and the cover, with the founder's cast, floors and icons and the new names. The GIF was made again on 2026-10-15 from build 0.25, filmed at 60 frames a second.** Everything
 here is ready to use except where it says otherwise. The upload itself is the founder's:
 creating the itch.io account and signing in cannot be done for them.
 
@@ -41,7 +41,7 @@ cannot be changed later without breaking every link sent.
 | `store/itch/3-hoard-guardian.png` | The Hoard Guardian under his dome, held by its anchors, on level 1 | |
 | `store/itch/4-vritra.png` | Overdrive (fire) bursting round The Thirst on level 3 | |
 | `store/itch/5-boons.png` | Choosing a boon | |
-| `store/itch/gameplay.gif` | Five seconds of a level 1 fight, 240 by 420, 1.8 MB. **Build 0.22, old names: to be made again** | In the description, above the first line |
+| `store/itch/gameplay.gif` | Five seconds of a level 1 fight, 240 by 420, 2.0 MB (build 0.25: imps and brutes, Overdrive's FIRE button, "Stored: Copper Life Gem") | In the description, above the first line |
 
 The zip holds the game page as `index.html`, the sprites and sounds, the engine and the
 two typefaces with their licences, and a credits file. It does not hold the music, which
