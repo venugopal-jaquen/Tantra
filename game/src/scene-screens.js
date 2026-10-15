@@ -71,8 +71,8 @@ class ScreensScene extends FxScene {
     this.ovButton(cx - 82, 532, 156, 36, rr > 0 ? `REROLL · ${rr} LEFT` : 'NO REROLL LEFT',
       rr > 0 ? 0x3a1a08 : 0x2a0f04, () => this.rerollBoons(), { sound: rr > 0 ? 'ui-page' : 'ui-error', color: rr > 0 ? '#ffd23c' : '#8a7360', size: 12 });
     this.ovButton(cx + 82, 532, 156, 36, 'CHOOSE LATER', 0x3a1a08, () => this.closeBoons(), { sound: 'ui-close', size: 12 });
-    this.ovText(left, 568, 'YOUR BOONS', { fontSize: '10px', color: '#b8a58e', fontStyle: 'bold' });
-    if (!this.drawBoonRow(left + 9, 598, 17, 309)) this.ovText(left, 588, 'None yet. Every wave you clear earns one.', { fontSize: '10px', color: '#b8a58e' });
+    this.ovText(left, 568, 'YOUR BOONS', { fontSize: '10px', color: '#c4b39c', fontStyle: 'bold' });
+    if (!this.drawBoonRow(left + 9, 598, 17, 309)) this.ovText(left, 588, 'None yet. Every wave you clear earns one.', { fontSize: '10px', color: '#c4b39c' });
   }
 
   // Opens the naming dialog and keeps what comes back; an empty name means unnamed again.
@@ -103,7 +103,7 @@ class ScreensScene extends FxScene {
       rename.on('pointerdown', () => { this.sfx('ui-click'); this.nameYourself(() => this.showProfile(onBack)); });
     }
     // Power, the way Destiny sets it: small label, large number.
-    this.ovText(right, 74, 'POWER', { fontSize: '9px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(1, 0);
+    this.ovText(right, 72, 'POWER', { fontSize: '11px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(1, 0);
     const num = this.ovText(right, 82, String(parts.total), { fontSize: '36px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(1, 0);
     // Beside the number, the sign of power: painted, or the diamond the game draws itself.
     const dx = right - num.width - 15, dy = 106;
@@ -135,7 +135,7 @@ class ScreensScene extends FxScene {
     };
     // Left: what is equipped, each with the power it adds.
     const col = left + 26, f = this.tejasForm ? TEJAS_FORMS[w.effect || 'none'] || TEJAS_FORMS.none : null;
-    this.ovText(col, 146, 'GEAR', { fontSize: '9px', color: '#b8a58e', fontStyle: 'bold' }).setOrigin(0.5);
+    this.ovText(col, 146, 'GEAR', { fontSize: '11px', color: '#c4b39c', fontStyle: 'bold' }).setOrigin(0.5);
     slot(col, 178, 48, lootIcon(w), RARITY[w.rarity].color, '+' + parts.weapon, w.name + (w.shots > 1 ? `  x${w.shots}` : ''), (WEAPON_EFFECTS[w.effect] || WEAPON_EFFECTS.none).desc);
     if (t) slot(col, 232, 48, lootIcon(t), RARITY[t.rarity].color, '+' + parts.trinket, t.name, TRINKET_EFFECTS[t.effect].desc);
     else slot(col, 232, 48, EMPTY_ICON, 0x6b4a2e, '', 'No trinket', live ? 'Trinkets drop from enemies: walk over one.' : 'Trinkets are found during a run.', true);
@@ -143,7 +143,7 @@ class ScreensScene extends FxScene {
     else slot(col, 286, 48, LOCKED_ICON, 0x6b4a2e, '', `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}.`, true);
 
     // Right: the boons of this run.
-    this.ovText(right - 46, 146, live ? 'BOONS' : `PERKS  \u00B7  WEAR ${this.perkSlots()}`, { fontSize: '9px', color: '#b8a58e', fontStyle: 'bold' }).setOrigin(0.5);
+    this.ovText(right - 46, 146, live ? 'BOONS' : `PERKS  \u00B7  WEAR ${this.perkSlots()}`, { fontSize: '11px', color: '#c4b39c', fontStyle: 'bold' }).setOrigin(0.5);
     // The perks worn, at the hero's feet.
     session.perksOn.forEach((key, i) => slot(cx + (i - (session.perksOn.length - 1) / 2) * 30, 304, 24, perkIcon(key), PERK_TINT, '', `${PERKS[key].name}  \u00B7  perk`, PERKS[key].desc));
     const keys = Object.keys(boons);
@@ -156,7 +156,7 @@ class ScreensScene extends FxScene {
         N.boons[key][0] + (b.max > 1 ? `  ·  rank ${boons[key]} of ${b.max}` : '') + (asleep ? '  ·  asleep' : ''), b.desc, asleep);
     });
     if (!live) this.profilePerks(slot, right, onBack);
-    else if (!keys.length) this.ovText(right - 46, 190, 'none yet:\nclear a wave,\nthen tap +', { fontSize: '10px', color: '#b8a58e', align: 'center', lineSpacing: 2 }).setOrigin(0.5, 0);
+    else if (!keys.length) this.ovText(right - 46, 190, 'none yet:\nclear a wave,\nthen tap +', { fontSize: '10px', color: '#c4b39c', align: 'center', lineSpacing: 2 }).setOrigin(0.5, 0);
     detail.setText(note || (live ? 'Tap anything you carry to see what it does.' : 'This is what you start a run with. Tap a perk to wear it or take it off.'));
 
     // The numbers.
@@ -167,7 +167,7 @@ class ScreensScene extends FxScene {
       ['sign-speed', 'boon_quick', 0xffd23c, 'Attack speed', (Math.round(st.perSecond * 100) / 100).toFixed(2) + ' a second'],
       ['sign-move', 'boon_feet', 0x5fe08a, 'Move speed', String(Math.round(st.move))]
     ];
-    this.ovText(left, 372, 'STATS', { fontSize: '9px', color: '#b8a58e', fontStyle: 'bold' });
+    this.ovText(left, 370, 'STATS', { fontSize: '11px', color: '#c4b39c', fontStyle: 'bold' });
     rows.forEach(([sign, icon, tint, label, value], i) => {
       const y = 398 + i * 24;
       if (i) { const ln = this.ov(this.add.graphics(), 101); ln.lineStyle(1, 0xffffff, 0.08); ln.lineBetween(left, y - 12, right, y - 12); }
@@ -175,7 +175,7 @@ class ScreensScene extends FxScene {
       this.ovText(left + 26, y, label, { fontSize: '12px', color: '#f0dcc0' }).setOrigin(0, 0.5);
       this.ovText(right, y, value, { fontSize: '13px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(1, 0.5);
     });
-    this.ovText(cx, 514, `range ${Math.round(st.range)}  ·  damage taken ${st.taken}%`, { fontSize: '10px', color: '#b8a58e' }).setOrigin(0.5);
+    this.ovText(cx, 514, `range ${Math.round(st.range)}  ·  damage taken ${st.taken}%`, { fontSize: '11px', color: '#c4b39c' }).setOrigin(0.5);
 
     // Where the power comes from: one bar, a colour to each source.
     const src = [['Base', parts.base, 0x8a7360], ['Upgrades', parts.upgrades, 0xfffbef], ['Weapon', parts.weapon, 0xff8c42],
@@ -219,7 +219,7 @@ class ScreensScene extends FxScene {
       this.ovText(textX, y - 4, title, { fontSize: '12px', color: '#fffbef', fontStyle: 'bold', wordWrap: { width: 250 } });
       this.ovText(textX, y + 12, body, { fontSize: '10px', color: '#c8a96e', wordWrap: { width: 250 } });
     };
-    this.ovText(left, 204, 'YOUR BUILD', { fontSize: '10px', color: '#b8a58e', fontStyle: 'bold' });
+    this.ovText(left, 204, 'YOUR BUILD', { fontSize: '10px', color: '#c4b39c', fontStyle: 'bold' });
     const w = this.player.weapon, tr = this.player.trinket;
     row(226, lootIcon(w), w.name + (w.shots > 1 ? `  x${w.shots}` : ''),
         (WEAPON_EFFECTS[w.effect] || WEAPON_EFFECTS.none).desc);
@@ -228,10 +228,10 @@ class ScreensScene extends FxScene {
     const f = this.tejasForm();
     if (session.tejasUnlocked) row(314, formIcon(w.effect), `${N.supercharge}: ${f.name}`, f.desc);
     else row(314, LOCKED_ICON, `${N.supercharge}: dormant`, `Awakens the first time you reach ${N.stage.toLowerCase()} ${TEJAS_UNLOCK_SECTOR}`);
-    this.ovText(left, 350, 'YOUR BOONS', { fontSize: '10px', color: '#b8a58e', fontStyle: 'bold' });
-    if (!this.drawBoonRow(left + 16, 374, 18, 280)) this.ovText(left, 367, 'None yet. One comes after every wave.', { fontSize: '10px', color: '#b8a58e' });
+    this.ovText(left, 350, 'YOUR BOONS', { fontSize: '10px', color: '#c4b39c', fontStyle: 'bold' });
+    if (!this.drawBoonRow(left + 16, 374, 18, 280)) this.ovText(left, 367, 'None yet. One comes after every wave.', { fontSize: '10px', color: '#c4b39c' });
     if (more) {
-      this.ovText(left, 396, 'YOUR PERKS', { fontSize: '10px', color: '#b8a58e', fontStyle: 'bold' });
+      this.ovText(left, 396, 'YOUR PERKS', { fontSize: '10px', color: '#c4b39c', fontStyle: 'bold' });
       perks.forEach((key, i) => {
         const x = left + 16 + (i % 2) * 146, y = 420 + Math.floor(i / 2) * 22;
         this.ov(this.icon(x, y, perkIcon(key), 18), 102);
@@ -281,21 +281,32 @@ class ScreensScene extends FxScene {
       });
       for (let i = 0; i <= 10; i++) {
         const c = this.ov(this.add.rectangle(left + 128 + i * 16.5, y, i === 0 ? 22 : 13, 22, 0x3a1a08, 1)
-          .setStrokeStyle(1, FORGE.bronze, 0.5).setInteractive({ useHandCursor: true }));
-        if (i === 0) this.ovText(c.x, y, 'off', { fontSize: '8px', color: '#c8a96e' }).setOrigin(0.5);
-        c.on('pointerdown', () => {
-          settings[key] = i / 10; saveSettings(); paint();
-          if (key === 'sfx') this.sfx('ui-click'); else this.refreshMusic();
-        });
+          .setStrokeStyle(1, FORGE.bronze, 0.5));
+        if (i === 0) this.ovText(c.x, y, 'off', { fontSize: '9px', color: '#c8a96e' }).setOrigin(0.5);
         cells.push(c);
       }
       if (cells[0]) cells[0].x -= 4;
+      // One target the height of a finger over the whole row (build 0.28): each cell alone was
+      // 13 by 22, about 10 by 18 CSS pixels on a small phone (ChatGPT's audit A-002). Where the
+      // finger lands sets the level, and sliding along the row moves it.
+      const x0 = left + 128 - 4 - 11, x1 = left + 128 + 10 * 16.5 + 6.5;
+      const zone = this.ov(this.add.zone((x0 + x1) / 2, y, x1 - x0, 40).setInteractive({ useHandCursor: true }), 103);
+      const set = localX => {
+        const i = Phaser.Math.Clamp(Math.round((x0 + localX - (left + 128)) / 16.5), 0, 10);
+        if (settings[key] === i / 10) return;
+        settings[key] = i / 10; saveSettings(); paint();
+        if (key === 'sfx') this.sfx('ui-click'); else this.refreshMusic();
+      };
+      zone.on('pointerdown', (p, lx) => set(lx));
+      zone.on('pointermove', (p, lx) => { if (p.isDown) set(lx); });
+      zone.setLevel = i => set((left + 128) + i * 16.5 - x0);       // for the smoke test
+      cells.zone = zone;
       paint();
     };
 
     const toggleRow = (y, label, sub, key) => {
       this.ovText(left, y - (sub ? 7 : 0), label, { fontSize: '12px', color: '#fffbef', fontStyle: 'bold' }).setOrigin(0, 0.5);
-      if (sub) this.ovText(left, y + 9, sub, { fontSize: '9px', color: '#b8a58e' }).setOrigin(0, 0.5);
+      if (sub) this.ovText(left, y + 9, sub, { fontSize: '9px', color: '#c4b39c' }).setOrigin(0, 0.5);
       const btn = this.ovButton(left + 268, y, 64, 26, '', 0x3a1a08, () => {
         settings[key] = !settings[key]; saveSettings(); paint();
       });
@@ -351,7 +362,7 @@ class ScreensScene extends FxScene {
     this.openOverlay(0.84);
     const cx = W / 2, card = cards[page];
     this.ovPanel(cx, 370, 350, 548);
-    this.ovText(cx, 118, 'HOW TO PLAY', { fontSize: '11px', color: '#b8a58e', fontStyle: 'bold' }).setOrigin(0.5);
+    this.ovText(cx, 118, 'HOW TO PLAY', { fontSize: '11px', color: '#c4b39c', fontStyle: 'bold' }).setOrigin(0.5);
     this.ovText(cx, 142, card.title, { fontSize: '19px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
     this.glass(this.ov(this.add.graphics()), cx, 250, 310, 172, { fill: 0x3d1200, alpha: 0.7, stroke: FORGE.bronze, strokeAlpha: 0.5, radius: 12, sheen: 0.05 });
     card.draw(cx, 250);
@@ -429,7 +440,7 @@ class ScreensScene extends FxScene {
           this.ov(this.add.rectangle(cx + 128, cy, 22, 70, FORGE.panel, 1).setStrokeStyle(1, FORGE.bronze, 0.8), 102);
           label(cx + 128, cy - 10, '<', '#ffd23c', 10); label(cx + 128, cy + 8, '2', '#fffbef', 11);
           label(cx + 128, cy + 48, N.satchel.toLowerCase(), '#c8a96e', 8);
-          label(cx - 60, cy + 50, 'finer metal = stronger item', '#b8a58e', 9);
+          label(cx - 60, cy + 50, 'finer metal = stronger item', '#c4b39c', 9);
         } },
       { title: 'BOONS',
         body: `Every wave you clear earns a boon. Tap + whenever you like: the fight waits while you choose one of three. Copper boons add to your stats and stack up to three times. Silver ones change how you fight. Gold ones build on the weapon you carry. Boons last until the run ends, and each ${N.stage.toLowerCase()} gives you one free reroll.`,
@@ -457,11 +468,11 @@ class ScreensScene extends FxScene {
             sign(k, x + w / 2, cy - 12);
             x += w;
           });
-          label(cx, cy - 58, 'loops forever', '#b8a58e', 8);
+          label(cx, cy - 58, 'loops forever', '#c4b39c', 8);
           this.ov(this.add.rectangle(cx + 92, cy + 20, 70, 18, PHASE_DEFS.convergence.color, 1), 102);
           label(cx + 92, cy + 20, PHASE_DEFS.convergence.label, '#1a0600', 9);
           sign('convergence', cx + 43, cy + 20);
-          label(cx + 92, cy + 38, 'every 90s', '#b8a58e', 8);
+          label(cx + 92, cy + 38, 'every 90s', '#c4b39c', 8);
           img(`${CHARS.player}-front`, cx - 60, cy + 22, 44);
           this.ov(this.add.ellipse(cx - 60, cy + 38, 34, 13, 0, 0).setStrokeStyle(2, PHASE_DEFS.eclipse.color, 0.95), 102);
           label(cx - 60, cy + 62, 'phase ring', '#c8a96e', 8);
@@ -519,7 +530,7 @@ class ScreensScene extends FxScene {
           label(cx, cy - 30, 'Extract - bank & end run', '#fffbef', 11);
           this.ov(this.add.rectangle(cx, cy + 22, 230, 40, 0x7a3a0a, 1).setStrokeStyle(1.5, FORGE.gold, 0.9), 102);
           label(cx, cy + 22, `Descend to ${N.stage} 2`, '#ffd23c', 11);
-          label(cx, cy + 62, 'deeper = richer and deadlier', '#b8a58e', 9);
+          label(cx, cy + 62, 'deeper = richer and deadlier', '#c4b39c', 9);
         } },
       { title: 'DEPTHS · PERKS',
         body: `Slay ${N.enemies.megaboss} and that depth of the well is won: a step fills, and the next depth opens with a new hardship, tougher enemies, a stray now and then, and richer ${N.currency}. There are seven. Your first boss kills and each depth you win also earn a perk, a gift that lasts. Choose which to wear on your Profile.`,
@@ -732,7 +743,7 @@ class ScreensScene extends FxScene {
 
     const locked = this.lockedPowerCount();
     say(cx, 598, locked > 0 ? `${locked} power${locked === 1 ? '' : 's'} still locked — descend to find them` : 'all powers unlocked',
-      { fontSize: '11px', color: locked > 0 ? '#ffd23c' : '#b8a58e' });
+      { fontSize: '11px', color: locked > 0 ? '#ffd23c' : '#c4b39c' });
     const small = (x, label, fn) => this.makeButton(x, 634, 70, 34, label, BTN.quiet, fn, { size: 10 });
     small(48,  'PROFILE',  () => this.showProfile(() => this.closeOverlay()));
     small(124, 'POWERS',   () => this.showCodex());
@@ -811,7 +822,7 @@ class ScreensScene extends FxScene {
       }
       this.uiObjects.push(this.add.text(b.centerX, y + 6,
         `${metalList()}. Finer metal, stronger effect. About 1 drop in 4 is unidentified: riskier, better odds.`,
-        { resolution: RES, fontSize: '10px', color: '#b8a58e', align: 'center', wordWrap: { width: b.width - 40 } }).setOrigin(0.5, 0));
+        { resolution: RES, fontSize: '10px', color: '#c4b39c', align: 'center', wordWrap: { width: b.width - 40 } }).setOrigin(0.5, 0));
     } else if (tab === 'boons') {
       // One short page per metal, so the rows keep the size they have on the other tabs.
       ['common', 'rare', 'epic'].forEach((m, i) => {
@@ -881,7 +892,7 @@ class ScreensScene extends FxScene {
     this.ovText(cx, 92, N.satchel.toUpperCase(), { fontSize: '22px', color: '#ffd23c', fontStyle: 'bold' }).setOrigin(0.5);
     this.ovText(cx, 115, 'the fight is paused', { fontSize: '10px', color: '#c8a96e' }).setOrigin(0.5);
 
-    const heading = (y, str) => this.ovText(left, y, str, { fontSize: '10px', color: '#b8a58e', fontStyle: 'bold' });
+    const heading = (y, str) => this.ovText(left, y, str, { fontSize: '10px', color: '#c4b39c', fontStyle: 'bold' });
     const row = (y, item, onTap) => {
       this.glass(this.ov(this.add.graphics()), cx, y, 322, 38, { fill: onTap ? FORGE.panel : 0x2a0f04, alpha: 0.6, stroke: onTap ? FORGE.bronze : 0x6b4a2e, strokeAlpha: onTap ? 0.8 : 0.5, radius: 9, sheen: 0.06 });
       const bg = this.ov(this.add.rectangle(cx, y, 322, 38, 0xffffff, 0));
@@ -892,17 +903,17 @@ class ScreensScene extends FxScene {
       // A weapon says which power Overdrive gives with it; gold when it is not the one held now (build 0.23).
       const power = item.type === 'weapon' && session.tejasUnlocked ? TEJAS_FORMS[item.effect || 'none'] || TEJAS_FORMS.none : null;
       this.ovText(left + 316, y - 15, power ? `${N.supercharge}: ${power.name}` : item.type,
-        { fontSize: '8px', color: power && power !== this.tejasForm() ? '#ffd23c' : '#b8a58e', fontStyle: power ? 'bold' : '' }).setOrigin(1, 0);
+        { fontSize: '8px', color: power && power !== this.tejasForm() ? '#ffd23c' : '#c4b39c', fontStyle: power ? 'bold' : '' }).setOrigin(1, 0);
     };
 
     heading(134, 'EQUIPPED');
     row(168, this.player.weapon);
     if (this.player.trinket) row(210, this.player.trinket);
-    else this.ovText(cx, 210, 'No trinket yet - they drop from enemies', { fontSize: '10px', color: '#b8a58e' }).setOrigin(0.5);
+    else this.ovText(cx, 210, 'No trinket yet - they drop from enemies', { fontSize: '10px', color: '#c4b39c' }).setOrigin(0.5);
 
     heading(238, this.inventory.length ? 'STORED · tap one to equip it' : 'STORED');
     if (!this.inventory.length) {
-      this.ovText(cx, 300, 'Nothing stored yet.\nWhat you find that is not better than\nwhat you hold, and what you replace, lands here.', { fontSize: '11px', color: '#b8a58e', align: 'center', lineSpacing: 4 }).setOrigin(0.5);
+      this.ovText(cx, 300, 'Nothing stored yet.\nWhat you find that is not better than\nwhat you hold, and what you replace, lands here.', { fontSize: '11px', color: '#c4b39c', align: 'center', lineSpacing: 4 }).setOrigin(0.5);
     }
     this.inventory.forEach((item, i) => row(272 + i * 40, item, () => this.equipFromSatchel(i)));
 

@@ -1413,6 +1413,33 @@ try {
   // The engine and the typefaces sit beside the game (launch track L9): nothing may come
   // from another site, and nothing the page asks for may be absent. The bot is the test's
   // own file, loaded from tools/.
+  // Build 0.28: what a vibe-coding checklist turned up, and small phones (ChatGPT's audit A-002).
+  const tough = await page(`const s = game.scene.keys.LootScene; s.closeOverlay && s.closeOverlay(); const wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
+    // Names: nothing invisible, nothing that turns the text backwards, never half a character.
+    const seg = t => [...new Intl.Segmenter().segment(t)].map(x => x.segment);
+    out.names = { flags: seg(Namer.clean('a' + '\\u{1F1EE}\\u{1F1F3}'.repeat(14))).every(g => g === 'a' || g === '\\u{1F1EE}\\u{1F1F3}'),
+      flip: Namer.clean('\\u202Eolleh') === 'olleh', blank: Namer.clean('\\u200B\\u200B\\u200B') === '', devanagari: Namer.clean('\\u0930\\u0935\\u093F') === '\\u0930\\u0935\\u093F',
+      length: seg(Namer.clean('W'.repeat(30))).length === 14 };
+    // A damaged save: the title, the profile and a run still open.
+    const keepRaw = STORE.read(SAVE_KEY), cases = ['{oops', '{"depthsWon":"two","depthPick":99}', '{"nickname":{"a":1}}', '{"perks":null,"perksOn":["nope"]}', '{"metaGold":-50,"records":5,"hintsSeen":null}'];
+    out.saves = [];
+    for (const raw of cases) { let step = 'load'; try { resetSession(); STORE.write(SAVE_KEY, raw); loadSession(); step = 'title'; s.showHub(); await wait(40);
+      step = 'profile'; s.showProfile(() => s.closeOverlay()); await wait(40); s.closeOverlay(); step = 'ok'; } catch (e) { step += ': ' + String(e.message).slice(0, 60); } out.saves.push(step); }
+    STORE.write(SAVE_KEY, keepRaw || '{}'); loadSession(); s.showHub();
+    // The volume row is one target: a finger anywhere on it sets the level.
+    const sfx0 = settings.sfx; s.showSettings(() => s.closeOverlay()); await wait(60);
+    const zones = s.overlay.filter(o => o.type === 'Zone' && o.setLevel), z = zones[0];
+    out.volume = { rowTall: !!z && z.height >= 40 && z.width >= 180, sets: !!z && (z.setLevel(3), settings.sfx === 0.3) && (z.setLevel(0), settings.sfx === 0) };
+    // No word anywhere smaller than 9.
+    const small = [];
+    const look = objs => objs.filter(o => o.type === 'Text' && o.visible && o.text && parseInt(o.style.fontSize, 10) < 9).forEach(o => small.push(o.text.slice(0, 20) + ' ' + o.style.fontSize));
+    look(s.overlay); s.closeOverlay(); settings.sfx = sfx0; saveSettings();
+    s.showHub(); await wait(60); look(s.uiObjects); s.showProfile(() => s.closeOverlay()); await wait(60); look(s.overlay); s.closeOverlay();
+    out.small = small;
+    return out;`);
+  check('names keep whole characters and lose invisible ones; a damaged save still opens the title and the profile; the volume row is one target; no word under 9',
+    Object.values(tough.names).every(v => v === true) && tough.saves.every(r => r === 'ok') && tough.volume.rowTall && tough.volume.sets && tough.small.length === 0, JSON.stringify(tough));
+
   const urls = [...asked.values()].filter(u => u !== BOT && !/^(data|blob|about):/.test(u));
   const outside = urls.filter(u => !u.startsWith('file:'));
   const kinds = ['.html', '.js', '.woff2', '.png', '.wav'].map(e => e + ' ' + new Set(urls.map(u => u.split('?')[0]).filter(u => u.endsWith(e))).size).join(', ');
