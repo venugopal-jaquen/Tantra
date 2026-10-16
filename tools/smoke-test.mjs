@@ -644,10 +644,13 @@ try {
   const fell = await page(`const s = game.scene.keys.LootScene; s.sector = 2; s.runGold = 100; s.endRun(false); return ${texts};`);
   check('falling says how close you came', /You fell in The Drowned Steps, level 2 of 3/.test(fell) && /The Thirst waits one level below/.test(fell), fell);
   await sleep(250); await shot('5c-fell');
+  // After a level boss falls the choice comes a second later by the game's own clock, which
+  // on a slow machine (GitHub's, at 8 frames a second) runs behind the wall clock: so each
+  // check below waits for the choice itself, up to 8 seconds, rather than a fixed time.
   const paid = await page(`const s = game.scene.keys.LootScene; ${press};
     s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; s.wave = 6;
     const b = s.spawnSectorBoss(); b.tribute = 10; const loot0 = s.pickups.length; s.killEnemy(b); const items = s.pickups.length - loot0;
-    await new Promise(r => setTimeout(r, 1400));
+    for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     const label = () => (s.uiObjects.find(o => o.type === 'Text' && /boon/i.test(o.text)) || {}).text;
     const out = { items, state: s.state, queued: s.boonQueue.length, button: label(), glass: !!(s.frostRT.ui && s.frostRT.ui.visible) };
     s.openBoons(); out.pick = { state: s.state, head: s.overlay.filter(o => o.type === 'Text')[0].text };
@@ -660,7 +663,7 @@ try {
   const won = await page(`const s = game.scene.keys.LootScene; ${press};
     s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; s.sector = 3; s.wave = 6; s.runGold = 300; s.setFloor(3);
     s.killEnemy(s.spawnSectorBoss());
-    await new Promise(r => setTimeout(r, 1400));
+    for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     return { state: s.state, water: session.water, wins: session.wins, depths: session.depthsWon, perks: Object.keys(session.perks).sort().join(), panel: ${texts} };`);
   check('slaying the final boss wins the run and the depth', won.state === 'sectorChoice' && won.water === 5 && won.wins === 1 && won.depths === 1 && won.perks === 'eye,scale'
     && /THE WATERS RETURN/.test(won.panel) && /Depth 1 is won\. Depth 2 opens: Swift\./.test(won.panel) && /Perk earned: Serpent's Scale/.test(won.panel), JSON.stringify(won).replace(/\\n/g, ' '));
@@ -704,7 +707,7 @@ try {
   // Depths: a depth already won pays no water; the next one is harder and pays more.
   const deep = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
     const a = s.spawnEnemyOfType('melee', 100, 300, 1), slow = a.speed; s.killEnemy(a);
-    const v = s.enemies.find(e => e.isMega); s.killEnemy(v); await wait(1400);
+    const v = s.enemies.find(e => e.isMega); s.killEnemy(v); for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     out.again = { water: session.water, depths: session.depthsWon, panel: ${texts} };
     ${press}; ${press}; await wait(200);
     session.depthPick = 0; s.showHub();
@@ -713,14 +716,14 @@ try {
     const quick = s.spawnEnemyOfType('melee', 100, 300, 1); s.killEnemy(quick);
     s.runGold = 0; s.addGold(100);
     out.two = { tier: s.tier, hud: s.hudText.text, banner: (s.banner || []).map(t => t.text).join(' | '), faster: Math.round(100 * quick.speed / slow), gold: s.runGold, heal: s.clearHeal(), every: s.convergeEvery() };
-    s.sector = 3; s.wave = 6; s.setFloor(3); s.killEnemy(s.spawnSectorBoss()); await wait(1400);
+    s.sector = 3; s.wave = 6; s.setFloor(3); s.killEnemy(s.spawnSectorBoss()); for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     out.won = { water: session.water, depths: session.depthsWon, perks: Object.keys(session.perks).sort().join(), worn: session.perksOn.join(), panel: ${texts} };
     ${press}; ${press}; await wait(200);
     s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.wave = 6;
     out.three = { tier: s.tier, heal: s.clearHeal(), hard: [sectorHpMult(1), sectorDmgMult(1)] };
-    s.killEnemy(s.spawnSectorBoss()); await wait(1300);
+    s.killEnemy(s.spawnSectorBoss()); for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     out.three.water = session.water; out.three.best = session.depthBest;
-    s.descend(); s.spawnQueue = [{}]; s.spawnTimer = 1e9; s.player.iframes = 1e9; s.wave = 6; s.sector = 1; s.killEnemy(s.spawnSectorBoss()); await wait(1300);
+    s.descend(); s.spawnQueue = [{}]; s.spawnTimer = 1e9; s.player.iframes = 1e9; s.wave = 6; s.sector = 1; s.killEnemy(s.spawnSectorBoss()); for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     out.three.again = (s.uiObjects.find(o => o.type === 'Text' && /water/.test(o.text)) || {}).text; out.three.waterAfter = session.water;
     s.endRun(false); ${press}; await wait(200);
     session.depthPick = 1; s.showHub(); out.back = ${texts};
@@ -994,7 +997,7 @@ try {
     head = s.overlay.filter(o => o.type === 'Text');
     out.long = { name: session.nickname.length, right: Math.round(head[0].x + head[0].width), font: parseInt(head[0].style.fontSize, 10) };
     s.closeOverlay(); session.nickname = 'Ravi the Bold'; saveSession();
-    session.depthPick = 1; s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.sector = 3; s.wave = 6; s.setFloor(3); s.killEnemy(s.spawnSectorBoss()); await wait(1400);
+    session.depthPick = 1; s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.sector = 3; s.wave = 6; s.setFloor(3); s.killEnemy(s.spawnSectorBoss()); for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     out.victory = ${texts};
     ${press}; ${press}; await wait(200); session.depthPick = 0; saveSession(); s.showHub();
     return out;`);
