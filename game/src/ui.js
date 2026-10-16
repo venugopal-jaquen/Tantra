@@ -120,7 +120,10 @@ const DEVANAGARI = /[\u0900-\u097F]/;
 function styleText(style, str) {
   const st = Object.assign({}, style);
   if (!st.fontFamily) {
-    const px = parseInt(st.fontSize, 10) || 16;
+    let px = parseInt(st.fontSize, 10) || 16;
+    // Nothing smaller than 9 (build 0.28): on a 320-wide phone the game is drawn at 0.8, and
+    // 8 was 6.4 CSS pixels (ChatGPT's audit A-002).
+    if (px < 9) { px = 9; st.fontSize = '9px'; }
     const display = st.display !== undefined ? st.display : (/bold/.test(st.fontStyle || '') && px >= 14);
     st.fontFamily = display ? FONT.display : FONT.body;
     // Yatra One has a single weight; asking the canvas for bold makes it smear one.

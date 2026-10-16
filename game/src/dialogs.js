@@ -80,9 +80,18 @@ const Namer = (() => {
   const root = $('namer'), text = $('nm-text'), MAX = 14;
   let done = null;
   const gameKeys = on => { try { game.input.keyboard.enabled = on; } catch (e) { /* game not up */ } };
-  // Any script is welcome. Out go line breaks, control characters and angle brackets;
-  // runs of spaces close up; the length is counted in whole characters.
-  const clean = v => [...String(v || '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim()].slice(0, MAX).join('').trim();
+  // Any script is welcome. Out go line breaks, control characters and angle brackets; and
+  // (build 0.28) the invisible characters that make a name blank or turn its text backwards:
+  // zero-width spaces, direction marks, overrides and isolates. The joiners that Indian
+  // scripts and emoji families need stay. Runs of spaces close up. The length is counted in
+  // characters as they are seen, so a flag or a family is never cut in half; a name of
+  // nothing visible is no name.
+  const INVISIBLE = /[\u0000-\u001f\u007f<>\u200B\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g;
+  const whole = s => typeof Intl !== 'undefined' && Intl.Segmenter ? [...new Intl.Segmenter().segment(s)].map(x => x.segment) : [...s];
+  const clean = v => {
+    const s = whole(String(v || '').replace(INVISIBLE, '').replace(/\s+/g, ' ').trim()).slice(0, MAX).join('').trim();
+    return /[^\s\u200C\u200D]/.test(s) ? s : '';
+  };
   const close = () => { root.hidden = true; gameKeys(true); };
   const open = (current, onSave) => {
     done = onSave; text.value = current || '';

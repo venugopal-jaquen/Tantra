@@ -5,7 +5,7 @@
  *           figure's cell, scale and proportions), STOCK_ART, artOf, artRise, artDrop,
  *           ACT (the strike's timing, ms), SLAM_ACT (a boss's slam on the figure), FEEL and
  *           springBack (how a blow and an arrival move, and the hold on heavy blows),
- *           TOAST_WAITING and TOAST_STALE (the announcement lane's queue),
+ *           TOAST_WAITING and TOAST_STALE (the announcement lane's queue), TEJAS_BTN,
  *           sortDepth, facingFor, CHAR_LABELS;
  *           the hero: HERO_SIZE, HP_BAR, HERO_BAR_UP, HERO_RING_DOWN, PORTRAIT, WEAR and
  *           WORN (dyes tried by ?wear=);
@@ -147,6 +147,8 @@ const FEEL = {
 // The announcement lane (scene-ui.js showToast, build 0.27): how many messages may wait their turn,
 // and how long one may wait before its moment has passed and it is dropped.
 const TOAST_WAITING = 3, TOAST_STALE = 2200;
+// Overdrive's round button, its radius (build 0.28: 25 before, too small for its power's name at 9).
+const TEJAS_BTN = 28;
 // A damped spring let go from 1 at rest: 1 at t = 0, through 0, a little past, and back.
 function springBack(t, zeta, hz) {
   if (t <= 0) return 1;

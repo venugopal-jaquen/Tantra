@@ -2,6 +2,7 @@
  * persistence.js: what is kept between visits: the save and the settings.
  *
  * Declares  SAVE_KEY, session (the one save; everything reads and writes this object),
+ *           SESSION_FIRST and mendSession (a damaged save put right, build 0.28),
  *           newRecords, wellWater, heroName, loadSession, saveSession, resetSession,
  *           SETTINGS_KEY, settings (the one settings object), loadSettings, saveSettings,
  *           and STORE, the only door to the browser's storage.
@@ -49,6 +50,8 @@ const session = {
   perks: {},            // perks earned
   perksOn: []           // perks worn, at most perkSlots()
 };
+// What a new save holds, kept apart: mendSession() puts a damaged field back to it.
+const SESSION_FIRST = JSON.parse(JSON.stringify(session));
 
 // Water is no longer counted boss by boss: it is what the depths hold. A depth won holds
 // all five measures; the one being attempted holds one for each level boss beaten in it.
@@ -88,6 +91,28 @@ function loadSession() {
       }
     }
   } catch (e) { /* localStorage unavailable — session stays in-memory only */ }
+  mendSession();
+}
+
+// A save read back is put right field by field (build 0.28): a number that is not a number,
+// a list that is not a list, a name that is not words. Found by testing damaged saves: a
+// depth written as text stopped the title screen, and a name that was not text, the
+// profile. Whatever is wrong goes back to its first value; whatever is right is kept.
+function mendSession() {
+  const first = SESSION_FIRST;
+  for (const [k, v] of Object.entries(first)) {
+    const s = session[k];
+    if (typeof v === 'number') session[k] = Number.isFinite(s) && s >= 0 ? s : v;
+    else if (typeof v === 'boolean') session[k] = typeof s === 'boolean' ? s : v;
+    else if (typeof v === 'string') session[k] = typeof s === 'string' ? s.slice(0, 64) : v;
+    else if (Array.isArray(v)) session[k] = Array.isArray(s) ? s.filter(x => typeof x === 'string') : v.slice();
+    else if (v && typeof v === 'object') session[k] = s && typeof s === 'object' && !Array.isArray(s) ? s : JSON.parse(JSON.stringify(v));
+  }
+  session.depthsWon = Math.min(DEPTH_MAX, Math.floor(session.depthsWon));
+  session.depthPick = Math.min(DEPTH_MAX, Math.floor(session.depthPick));
+  session.depthBest = Math.min(2, Math.floor(session.depthBest));
+  session.records = Object.assign(newRecords(), session.records);
+  session.perksOn = session.perksOn.filter(k => PERKS[k]);
 }
 
 function saveSession() {

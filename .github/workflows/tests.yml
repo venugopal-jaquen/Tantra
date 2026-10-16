@@ -1,0 +1,58 @@
+# The game's tests, run by GitHub on every pull request into main and on every push to it
+# (pre-launch security checklist, the run of 2026-10-16: "a deploy pipeline that runs the
+# tests before anything reaches players"). main is protected so that a pull request can
+# only be merged once the "tests" check below has passed, and GitHub Pages publishes main.
+#
+# The same commands as on the PC (README, "Checking it"): the quick checks, the smoke test
+# in a muted headless Chrome, then both again on the folder tools/build-itch.py makes for
+# itch.io. GitHub's machines have no graphics chip and run the game at about 10 frames a
+# second, so the smoke test is told (SMOKE_SLOW_MACHINE) to set aside the ten checks that
+# time a walk, a sound or an animation; those count on the PC. No packages are installed.
+# Each action is pinned to the commit of its release, so a moved tag cannot change what
+# runs here.
+name: tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SMOKE_SLOW_MACHINE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1        # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020      # v7.0.0
+        with:
+          node-version: 24
+      - name: Quick checks
+        run: node tools/check-game.mjs
+      - name: Smoke test
+        run: node tools/smoke-test.mjs smoke-shots
+      - name: Build the itch.io folder
+        run: python3 tools/build-itch.py
+      - name: Quick checks on the itch.io folder
+        run: node tools/check-game.mjs --package dist/itch
+      - name: Smoke test on the itch.io folder
+        run: node tools/smoke-test.mjs smoke-shots-itch dist/itch/index.html
+      - name: Keep the screenshots when something fails
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: smoke-shots
+          path: smoke-shots*
+          retention-days: 7

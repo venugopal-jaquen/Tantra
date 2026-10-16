@@ -98,3 +98,29 @@ Run by Claude in the Beta worktree (`release-prep`), at the founder's word ("yes
 | 19 | Force HTTPS | ✅ Done | The only outside address is `https`. GitHub Pages enforces HTTPS, and `http://` answers with a permanent redirect to `https://` (both checked 2026-10-14) |
 | 20 | Scan dependencies | ✅ Clean | Phaser 3.70.0, a file kept in the repository; GitHub's advisory database lists no advisories for Phaser (asked 2026-10-14). The two typefaces are OFL files. Nothing is fetched from another host (smoke test) |
 
+## Run of 2026-10-16: the "vibe-coded app" checklist
+
+The founder passed on a long list of what vibe-coded apps lack (a post on X) and asked what applies here, to run what can be run, and to say what was found. Most of the list is for an app with a server, accounts, payments or a model at run time; Sevenwell has none of them. What applies, and what was done, on build 0.27 and 0.28:
+
+| Area | Checked | Found | Done |
+|---|---|---|---|
+| Secrets in the code, the repository and its history | All 146 commits of every branch and tag, for the shapes of keys and tokens; the tracked files, for anything like a key, a `.env` or local settings | Nothing | — |
+| "Every package the AI installed is the one you meant" | The engine file against the one published on npm | `vendor/phaser-3.70.0.min.js` is byte for byte the published Phaser 3.70.0 | — |
+| Dependency scanning and upgrades | GitHub's advisories; the newest releases | No advisories for 3.70.0. It is from November 2023; the newest of its line is 3.90.0 (May 2025), and Phaser 4 is out | Proposed: try 3.90 on a branch after launch, with every test and a phone. Phaser 4 is a rewrite, not for now |
+| Validation of what is stored, and "a save that survives a damaged field" | Ten damaged saves loaded into the game | Two stopped it: a depth written as text broke the title screen, and a name that was not text broke the profile | `mendSession()` (build 0.28): every field back to its own kind or its first value. A smoke check loads damaged saves |
+| Emoji, accents and right-to-left text in every field | Thirteen names: apostrophes, accents, Arabic, Hebrew, Devanagari, emoji families, flags, combining marks, a direction override, zero-width characters, the widest letters, markup | A direction override could turn a name backwards; three zero-width characters made a blank name that counted as a name; a long run of flags was cut through a flag | The naming form (build 0.28) drops invisible and direction-changing characters, keeps the joiners Indian scripts and emoji need, and counts and cuts whole characters. A smoke check holds them |
+| Deduplication for the user who clicks submit four times | Four presses of Send | One message. Already safe | — |
+| Input sanitization and XSS | Every place player text is shown | Canvas or plain text only; the one place markup is written holds the game's own words | — |
+| Terms and a privacy policy that match what the code does | What the feedback form sends against what it says | It sent the screen size without saying so | The form says so (build 0.28). A privacy paragraph for the itch.io page (`itch-page.md` §3) and a longer one in `SECURITY.md` |
+| A deploy pipeline that runs the tests before anything reaches players | The repository | No automated checks: GitHub Pages publishes `main` as soon as it is merged, and the tests run only on the founder's PC | `.github/workflows/tests.yml`: GitHub runs `check-game` and the smoke test, on the game and on the itch.io folder, on every pull request into `main`. Its machines have no graphics chip (the game ran at 10 frames a second, and 120 of 130 passed: the ten that failed all time movement or animation), so there those ten are set aside (`SMOKE_SLOW_MACHINE`) and count only on the PC |
+| Least privilege for the AI agent holding production credentials | `main`'s protection | `main` is not protected: anyone with push rights, Claude through the founder's login included, could push to the live game directly or force-push over its history | `main` protected: pull requests only, merged only once the tests have passed, no direct push, force-push or deletion, for the founder's own login too |
+| One-click rollback | Tags | Only build 0.21 is tagged | `beta-build-0.23` to `beta-build-0.28` added on their merges; every build merged from now on gets one |
+| Dead code, the 2,000-line file | Every name declared in `game/src` against its uses | No dead code; `loot-scene.js` is 1,999 lines, as `code-architecture.md` §6 already says, left whole on purpose | — |
+| A disclosure process | The repository | No way for a stranger to report a weakness | `SECURITY.md`: report through the Feedback button, starting SECURITY; what is covered; what the game keeps and sends |
+| Backups, and a bus factor above one | Where everything lives | The game's repository is on GitHub; ChatGPT's support files (`support-artifacts/`) are only on the founder's PC, and never pushed by rule | Proposed: a private backup of that folder (a private repository or a drive). The founder asked for its risks first |
+| Accessibility | Small phones (also ChatGPT's audit A-002) | Words of 7 and 8 at 0.8 scale; volume cells 10 by 18 CSS pixels; a 136-by-19 skip button; one label at 4.4 to 1 | Build 0.28: nothing under 9, profile headings at 11, the volume row one finger-high target, the skip button 220 by 34, the muted word lighter (5.1 to 1 on the darkest panel sampled), Overdrive's button larger |
+
+The founder chose the CI run, protecting `main`, the tags, `SECURITY.md` and the privacy note on 2026-10-16 ("go with 4 to 8"), and they were done that day with build 0.28. The backup and the engine upgrade wait on the founder.
+
+Not applicable here: accounts, passwords, MFA, SSO, sessions, roles, tenants, a database and its migrations, payments, tax, webhooks, an API, uploads, email sending of our own, a model at run time.
+

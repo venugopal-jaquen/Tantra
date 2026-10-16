@@ -62,6 +62,8 @@ game is not touched. `tools/find-browser.mjs` says where the browser tools look;
 `CHROME_PATH` to use one they do not find. On a machine with no graphics chip, such as
 the cloud machines Claude works on, the game runs at a few frames a second and the
 checks that time a walk or a fight fail for that alone; the test says so when it starts.
+With `SMOKE_SLOW_MACHINE=1` set, those ten timed checks are printed SLOW and not counted
+when the game runs under 30 frames a second; GitHub's run sets it, the PC never does.
 
 ```bash
 node tools/measure-pictures.mjs
@@ -92,6 +94,18 @@ node tools/smoke-test.mjs "" dist/itch/index.html
 
 GitHub Pages serves the `main` branch: <https://venugopal-jaquen.github.io/Tantra/>.
 Merging to `main` is what changes the live game.
+
+Since 2026-10-16 (the pre-launch security checklist's run of that day):
+
+- GitHub runs the tests on every pull request into `main`: the quick checks and the
+  smoke test, on the game and on the itch.io folder (`.github/workflows/tests.yml`).
+  Its machines have no graphics chip, so the ten checks that time movement count only
+  in the run on the PC, which still comes before every merge.
+- `main` is protected. It takes changes only by pull request, and only once that run
+  has passed. Nobody can push to it directly, force-push over it or delete it.
+- Every build merged is tagged `beta-build-<number>` on its merge, so any one of them can
+  be looked at or put back.
+- `SECURITY.md` says how to report a problem privately, and what the game keeps and sends.
 
 ## Changing it
 

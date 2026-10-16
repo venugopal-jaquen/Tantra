@@ -21,16 +21,16 @@ class SystemsScene extends ScreensScene {
   buildTejasUI() {
     if (this.tejasBtn) return;
     const b = this.viewBounds;
-    this.tejasPos = { x: b.x + 36, y: b.bottom - 36 };
+    this.tejasPos = { x: b.x + 39, y: b.bottom - 39 };
     const { x, y } = this.tejasPos;
-    this.tejasBtn = this.add.circle(x, y, 25, FORGE.deep, 0.62)
+    this.tejasBtn = this.add.circle(x, y, TEJAS_BTN, FORGE.deep, 0.62)
       .setStrokeStyle(2, FORGE.bronze, 0.8).setInteractive({ useHandCursor: true }).setDepth(20);
     this.tejasArc = this.add.graphics().setDepth(21);
     // The button names the power it will give, which follows the weapon in hand (build 0.23;
     // it said the supercharge's own name, and which power came out was a surprise).
     const power = this.tejasForm().name.toUpperCase();
-    this.tejasLabel = this.add.text(x, y - 4, power, { resolution: RES, fontSize: power.length > 6 ? '7px' : '8px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(0.5).setDepth(22);
-    this.tejasPct = this.add.text(x, y + 7, '0%', { resolution: RES, fontSize: '8px', color: '#8a7360' }).setOrigin(0.5).setDepth(22);
+    this.tejasLabel = this.add.text(x, y - 4, power, { resolution: RES, fontSize: power.length > 6 ? '9px' : '10px', color: '#c8a96e', fontStyle: 'bold' }).setOrigin(0.5).setDepth(22);
+    this.tejasPct = this.add.text(x, y + 7, '0%', { resolution: RES, fontSize: '9px', color: '#8a7360' }).setOrigin(0.5).setDepth(22);
     // The sign of the form the weapon gives, over the word.
     this.tejasSign = this.painted ? this.icon(x, y - 13, formIcon(this.player && this.player.weapon ? this.player.weapon.effect : 'none'), 11).setDepth(22) : null;
     if (this.tejasSign) { this.tejasLabel.y = y + 1; this.tejasPct.y = y + 11; }
@@ -108,15 +108,15 @@ class SystemsScene extends ScreensScene {
       if (this.tejasSign.frame.name !== want) this.tejasSign.setFrame(want);
     }
     const power = f.name.toUpperCase();
-    if (this.tejasLabel.text !== power) this.tejasLabel.setText(power).setFontSize(power.length > 6 ? 7 : 8);
+    if (this.tejasLabel.text !== power) this.tejasLabel.setText(power).setFontSize(power.length > 6 ? 9 : 10);
     g.clear();
-    g.lineStyle(4, 0x3a1a08, 0.9); g.strokeCircle(x, y, 25);
+    g.lineStyle(4, 0x3a1a08, 0.9); g.strokeCircle(x, y, TEJAS_BTN);
     g.lineStyle(4, this.tejasActive > 0 ? f.colour : FORGE.gold, 1);
-    g.beginPath(); g.arc(x, y, 25, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2); g.strokePath();
+    g.beginPath(); g.arc(x, y, TEJAS_BTN, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2); g.strokePath();
     if (ready) {                          // ready: the button itself breathes so it is hard to miss
       const pulse = 0.5 + 0.5 * Math.sin(this.time.now / 140);
       this.tejasBtn.setFillStyle(0x5c2a05, 0.75 + 0.25 * pulse);
-      g.lineStyle(2, FORGE.gold, 0.35 + 0.5 * pulse); g.strokeCircle(x, y, 30 + pulse * 4);
+      g.lineStyle(2, FORGE.gold, 0.35 + 0.5 * pulse); g.strokeCircle(x, y, TEJAS_BTN + 5 + pulse * 4);
       this.tejasLabel.setColor('#ffd23c'); this.tejasPct.setText('READY').setColor('#ffd23c');
     } else {
       this.tejasBtn.setFillStyle(FORGE.deep, 0.62);
@@ -512,7 +512,7 @@ class SystemsScene extends ScreensScene {
     t.setY(top + 7);
     const bg = this.add.rectangle(cx, top + h / 2, w, h, FORGE.deep, 0.78).setStrokeStyle(1.5, FORGE.gold, 0.9)
       .setDepth(70).setInteractive();
-    const sub = this.add.text(cx, top + h - 9, 'tap to dismiss', { resolution: RES, fontSize: '8px', color: '#b8a58e' })
+    const sub = this.add.text(cx, top + h - 9, 'tap to dismiss', { resolution: RES, fontSize: '8px', color: '#c4b39c' })
       .setOrigin(0.5).setDepth(71);
     bg.on('pointerdown', () => this.dismissHint());
     this.hintBox = [bg, t, sub];
@@ -678,10 +678,10 @@ class SystemsScene extends ScreensScene {
 
     // The panel goes on whichever side of the subject has more room, and points at it.
     const cx = W / 2, pw = 330, wrap = pw - 40;
-    const head = this.ovText(cx, 0, 'TUTORIAL', { fontSize: '10px', color: '#b8a58e', fontStyle: 'bold' }).setOrigin(0.5, 0);
+    const head = this.ovText(cx, 0, 'TUTORIAL', { fontSize: '10px', color: '#c4b39c', fontStyle: 'bold' }).setOrigin(0.5, 0);
     const title = this.ovText(cx, 0, copy.title, { fontSize: '18px', color: '#ffd23c', fontStyle: 'bold', align: 'center', wordWrap: { width: wrap } }).setOrigin(0.5, 0);
     const body = this.ovText(cx, 0, copy.body, { fontSize: '13px', color: '#f0dcc0', align: 'left', lineSpacing: 4, wordWrap: { width: wrap } }).setOrigin(0.5, 0);
-    const ph = 14 + head.height + 4 + title.height + 8 + body.height + 16 + 40 + 6 + 24 + 10;
+    const ph = 14 + head.height + 4 + title.height + 8 + body.height + 16 + 40 + 8 + 34 + 10;
     const top = Math.min(...spot.holes.map(h => h.y - h.r)), bottom = Math.max(...spot.holes.map(h => h.y + h.r));
     const below = H - 10 - bottom >= top - 10;
     const py = below ? Math.min(H - 10 - ph / 2, bottom + 24 + ph / 2) : Math.max(10 + ph / 2, top - 24 - ph / 2);
@@ -696,7 +696,8 @@ class SystemsScene extends ScreensScene {
     title.setY(y); y += title.height + 8;
     body.setY(y); y += body.height + 16;
     const ok = this.ovButton(cx, y + 20, 210, 40, 'GOT IT', 0x7a3a0a, () => this.closeLesson(), { stroke: FORGE.gold, size: 15, sound: null });
-    const skip = this.ovButton(cx, y + 58, 170, 24, 'skip the tutorial', 0x2a0f04, () => this.closeLesson(true), { size: 10, color: '#c8a96e', sound: null });
+    // 220 by 34, words of 12 (build 0.28; it was 170 by 24 with words of 10: ChatGPT's audit A-002).
+    const skip = this.ovButton(cx, y + 65, 220, 34, 'skip the tutorial', 0x2a0f04, () => this.closeLesson(true), { size: 12, color: '#c8a96e', sound: null });
     this.lessonPanel = { top: pt, bottom: pt + ph, holeTop: top, holeBottom: bottom, holes: spot.holes.length, ok: ok.bg, skip: skip.bg, ring, labels: [ok.t, skip.t] };
     this.breatheLesson();
   }

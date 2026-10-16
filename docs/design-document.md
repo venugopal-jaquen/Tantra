@@ -50,14 +50,14 @@ Work agreed in principle and not to be started on a date, but when a stated cond
 
 ## 1.2 Launch track — itch.io POC (added 2026-09-27)
 
-**Where the launch stands, 2026-10-16 (read this first; everything below it keeps its history).** The game is **Sevenwell**. The release is made from **Version Beta** (§1.2.0): `main` is build **0.26** (live on GitHub Pages, PR 32); build **0.27** (one lane for announcements, Power's swell kept clear) is on `release-prep`, waiting for the founder's word. Built and live: L1 the name, L3 How to play, L4 and L12 the tutorial, L6 pause and settings, L7 the loading screen, L10 feedback (the alias, confirmed received 2026-10-15), L11 the security pass, L13 free rides, L14 the cast, L15 wide screens.
+**Where the launch stands, 2026-10-16 (read this first; everything below it keeps its history).** The game is **Sevenwell**. The release is made from **Version Beta** (§1.2.0): `main` is build **0.28** (small phones, damaged saves, names; live on GitHub Pages, PR 34, merged 2026-10-16 after 0.27's announcement lane in PR 33). Since 0.28, GitHub runs the tests on every pull request, `main` takes only pull requests that pass them, and every merged build is tagged (README, "Where it is live"). Built and live: L1 the name, L3 How to play, L4 and L12 the tutorial, L6 pause and settings, L7 the loading screen, L10 feedback (the alias, confirmed received 2026-10-15), L11 the security pass, L13 free rides, L14 the cast, L15 wide screens.
 
 | Stage | Items | State on 2026-10-16 |
 |---|---|---|
 | Waiting for the founder's eye on a phone | L12 the tutorial, L13 free rides, the pickup rule and Overdrive's button (0.23) | Played by the bot and the tests only |
 | Waiting on the founder | L8 a mid-range Android; L9 creating the itch.io draft page | Everything for the page is ready (`itch-page.md`): zip, five screenshots, GIF and cover from 0.25 |
 | Agreed plan for release (2026-10-14) | L9: an itch.io draft page shared by link with five outside players (P11), then public | The founder creates the page |
-| Open from ChatGPT's audit of 2026-10-15 | A-002: small type and small tap areas on a 320-wide phone (profile headings, the tight boon slots, the volume steps, the tutorial's skip) | Proposed, not decided |
+| Proposed on 2026-10-16, not decided | Automated tests on every pull request, protecting `main`, a tag for every build, a `SECURITY.md`, a privacy note for the store page, a backup of ChatGPT's support files, Phaser 3.90 after launch (`pre-launch-security-checklist.md`, last section) | The founder's call |
 | Parallel, not in the release | L16 / Version Gamma, ChatGPT's Modern Relic build in its own repository | 0.26-gamma passed Claude's full review on 2026-10-15; the founder compares it with Beta |
 
 Founder call, 2026-09-27: gameplay is ~99% done for the POC. That meets the condition P1 and P3 were waiting on ("mechanics final"), so both move from pinned to **due**. What stands between the current build and an itch.io page, in order:
