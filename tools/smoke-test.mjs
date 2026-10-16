@@ -1458,6 +1458,108 @@ try {
   check('names keep whole characters and lose invisible ones; a damaged save still opens the title and the profile; the volume row is one target; no word under 9',
     Object.values(tough.names).every(v => v === true) && tough.saves.every(r => r === 'ok') && tough.volume.rowTall && tough.volume.sets && tough.small.length === 0, JSON.stringify(tough));
 
+  // A level's end (requirements 2.6, build 0.30). When a level boss or The Thirst fell and
+  // a summon of his died in the second before the choice, that death counted as a cleared
+  // wave: the next wave came on, a second boss with it, and he followed the hero down
+  // (found by ChatGPT in Gamma, 2026-10-16). Each way a level can end is played out on a
+  // level boss and on The Thirst, through the real wave clear that brings the boss on.
+  const ends = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms));
+    const until = async (f, ms) => { for (let t = 0; t < ms && !f(); t += 50) await wait(50); return f(); };
+    const keep = JSON.stringify(session);
+    session.lessonsOff = true;
+    const own = s.spawnSectorBoss;
+    let spawns = 0;
+    s.spawnSectorBoss = function (...a) { spawns++; return own.apply(this, a); };
+    const out = {};
+    // A run at the boss wave of a level: the fifth wave is cleared the real way, so the boss
+    // comes through nextWave as in play. His anchors are put down first and he is kept still.
+    const toBoss = async sector => {
+      s.closeOverlay(); s.startRun(); spawns = 0;
+      s.player.iframes = 1e9; s.sector = sector; s.setFloor(sector, true); s.wave = 5; s.spawnQueue = [];
+      s.spawnEnemyOfType('melee', 100, 300, 1);
+      while (s.enemies.length) s.killEnemy(s.enemies[0]);
+      await until(() => s.enemies.some(e => e.isSectorBoss), 2000);
+      const boss = s.enemies.find(e => e.isSectorBoss);
+      s.enemies.filter(e => e.isKeyAdd).forEach(e => s.killEnemy(e));
+      boss.slamTimer = boss.summonTimer = 1e9; boss.shieldOn = false; boss.bossPhase = 'active';
+      return boss;
+    };
+    const summon = boss => { const m = s.spawnEnemyOfType('melee', boss.x + 70, boss.y, s.depth, false); m.summonedBy = boss.id; m.speed = 0; return m; };
+    const mark = () => ({ boons: s.boonQueue.length, wins: session.wins || 0, kind: JSON.stringify(session.records.bosses) });
+    const settle = async (m0, boss) => {
+      const shown = await until(() => s.state === 'sectorChoice', 4000);
+      await wait(300);
+      const r = { shown, spawns, wave: s.wave, standing: s.enemies.filter(e => e.isSectorBoss).length,
+        extraBoons: s.boonQueue.length - m0.boons, wins: (session.wins || 0) - m0.wins };
+      s.descend();
+      r.down = { sector: s.sector, wave: s.wave, ghosts: s.enemies.filter(e => e.isSectorBoss || e.summonedBy === boss.id).length };
+      return r;
+    };
+    for (const sector of [1, 3]) {
+      const name = sector === 3 ? 'thirst' : 'level';
+      // 1. the boss first, his last summon a tenth of a second later
+      let boss = await toBoss(sector), m = summon(boss), m0 = mark();
+      s.killEnemy(boss); await wait(100); s.killEnemy(m);
+      out[name + 'BossFirst'] = await settle(m0, boss);
+      // 2. the summon first, then the boss
+      boss = await toBoss(sector); m = summon(boss); m0 = mark();
+      s.killEnemy(m); s.killEnemy(boss);
+      out[name + 'SummonFirst'] = await settle(m0, boss);
+      // 3. one blow takes both in the same frame, the boss first
+      boss = await toBoss(sector); m = summon(boss); m0 = mark();
+      [boss, m].forEach(e => s.damageEnemy(e, 1e9));
+      out[name + 'SameFrame'] = await settle(m0, boss);
+      // 4. poison finishes the last summon after the boss has fallen
+      boss = await toBoss(sector); m = summon(boss); m0 = mark();
+      s.killEnemy(boss); m.hp = 1; m.poison = { dmgPerTick: 1e6, ticksLeft: 1, tickTimer: 300 };
+      out[name + 'Poison'] = await settle(m0, boss);
+      out[name + 'Poison'].poisoned = !s.enemies.includes(m);
+      // 5. paused straight after the boss falls, the summon killed meanwhile: nothing moves on
+      //    while paused, and the choice comes after
+      boss = await toBoss(sector); m = summon(boss); m0 = mark();
+      s.killEnemy(boss); s.pauseGame(); s.killEnemy(m); await wait(1500);
+      const held = { state: s.state, spawns };
+      s.resumeGame();
+      out[name + 'Paused'] = Object.assign(await settle(m0, boss), { held });
+      // 6. a boon picked in the second after the boss falls
+      boss = await toBoss(sector); m = summon(boss); s.queueBoon(); m0 = mark();
+      s.killEnemy(boss); s.openBoons(); s.killEnemy(m); await wait(600);
+      const picking = s.state;
+      s.closeBoons();
+      out[name + 'Boon'] = Object.assign(await settle(m0, boss), { picking });
+    }
+    // 7. a wave due in a level that has ended never comes in the next
+    s.closeOverlay(); s.startRun(); s.player.iframes = 1e9; s.wave = 5; s.spawnQueue = [];
+    s.spawnEnemyOfType('melee', 100, 300, 1);
+    while (s.enemies.length) s.killEnemy(s.enemies[0]);
+    s.descend(); spawns = 0; await wait(900);
+    out.staleWave = { wave: s.wave, sector: s.sector, spawns };
+    // 8. the choice a fallen boss was owed never opens in a run begun since
+    const boss8 = await toBoss(3);
+    s.killEnemy(boss8); s.abandonRun(); s.startRun(); s.player.iframes = 1e9; await wait(1600);
+    out.staleChoice = { state: s.state, wave: s.wave, sector: s.sector };
+    // 9. surfacing after The Thirst falls, his summon killed in the second between: one win
+    const boss9 = await toBoss(3), m9 = summon(boss9), w9 = mark();
+    s.killEnemy(boss9); await wait(100); s.killEnemy(m9);
+    await until(() => s.state === 'sectorChoice', 4000); s.endRun(true);
+    out.surfaced = { state: s.state, wins: (session.wins || 0) - w9.wins, spawns };
+    s.spawnSectorBoss = own;
+    if (s.state === 'playing') s.abandonRun();
+    Object.assign(session, JSON.parse(keep)); saveSession();
+    return out;`);
+  const level = k => { const r = ends['level' + k]; return r && r.shown && r.spawns === 1 && r.wave === 6 && r.standing === 0 && r.extraBoons === 0 && r.wins === 0 && r.down.sector === 2 && r.down.wave === 1 && r.down.ghosts === 0; };
+  const thirst = k => { const r = ends['thirst' + k]; return r && r.shown && r.spawns === 1 && r.wave === 6 && r.standing === 0 && r.extraBoons === 0 && r.wins === 1 && r.down.sector === 4 && r.down.wave === 1 && r.down.ghosts === 0; };
+  // spawns/wave/standing/extra boons/wins/ghosts, for each scenario named
+  const brief = ks => JSON.stringify(Object.fromEntries(ks.flatMap(k => ['level', 'thirst'].map(w => { const r = ends[w + k] || {}; return [w + k, [r.spawns, r.wave, r.standing, r.extraBoons, r.wins, r.down && r.down.ghosts].join('/')]; }))));
+  check('a boss who falls before his last summon (a tenth of a second before, in the same blow, or with poison to finish it) ends the level: one boss, no wave after him, no ordinary boon, one win for The Thirst, and nothing of his follows the hero down',
+    ['BossFirst', 'SameFrame', 'Poison'].every(k => level(k) && thirst(k)) && ends.levelPoison.poisoned && ends.thirstPoison.poisoned, brief(['BossFirst', 'SameFrame', 'Poison']));
+  check('a summon that falls before its boss: one boss, one choice, nothing left behind', level('SummonFirst') && thirst('SummonFirst'), brief(['SummonFirst']));
+  check('paused, or choosing a boon, in the second after a boss falls: nothing moves on meanwhile and the choice comes after', ['Paused', 'Boon'].every(k => level(k) && thirst(k))
+    && ends.levelPaused.held.state === 'paused' && ends.levelPaused.held.spawns === 1 && ends.thirstPaused.held.spawns === 1 && ends.levelBoon.picking === 'boon', brief(['Paused', 'Boon']));
+  check('a wave due in a level that has ended never comes in the next; the choice a fallen boss was owed never opens in a run begun since; surfacing after The Thirst counts one win',
+    ends.staleWave.wave === 1 && ends.staleWave.sector === 2 && ends.staleWave.spawns === 0 && ends.staleChoice.state === 'playing' && ends.staleChoice.wave === 1
+    && ends.surfaced.state === 'summary' && ends.surfaced.wins === 1 && ends.surfaced.spawns === 1, JSON.stringify({ staleWave: ends.staleWave, staleChoice: ends.staleChoice, surfaced: ends.surfaced }));
+
   // After a lost picture (requirements 2.55): the page restarts itself once the browser gives
   // the graphics back, the loading screen says why and fits a small phone, the save is kept,
   // and a second loss within the minute is left alone rather than restarting again and again.
