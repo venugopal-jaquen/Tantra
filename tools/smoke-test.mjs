@@ -254,9 +254,9 @@ try {
     s.pointerTarget = null; s.killEnemy(foe2); s.player.iframes = was;
     out.onTheMove = { walking, striking, steps: steps.size };
     return out;`);
-  check('the hero strikes with every attack, turned to what he strikes at, and rests when there is nothing to strike',
+  timed('the hero strikes with every attack, turned to what he strikes at, and rests when there is nothing to strike',
     acts.hero.cells.length >= 3 && acts.hero.rows.split(',').includes(String(acts.hero.right)) && acts.rests, JSON.stringify(acts));
-  check('on the move the hero jabs and his legs keep walking: walk cells at least twice as often as strike cells',
+  timed('on the move the hero jabs and his legs keep walking: walk cells at least twice as often as strike cells',
     acts.onTheMove.striking > 0 && acts.onTheMove.walking >= 2 * acts.onTheMove.striking && acts.onTheMove.steps >= 4, JSON.stringify(acts.onTheMove));
   timed('the hero and his enemies step through their walk frames, and stand when they stop', legs.standing === 0 && legs.kiran.steps >= 5 && legs.kiran.rows === String(legs.right) && legs.stopped === 0
     && legs.asura.steps >= 4 && legs.asuraStopped === 0, JSON.stringify(legs));
@@ -644,10 +644,13 @@ try {
   const fell = await page(`const s = game.scene.keys.LootScene; s.sector = 2; s.runGold = 100; s.endRun(false); return ${texts};`);
   check('falling says how close you came', /You fell in The Drowned Steps, level 2 of 3/.test(fell) && /The Thirst waits one level below/.test(fell), fell);
   await sleep(250); await shot('5c-fell');
+  // After a level boss falls the choice comes a second later by the game's own clock, which
+  // on a slow machine (GitHub's, at 8 frames a second) runs behind the wall clock: so each
+  // check below waits for the choice itself, up to 8 seconds, rather than a fixed time.
   const paid = await page(`const s = game.scene.keys.LootScene; ${press};
     s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; s.wave = 6;
     const b = s.spawnSectorBoss(); b.tribute = 10; const loot0 = s.pickups.length; s.killEnemy(b); const items = s.pickups.length - loot0;
-    await new Promise(r => setTimeout(r, 1400));
+    for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     const label = () => (s.uiObjects.find(o => o.type === 'Text' && /boon/i.test(o.text)) || {}).text;
     const out = { items, state: s.state, queued: s.boonQueue.length, button: label(), glass: !!(s.frostRT.ui && s.frostRT.ui.visible) };
     s.openBoons(); out.pick = { state: s.state, head: s.overlay.filter(o => o.type === 'Text')[0].text };
@@ -660,7 +663,7 @@ try {
   const won = await page(`const s = game.scene.keys.LootScene; ${press};
     s.startRun(); s.spawnQueue = []; s.player.iframes = 1e9; s.sector = 3; s.wave = 6; s.runGold = 300; s.setFloor(3);
     s.killEnemy(s.spawnSectorBoss());
-    await new Promise(r => setTimeout(r, 1400));
+    for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     return { state: s.state, water: session.water, wins: session.wins, depths: session.depthsWon, perks: Object.keys(session.perks).sort().join(), panel: ${texts} };`);
   check('slaying the final boss wins the run and the depth', won.state === 'sectorChoice' && won.water === 5 && won.wins === 1 && won.depths === 1 && won.perks === 'eye,scale'
     && /THE WATERS RETURN/.test(won.panel) && /Depth 1 is won\. Depth 2 opens: Swift\./.test(won.panel) && /Perk earned: Serpent's Scale/.test(won.panel), JSON.stringify(won).replace(/\\n/g, ' '));
@@ -704,7 +707,7 @@ try {
   // Depths: a depth already won pays no water; the next one is harder and pays more.
   const deep = await page(`const s = game.scene.keys.LootScene, wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
     const a = s.spawnEnemyOfType('melee', 100, 300, 1), slow = a.speed; s.killEnemy(a);
-    const v = s.enemies.find(e => e.isMega); s.killEnemy(v); await wait(1400);
+    const v = s.enemies.find(e => e.isMega); s.killEnemy(v); for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     out.again = { water: session.water, depths: session.depthsWon, panel: ${texts} };
     ${press}; ${press}; await wait(200);
     session.depthPick = 0; s.showHub();
@@ -713,14 +716,14 @@ try {
     const quick = s.spawnEnemyOfType('melee', 100, 300, 1); s.killEnemy(quick);
     s.runGold = 0; s.addGold(100);
     out.two = { tier: s.tier, hud: s.hudText.text, banner: (s.banner || []).map(t => t.text).join(' | '), faster: Math.round(100 * quick.speed / slow), gold: s.runGold, heal: s.clearHeal(), every: s.convergeEvery() };
-    s.sector = 3; s.wave = 6; s.setFloor(3); s.killEnemy(s.spawnSectorBoss()); await wait(1400);
+    s.sector = 3; s.wave = 6; s.setFloor(3); s.killEnemy(s.spawnSectorBoss()); for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     out.won = { water: session.water, depths: session.depthsWon, perks: Object.keys(session.perks).sort().join(), worn: session.perksOn.join(), panel: ${texts} };
     ${press}; ${press}; await wait(200);
     s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.wave = 6;
     out.three = { tier: s.tier, heal: s.clearHeal(), hard: [sectorHpMult(1), sectorDmgMult(1)] };
-    s.killEnemy(s.spawnSectorBoss()); await wait(1300);
+    s.killEnemy(s.spawnSectorBoss()); for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     out.three.water = session.water; out.three.best = session.depthBest;
-    s.descend(); s.spawnQueue = [{}]; s.spawnTimer = 1e9; s.player.iframes = 1e9; s.wave = 6; s.sector = 1; s.killEnemy(s.spawnSectorBoss()); await wait(1300);
+    s.descend(); s.spawnQueue = [{}]; s.spawnTimer = 1e9; s.player.iframes = 1e9; s.wave = 6; s.sector = 1; s.killEnemy(s.spawnSectorBoss()); for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     out.three.again = (s.uiObjects.find(o => o.type === 'Text' && /water/.test(o.text)) || {}).text; out.three.waterAfter = session.water;
     s.endRun(false); ${press}; await wait(200);
     session.depthPick = 1; s.showHub(); out.back = ${texts};
@@ -888,12 +891,12 @@ try {
     settings.tips = keep.tips; session.hintsSeen = keep.seen; session.lessonsOff = keep.off; session.bestSector = keep.best; session.gateTaught = keep.taught; session.slamTaught = keep.slam; saveSession(); saveSettings();
     s.endRun(false); ${press}; await wait(150);
     return out;`);
-  check('a lesson freezes the fight, is pinned to the screen, and its panel sits clear of what it points at', lessons.move && lessons.frozen && lessons.pinned && lessons.fits, JSON.stringify(lessons));
+  timed('a lesson freezes the fight, is pinned to the screen, and its panel sits clear of what it points at', lessons.move && lessons.frozen && lessons.pinned && lessons.fits, JSON.stringify(lessons));
   timed('a lesson ignores a tap already on its way, then one tap carries on', lessons.early === 'lesson' && lessons.resumed, JSON.stringify(lessons));
-  check('lessons keep a few seconds apart, and the other tips never stop the fight', lessons.waits && lessons.loot && lessons.quiet, JSON.stringify(lessons));
-  check('the boss timer, the slam and the + button each get a lesson; the slam taught takes twice as long', lessons.core && lessons.breath && lessons.slam && lessons.grace && lessons.lit && lessons.boon, JSON.stringify(lessons));
-  check('skipping turns the five into corner tips; How to play arms them again; Settings and the bot switch them off', lessons.skipped && lessons.fallback && lessons.replay && lessons.off && lessons.bot, JSON.stringify(lessons));
-  check('a replayed slam lesson does not slow the slam a second time', lessons.again && lessons.once, JSON.stringify(lessons));
+  timed('lessons keep a few seconds apart, and the other tips never stop the fight', lessons.waits && lessons.loot && lessons.quiet, JSON.stringify(lessons));
+  timed('the boss timer, the slam and the + button each get a lesson; the slam taught takes twice as long', lessons.core && lessons.breath && lessons.slam && lessons.grace && lessons.lit && lessons.boon, JSON.stringify(lessons));
+  timed('skipping turns the five into corner tips; How to play arms them again; Settings and the bot switch them off', lessons.skipped && lessons.fallback && lessons.replay && lessons.off && lessons.bot, JSON.stringify(lessons));
+  timed('a replayed slam lesson does not slow the slam a second time', lessons.again && lessons.once, JSON.stringify(lessons));
 
   // Free rides (requirements 2.36): the runner is run down, and a boss kept alive stops paying.
   const rides = await page(`const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
@@ -960,7 +963,7 @@ try {
     return out;`);
   timed('a runner is run down: after six seconds of running with nothing attacked the pack sprints while he runs, walks while he stands, and stops when it catches him',
     rides.idle && rides.begun && rides.pace === 270 && rides.sprint > 230 && rides.sprint < 310 && rides.walk < 15 && rides.still && rides.again > 230 && rides.caught, JSON.stringify(rides));
-  check('fighting is never running: a blow struck clears the count, heading for the nearest enemy does not start a chase, and Hexers and bosses do not count',
+  timed('fighting is never running: a blow struck clears the count, heading for the nearest enemy does not start a chase, and Hexers and bosses do not count',
     rides.fights && rides.toward && rides.hexer, JSON.stringify(rides));
   check('tribute pays for as long as a boss lives, and past the gold boon his summons grow 12% tougher and harder-hitting and 4% faster for every five, without end',
     rides.milk.light && rides.milk.heavy && rides.milk.pays && rides.milk.label === rides.milk.want
@@ -994,7 +997,7 @@ try {
     head = s.overlay.filter(o => o.type === 'Text');
     out.long = { name: session.nickname.length, right: Math.round(head[0].x + head[0].width), font: parseInt(head[0].style.fontSize, 10) };
     s.closeOverlay(); session.nickname = 'Ravi the Bold'; saveSession();
-    session.depthPick = 1; s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.sector = 3; s.wave = 6; s.setFloor(3); s.killEnemy(s.spawnSectorBoss()); await wait(1400);
+    session.depthPick = 1; s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.sector = 3; s.wave = 6; s.setFloor(3); s.killEnemy(s.spawnSectorBoss()); for (let i = 0; i < 160 && s.state !== 'sectorChoice'; i++) await new Promise(r => setTimeout(r, 50));
     out.victory = ${texts};
     ${press}; ${press}; await wait(200); session.depthPick = 0; saveSession(); s.showHub();
     return out;`);
@@ -1454,6 +1457,32 @@ try {
     return out;`);
   check('names keep whole characters and lose invisible ones; a damaged save still opens the title and the profile; the volume row is one target; no word under 9',
     Object.values(tough.names).every(v => v === true) && tough.saves.every(r => r === 'ok') && tough.volume.rowTall && tough.volume.sets && tough.small.length === 0, JSON.stringify(tough));
+
+  // After a lost picture (requirements 2.55): the page restarts itself once the browser gives
+  // the graphics back, the loading screen says why and fits a small phone, the save is kept,
+  // and a second loss within the minute is left alone rather than restarting again and again.
+  const restart = { gl: false };
+  restart.saved = await page(`return STORE.read(SAVE_KEY);`);
+  restart.gl = await page(`const gl = game.renderer.gl, x = gl && gl.getExtension('WEBGL_lose_context'); if (!x) return false;
+    x.loseContext(); setTimeout(() => x.restoreContext(), 400); return true;`);
+  for (let i = 0; i < 80 && restart.gl && !restart.back; i++) {
+    await sleep(250);
+    try { restart.back = await page(`return performance.getEntriesByType('navigation')[0].type === 'reload' && typeof Loader !== 'undefined' && Loader.state === 'ready' && window.game && game.renderer && game.renderer.gl
+      ? { note: document.getElementById('ldr-note').hidden ? '' : document.getElementById('ldr-note').textContent, kept: STORE.read(SAVE_KEY) } : null;`); } catch { /* between the two pages */ }
+  }
+  if (restart.back) {
+    await send('Emulation.setDeviceMetricsOverride', { width: 320, height: 568, deviceScaleFactor: 2, mobile: false });
+    await sleep(350);
+    restart.fit = await page(`const r = [...document.getElementById('loader').children].map(c => c.getBoundingClientRect()), n = document.getElementById('ldr-note').getBoundingClientRect();
+      return { top: Math.round(Math.min(...r.map(b => b.top))), bottom: Math.round(Math.max(...r.map(b => b.bottom))), vh: innerHeight, noteW: Math.round(n.width), vw: innerWidth };`);
+    await shot('9-restarted');
+    await send('Emulation.setDeviceMetricsOverride', { width: 420, height: 740, deviceScaleFactor: 2, mobile: false });
+    try { restart.stays = await page(`window.__stay = 1; const x = game.renderer.gl.getExtension('WEBGL_lose_context'); x.loseContext();
+      await new Promise(r => setTimeout(r, 300)); x.restoreContext(); await new Promise(r => setTimeout(r, 3000)); return window.__stay === 1;`); } catch { restart.stays = false; }
+  }
+  check('when the device takes the graphics back, the page restarts itself, says why on the loading screen and keeps the save; not twice in a minute',
+    restart.gl && !!restart.back && /started again/.test(restart.back.note) && restart.back.kept === restart.saved && restart.fit.top >= 0 && restart.fit.bottom <= restart.fit.vh
+    && restart.fit.noteW > 0 && restart.fit.noteW <= restart.fit.vw && restart.stays === true, JSON.stringify(Object.assign({}, restart, { saved: !!restart.saved, back: restart.back && { note: restart.back.note, kept: restart.back.kept === restart.saved } })));
 
   const urls = [...asked.values()].filter(u => u !== BOT && !/^(data|blob|about):/.test(u));
   const outside = urls.filter(u => !u.startsWith('file:'));

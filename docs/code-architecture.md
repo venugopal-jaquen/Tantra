@@ -32,7 +32,7 @@ owns. Read the header first.
 | 3 | `rules.js` | Every number and table the game is played by |
 | 4 | `calculations.js` | Sums that need no screen: prices, banking, boon sums, healing |
 | 5 | `persistence.js` | The save and the settings; `STORE`, the one door to storage |
-| 6 | `loader.js` | The loading screen (plain DOM) |
+| 6 | `loader.js` | The loading screen (plain DOM), and the page restarting itself after lost graphics (2.55) |
 | 7 | `dialogs.js` | The feedback and naming forms (plain DOM) |
 | | *the engine, `vendor/phaser-3.70.0.min.js`* | |
 | 8 | `audio.js` | Sound effects' table, music player (music is off) |

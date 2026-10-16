@@ -162,6 +162,7 @@
     height: 100%; width: 0; transition: width .25s ease;
     background: linear-gradient(90deg, var(--tamra) 0%, var(--tamra) 26%, var(--rajat) 46%, var(--rajat) 60%, var(--swarna) 82%, #ffe9a0 100%) 0 0 / 21em 100% no-repeat;
   }
+  .ldr-note { margin: 0 0 .2em; font-size: .78em; line-height: 1.35; color: #f0dcc0; }    /* after a restart (2.55) */
   .bar-label { font-size: .72em; letter-spacing: .18em; text-transform: uppercase; color: var(--bronze); }
   .begin {
     display: none; font-family: "Yatra One", "Baloo 2", serif; font-size: 1.5em; line-height: 1;
