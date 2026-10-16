@@ -5,8 +5,11 @@
 #
 # The same commands as on the PC (README, "Checking it"): the quick checks, the smoke test
 # in a muted headless Chrome, then both again on the folder tools/build-itch.py makes for
-# itch.io. No packages are installed. Each action is pinned to the commit of its release,
-# so a moved tag cannot change what runs here.
+# itch.io. GitHub's machines have no graphics chip and run the game at about 10 frames a
+# second, so the smoke test is told (SMOKE_SLOW_MACHINE) to set aside the ten checks that
+# time a walk, a sound or an animation; those count on the PC. No packages are installed.
+# Each action is pinned to the commit of its release, so a moved tag cannot change what
+# runs here.
 name: tests
 
 on:
@@ -26,7 +29,9 @@ concurrency:
 jobs:
   tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
+    env:
+      SMOKE_SLOW_MACHINE: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1        # v7.0.1
         with:
