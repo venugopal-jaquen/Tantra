@@ -891,12 +891,12 @@ try {
     settings.tips = keep.tips; session.hintsSeen = keep.seen; session.lessonsOff = keep.off; session.bestSector = keep.best; session.gateTaught = keep.taught; session.slamTaught = keep.slam; saveSession(); saveSettings();
     s.endRun(false); ${press}; await wait(150);
     return out;`);
-  check('a lesson freezes the fight, is pinned to the screen, and its panel sits clear of what it points at', lessons.move && lessons.frozen && lessons.pinned && lessons.fits, JSON.stringify(lessons));
+  timed('a lesson freezes the fight, is pinned to the screen, and its panel sits clear of what it points at', lessons.move && lessons.frozen && lessons.pinned && lessons.fits, JSON.stringify(lessons));
   timed('a lesson ignores a tap already on its way, then one tap carries on', lessons.early === 'lesson' && lessons.resumed, JSON.stringify(lessons));
-  check('lessons keep a few seconds apart, and the other tips never stop the fight', lessons.waits && lessons.loot && lessons.quiet, JSON.stringify(lessons));
-  check('the boss timer, the slam and the + button each get a lesson; the slam taught takes twice as long', lessons.core && lessons.breath && lessons.slam && lessons.grace && lessons.lit && lessons.boon, JSON.stringify(lessons));
+  timed('lessons keep a few seconds apart, and the other tips never stop the fight', lessons.waits && lessons.loot && lessons.quiet, JSON.stringify(lessons));
+  timed('the boss timer, the slam and the + button each get a lesson; the slam taught takes twice as long', lessons.core && lessons.breath && lessons.slam && lessons.grace && lessons.lit && lessons.boon, JSON.stringify(lessons));
   timed('skipping turns the five into corner tips; How to play arms them again; Settings and the bot switch them off', lessons.skipped && lessons.fallback && lessons.replay && lessons.off && lessons.bot, JSON.stringify(lessons));
-  check('a replayed slam lesson does not slow the slam a second time', lessons.again && lessons.once, JSON.stringify(lessons));
+  timed('a replayed slam lesson does not slow the slam a second time', lessons.again && lessons.once, JSON.stringify(lessons));
 
   // Free rides (requirements 2.36): the runner is run down, and a boss kept alive stops paying.
   const rides = await page(`const s = game.scene.keys.LootScene, out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
