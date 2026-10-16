@@ -288,13 +288,14 @@ try {
     p.trinket = null; s.takeLoot({ type: 'trinket', effect: 'swift', rarity: 'common', name: 'Copper Swift Sandals', speedBonus: 10 }, false);
     out.emptyFilled = !!p.trinket && p.trinket.effect === 'swift';
     s.inventory = Array.from({ length: INV_MAX }, (_, i) => like(silver, { rarity: i ? 'epic' : 'rare', name: 'kept ' + i }));
-    const weak = like(silver, { rarity: 'common', name: 'weakest' }); s.takeLoot(weak, false);
-    out.fullDropsWeakest = s.inventory.length === INV_MAX && !s.inventory.includes(weak) && s.inventory.some(i => i.name === 'kept 0');
+    const weak = like(silver, { rarity: 'common', name: 'weakest' }), g0 = s.runGold; s.takeLoot(weak, false);
+    out.fullSellsWeakest = s.inventory.length === INV_MAX && !s.inventory.includes(weak) && s.inventory.some(i => i.name === 'kept 0')
+      && weak.sold === Math.round(SALVAGE.common * (1 + s.depth * 0.1)) && s.runGold - g0 >= weak.sold;
     s.pauseGame('satchel'); out.seenClearsMark = !s.satchelNew && !s.satchelDot.visible; s.resumeGame();
     p.weapon = keep.w; p.trinket = keep.t; s.inventory = keep.inv; p.maxHp = keep.max; p.hp = keep.hp; s.refreshSatchel();
     if (!keep.unlocked) { s.destroyTejasUI(); session.tejasUnlocked = false; }
     return out;`);
-  check('a drop is worn when it has more Power, whatever its kind, else kept in the satchel with a mark; a full satchel drops its weakest; the Overdrive button names the power of the weapon held',
+  check('a drop is worn when it has more Power, whatever its kind, else kept in the satchel with a mark; a full satchel sells its weakest for Hoard; the Overdrive button names the power of the weapon held',
     Object.values(pickup).every(v => v === true), JSON.stringify(pickup));
 
   // Boons that run out (build 0.31): with every boon taken, a boon earned is paid in Hoard
@@ -714,8 +715,20 @@ try {
   const gate = await page(`const s = game.scene.keys.LootScene; session.gateTaught = false; session.depthPick = 1;
     const hold = e => { e.slamTimer = 1e9; e.speed = 0; e.summonTimer = 1e9; return e; }, wait = ms => new Promise(r => setTimeout(r, ms));
     s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.dismissHint();
+    // On the first depth no boss resists (build 0.31): not the Gatekeeper out of his phase, not
+    // The Thirst's first stage, which still turns to its shield at 55%; and nothing is taught.
+    const d1 = hold(s.spawnGatekeeper()); d1.weakPhase = PHASE_SEQUENCE.find(p => p !== s.phase);
+    s.sector = 3; const m1 = hold(s.spawnSectorBoss()); m1.weakPhase = d1.weakPhase; s.sector = 1;
+    await wait(300);
+    const h1 = m1.hp; s.damageEnemy(m1, 100);
+    const depth1 = { tier: s.tier, gate: s.weakScale(d1), label: !!(d1.gateLabel && d1.gateLabel.visible), taught: session.gateTaught,
+      core: (s.lessonWait || []).includes('core') || (s.hintQueue || []).some(q => q.id === 'core') || s.lessonShown === 'core', thirst: s.weakScale(m1), took: Math.round(h1 - m1.hp) };
+    m1.hp = m1.maxHp * 0.56; s.damageEnemy(m1, m1.maxHp * 0.1); depth1.shield = m1.shieldOn === true;
+    s.clearStragglers(); ${FREEZE}
+    // From the second depth he does, and the first who does arrives open.
+    s.tier = 2;
     const first = hold(s.spawnGatekeeper());
-    const out = { tier: s.tier, firstOpen: first.weakPhase === s.phase, taught: session.gateTaught, held: s.phaseTimeLeft >= 8000, full: s.weakScale(first) };
+    const out = { depth1, tier: s.tier, firstOpen: first.weakPhase === s.phase, taught: session.gateTaught, held: s.phaseTimeLeft >= 8000, full: s.weakScale(first) };
     await wait(300);
     out.openLabel = first.gateLabel.text;
     first.weakPhase = PHASE_SEQUENCE.find(p => p !== s.phase);
@@ -729,8 +742,11 @@ try {
     { const vs = s.enemySprites.get(v.id);
       out.serpent = { figure: vs.visible && !!vs.walks && vs.texture.key === CHARS.megaboss + '-walk', tall: Math.round((vs.baseSY || vs.scaleY) * ART[CHARS.megaboss].cell), wants: Math.round(v.radius / HIT * 2.8 * ART[CHARS.megaboss].scale * ART[CHARS.megaboss].cell / ART[CHARS.megaboss].still),
         label: v.gateLabel.text, steel: vs.isTinted, drawnByCode: !!v.serpent }; }
+    s.tier = 1;
     return out;`);
-  check('the first Gatekeeper a player meets arrives open, and stays open a while', gate.tier === 1 && gate.firstOpen && gate.taught && gate.held && gate.full === 1 && /^VULNERABLE  \d+s$/.test(gate.openLabel), JSON.stringify(gate));
+  check('on the first depth no boss resists and nothing about it is taught; The Thirst still turns to his shield at 55%', gate.depth1.tier === 1 && gate.depth1.gate === 1 && !gate.depth1.label
+    && !gate.depth1.taught && !gate.depth1.core && gate.depth1.thirst === 1 && gate.depth1.took === 100 && gate.depth1.shield, JSON.stringify(gate.depth1));
+  check('from the second depth, the first Gatekeeper who resists arrives open, and stays open a while', gate.tier === 2 && gate.firstOpen && gate.taught && gate.held && gate.full === 1 && /^VULNERABLE  \d+s$/.test(gate.openLabel), JSON.stringify(gate));
   check('a resisting boss says so, counts down, and takes 30% on level 1 and 12% below', /^RESISTS  \u00B7  opens in \d+s$/.test(gate.closedLabel) && gate.grey && gate.level1 === 30 && gate.level2 === 12, JSON.stringify(gate));
   check("Vritra is the founder's picture of him, a figure like the others, with the same tell", gate.serpent.figure && gate.serpent.tall === gate.serpent.wants && gate.serpent.tall > 200 && !gate.serpent.drawnByCode && gate.serpent.steel && /^RESISTS/.test(gate.serpent.label), JSON.stringify(gate.serpent));
   await shot('5f-serpent');
@@ -1403,13 +1419,14 @@ try {
     out.brood = { n: brood.length, kind: brood.every(e => e.char === CHARS.splitter), named: brood.every(e => e.nameLabel.text === N.enemies.splitter),
       thrown: brood.every(e => !!e.hatch), apart: brood.length === 2 && Math.abs(brood[0].x - brood[1].x) >= 22, pieces: cut() - uncut };
     const g = hold(s.spawnSectorBoss()), anchors = s.enemies.filter(e => e.isKeyAdd); anchors.forEach(hold);  // the Hoard Guardian under his dome
+    const tierWas = s.tier; s.tier = 2;                    // bosses resist from the second depth (build 0.31)
     const k = hold(s.spawnGatekeeper()); k.x = b.x + 60; k.y = b.bottom - 60; k.weakPhase = PHASE_SEQUENCE.find(p => p !== s.phase);
     await wait(500);
     out.elite = { glow: !!el.gilt && el.gilt.blendMode === Phaser.BlendModes.ADD && el.gilt.frame.name === s.enemySprites.get(el.id).frame.name, ring: drawn(el.giltRing), plain: plain(el) };
     out.dome = { on: g.shieldOn, drawn: drawn(g.domeFx) && drawn(g.floorFx), inFront: g.domeFx.depth > s.enemySprites.get(g.id).depth, anchors: anchors.length,
       gilded: anchors.every(a => !!a.gilt && plain(a)), named: anchors.every(a => a.nameLabel.text === 'ANCHOR') };
     const hp = g.hp; s.damageEnemy(g, 50); out.dome.holds = g.hp === hp && g.domeHit > 0;
-    out.gate = { plates: drawn(k.floorFx), steel: s.enemySprites.get(k.id).tintTopLeft === 0x8d94a6 };
+    out.gate = { plates: drawn(k.floorFx), steel: s.enemySprites.get(k.id).tintTopLeft === 0x8d94a6 }; s.tier = tierWas;
     out.brood.landed = brood.every(e => !e.hatch); out.brood.piecesGone = cut() === uncut;
     anchors.forEach(a => s.killEnemy(a)); await wait(250);
     out.dome.broken = !g.shieldOn && !drawn(g.domeFx) && drawn(g.floorFx) && anchors.every(a => !a.gilt);

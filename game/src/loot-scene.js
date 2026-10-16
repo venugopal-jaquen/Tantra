@@ -522,7 +522,10 @@ class LootScene extends SystemsScene {
   }
 
   // Bosses with an exposed weak core take full damage only in the matching phase.
-  bossGated(e) { return !!e.isBoss && (!e.isSectorBoss || e.bossPhase === 'timing'); }
+  // Whether a boss resists outside his own phase. Not on the first depth of the well (the
+  // founder, 2026-10-17, build 0.31): a first descent has no boss to wait out, and the rule
+  // is met, and taught, from the second.
+  bossGated(e) { return !!e.isBoss && this.tier > 1 && (!e.isSectorBoss || e.bossPhase === 'timing'); }
   weakScale(e) {
     return this.bossGated(e) && this.phase !== e.weakPhase ? (this.sector === 1 ? BOSS_RESIST.first : BOSS_RESIST.deeper) : 1;
   }
@@ -978,7 +981,7 @@ class LootScene extends SystemsScene {
     // The first Gatekeeper a player ever meets arrives open, and stays open for a good
     // while: they see what full damage looks like, then watch it fall away when the phase
     // turns. A rule learnt by contrast needs no reading.
-    if (!session.gateTaught) {
+    if (!session.gateTaught && this.tier > 1) {           // the first who resists: depth 2 and below
       weakPhase = this.inConvergence ? this.savedPhase : this.phase;
       if (!this.inConvergence) this.phaseTimeLeft = Math.max(this.phaseTimeLeft, 8000);
       session.gateTaught = true; saveSession();
@@ -1002,7 +1005,7 @@ class LootScene extends SystemsScene {
     this.enemySprites.set(enemy.id, this.charSprite(enemy.char, x, y, this.stockSize(enemy)));
     this.addHpBar(enemy);
     this.addNameLabel(enemy);
-    this.hint('core', `${N.enemies.gatekeeper} resists most of your damage outside his own phase. The timer over his head counts down to when he opens.`);
+    if (this.bossGated(enemy)) this.hint('core', `${N.enemies.gatekeeper} resists most of your damage outside his own phase. The timer over his head counts down to when he opens.`);
     return enemy;
   }
 
