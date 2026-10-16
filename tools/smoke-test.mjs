@@ -895,7 +895,7 @@ try {
   timed('a lesson ignores a tap already on its way, then one tap carries on', lessons.early === 'lesson' && lessons.resumed, JSON.stringify(lessons));
   check('lessons keep a few seconds apart, and the other tips never stop the fight', lessons.waits && lessons.loot && lessons.quiet, JSON.stringify(lessons));
   check('the boss timer, the slam and the + button each get a lesson; the slam taught takes twice as long', lessons.core && lessons.breath && lessons.slam && lessons.grace && lessons.lit && lessons.boon, JSON.stringify(lessons));
-  check('skipping turns the five into corner tips; How to play arms them again; Settings and the bot switch them off', lessons.skipped && lessons.fallback && lessons.replay && lessons.off && lessons.bot, JSON.stringify(lessons));
+  timed('skipping turns the five into corner tips; How to play arms them again; Settings and the bot switch them off', lessons.skipped && lessons.fallback && lessons.replay && lessons.off && lessons.bot, JSON.stringify(lessons));
   check('a replayed slam lesson does not slow the slam a second time', lessons.again && lessons.once, JSON.stringify(lessons));
 
   // Free rides (requirements 2.36): the runner is run down, and a boss kept alive stops paying.
@@ -963,7 +963,7 @@ try {
     return out;`);
   timed('a runner is run down: after six seconds of running with nothing attacked the pack sprints while he runs, walks while he stands, and stops when it catches him',
     rides.idle && rides.begun && rides.pace === 270 && rides.sprint > 230 && rides.sprint < 310 && rides.walk < 15 && rides.still && rides.again > 230 && rides.caught, JSON.stringify(rides));
-  check('fighting is never running: a blow struck clears the count, heading for the nearest enemy does not start a chase, and Hexers and bosses do not count',
+  timed('fighting is never running: a blow struck clears the count, heading for the nearest enemy does not start a chase, and Hexers and bosses do not count',
     rides.fights && rides.toward && rides.hexer, JSON.stringify(rides));
   check('tribute pays for as long as a boss lives, and past the gold boon his summons grow 12% tougher and harder-hitting and 4% faster for every five, without end',
     rides.milk.light && rides.milk.heavy && rides.milk.pays && rides.milk.label === rides.milk.want

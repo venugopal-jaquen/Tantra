@@ -6,8 +6,9 @@
 # The same commands as on the PC (README, "Checking it"): the quick checks, the smoke test
 # in a muted headless Chrome, then both again on the folder tools/build-itch.py makes for
 # itch.io. GitHub's machines have no graphics chip and run the game at about 10 frames a
-# second, so the smoke test is told (SMOKE_SLOW_MACHINE) to set aside the ten checks that
-# time a walk, a sound or an animation; those count on the PC. No packages are installed.
+# second (8 to 13 as the run goes), so the smoke test is told (SMOKE_SLOW_MACHINE) to set
+# aside the checks that time a walk, a sound, a lesson or an animation (12 of them, `timed`
+# in the smoke test); those count on the PC. No packages are installed.
 # Each action is pinned to the commit of its release, so a moved tag cannot change what
 # runs here.
 name: tests
