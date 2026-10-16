@@ -1338,7 +1338,7 @@ class LootScene extends SystemsScene {
       item = {
         type: 'trinket', rarity, effect: effectKey,
         name: `${r.label} ${TRINKET_EFFECTS[effectKey].label}`,
-        hpBonus: effectKey === 'vitality' ? 20 * r.mult : 0,
+        hpBonus: effectKey === 'vitality' ? levelHealth(20 * r.mult, this.sector) : 0,
         rechargeMs: effectKey === 'aegis' ? Math.round(10000 / r.mult) : 0,
         reflectPct: effectKey === 'thorns' ? Math.min(0.6, 0.2 * r.mult) : 0,
         speedBonus: effectKey === 'swift' ? Math.round(25 * r.mult) : 0,

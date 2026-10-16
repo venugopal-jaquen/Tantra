@@ -276,11 +276,15 @@ try {
     out.worseStored = p.weapon === silver && s.inventory.length === 1 && s.satchelNew && s.satchelDot.visible;
     session.tejasUnlocked = true; s.buildTejasUI(); s.drawTejasMeter();
     const label = s.tejasLabel.text;
-    s.takeLoot(like(silver, { effect: 'chain', rarity: 'epic', shots: 3, name: 'Gold Storm Disc' }), false);
-    out.otherKept = p.weapon === silver && s.inventory.length === 2 && s.tejasForm() === TEJAS_FORMS.venom;
+    // a stronger weapon of another kind is worn (build 0.31), and Overdrive follows it
+    s.takeLoot(like(silver, { effect: 'chain', rarity: 'epic', shots: 3, name: 'Gold Storm Disc' }), false); s.drawTejasMeter();
+    out.strongerOtherWorn = p.weapon.effect === 'chain' && s.inventory.length === 2 && s.inventory.includes(silver) && s.tejasLabel.text === TEJAS_FORMS.chain.name.toUpperCase();
     out.buttonSays = label === TEJAS_FORMS.venom.name.toUpperCase();
-    s.equipFromSatchel(s.inventory.findIndex(i => i.effect === 'chain')); s.drawTejasMeter();
-    out.followsWeapon = p.weapon.effect === 'chain' && s.tejasLabel.text === TEJAS_FORMS.chain.name.toUpperCase();
+    // a weaker one of another kind is kept
+    const gold = p.weapon; s.takeLoot(like(silver, { effect: 'vampiric', rarity: 'common', shots: 1, name: 'Copper Blood Blade' }), false);
+    out.weakerOtherKept = p.weapon === gold && s.inventory.length === 3;
+    s.equipFromSatchel(s.inventory.indexOf(silver)); s.drawTejasMeter();
+    out.followsWeapon = p.weapon.effect === 'venom' && s.tejasLabel.text === TEJAS_FORMS.venom.name.toUpperCase();
     p.trinket = null; s.takeLoot({ type: 'trinket', effect: 'swift', rarity: 'common', name: 'Copper Swift Sandals', speedBonus: 10 }, false);
     out.emptyFilled = !!p.trinket && p.trinket.effect === 'swift';
     s.inventory = Array.from({ length: INV_MAX }, (_, i) => like(silver, { rarity: i ? 'epic' : 'rare', name: 'kept ' + i }));
@@ -290,8 +294,35 @@ try {
     p.weapon = keep.w; p.trinket = keep.t; s.inventory = keep.inv; p.maxHp = keep.max; p.hp = keep.hp; s.refreshSatchel();
     if (!keep.unlocked) { s.destroyTejasUI(); session.tejasUnlocked = false; }
     return out;`);
-  check('a drop is worn only when plainly better, else kept in the satchel with a mark; a full satchel drops its weakest; the Overdrive button names the power of the weapon held',
+  check('a drop is worn when it has more Power, whatever its kind, else kept in the satchel with a mark; a full satchel drops its weakest; the Overdrive button names the power of the weapon held',
     Object.values(pickup).every(v => v === true), JSON.stringify(pickup));
+
+  // Boons that run out (build 0.31): with every boon taken, a boon earned is paid in Hoard
+  // and the + button does not count it; boons left waiting past what can be offered are
+  // paid for when the pick opens. And health that keeps pace with the level: a Life Gem
+  // dropped on level 4, and the Iron card on level 3.
+  const spent = await page(`const s = game.scene.keys.LootScene, out = {};
+    const keep = { boons: Object.assign({}, s.boons), queue: s.boonQueue.slice(), sector: s.sector, gold: s.runGold };
+    Object.keys(BOONS).forEach(k => { s.boons[k] = BOONS[k].max; });
+    s.boonQueue = []; s.refreshBoonButton(); s.runGold = 0;
+    s.queueBoon(); out.none = { queued: s.boonQueue.length, paid: s.runGold > 0, left: s.boonsLeft() };
+    s.boons = {}; s.boonQueue = []; s.queueBoon(); s.queueBoon();
+    Object.keys(BOONS).forEach(k => { s.boons[k] = BOONS[k].max; });
+    const before = s.runGold; s.openBoons();
+    out.waiting = { queued: s.boonQueue.length, paid: s.runGold > before, state: s.state };
+    s.boons = {}; s.sector = 3; s.boonQueue = [{ tribute: 0, offer: ['iron', 'keen', 'quick'] }]; s.openBoons();
+    out.ironCard = (s.overlay.find(o => o.type === 'Text' && /max health/.test(o.text)) || {}).text;
+    s.closeBoons(); s.boonQueue = [];
+    s.sector = 4; const before2 = s.pickups.length;
+    for (let i = 0; i < 40 && !s.pickups.slice(before2).some(pk => pk.item && pk.item.effect === 'vitality'); i++) s.spawnLootPickup(s.player.x + 120, s.player.y, 'epic');
+    const gem = s.pickups.slice(before2).map(pk => pk.item).find(it => it && it.effect === 'vitality');
+    out.gem = gem ? gem.hpBonus : null;
+    s.pickups.slice(before2).forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); }); s.pickups.length = before2;
+    s.boons = keep.boons; s.boonQueue = keep.queue; s.sector = keep.sector; s.runGold = keep.gold; s.refreshBoonButton();
+    return out;`);
+  check('with every boon taken a boon earned is paid in Hoard and never counted; a Life Gem on level 4 gives 84 health, the Iron card on level 3 offers 30',
+    spent.none.queued === 0 && spent.none.paid && spent.none.left === 0 && spent.waiting.queued === 0 && spent.waiting.paid && spent.waiting.state === 'playing'
+    && /^\+30 max health/.test(spent.ironCard || '') && spent.gem === 84, JSON.stringify(spent));
 
   // The satchel pauses the fight, says what each item does, and swaps on a tap.
   const satchel = await page(`const s = game.scene.keys.LootScene;

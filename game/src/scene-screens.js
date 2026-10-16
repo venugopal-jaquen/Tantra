@@ -63,7 +63,7 @@ class ScreensScene extends FxScene {
       this.ov(this.icon(left + 26, y, boonIcon(key), 34), 102);
       this.ovText(left + 54, y - 37, N.boons[key][0], { fontSize: '15px', color: '#fffbef', fontStyle: 'bold' });
       this.ovText(left + 314, y - 34, N.metals[b.metal].toUpperCase(), { fontSize: '9px', color: '#' + col.toString(16).padStart(6, '0'), fontStyle: 'bold' }).setOrigin(1, 0);
-      this.ovText(left + 54, y - 14, b.desc, { fontSize: '12px', color: '#f0dcc0', lineSpacing: 1, wordWrap: { width: 252 } });
+      this.ovText(left + 54, y - 14, this.boonDesc(key), { fontSize: '12px', color: '#f0dcc0', lineSpacing: 1, wordWrap: { width: 252 } });
       this.ovText(left + 54, y + 24, this.boonNote(key), { fontSize: '10px', color: '#c8a96e' });
     });
 

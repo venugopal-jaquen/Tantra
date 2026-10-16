@@ -229,11 +229,7 @@ class SystemsScene extends ScreensScene {
   // left to offer falls back to any boon that still applies.
   drawBoons(allGold) {
     const odds = BOON_ODDS[Math.min(this.sector, 3)];
-    const fits = key => {
-      const b = BOONS[key];
-      return this.boonRank(key) < b.max && !(b.not && this.boonRank(b.not))
-        && !(b.weapon && this.player.weapon.effect !== b.weapon) && !(b.tejas && !session.tejasUnlocked);
-    };
+    const fits = key => this.boonFits(key);
     const offer = [];
     for (let i = 0; i < 3; i++) {
       const pool = Object.keys(BOONS).filter(k => fits(k) && !offer.includes(k));
@@ -254,7 +250,35 @@ class SystemsScene extends ScreensScene {
   // player opens the picks when they choose to - Dota's "level up when you like" - and
   // only then does the fight pause. The founder: "the number of pauses when boon
   // selection is needed just turned me off from the game."
+  // Whether a boon can still be offered: ranks left, not barred by its opposite, its weapon
+  // in hand, Overdrive open.
+  boonFits(key) {
+    const b = BOONS[key];
+    return this.boonRank(key) < b.max && !(b.not && this.boonRank(b.not))
+      && !(b.weapon && this.player.weapon.effect !== b.weapon) && !(b.tejas && !session.tejasUnlocked);
+  }
+
+  // Ranks still to be had, among the boons that can be offered now.
+  boonsLeft() {
+    return Object.keys(BOONS).reduce((n, k) => n + (this.boonFits(k) ? BOONS[k].max - this.boonRank(k) : 0), 0);
+  }
+
+  // What the card says: the Iron boon names the health it gives on this level.
+  boonDesc(key) {
+    return key === 'iron' ? `+${levelHealth(BOONS.iron.n, this.sector)} max health, and heals as much now` : BOONS[key].desc;
+  }
+
+  // Every boon taken, or none that fits (build 0.31): a boon earned is paid in Hoard instead,
+  // the wave's own clear gold over again, so the + button never counts boons that cannot be
+  // offered (the founder found it counting on in a long run, 2026-10-17).
+  payForBoon(n = 1) {
+    const each = 15 + this.depth * 4;
+    this.addGold(each * n);
+    this.showToast(`EVERY BOON IS YOURS  ·  +${each * n} ${N.currency.toUpperCase()}`, '#ffd23c');
+  }
+
   queueBoon(tribute = 0) {
+    if (this.boonsLeft() <= this.boonQueue.length) { this.payForBoon(); return; }
     this.boonQueue.push({ tribute, offer: null });
     this.refreshBoonButton(true);
     this.sfx('loot-rajat', { vol: 0.7 });
@@ -309,6 +333,14 @@ class SystemsScene extends ScreensScene {
   // after a level it simply lies over it.
   openBoons() {
     if (!this.boonQueue || !this.boonQueue.length || (this.state !== 'playing' && this.state !== 'sectorChoice')) return;
+    // Boons waiting beyond what can still be offered (a weapon changed since) are paid for.
+    const over = this.boonQueue.length - this.boonsLeft();
+    if (over > 0) {
+      this.boonQueue.splice(this.boonQueue.length - over, over);
+      this.payForBoon(over);
+      this.refreshBoonButton();
+      if (!this.boonQueue.length) return;
+    }
     this.boonReturn = this.state;
     if (this.state === 'playing') { this.pointerTarget = null; this.time.paused = true; this.tweens.pauseAll(); }
     this.state = 'boon';
@@ -340,7 +372,7 @@ class SystemsScene extends ScreensScene {
     if (this.state !== 'boon' || !this.boonQueue.length) return;
     if (key) {
       this.boons[key] = this.boonRank(key) + 1;
-      if (key === 'iron') { this.player.maxHp += BOONS.iron.n; this.player.hp = Math.min(this.player.maxHp, this.player.hp + BOONS.iron.n); }
+      if (key === 'iron') { const n = levelHealth(BOONS.iron.n, this.sector); this.player.maxHp += n; this.player.hp = Math.min(this.player.maxHp, this.player.hp + n); }
       this.sfx(LOOT_SFX[BOONS[key].metal]);
     }
     this.boonQueue.shift();

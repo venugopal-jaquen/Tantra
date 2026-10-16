@@ -182,7 +182,7 @@ const BOONS = {
   quick:       { metal: 'common', max: 3, n: 0.12, desc: 'Attacks 12% faster' },
   reach:       { metal: 'common', max: 3, n: 20,   desc: '+20 attack range' },
   feet:        { metal: 'common', max: 3, n: 20,   desc: '+20 move speed' },
-  iron:        { metal: 'common', max: 3, n: 20,   desc: '+20 max health, and heals 20 now' },
+  iron:        { metal: 'common', max: 3, n: 20,   desc: '+20 max health and heals as much; more on deeper levels' },
   hide:        { metal: 'common', max: 3, n: 0.08, desc: 'Take 8% less damage' },
   ground:      { metal: 'rare', max: 1, n: 0.35, not: 'run', desc: '+35% damage while you stand still' },
   run:         { metal: 'rare', max: 1, n: 0.25, not: 'ground', desc: 'Attacks 25% faster while you move' },

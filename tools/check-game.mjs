@@ -190,11 +190,15 @@ const B = boons;
 check('an upgrade costs what it always did: 50 and 60 for the first, each level 45% dearer, rounded',
   same([0, 1, 2, 5].map(l => g.get(`upgradeCost('vitalityLevel', ${l})`)), [0, 1, 2, 5].map(l => Math.round(50 * Math.pow(1.45, l)))) && same([0, 1, 4].map(l => g.get(`upgradeCost('powerLevel', ${l})`)), [0, 1, 4].map(l => Math.round(60 * Math.pow(1.45, l)))),
   [0, 1, 2, 5].map(l => g.get(`upgradeCost('vitalityLevel', ${l})`)).join(', '));
-check('a drop is worn at once only when plainly better: an empty slot, or the same item with more Power (build 0.23)',
+check('a drop is worn at once when the slot is empty or it has more Power, whatever its kind (build 0.31); Life Gems and the Iron boon grow 22% a level',
   g.get(`plainlyBetter({ type: 'trinket', effect: 'aegis', rarity: 'common' }, null)`) === true
   && g.get(`plainlyBetter({ type: 'weapon', effect: 'venom', rarity: 'rare', shots: 1 }, { type: 'weapon', effect: 'venom', rarity: 'common', shots: 1 })`) === true
   && g.get(`plainlyBetter({ type: 'weapon', effect: 'venom', rarity: 'common', shots: 1 }, { type: 'weapon', effect: 'venom', rarity: 'rare', shots: 1 })`) === false
-  && g.get(`plainlyBetter({ type: 'weapon', effect: 'chain', rarity: 'epic', shots: 3 }, { type: 'weapon', effect: 'venom', rarity: 'common', shots: 1 })`) === false
+  && g.get(`plainlyBetter({ type: 'weapon', effect: 'chain', rarity: 'epic', shots: 3 }, { type: 'weapon', effect: 'venom', rarity: 'common', shots: 1 })`) === true
+  && g.get(`plainlyBetter({ type: 'weapon', effect: 'chain', rarity: 'common', shots: 1 }, { type: 'weapon', effect: 'venom', rarity: 'rare', shots: 1 })`) === false
+  && g.get(`plainlyBetter({ type: 'trinket', effect: 'aegis', rarity: 'epic' }, { type: 'trinket', effect: 'vitality', rarity: 'common' })`) === true
+  && g.get(`plainlyBetter({ type: 'trinket', effect: 'aegis', rarity: 'epic' }, { type: 'weapon', effect: 'none', rarity: 'common', shots: 1 })`) === false
+  && g.get(`levelHealth(20, 1)`) === 20 && g.get(`levelHealth(20, 3)`) === 30 && g.get(`levelHealth(46, 4)`) === 84
   && g.get(`plainlyBetter({ type: 'weapon', effect: 'none', rarity: 'common', shots: 2 }, { type: 'weapon', effect: 'none', rarity: 'common', shots: 1 })`) === true
   && g.get(`plainlyBetter({ type: 'trinket', effect: 'swift', rarity: 'common' }, { type: 'trinket', effect: 'swift', rarity: 'common' })`) === false);
 check('a death or an abandoned run keeps half the Nidhi, rounded down; a win or an extraction keeps all', g.get('bankedGold(241, false)') === 120 && g.get('bankedGold(1, false)') === 0 && g.get('bankedGold(241, true)') === 241);
