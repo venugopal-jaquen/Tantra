@@ -62,7 +62,7 @@ game is not touched. `tools/find-browser.mjs` says where the browser tools look;
 `CHROME_PATH` to use one they do not find. On a machine with no graphics chip, such as
 the cloud machines Claude works on, the game runs at a few frames a second and the
 checks that time a walk or a fight fail for that alone; the test says so when it starts.
-With `SMOKE_SLOW_MACHINE=1` set, those timed checks (12) are printed SLOW and not counted
+With `SMOKE_SLOW_MACHINE=1` set, those timed checks (14) are printed SLOW and not counted
 when the game runs under 30 frames a second; GitHub's run sets it, the PC never does.
 
 ```bash
@@ -99,7 +99,7 @@ Since 2026-10-16 (the pre-launch security checklist's run of that day):
 
 - GitHub runs the tests on every pull request into `main`: the quick checks and the
   smoke test, on the game and on the itch.io folder (`.github/workflows/tests.yml`).
-  Its machines have no graphics chip, so the twelve checks that time movement count only
+  Its machines have no graphics chip, so the fourteen checks that time movement count only
   in the run on the PC, which still comes before every merge.
 - `main` is protected. It takes changes only by pull request, and only once that run
   has passed. Nobody can push to it directly, force-push over it or delete it.

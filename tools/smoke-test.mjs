@@ -254,9 +254,9 @@ try {
     s.pointerTarget = null; s.killEnemy(foe2); s.player.iframes = was;
     out.onTheMove = { walking, striking, steps: steps.size };
     return out;`);
-  check('the hero strikes with every attack, turned to what he strikes at, and rests when there is nothing to strike',
+  timed('the hero strikes with every attack, turned to what he strikes at, and rests when there is nothing to strike',
     acts.hero.cells.length >= 3 && acts.hero.rows.split(',').includes(String(acts.hero.right)) && acts.rests, JSON.stringify(acts));
-  check('on the move the hero jabs and his legs keep walking: walk cells at least twice as often as strike cells',
+  timed('on the move the hero jabs and his legs keep walking: walk cells at least twice as often as strike cells',
     acts.onTheMove.striking > 0 && acts.onTheMove.walking >= 2 * acts.onTheMove.striking && acts.onTheMove.steps >= 4, JSON.stringify(acts.onTheMove));
   timed('the hero and his enemies step through their walk frames, and stand when they stop', legs.standing === 0 && legs.kiran.steps >= 5 && legs.kiran.rows === String(legs.right) && legs.stopped === 0
     && legs.asura.steps >= 4 && legs.asuraStopped === 0, JSON.stringify(legs));
