@@ -115,6 +115,18 @@ festival in the morning and evening; the plan's 10:00 and 11:00 slots are for th
 
 One rule all day: **answer every comment, thank every player, argue with no one.**
 
+### Right after the launch: the repository goes private
+
+Decided by the founder on 2026-10-16: the first thing after the launch on itch.io.
+
+1. **Choose how to keep the test link working:** GitHub Pro (about $4 a month), or host the test link elsewhere for free (Cloudflare Pages or Netlify). Pro also keeps `main`'s protection; elsewhere, Claude keeps the PR-and-tests routine by hand. Founder's choice.
+2. **Founder:** Settings, General, Danger Zone, Change visibility, Make private. Or say the word and Claude runs `gh repo edit --visibility private`.
+3. **Claude:**
+   - repoint `SECURITY.md` and the README at the new test link;
+   - check that GitHub's tests still run and that `main`'s protection holds (with Pro);
+   - check that the itch.io page is untouched.
+4. The tests use the private allowance of 2,000 minutes a month, about 50 merges.
+
 ### Wednesday 21 to Friday 23 October: the first 72 hours
 
 - [ ] Founder, daily 15 minutes: reply to comments; forward feedback.
