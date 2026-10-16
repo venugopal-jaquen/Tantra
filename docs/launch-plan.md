@@ -1,6 +1,8 @@
 # Sevenwell: the launch plan for Tuesday 20 October 2026
 
-Written 2026-10-16, a Friday: four days out. All times are India time (IST). "Founder",
+Written 2026-10-16, a Friday: four days out. **The date is fixed** (the founder,
+2026-10-16): the 20th is Dussehra, an auspicious day, and a chance to reach Indian players
+on a day about the victory of good over evil. All times are India time (IST). "Founder",
 "Claude" and "ChatGPT" say who does each step. Nothing goes public, and nothing is posted,
 uploaded or merged, without the founder's own word, as always.
 
@@ -35,9 +37,16 @@ uploaded or merged, without the founder's own word, as always.
 | **Store pictures are from 0.25.** Names and screens have changed since | New screenshots, GIF and a vertical clip from 0.30 | Claude |
 | **The itch.io frame** (storage, fullscreen, security policy, feedback relay) is untested | `itch-page.md` §5 on the draft page, on a phone | Founder |
 
-If the Android run or the five players turn up something serious, **move the public day,
-not the quality bar.** A launch on the 22nd loses nothing; a broken first impression on
-the 20th loses the first 72 hours, which are the ones itch.io counts.
+The date stays. So if the Android run or the five players turn up something serious,
+it is fixed by the 19th or the launch goes out without what is unsafe: a feature can wait,
+a run-ending bug cannot.
+
+**The Dussehra angle.** The festival is about good winning over evil, and Sevenwell is a
+hero taking back what a villain stole. Say that in the posts for Indian communities and
+friends ("This Dussehra, go down the well and take the water back"). Keep it to the
+festival's meaning: no gods, no Ravana, no effigies or sacred pictures in the posts, as
+in the game itself (enemies are never revered beings). Indian players are online for the
+festival in the morning and evening; the plan's 10:00 and 11:00 slots are for them.
 
 ## 2. Day by day
 
@@ -127,15 +136,25 @@ One rule all day: **answer every comment, thank every player, argue with no one.
 
 ## 3. Money ("gains")
 
-- **Recommended: name your price, $0 minimum, suggested $2.** Free to play in the
-  browser, and a "support the developer" button for those who want to.
-  - itch.io's cut is the founder's choice (the default is 10%).
-  - Payouts need a PayPal account or bank details, and tax forms. Those are the
-    founder's to fill in; Claude never enters them.
+- **Decided (2026-10-16): free, no payments.** On the page: Pricing, *No payments*.
+  Payment can be added later; see "Can it be downloaded?" below.
 - **Not now:** ads in the game, paid unlocks, a paid download. They cost goodwill and
   rankings at this size and add rules to follow.
 - **Later, if players stay:** a paid "supporter pack" (cosmetics, P12, when they exist),
   and the browser-game portals above.
+
+### Can it be downloaded?
+
+- **On itch.io:** the zip uploaded for playing in the browser is, as far as itch.io's
+  usual behaviour goes, played there and not listed as a download. Check it on the
+  draft page: if a Download button shows, untick the file's download option.
+- **But the game is free anyway, elsewhere.** The whole game, code and pictures, is in
+  the public GitHub repository and playable at the GitHub Pages address. Anyone can copy
+  it today. Any browser game can also be saved from the browser with some effort.
+- **So if a price is ever added,** it should be for something new: a later build, a
+  supporter pack, extra depths. Not for this game. Making the repository private would
+  stop new copies, but it would also stop GitHub Pages on a free plan, which is the
+  test link. That is a decision for later; nothing needs doing before the 20th.
 
 ## 4. How to read the first two weeks
 
