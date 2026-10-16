@@ -1455,6 +1455,32 @@ try {
   check('names keep whole characters and lose invisible ones; a damaged save still opens the title and the profile; the volume row is one target; no word under 9',
     Object.values(tough.names).every(v => v === true) && tough.saves.every(r => r === 'ok') && tough.volume.rowTall && tough.volume.sets && tough.small.length === 0, JSON.stringify(tough));
 
+  // After a lost picture (requirements 2.55): the page restarts itself once the browser gives
+  // the graphics back, the loading screen says why and fits a small phone, the save is kept,
+  // and a second loss within the minute is left alone rather than restarting again and again.
+  const restart = { gl: false };
+  restart.saved = await page(`return STORE.read(SAVE_KEY);`);
+  restart.gl = await page(`const gl = game.renderer.gl, x = gl && gl.getExtension('WEBGL_lose_context'); if (!x) return false;
+    x.loseContext(); setTimeout(() => x.restoreContext(), 400); return true;`);
+  for (let i = 0; i < 80 && restart.gl && !restart.back; i++) {
+    await sleep(250);
+    try { restart.back = await page(`return performance.getEntriesByType('navigation')[0].type === 'reload' && typeof Loader !== 'undefined' && Loader.state === 'ready' && window.game && game.renderer && game.renderer.gl
+      ? { note: document.getElementById('ldr-note').hidden ? '' : document.getElementById('ldr-note').textContent, kept: STORE.read(SAVE_KEY) } : null;`); } catch { /* between the two pages */ }
+  }
+  if (restart.back) {
+    await send('Emulation.setDeviceMetricsOverride', { width: 320, height: 568, deviceScaleFactor: 2, mobile: false });
+    await sleep(350);
+    restart.fit = await page(`const r = [...document.getElementById('loader').children].map(c => c.getBoundingClientRect()), n = document.getElementById('ldr-note').getBoundingClientRect();
+      return { top: Math.round(Math.min(...r.map(b => b.top))), bottom: Math.round(Math.max(...r.map(b => b.bottom))), vh: innerHeight, noteW: Math.round(n.width), vw: innerWidth };`);
+    await shot('9-restarted');
+    await send('Emulation.setDeviceMetricsOverride', { width: 420, height: 740, deviceScaleFactor: 2, mobile: false });
+    try { restart.stays = await page(`window.__stay = 1; const x = game.renderer.gl.getExtension('WEBGL_lose_context'); x.loseContext();
+      await new Promise(r => setTimeout(r, 300)); x.restoreContext(); await new Promise(r => setTimeout(r, 3000)); return window.__stay === 1;`); } catch { restart.stays = false; }
+  }
+  check('when the device takes the graphics back, the page restarts itself, says why on the loading screen and keeps the save; not twice in a minute',
+    restart.gl && !!restart.back && /started again/.test(restart.back.note) && restart.back.kept === restart.saved && restart.fit.top >= 0 && restart.fit.bottom <= restart.fit.vh
+    && restart.fit.noteW > 0 && restart.fit.noteW <= restart.fit.vw && restart.stays === true, JSON.stringify(Object.assign({}, restart, { saved: !!restart.saved, back: restart.back && { note: restart.back.note, kept: restart.back.kept === restart.saved } })));
+
   const urls = [...asked.values()].filter(u => u !== BOT && !/^(data|blob|about):/.test(u));
   const outside = urls.filter(u => !u.startsWith('file:'));
   const kinds = ['.html', '.js', '.woff2', '.png', '.wav'].map(e => e + ' ' + new Set(urls.map(u => u.split('?')[0]).filter(u => u.endsWith(e))).size).join(', ');

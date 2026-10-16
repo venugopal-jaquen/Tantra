@@ -8,7 +8,9 @@
  * State     its own: the bar, the card on show, whether Begin has been pressed.
  *
  * If the engine's own file cannot be fetched, Loader.fail says so (the listener at the end:
- * the page's security policy allows no handler written into the tag).
+ * the page's security policy allows no handler written into the tag). Last in the file: the
+ * page restarting itself when the device takes the game's graphics back, and the note this
+ * screen shows afterwards (requirements 2.55).
  */
 
 // The loading screen. Plain DOM rather than Phaser, so it is on screen before the engine
@@ -133,3 +135,36 @@ window.addEventListener('error', e => {
   const t = e.target;
   if (t && t.tagName === 'SCRIPT' && /vendor\/phaser-/.test(t.src)) Loader.fail('The game engine could not be loaded. Check your connection and reload.');
 }, true);
+
+// After a lost picture (requirements 2.55, build 0.29). A device short of memory may take
+// the game's graphics back, most often while another app is in front (a "lost WebGL
+// context"). This engine, Phaser 3.70, cannot draw its pictures again after that, so the
+// game stayed black until it was reloaded. Now the page reloads itself: as soon as the
+// browser gives the graphics back, or two seconds after the page is in view again without
+// them. What is saved is kept; a run in progress is lost, as on any reload. Not twice in a
+// minute, so a device that cannot keep the graphics at all is not sent round and round.
+// This screen then says why it is showing. Phaser 3.80 and later redraw by themselves:
+// when the engine is upgraded (design-document.md, P15), this can go.
+(() => {
+  const AT = 'sevenwell-restarted-at', SAY = 'sevenwell-restarted', GAP = 60 * 1000;
+  const read = k => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
+  if (read(SAY)) {
+    try { sessionStorage.removeItem(SAY); } catch (e) { /* ignore */ }
+    const note = document.getElementById('ldr-note');
+    note.textContent = "Your device needed the game's memory back, so the game started again. Everything saved is kept.";
+    note.hidden = false;
+  }
+  let lost = false;
+  const restart = () => {
+    if (Date.now() - (+read(AT) || 0) < GAP) return;
+    // Without storage there is no guard against a loop, so no restart either.
+    try { sessionStorage.setItem(AT, String(Date.now())); sessionStorage.setItem(SAY, '1'); } catch (e) { return; }
+    location.reload();
+  };
+  const soon = () => { if (lost && !document.hidden) setTimeout(restart, 2000); };
+  // Caught on the way down, and only for the game's own canvas.
+  const ours = e => window.game && e.target === game.canvas;
+  addEventListener('webglcontextlost', e => { if (ours(e)) { lost = true; soon(); } }, true);
+  addEventListener('webglcontextrestored', e => { if (ours(e)) restart(); }, true);
+  document.addEventListener('visibilitychange', soon);
+})();
