@@ -93,6 +93,16 @@ node tools/smoke-test.mjs "" dist/itch/index.html
 GitHub Pages serves the `main` branch: <https://venugopal-jaquen.github.io/Tantra/>.
 Merging to `main` is what changes the live game.
 
+Since 2026-10-16 (the pre-launch security checklist's run of that day):
+
+- GitHub runs the tests on every pull request into `main`: the quick checks and the
+  smoke test, on the game and on the itch.io folder (`.github/workflows/tests.yml`).
+- `main` is protected. It takes changes only by pull request, and only once that run
+  has passed. Nobody can push to it directly, force-push over it or delete it.
+- Every build merged is tagged `beta-build-<number>` on its merge, so any one of them can
+  be looked at or put back.
+- `SECURITY.md` says how to report a problem privately, and what the game keeps and sends.
+
 ## Changing it
 
 `docs/code-architecture.md` has a table of "to change this, edit that", two worked

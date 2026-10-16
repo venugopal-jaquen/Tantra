@@ -50,7 +50,7 @@ Work agreed in principle and not to be started on a date, but when a stated cond
 
 ## 1.2 Launch track — itch.io POC (added 2026-09-27)
 
-**Where the launch stands, 2026-10-16 (read this first; everything below it keeps its history).** The game is **Sevenwell**. The release is made from **Version Beta** (§1.2.0): `main` is build **0.27** (live on GitHub Pages, PR 33); 0.27 (one lane for announcements, Power's swell kept clear) was merged on 2026-10-16 (PR 33); build **0.28** (small phones, damaged saves, names) is on `release-prep`, waiting for the founder's word. Built and live: L1 the name, L3 How to play, L4 and L12 the tutorial, L6 pause and settings, L7 the loading screen, L10 feedback (the alias, confirmed received 2026-10-15), L11 the security pass, L13 free rides, L14 the cast, L15 wide screens.
+**Where the launch stands, 2026-10-16 (read this first; everything below it keeps its history).** The game is **Sevenwell**. The release is made from **Version Beta** (§1.2.0): `main` is build **0.28** (small phones, damaged saves, names; live on GitHub Pages, PR 34, merged 2026-10-16 after 0.27's announcement lane in PR 33). Since 0.28, GitHub runs the tests on every pull request, `main` takes only pull requests that pass them, and every merged build is tagged (README, "Where it is live"). Built and live: L1 the name, L3 How to play, L4 and L12 the tutorial, L6 pause and settings, L7 the loading screen, L10 feedback (the alias, confirmed received 2026-10-15), L11 the security pass, L13 free rides, L14 the cast, L15 wide screens.
 
 | Stage | Items | State on 2026-10-16 |
 |---|---|---|

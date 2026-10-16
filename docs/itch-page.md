@@ -120,6 +120,11 @@ keeps no Sanskrit word in its default names), no hero's name, nothing sacred.
 > **Controls.** Phone: tap where you want to go, or hold and drag. Computer: click or
 > drag, or use the arrow keys or WASD; Space or E for Overdrive; P or Esc to pause.
 >
+> **Privacy.** No accounts, ads or tracking. Your progress stays in your browser. The
+> Feedback button sends only what you type, with the build, how deep you have been, your
+> screen size and your device type, to the developer by email; a reply address only if
+> you give one.
+>
 > **This is a prototype.** There is no music yet, only sound effects. There is a
 > Feedback button on the title screen and after every run. Every message is read.
 >
@@ -127,7 +132,9 @@ keeps no Sanskrit word in its default names), no hero's name, nothing sacred.
 > own designs, made with ChatGPT; sound effects by Kenney, engine by Phaser.
 
 Two lines above are the founder's to confirm, because they speak for them: "Every
-message is read" and "Made by one person with an AI coding assistant".
+message is read" and "Made by one person with an AI coding assistant". The privacy
+paragraph (2026-10-16, the founder's "go with 4 to 8") says what `dialogs.js` sends and
+nothing more; `SECURITY.md` has the longer form. Change one, change both.
 
 ## 4. The generative AI disclosure
 
