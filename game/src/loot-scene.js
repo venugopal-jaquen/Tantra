@@ -756,6 +756,7 @@ class LootScene extends SystemsScene {
     this.lastWater = 0;        // and by the last boss to fall
     this.bossSlain = false;    // the final boss has fallen this run
     this.wave = 0;
+    this.newLevel();
     this.spawnQueue = [];
     this.spawnTimer = 0;
 
@@ -807,6 +808,7 @@ class LootScene extends SystemsScene {
   }
 
   nextWave() {
+    if (this.levelDone) return;          // the level's boss is down: no wave comes after him (2.6)
     this.wave++;
     this.depth = (this.sector-1)*5 + this.wave;
     this.updateProgressTrack();
@@ -897,6 +899,8 @@ class LootScene extends SystemsScene {
       this.time.delayedCall(1600, () => this.showToast(`${N.supercharge.toUpperCase()} AWAKENS - kill to charge, then unleash`, '#ffd23c'));
     }
     this.wave = 0;
+    this.clearStragglers();
+    this.newLevel();
     this.rerollsLeft = BOON_REROLLS + (this.perkOn('reroll') ? 1 : 0);
     if (this.perkOn('guard')) this.player.guardCharge = 1;
     this.progressNodes.forEach(node => { node.fillColor = 0x2a0f04; });
@@ -1254,6 +1258,12 @@ class LootScene extends SystemsScene {
 
     // Sector/Mega Boss defeat: skip normal wave-clear flow entirely, trigger the Extract/Descend choice instead
     if (enemy.isSectorBoss) {
+      // The level is over the moment he falls, though the choice comes a second later so
+      // that the fall can land. Until then his summons may still be standing; their deaths
+      // must not count as a cleared wave, which would bring on the next wave and, past the
+      // fifth, a second boss (2026-10-16, found by ChatGPT in Gamma; 2.6).
+      this.levelDone = true;
+      const level = this.levelSeq;
       // Beating the sector boss restores part of your health. HP otherwise carries over,
       // and the bot showed players arriving at Sector 2 on 19-45% HP - nobody presses
       // Descend on 20% HP, which is the exact decision 1.6 depends on.
@@ -1275,11 +1285,11 @@ class LootScene extends SystemsScene {
       this.bossRewards(enemy);
       saveSession();
       if (tribute >= this.tributeAt.boon) this.queueBoon(tribute);            // tribute of 10 or more is paid as a boon
-      this.time.delayedCall(1000, () => { if (this.state === 'playing') this.showSectorClearChoice(enemy.isMega); });
+      this.time.delayedCall(1000, () => { if (this.state === 'playing' && this.levelSeq === level) this.showSectorClearChoice(enemy.isMega); });
       return;
     }
 
-    const waveJustCleared = this.enemies.length === 0 && this.spawnQueue.length === 0;
+    const waveJustCleared = !this.levelDone && this.enemies.length === 0 && this.spawnQueue.length === 0;
 
     if (enemy.isBoss) {
       this.spawnLootPickup(enemy.x, enemy.y, 'epic');
@@ -1380,7 +1390,38 @@ class LootScene extends SystemsScene {
     this.addGold(15 + this.depth * 4);
     this.sfx('wave-clear');
     this.queueBoon();
-    this.time.delayedCall(400, () => { if (this.state === 'playing') this.nextWave(); });
+    const level = this.levelSeq;           // a wave due in a level that has since ended never comes
+    this.time.delayedCall(400, () => { if (this.state === 'playing' && this.levelSeq === level) this.nextWave(); });
+  }
+
+  // Each level, the first of a run and every one gone down to, is numbered (levelSeq), so
+  // that a callback a level scheduled can tell it is still that level's; and it is not done
+  // until its boss falls (levelDone). Requirements 2.6, build 0.30.
+  newLevel() {
+    this.levelSeq = (this.levelSeq || 0) + 1;
+    this.levelDone = false;
+  }
+
+  // What is left of a cleared level when the hero goes down: enemies still standing and
+  // bolts still in the air stay behind, unrewarded, so the next level opens with its own
+  // first wave and nothing else. Loot on the floor goes down with him, as it always did.
+  clearStragglers() {
+    if (this.hunted) this.endHunt();
+    this.enemies.forEach(e => {
+      const spr = this.enemySprites.get(e.id);
+      if (spr) spr.destroy();
+      if (e.telegraphGfx) e.telegraphGfx.destroy();
+      this.dropRound(e);
+      if (e.hpBarBg) { e.hpBarBg.destroy(); e.hpBarFill.destroy(); }
+      if (e.shieldBarBg) { e.shieldBarBg.destroy(); e.shieldBarFill.destroy(); }
+      if (e.nameLabel) e.nameLabel.destroy();
+      if (e.gateLabel) e.gateLabel.destroy();
+    });
+    this.enemies = [];
+    this.enemySprites.clear();
+    this.projectiles.forEach(p => { if (p.sprite) p.sprite.destroy(); if (p.halo) p.halo.destroy(); });
+    this.projectiles = [];
+    this.spawnQueue = [];
   }
 
   // ---------- END OF RUN ----------

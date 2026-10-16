@@ -14,7 +14,7 @@
      sit beside the game in vendor/fonts/ with their licences, cut into the same three
      ranges Google Fonts serves, so a browser fetches only the ones a page uses. The
      loader below waits for them, with a timeout. -->
-<link rel="stylesheet" href="styles/game.css?v=0.29">
+<link rel="stylesheet" href="styles/game.css?v=0.30">
 </head>
 <body>
 <div id="loader">
@@ -96,25 +96,25 @@
 <div id="game-container"></div>
 <!-- The game is ordered classic scripts sharing one scope (docs/code-architecture.md). These run before the engine.
      Each carries the build (?v=, BUILD_TAG in src/config.js), so a phone never mixes two builds; change all of them with BUILD. -->
-<script src="src/config.js?v=0.29"></script>
-<script src="src/names.js?v=0.29"></script>
-<script src="src/rules.js?v=0.29"></script>
-<script src="src/calculations.js?v=0.29"></script>
-<script src="src/persistence.js?v=0.29"></script>
-<script src="src/loader.js?v=0.29"></script>
-<script src="src/dialogs.js?v=0.29"></script>
+<script src="src/config.js?v=0.30"></script>
+<script src="src/names.js?v=0.30"></script>
+<script src="src/rules.js?v=0.30"></script>
+<script src="src/calculations.js?v=0.30"></script>
+<script src="src/persistence.js?v=0.30"></script>
+<script src="src/loader.js?v=0.30"></script>
+<script src="src/dialogs.js?v=0.30"></script>
 <!-- The engine: Phaser 3.70.0, the published file, kept beside the game (vendor/phaser-LICENSE.md). -->
 <script src="vendor/phaser-3.70.0.min.js"></script>
 <!-- These need the engine. boot.js starts the one game. -->
-<script src="src/audio.js?v=0.29"></script>
-<script src="src/assets.js?v=0.29"></script>
-<script src="src/ui.js?v=0.29"></script>
-<script src="src/floors.js?v=0.29"></script>
-<script src="src/scene-ui.js?v=0.29"></script>
-<script src="src/scene-fx.js?v=0.29"></script>
-<script src="src/scene-screens.js?v=0.29"></script>
-<script src="src/scene-systems.js?v=0.29"></script>
-<script src="src/loot-scene.js?v=0.29"></script>
-<script src="src/boot.js?v=0.29"></script>
+<script src="src/audio.js?v=0.30"></script>
+<script src="src/assets.js?v=0.30"></script>
+<script src="src/ui.js?v=0.30"></script>
+<script src="src/floors.js?v=0.30"></script>
+<script src="src/scene-ui.js?v=0.30"></script>
+<script src="src/scene-fx.js?v=0.30"></script>
+<script src="src/scene-screens.js?v=0.30"></script>
+<script src="src/scene-systems.js?v=0.30"></script>
+<script src="src/loot-scene.js?v=0.30"></script>
+<script src="src/boot.js?v=0.30"></script>
 </body>
 </html>
