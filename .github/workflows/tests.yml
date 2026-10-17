@@ -29,7 +29,9 @@ concurrency:
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    # Pinned: GitHub moves ubuntu-latest to Ubuntu 26.04 from 19 October 2026 (runner-images
+    # notice of 2026-09-17), the eve of the launch. Move on deliberately, after it.
+    runs-on: ubuntu-24.04
     timeout-minutes: 50
     env:
       SMOKE_SLOW_MACHINE: '1'
