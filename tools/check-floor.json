@@ -1,0 +1,6 @@
+{
+  "about": "The floor under the tests (tools/check-floor.mjs) and the size limit on the game's code (tools/check-game.mjs). Safeguards 1 and 7, the founder's yes of 2026-10-17. Raise a floor when checks are added; lower one only in a pull request that says so on a line starting 'Checks weakened:', approved by the founder. A file listed under 'grown' was past the limit when the limit came in: it may shrink, never grow, until it is split.",
+  "smoke": { "checks": 138, "timed": 18 },
+  "checkGame": { "checks": 31 },
+  "lines": { "limit": 1500, "grown": { "game/src/loot-scene.js": 2042 } }
+}

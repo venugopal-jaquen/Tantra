@@ -123,8 +123,8 @@ keeps no Sanskrit word in its default names), no hero's name, nothing sacred.
 >
 > **Privacy.** No accounts, ads or tracking. Your progress stays in your browser. The
 > Feedback button sends only what you type, with the build, how deep you have been, your
-> screen size and your device type, to the developer by email; a reply address only if
-> you give one.
+> screen size, your device type and any errors the game hit, to the developer by email; a
+> reply address only if you give one.
 >
 > **This is a prototype.** There is no music yet, only sound effects. There is a
 > Feedback button on the title screen and after every run. Every message is read.

@@ -14,7 +14,7 @@
      sit beside the game in vendor/fonts/ with their licences, cut into the same three
      ranges Google Fonts serves, so a browser fetches only the ones a page uses. The
      loader below waits for them, with a timeout. -->
-<link rel="stylesheet" href="styles/game.css?v=0.31">
+<link rel="stylesheet" href="styles/game.css?v=0.33">
 </head>
 <body>
 <div id="loader">
@@ -60,7 +60,7 @@
     <label class="fb-label" for="fb-email">Your email <span>(optional, only if you want a reply)</span></label>
     <input id="fb-email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com">
     <input id="fb-honey" class="fb-honey" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
-    <p class="fb-note" id="fb-note">Sent by email, with your game version, how deep you have got, your screen size and device type. Nothing else.</p>
+    <p class="fb-note" id="fb-note">Sent by email, with your game version, how deep you have got, your screen size, device type and any errors the game hit. Nothing else.</p>
     <div class="fb-actions">
       <button type="button" class="fb-btn fb-cancel" id="fb-cancel">Cancel</button>
       <button type="submit" class="fb-btn fb-send" id="fb-send">Send</button>
@@ -96,25 +96,25 @@
 <div id="game-container"></div>
 <!-- The game is ordered classic scripts sharing one scope (docs/code-architecture.md). These run before the engine.
      Each carries the build (?v=, BUILD_TAG in src/config.js), so a phone never mixes two builds; change all of them with BUILD. -->
-<script src="src/config.js?v=0.31"></script>
-<script src="src/names.js?v=0.31"></script>
-<script src="src/rules.js?v=0.31"></script>
-<script src="src/calculations.js?v=0.31"></script>
-<script src="src/persistence.js?v=0.31"></script>
-<script src="src/loader.js?v=0.31"></script>
-<script src="src/dialogs.js?v=0.31"></script>
+<script src="src/config.js?v=0.33"></script>
+<script src="src/names.js?v=0.33"></script>
+<script src="src/rules.js?v=0.33"></script>
+<script src="src/calculations.js?v=0.33"></script>
+<script src="src/persistence.js?v=0.33"></script>
+<script src="src/loader.js?v=0.33"></script>
+<script src="src/dialogs.js?v=0.33"></script>
 <!-- The engine: Phaser 3.70.0, the published file, kept beside the game (vendor/phaser-LICENSE.md). -->
 <script src="vendor/phaser-3.70.0.min.js"></script>
 <!-- These need the engine. boot.js starts the one game. -->
-<script src="src/audio.js?v=0.31"></script>
-<script src="src/assets.js?v=0.31"></script>
-<script src="src/ui.js?v=0.31"></script>
-<script src="src/floors.js?v=0.31"></script>
-<script src="src/scene-ui.js?v=0.31"></script>
-<script src="src/scene-fx.js?v=0.31"></script>
-<script src="src/scene-screens.js?v=0.31"></script>
-<script src="src/scene-systems.js?v=0.31"></script>
-<script src="src/loot-scene.js?v=0.31"></script>
-<script src="src/boot.js?v=0.31"></script>
+<script src="src/audio.js?v=0.33"></script>
+<script src="src/assets.js?v=0.33"></script>
+<script src="src/ui.js?v=0.33"></script>
+<script src="src/floors.js?v=0.33"></script>
+<script src="src/scene-ui.js?v=0.33"></script>
+<script src="src/scene-fx.js?v=0.33"></script>
+<script src="src/scene-screens.js?v=0.33"></script>
+<script src="src/scene-systems.js?v=0.33"></script>
+<script src="src/loot-scene.js?v=0.33"></script>
+<script src="src/boot.js?v=0.33"></script>
 </body>
 </html>

@@ -52,6 +52,12 @@ jobs:
         run: node tools/check-game.mjs --package dist/itch
       - name: Smoke test on the itch.io folder
         run: node tools/smoke-test.mjs smoke-shots-itch dist/itch/index.html
+      # Safeguard 1: no test may quietly shrink or set aside more checks. The description is
+      # passed in as data, never written into the command.
+      - name: The floor under the tests
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node tools/check-floor.mjs smoke-shots/summary.json smoke-shots-itch/summary.json
       - name: Keep the screenshots when something fails
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
