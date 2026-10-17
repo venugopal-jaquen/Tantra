@@ -30,6 +30,19 @@ let passed = 0, failed = 0;
 const check = (name, ok, detail = '') => { ok ? passed++ : failed++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok && !detail ? '' : '  - ' + detail}`); };
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
+// ---------- the size of the code (safeguard 7, the founder's yes of 2026-10-17) ----------
+// No file of the game's own code past the limit, so a person can still read one through; a
+// file already past it when the limit came in (check-floor.json "grown") may shrink, never grow.
+{
+  const floor = JSON.parse(readFileSync(join(REPO, 'tools', 'check-floor.json'), 'utf8')).lines, over = [];
+  for (const n of readdirSync(join(GAME, 'src')).filter(n => n.endsWith('.js'))) {
+    const text = readFileSync(join(GAME, 'src', n), 'utf8'), lines = text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
+    const limit = Math.max(floor.limit, floor.grown['game/src/' + n] || 0);
+    if (lines > limit) over.push(`${n}: ${lines} lines, its limit is ${limit}`);
+  }
+  check(`no file of the game's code passes ${floor.limit} lines, and none already past it has grown`, over.length === 0, over.join('; '));
+}
+
 // ---------- the page's scripts, in its order ----------
 const html = readFileSync(PAGE, 'utf8');
 const named = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map(m => m[1]);

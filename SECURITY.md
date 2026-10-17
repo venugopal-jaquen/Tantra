@@ -34,8 +34,10 @@ title screen.
 - **Progress** is kept in your browser's local storage on your device. Clearing your
   browser's site data clears it. It is never sent anywhere.
 - **Feedback** sends what you type, and with it the build number, how deep you have been,
-  your screen size and your browser's own description of itself (its user agent), to the
-  developer's inbox through FormSubmit. A reply address goes only if you give one.
+  your screen size, your browser's own description of itself (its user agent) and the last
+  few error messages the game hit, if any (only the error's words and where in the game's
+  files it happened), to the developer's inbox through FormSubmit. A reply address goes
+  only if you give one. Nothing is sent until you press Send.
 - **Nothing else.** No analytics, no tracking, no cookies of the game's own, and nothing
   loaded from another site: the page's security policy refuses it.
 - The sites that serve the game (GitHub Pages, itch.io) keep their own records under

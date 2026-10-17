@@ -1119,6 +1119,20 @@ try {
   check('feedback carries an empty robot field, and a fourth message in ten minutes is held back', fbGuard.honeyHidden && fbGuard.honeyInLast
     && fbGuard.held.posted === 0 && /Try again in a few minutes/.test(fbGuard.held.note), JSON.stringify(fbGuard));
 
+  // The last errors the game hit go with a message (2.57): an error thrown, then a message.
+  const fbErr = await page(`const sent = []; const real = window.fetch;
+    window.fetch = (url, opts) => { sent.push(JSON.parse(opts.body)); return Promise.resolve(new Response(JSON.stringify({ success: 'true' }), { status: 200, headers: { 'Content-Type': 'application/json' } })); };
+    const keep = STORE.read('loot-chase-feedback-sent'); STORE.write('loot-chase-feedback-sent', '[]');
+    setTimeout(() => { throw new Error('smoke probe: an error the game hit'); }, 0); await new Promise(r => setTimeout(r, 120));
+    Feedback.open(); await new Promise(r => setTimeout(r, 120)); const note = document.getElementById('fb-note').textContent;
+    document.getElementById('fb-text').value = 'the errors go with this'; document.getElementById('fb-send').click();
+    await new Promise(r => setTimeout(r, 400));
+    if (keep === null) STORE.write('loot-chase-feedback-sent', '[]'); else STORE.write('loot-chase-feedback-sent', keep);
+    Feedback.close(); window.fetch = real;
+    return { errors: sent[0] ? sent[0].errors : null, note, recent: ErrorLog.recent().length };`);
+  check('feedback carries the last errors the game hit, and its note says so', /smoke probe: an error the game hit/.test(fbErr.errors || '') && /errors the game hit/.test(fbErr.note)
+    && fbErr.recent <= 3, JSON.stringify(fbErr));
+
   // ---------- 6. playtest bot: errors and leaks ----------
   const bot = await page(`
     game.loop.sleep();
@@ -1665,7 +1679,7 @@ try {
   const policy = await page(`const m = document.querySelector('meta[http-equiv="Content-Security-Policy"]'); return m ? m.content : '';`);
   check('the page carries its security policy, and nothing it loads or does is refused by it', /script-src 'self';/.test(policy) && /connect-src 'self' https:\/\/formsubmit\.co\/ajax\/;/.test(policy)
     && blocked.length === 0, blocked.slice(0, 4).join(' | ') || policy.slice(0, 80));
-  const real = problems.filter(p => !/navigator\.vibrate/.test(p));
+  const real = problems.filter(p => !/navigator\.vibrate/.test(p) && !/smoke probe: an error the game hit/.test(p));
   check('no page errors', real.length === 0, real.join('; '));
 } catch (e) {
   check('smoke test ran to the end', false, e.message);
@@ -1676,5 +1690,9 @@ try {
   try { rmSync(profile, { recursive: true, force: true }); } catch { /* the browser may still hold it */ }
 }
 const failed = results.filter(r => !r.ok).length, slow = results.filter(r => r.slow).length;
+// For the floor under the tests (tools/check-floor.mjs): how many checks ran, and how many
+// are timed ones, which a slow machine may set aside.
+const timedHere = (readFileSync(fileURLToPath(import.meta.url), 'utf8').match(/^\s*timed\(/gm) || []).length;
+writeFileSync(join(OUT, 'summary.json'), JSON.stringify({ checks: results.length, passed: results.length - failed - slow, failed, slow, timed: timedHere }));
 console.log(`\n${results.length - failed - slow}/${results.length} checks passed${slow ? `, ${slow} timed ones not counted on this slow machine` : ''}. Screenshots: ${OUT}`);
 process.exit(failed ? 1 : 0);

@@ -1,11 +1,33 @@
 /*
  * dialogs.js: the two forms that are the page's own: sending feedback, and naming the hero.
  *
- * Declares  Feedback (open, close, isOpen) and Namer.
+ * Declares  ErrorLog (the last few errors the game hit), Feedback (open, close, isOpen) and Namer.
  * Needs     config.js (the build goes with a message), persistence.js (the nickname).
  * State     their own DOM. Feedback posts to the one outside address the game may name
  *           (tools/build-itch.py holds the list).
  */
+
+// What went wrong lately (requirements 2.57, build 0.33; safeguard 3, the founder's yes of
+// 2026-10-17). The last few errors the game hit go with a feedback message, so a bug a player
+// meets but cannot describe still reaches the developer. Only the error's own words and the
+// file and line it happened at; only errors from the game's own files (a browser extension's
+// are not ours to collect); kept in memory, never saved, sent only when the player presses Send.
+const ErrorLog = (() => {
+  const MAX = 3, list = [];
+  const ours = file => !file || /\/(src|vendor)\/[^/?#]+\.js/.test(file);
+  const add = (message, file, line) => {
+    if (!ours(file)) return;
+    const where = file ? file.split(/[?#]/)[0].split('/').pop() + (line ? ':' + line : '') : '';
+    const text = String(message || 'error').slice(0, 160) + (where ? ' @ ' + where : '');
+    const last = list[list.length - 1];
+    if (last && last.text === text) { last.n++; return; }
+    list.push({ text, n: 1 });
+    if (list.length > MAX) list.shift();
+  };
+  addEventListener('error', e => add(e.message, e.filename, e.lineno));
+  addEventListener('unhandledrejection', e => { const r = e.reason; add(r && r.message ? r.message : String(r), '', 0); });
+  return { recent: () => list.map(x => x.n > 1 ? `${x.text} (x${x.n})` : x.text) };
+})();
 
 // Feedback (requirements 2.21): a text box whose contents are emailed to the developer.
 // A static page cannot send mail, so the message goes through FormSubmit, a free relay
@@ -26,7 +48,8 @@ const Feedback = (() => {
   const gameKeys = on => { try { game.input.keyboard.enabled = on; } catch (e) { /* game not up */ } };
   const details = () => {
     let best = 0; try { best = session.bestSector || 0; } catch (e) { /* game not up */ }
-    return { build: BUILD, best_sector: best, screen: innerWidth + 'x' + innerHeight, device: navigator.userAgent };
+    return { build: BUILD, best_sector: best, screen: innerWidth + 'x' + innerHeight, device: navigator.userAgent,
+             errors: ErrorLog.recent().join(' | ') || '(none)' };
   };
   const close = () => { root.hidden = true; gameKeys(true); };
   const open = () => {
