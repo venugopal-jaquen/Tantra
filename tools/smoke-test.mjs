@@ -1516,6 +1516,9 @@ try {
     const keep = JSON.stringify(session);
     session.lessonsOff = true;
     const own = s.spawnSectorBoss;
+    // These are about the rules, not the floors: painting a floor on every run and descent took
+    // GitHub's machine, which has no graphics chip, 13 minutes over the 20 runs below.
+    s.setFloor = () => {}; s.prepaintFloor = () => {};
     let spawns = 0;
     s.spawnSectorBoss = function (...a) { spawns++; return own.apply(this, a); };
     const out = {};
@@ -1523,7 +1526,7 @@ try {
     // comes through nextWave as in play. His anchors are put down first and he is kept still.
     const toBoss = async sector => {
       s.closeOverlay(); s.startRun(); spawns = 0;
-      s.player.iframes = 1e9; s.sector = sector; s.setFloor(sector, true); s.wave = 5; s.spawnQueue = [];
+      s.player.iframes = 1e9; s.sector = sector; s.wave = 5; s.spawnQueue = [];
       s.spawnEnemyOfType('melee', 100, 300, 1);
       while (s.enemies.length) s.killEnemy(s.enemies[0]);
       await until(() => s.enemies.some(e => e.isSectorBoss), 2000);
@@ -1591,7 +1594,7 @@ try {
     s.killEnemy(boss9); await wait(100); s.killEnemy(m9);
     await until(() => s.state === 'sectorChoice', 4000); s.endRun(true);
     out.surfaced = { state: s.state, wins: (session.wins || 0) - w9.wins, spawns };
-    s.spawnSectorBoss = own;
+    s.spawnSectorBoss = own; delete s.setFloor; delete s.prepaintFloor;
     if (s.state === 'playing') s.abandonRun();
     Object.assign(session, JSON.parse(keep)); saveSession();
     return out;`);
