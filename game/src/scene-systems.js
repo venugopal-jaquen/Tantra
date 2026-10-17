@@ -258,9 +258,31 @@ class SystemsScene extends ScreensScene {
       && !(b.weapon && this.player.weapon.effect !== b.weapon) && !(b.tejas && !session.tejasUnlocked);
   }
 
-  // Ranks still to be had, among the boons that can be offered now.
+  // Ranks still to be had, among the boons that can be offered now. Two boons that bar each
+  // other (Hold Your Ground and Strike on the Run) are one choice, not two: taking one closes
+  // the other (build 0.32; found by ChatGPT in Beta 0.31).
   boonsLeft() {
-    return Object.keys(BOONS).reduce((n, k) => n + (this.boonFits(k) ? BOONS[k].max - this.boonRank(k) : 0), 0);
+    const counted = new Set();
+    return Object.keys(BOONS).reduce((n, k) => {
+      if (counted.has(k) || !this.boonFits(k)) return n;
+      let left = BOONS[k].max - this.boonRank(k);
+      const other = BOONS[k].not;
+      if (other && this.boonFits(other)) { counted.add(other); left = Math.max(left, BOONS[other].max - this.boonRank(other)); }
+      return n + left;
+    }, 0);
+  }
+
+  // Boons waiting beyond what can still be offered (a weapon changed, or one of a pair was
+  // taken) are paid for in Hoard. Run before a pick opens and after each pick. Returns how
+  // many still wait.
+  settleBoons() {
+    const over = this.boonQueue.length - this.boonsLeft();
+    if (over > 0) {
+      this.boonQueue.splice(this.boonQueue.length - over, over);
+      this.payForBoon(over);
+      this.refreshBoonButton();
+    }
+    return this.boonQueue.length;
   }
 
   // What the card says: the Iron boon names the health it gives on this level.
@@ -333,14 +355,7 @@ class SystemsScene extends ScreensScene {
   // after a level it simply lies over it.
   openBoons() {
     if (!this.boonQueue || !this.boonQueue.length || (this.state !== 'playing' && this.state !== 'sectorChoice')) return;
-    // Boons waiting beyond what can still be offered (a weapon changed since) are paid for.
-    const over = this.boonQueue.length - this.boonsLeft();
-    if (over > 0) {
-      this.boonQueue.splice(this.boonQueue.length - over, over);
-      this.payForBoon(over);
-      this.refreshBoonButton();
-      if (!this.boonQueue.length) return;
-    }
+    if (!this.settleBoons()) return;
     this.boonReturn = this.state;
     if (this.state === 'playing') { this.pointerTarget = null; this.time.paused = true; this.tweens.pauseAll(); }
     this.state = 'boon';
@@ -376,7 +391,7 @@ class SystemsScene extends ScreensScene {
       this.sfx(LOOT_SFX[BOONS[key].metal]);
     }
     this.boonQueue.shift();
-    if (this.boonQueue.length) return this.showBoonScreen();           // the next one, straight away
+    if (this.boonQueue.length && this.settleBoons()) return this.showBoonScreen();   // the next one, straight away
     this.closeBoons();
     if (key && this.state === 'playing') this.showToast(N.boons[key][0].toUpperCase(), '#' + RARITY[BOONS[key].metal].color.toString(16).padStart(6, '0'));
   }

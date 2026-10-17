@@ -41,8 +41,13 @@ class ScreensScene extends FxScene {
 
   showBoonScreen() {
     const pick = this.boonQueue[0], waiting = this.boonQueue.length - 1;
-    // The offer is drawn once and kept, so closing and reopening is not a free reroll.
-    if (!pick.offer) pick.offer = this.drawBoons(pick.tribute >= this.tributeAt.gold);
+    // The offer is drawn once and kept, so closing and reopening is not a free reroll. A card
+    // that can no longer be taken (its weapon put away, its pair taken) is replaced, and an
+    // offer that came up empty is drawn again (build 0.32; found by ChatGPT in Beta 0.31):
+    // the cards still good stay as they are.
+    const good = (pick.offer || []).filter(k => this.boonFits(k));
+    if (!pick.offer || !good.length || good.length < pick.offer.length)
+      pick.offer = good.concat(this.drawBoons(pick.tribute >= this.tributeAt.gold).filter(k => !good.includes(k))).slice(0, 3);
     this.boonOffer = pick.offer;
     this.boonTribute = pick.tribute;
     this.openOverlay(0.8);

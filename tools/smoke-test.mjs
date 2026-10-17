@@ -311,6 +311,15 @@ try {
     Object.keys(BOONS).forEach(k => { s.boons[k] = BOONS[k].max; });
     const before = s.runGold; s.openBoons();
     out.waiting = { queued: s.boonQueue.length, paid: s.runGold > before, state: s.state };
+    // (0.32) the either-or pair counts once, and a pick taken settles the rest
+    Object.keys(BOONS).forEach(k => { s.boons[k] = BOONS[k].max; }); delete s.boons.ground; delete s.boons.run;
+    s.boonQueue = [{ tribute: 0, offer: null }, { tribute: 0, offer: null }]; const g1 = s.runGold;
+    out.pair = { left: s.boonsLeft() }; s.openBoons(); out.pair.opened = s.boonQueue.length; s.pickBoon(s.boonOffer.find(k => k === 'ground' || k === 'run'));
+    Object.assign(out.pair, { queued: s.boonQueue.length, paid: s.runGold > g1, state: s.state });
+    // (0.32) an offer that came up empty is drawn again once a boon fits
+    Object.keys(BOONS).forEach(k => { s.boons[k] = BOONS[k].max; }); delete s.boons.rot;
+    const w0 = s.player.weapon; s.player.weapon = Object.assign({}, w0, { effect: 'venom' });
+    s.boonQueue = [{ tribute: 0, offer: [] }]; s.openBoons(); out.redrawn = (s.boonOffer || []).join(); s.closeBoons(); s.boonQueue = []; s.player.weapon = w0;
     s.boons = {}; s.sector = 3; s.boonQueue = [{ tribute: 0, offer: ['iron', 'keen', 'quick'] }]; s.openBoons();
     out.ironCard = (s.overlay.find(o => o.type === 'Text' && /max health/.test(o.text)) || {}).text;
     s.closeBoons(); s.boonQueue = [];
@@ -321,8 +330,9 @@ try {
     s.pickups.slice(before2).forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); }); s.pickups.length = before2;
     s.boons = keep.boons; s.boonQueue = keep.queue; s.sector = keep.sector; s.runGold = keep.gold; s.refreshBoonButton();
     return out;`);
-  check('with every boon taken a boon earned is paid in Hoard and never counted; a Life Gem on level 4 gives 84 health, the Iron card on level 3 offers 30',
+  check('with every boon taken a boon earned is paid in Hoard and never counted, an either-or pair counts once, an empty offer is drawn again; a Life Gem on level 4 gives 84 health, the Iron card on level 3 offers 30',
     spent.none.queued === 0 && spent.none.paid && spent.none.left === 0 && spent.waiting.queued === 0 && spent.waiting.paid && spent.waiting.state === 'playing'
+    && spent.pair.left === 1 && spent.pair.opened === 1 && spent.pair.queued === 0 && spent.pair.paid && spent.pair.state === 'playing' && spent.redrawn === 'rot'
     && /^\+30 max health/.test(spent.ironCard || '') && spent.gem === 84, JSON.stringify(spent));
 
   // The satchel pauses the fight, says what each item does, and swaps on a tap.
