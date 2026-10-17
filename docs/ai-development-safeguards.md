@@ -107,6 +107,52 @@ reviewer second, and people deciding what matters.
   one of our strongest protections.
 - Chase test-count numbers. A check that would not catch a real bug is noise.
 
+## 4. What the founder chose (2026-10-17)
+
+| # | Safeguard | Decision | State |
+|---|---|---|---|
+| 1 | Test floor (no fewer checks, no more set aside) | Yes, before the launch | Built in Beta 0.33 (`tools/check-floor.mjs`) |
+| 2 | Tests change only to follow the founder's rules | Yes, before the launch | `AGENTS.md`, the shared log's standing rules |
+| 3 | Errors go with feedback | Yes | Built in Beta 0.33 (`ErrorLog`) |
+| 4 | One line | Yes: the lines merge onto Gamma on 18 October | Tomorrow |
+| 5 | A real-phone pass per release | Yes; the founder asked whether Claude can run it on a phone | See section 5 |
+| 6 | Tidy-up builds | Every **second** build, not every fourth | `AGENTS.md` |
+| 7 | Size limit; a tidy, modular code base | Yes | Limit built (1,500 lines; `loot-scene.js` may only shrink); the split itself is planned for the first tidy-up build |
+| 8 | Both AIs review | Yes: the build finalised on 18 October, and every later change, independently | `AGENTS.md`, the shared log |
+
+## 5. More checks and balances, for a game meant to last (proposed, not yet agreed)
+
+1. **A release checklist file, run before every itch.io upload.** It covers:
+   - the tests and the floor;
+   - the real-phone pass;
+   - the version on the title screen;
+   - store text and privacy text that match the build;
+   - a tested zip kept for rollback.
+
+   One page, ticked in the pull request.
+2. **Players' saves are sacred.** Keep a library of saves, one from every build, anonymised.
+   `check-game` loads all of them on every build, so no change can ever lose a player's
+   progress.
+3. **Practise a rollback once.** Put an old zip back on a test page and time it, so on a bad
+   day it is a five-minute job and not a first attempt.
+4. **Balance changes come with numbers.** Every pull request that touches a number carries
+   a bot comparison (before and after), as 0.31 did. No number changes without one.
+5. **New risky features behind a switch first** (an address switch such as `?arena=wide`).
+   They become the default only after a phone pass.
+6. **A weekly offline copy of both repositories:** a git bundle into the OneDrive backup,
+   beside the support files. It protects the game if a GitHub account is ever lost.
+7. **A takeover guide:** how to build, test and release the game with neither AI, in plain
+   steps. It is the real answer to "what if the tools change or go away", and it keeps the
+   project readable for a human.
+8. **A monthly health check, scheduled:**
+   - the engine version, and the test machines (the Ubuntu pin);
+   - the security checklist again;
+   - picture memory against the budget (`measure-pictures`);
+   - files near the size limit.
+9. **A one-page "what changed" for the founder with every release:** written for a reader
+   who does not read code, as these pull requests already are. If it cannot be explained
+   simply, it is not ready.
+
 ## Sources
 
 - GitClear, [AI Copilot Code Quality 2025](https://www.gitclear.com/ai_assistant_code_quality_2025_research) and [the 2026 maintainability report](https://www.gitclear.com/the_ai_code_quality_maintainability_gap); LeadDev, [Code maintainability plummets in the AI coding era](https://leaddev.com/ai/code-maintainability-plummets-in-the-ai-coding-era)
