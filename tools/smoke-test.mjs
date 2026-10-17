@@ -353,7 +353,7 @@ try {
     s.boonUI.btn.emit('pointerdown');
     const texts = s.overlay.filter(o => o.type === 'Text'), glass = () => !!(s.frostRT.overlay && s.frostRT.overlay.visible);
     const open = { state: s.state, frozen: s.time.paused, cards: s.overlay.filter(o => o.type === 'Rectangle' && o.input && o.width === 322).length,
-                   described: (s.boonOffer || []).every(k => texts.some(t => t.text === BOONS[k].desc)), glass: glass(), webgl: game.renderer.type === Phaser.WEBGL };
+                   described: (s.boonOffer || []).every(k => texts.some(t => t.text === s.boonDesc(k))), glass: glass(), webgl: game.renderer.type === Phaser.WEBGL };
     const spill = texts.filter(t => { const l = t.x - t.width * t.originX; return l < 27 || l + t.width > 373; }).map(t => t.text.slice(0, 30));
     const card = () => s.overlay.find(o => o.type === 'Rectangle' && o.input && o.width === 322);
     const offer = s.boonOffer.join();
@@ -1522,10 +1522,15 @@ try {
     let spawns = 0;
     s.spawnSectorBoss = function (...a) { spawns++; return own.apply(this, a); };
     const out = {};
-    // A run at the boss wave of a level: the fifth wave is cleared the real way, so the boss
-    // comes through nextWave as in play. His anchors are put down first and he is kept still.
+    // The boss wave of a level: the fifth wave is cleared the real way, so the boss comes
+    // through nextWave as in play. His anchors are put down first and he is kept still. One
+    // run serves every scenario, each ending by going down a level as play does; a new run
+    // is started only when the last has ended. (Starting run after run without the end of
+    // run's cleanup left each run's display behind, and GitHub's machine, drawing them all
+    // in software, took 13 minutes over this block.)
     const toBoss = async sector => {
-      s.closeOverlay(); s.startRun(); spawns = 0;
+      if (s.state !== 'playing') { s.closeOverlay(); s.startRun(); }
+      spawns = 0; s.clearStragglers(); s.newLevel();
       s.player.iframes = 1e9; s.sector = sector; s.wave = 5; s.spawnQueue = [];
       s.spawnEnemyOfType('melee', 100, 300, 1);
       while (s.enemies.length) s.killEnemy(s.enemies[0]);
@@ -1546,6 +1551,7 @@ try {
       r.down = { sector: s.sector, wave: s.wave, ghosts: s.enemies.filter(e => e.isSectorBoss || e.summonedBy === boss.id).length };
       return r;
     };
+    s.closeOverlay(); s.startRun();
     for (const sector of [1, 3]) {
       const name = sector === 3 ? 'thirst' : 'level';
       // 1. the boss first, his last summon a tenth of a second later
