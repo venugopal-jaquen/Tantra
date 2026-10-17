@@ -29,6 +29,18 @@ row, quoting the founder, for every decision they make in your chat.
   unchanged.
 - **Comments say why, in plain English,** and name the requirement (`docs/requirements.md`).
 
+## Changing the game safely
+
+- **A number that changes play** comes with the bot players' figures before and after
+  (`tools/lazy-players.mjs`), in the pull request.
+- **A risky new feature goes behind an address switch first** (like `?arena=wide`). It
+  becomes the default only after a real-phone pass.
+- **Players' saves are sacred.** No change may lose a player's progress. Old saves are
+  loaded by `tools/check-game.mjs`.
+- **Every pull request follows `.github/pull_request_template.md`.** Its first section
+  says in plain English what changed, for the founder.
+- **Every release follows `docs/release-checklist.md`.**
+
 ## Two reviewers
 
 - **Every change is reviewed independently by the other AI before it ships.** The reviewer
