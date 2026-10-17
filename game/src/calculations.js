@@ -55,11 +55,18 @@ function itemPower(item) {
   return POWER.trinket[item.rarity];
 }
 
-// Whether a drop walked over is worn at once (2026-10-14, build 0.23): only when it is plainly
-// better than what is held - the slot is empty, or it is the same item with more Power (a finer
-// metal, or more targets). Anything else goes to the satchel, so a pickup never makes the hero
-// weaker, and the power Overdrive gives (it follows the weapon) changes only when the player
-// chooses.
+// Whether a drop walked over is worn at once: when the slot is empty, or when it has more Power
+// than what is held, whatever its kind (the founder, 2026-10-17: the most powerful is worn).
+// Build 0.23 wore only the same kind, so a gold weapon of another kind went to the satchel
+// while copper stayed in hand. What is taken off goes to the satchel; a pickup never makes the
+// hero weaker. Overdrive follows the weapon, and the toast says when its power changes.
 function plainlyBetter(item, held) {
-  return !held || (item.type === held.type && item.effect === held.effect && itemPower(item) > itemPower(held));
+  return !held || (item.type === held.type && itemPower(item) > itemPower(held));
+}
+
+// Health that keeps pace with the level (the founder, 2026-10-17): a Life Gem's health and the
+// Iron boon grow by the same 22% a level that enemies' blows do (sectorDmgMult), so a gem or
+// a rank found deep down is worth as much against what is there as one found on level 1.
+function levelHealth(base, sector) {
+  return Math.round(base * Math.pow(1.22, Math.max(0, sector - 1)));
 }

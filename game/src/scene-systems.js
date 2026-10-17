@@ -229,11 +229,7 @@ class SystemsScene extends ScreensScene {
   // left to offer falls back to any boon that still applies.
   drawBoons(allGold) {
     const odds = BOON_ODDS[Math.min(this.sector, 3)];
-    const fits = key => {
-      const b = BOONS[key];
-      return this.boonRank(key) < b.max && !(b.not && this.boonRank(b.not))
-        && !(b.weapon && this.player.weapon.effect !== b.weapon) && !(b.tejas && !session.tejasUnlocked);
-    };
+    const fits = key => this.boonFits(key);
     const offer = [];
     for (let i = 0; i < 3; i++) {
       const pool = Object.keys(BOONS).filter(k => fits(k) && !offer.includes(k));
@@ -254,7 +250,35 @@ class SystemsScene extends ScreensScene {
   // player opens the picks when they choose to - Dota's "level up when you like" - and
   // only then does the fight pause. The founder: "the number of pauses when boon
   // selection is needed just turned me off from the game."
+  // Whether a boon can still be offered: ranks left, not barred by its opposite, its weapon
+  // in hand, Overdrive open.
+  boonFits(key) {
+    const b = BOONS[key];
+    return this.boonRank(key) < b.max && !(b.not && this.boonRank(b.not))
+      && !(b.weapon && this.player.weapon.effect !== b.weapon) && !(b.tejas && !session.tejasUnlocked);
+  }
+
+  // Ranks still to be had, among the boons that can be offered now.
+  boonsLeft() {
+    return Object.keys(BOONS).reduce((n, k) => n + (this.boonFits(k) ? BOONS[k].max - this.boonRank(k) : 0), 0);
+  }
+
+  // What the card says: the Iron boon names the health it gives on this level.
+  boonDesc(key) {
+    return key === 'iron' ? `+${levelHealth(BOONS.iron.n, this.sector)} max health, and heals as much now` : BOONS[key].desc;
+  }
+
+  // Every boon taken, or none that fits (build 0.31): a boon earned is paid in Hoard instead,
+  // the wave's own clear gold over again, so the + button never counts boons that cannot be
+  // offered (the founder found it counting on in a long run, 2026-10-17).
+  payForBoon(n = 1) {
+    const each = 15 + this.depth * 4;
+    this.addGold(each * n);
+    this.showToast(`EVERY BOON IS YOURS  ·  +${each * n} ${N.currency.toUpperCase()}`, '#ffd23c');
+  }
+
   queueBoon(tribute = 0) {
+    if (this.boonsLeft() <= this.boonQueue.length) { this.payForBoon(); return; }
     this.boonQueue.push({ tribute, offer: null });
     this.refreshBoonButton(true);
     this.sfx('loot-rajat', { vol: 0.7 });
@@ -309,6 +333,14 @@ class SystemsScene extends ScreensScene {
   // after a level it simply lies over it.
   openBoons() {
     if (!this.boonQueue || !this.boonQueue.length || (this.state !== 'playing' && this.state !== 'sectorChoice')) return;
+    // Boons waiting beyond what can still be offered (a weapon changed since) are paid for.
+    const over = this.boonQueue.length - this.boonsLeft();
+    if (over > 0) {
+      this.boonQueue.splice(this.boonQueue.length - over, over);
+      this.payForBoon(over);
+      this.refreshBoonButton();
+      if (!this.boonQueue.length) return;
+    }
     this.boonReturn = this.state;
     if (this.state === 'playing') { this.pointerTarget = null; this.time.paused = true; this.tweens.pauseAll(); }
     this.state = 'boon';
@@ -340,7 +372,7 @@ class SystemsScene extends ScreensScene {
     if (this.state !== 'boon' || !this.boonQueue.length) return;
     if (key) {
       this.boons[key] = this.boonRank(key) + 1;
-      if (key === 'iron') { this.player.maxHp += BOONS.iron.n; this.player.hp = Math.min(this.player.maxHp, this.player.hp + BOONS.iron.n); }
+      if (key === 'iron') { const n = levelHealth(BOONS.iron.n, this.sector); this.player.maxHp += n; this.player.hp = Math.min(this.player.maxHp, this.player.hp + n); }
       this.sfx(LOOT_SFX[BOONS[key].metal]);
     }
     this.boonQueue.shift();
@@ -772,9 +804,10 @@ class SystemsScene extends ScreensScene {
     if (this.state === 'paused') this.showSatchel();     // redraw with the swap made
   }
 
-  // Into the satchel. Past INV_MAX the weakest item falls out (least Power; of equals, the one
-  // stored first): a full satchel never blocks a pickup, and never throws away the best
-  // (build 0.23; it was the oldest). Returns what fell out, which may be the item itself.
+  // Into the satchel. Past INV_MAX the weakest item is sold (least Power; of equals, the one
+  // stored first): a full satchel never blocks a pickup and never throws away the best, and
+  // since build 0.31 what goes is paid for in Hoard (SALVAGE), not lost. Returns what went,
+  // which may be the item itself, with what it sold for as .sold.
   stashItem(item, fromFloor) {
     if (!item || !this.inventory) return null;
     this.inventory.push(item);
@@ -783,6 +816,8 @@ class SystemsScene extends ScreensScene {
       let k = 0;
       this.inventory.forEach((it, i) => { if (itemPower(it) < itemPower(this.inventory[k])) k = i; });
       lost = this.inventory.splice(k, 1)[0];
+      lost.sold = Math.round(SALVAGE[lost.rarity] * (1 + this.depth * 0.1));
+      this.addGold(lost.sold);
     }
     if (fromFloor && lost !== item) this.satchelNew = true;
     this.refreshSatchel();
@@ -795,8 +830,9 @@ class SystemsScene extends ScreensScene {
   takeLoot(item, isMystery) {
     if (plainlyBetter(item, item.type === 'weapon' ? this.player.weapon : this.player.trinket)) { this.applyLoot(item, isMystery); return true; }
     const lost = this.stashItem(item, true), name = isMystery ? `${item.name} (revealed)` : item.name;
-    const more = lost && lost !== item ? ` · dropped ${lost.name}` : '';
-    this.showToast(lost === item ? `${N.satchel} full: ${name} left behind` : `Stored: ${name}` + (`Stored: ${name}${more}`.length <= 46 ? more : ''), isMystery ? '#ffd23c' : '#f0dcc0');
+    const more = lost && lost !== item ? ` · sold ${lost.name}` : '';
+    this.showToast(lost === item ? `${N.satchel} full: ${name} sold, +${lost.sold} ${N.currency}`
+      : `Stored: ${name}` + (`Stored: ${name}${more}`.length <= 46 ? more : '') + (lost ? ` +${lost.sold}` : ''), isMystery ? '#ffd23c' : '#f0dcc0');
     return false;
   }
 
@@ -810,14 +846,16 @@ class SystemsScene extends ScreensScene {
     if (item.type === 'weapon') {
       // The outgoing weapon goes to the satchel rather than being lost.
       const was = this.tejasForm();
-      if (this.player.weapon) this.stashItem(this.player.weapon);
+      const sold = this.player.weapon && this.stashItem(this.player.weapon);
+      if (sold) this.showToast(`${N.satchel} full: ${sold.name} sold, +${sold.sold} ${N.currency}`, '#f0dcc0');
       this.player.weapon = item;
       // Overdrive's power follows the weapon: say so when it changes (build 0.23).
       const now = this.tejasForm(), told = session.tejasUnlocked && now !== was ? ` · ${N.supercharge}: ${now.name}` : '';
       this.showToast(`${tag}Equipped: ${item.name}${told}`, isMystery ? '#ffd23c' : '#4dd0ff');
     } else {
       const oldHpBonus = (this.player.trinket && this.player.trinket.hpBonus) || 0;
-      if (this.player.trinket) this.stashItem(this.player.trinket);
+      const sold = this.player.trinket && this.stashItem(this.player.trinket);
+      if (sold) this.showToast(`${N.satchel} full: ${sold.name} sold, +${sold.sold} ${N.currency}`, '#f0dcc0');
       this.player.trinket = item;
       this.player.maxHp += (item.hpBonus - oldHpBonus);
       this.player.hp = Math.max(1, Math.min(this.player.maxHp, this.player.hp + (item.hpBonus - oldHpBonus)));   // taking a Life Gem off never leaves him on nothing

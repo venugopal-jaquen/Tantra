@@ -276,22 +276,54 @@ try {
     out.worseStored = p.weapon === silver && s.inventory.length === 1 && s.satchelNew && s.satchelDot.visible;
     session.tejasUnlocked = true; s.buildTejasUI(); s.drawTejasMeter();
     const label = s.tejasLabel.text;
-    s.takeLoot(like(silver, { effect: 'chain', rarity: 'epic', shots: 3, name: 'Gold Storm Disc' }), false);
-    out.otherKept = p.weapon === silver && s.inventory.length === 2 && s.tejasForm() === TEJAS_FORMS.venom;
+    // a stronger weapon of another kind is worn (build 0.31), and Overdrive follows it
+    s.takeLoot(like(silver, { effect: 'chain', rarity: 'epic', shots: 3, name: 'Gold Storm Disc' }), false); s.drawTejasMeter();
+    out.strongerOtherWorn = p.weapon.effect === 'chain' && s.inventory.length === 2 && s.inventory.includes(silver) && s.tejasLabel.text === TEJAS_FORMS.chain.name.toUpperCase();
     out.buttonSays = label === TEJAS_FORMS.venom.name.toUpperCase();
-    s.equipFromSatchel(s.inventory.findIndex(i => i.effect === 'chain')); s.drawTejasMeter();
-    out.followsWeapon = p.weapon.effect === 'chain' && s.tejasLabel.text === TEJAS_FORMS.chain.name.toUpperCase();
+    // a weaker one of another kind is kept
+    const gold = p.weapon; s.takeLoot(like(silver, { effect: 'vampiric', rarity: 'common', shots: 1, name: 'Copper Blood Blade' }), false);
+    out.weakerOtherKept = p.weapon === gold && s.inventory.length === 3;
+    s.equipFromSatchel(s.inventory.indexOf(silver)); s.drawTejasMeter();
+    out.followsWeapon = p.weapon.effect === 'venom' && s.tejasLabel.text === TEJAS_FORMS.venom.name.toUpperCase();
     p.trinket = null; s.takeLoot({ type: 'trinket', effect: 'swift', rarity: 'common', name: 'Copper Swift Sandals', speedBonus: 10 }, false);
     out.emptyFilled = !!p.trinket && p.trinket.effect === 'swift';
     s.inventory = Array.from({ length: INV_MAX }, (_, i) => like(silver, { rarity: i ? 'epic' : 'rare', name: 'kept ' + i }));
-    const weak = like(silver, { rarity: 'common', name: 'weakest' }); s.takeLoot(weak, false);
-    out.fullDropsWeakest = s.inventory.length === INV_MAX && !s.inventory.includes(weak) && s.inventory.some(i => i.name === 'kept 0');
+    const weak = like(silver, { rarity: 'common', name: 'weakest' }), g0 = s.runGold; s.takeLoot(weak, false);
+    out.fullSellsWeakest = s.inventory.length === INV_MAX && !s.inventory.includes(weak) && s.inventory.some(i => i.name === 'kept 0')
+      && weak.sold === Math.round(SALVAGE.common * (1 + s.depth * 0.1)) && s.runGold - g0 >= weak.sold;
     s.pauseGame('satchel'); out.seenClearsMark = !s.satchelNew && !s.satchelDot.visible; s.resumeGame();
     p.weapon = keep.w; p.trinket = keep.t; s.inventory = keep.inv; p.maxHp = keep.max; p.hp = keep.hp; s.refreshSatchel();
     if (!keep.unlocked) { s.destroyTejasUI(); session.tejasUnlocked = false; }
     return out;`);
-  check('a drop is worn only when plainly better, else kept in the satchel with a mark; a full satchel drops its weakest; the Overdrive button names the power of the weapon held',
+  check('a drop is worn when it has more Power, whatever its kind, else kept in the satchel with a mark; a full satchel sells its weakest for Hoard; the Overdrive button names the power of the weapon held',
     Object.values(pickup).every(v => v === true), JSON.stringify(pickup));
+
+  // Boons that run out (build 0.31): with every boon taken, a boon earned is paid in Hoard
+  // and the + button does not count it; boons left waiting past what can be offered are
+  // paid for when the pick opens. And health that keeps pace with the level: a Life Gem
+  // dropped on level 4, and the Iron card on level 3.
+  const spent = await page(`const s = game.scene.keys.LootScene, out = {};
+    const keep = { boons: Object.assign({}, s.boons), queue: s.boonQueue.slice(), sector: s.sector, gold: s.runGold };
+    Object.keys(BOONS).forEach(k => { s.boons[k] = BOONS[k].max; });
+    s.boonQueue = []; s.refreshBoonButton(); s.runGold = 0;
+    s.queueBoon(); out.none = { queued: s.boonQueue.length, paid: s.runGold > 0, left: s.boonsLeft() };
+    s.boons = {}; s.boonQueue = []; s.queueBoon(); s.queueBoon();
+    Object.keys(BOONS).forEach(k => { s.boons[k] = BOONS[k].max; });
+    const before = s.runGold; s.openBoons();
+    out.waiting = { queued: s.boonQueue.length, paid: s.runGold > before, state: s.state };
+    s.boons = {}; s.sector = 3; s.boonQueue = [{ tribute: 0, offer: ['iron', 'keen', 'quick'] }]; s.openBoons();
+    out.ironCard = (s.overlay.find(o => o.type === 'Text' && /max health/.test(o.text)) || {}).text;
+    s.closeBoons(); s.boonQueue = [];
+    s.sector = 4; const before2 = s.pickups.length;
+    for (let i = 0; i < 40 && !s.pickups.slice(before2).some(pk => pk.item && pk.item.effect === 'vitality'); i++) s.spawnLootPickup(s.player.x + 120, s.player.y, 'epic');
+    const gem = s.pickups.slice(before2).map(pk => pk.item).find(it => it && it.effect === 'vitality');
+    out.gem = gem ? gem.hpBonus : null;
+    s.pickups.slice(before2).forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); }); s.pickups.length = before2;
+    s.boons = keep.boons; s.boonQueue = keep.queue; s.sector = keep.sector; s.runGold = keep.gold; s.refreshBoonButton();
+    return out;`);
+  check('with every boon taken a boon earned is paid in Hoard and never counted; a Life Gem on level 4 gives 84 health, the Iron card on level 3 offers 30',
+    spent.none.queued === 0 && spent.none.paid && spent.none.left === 0 && spent.waiting.queued === 0 && spent.waiting.paid && spent.waiting.state === 'playing'
+    && /^\+30 max health/.test(spent.ironCard || '') && spent.gem === 84, JSON.stringify(spent));
 
   // The satchel pauses the fight, says what each item does, and swaps on a tap.
   const satchel = await page(`const s = game.scene.keys.LootScene;
@@ -321,7 +353,7 @@ try {
     s.boonUI.btn.emit('pointerdown');
     const texts = s.overlay.filter(o => o.type === 'Text'), glass = () => !!(s.frostRT.overlay && s.frostRT.overlay.visible);
     const open = { state: s.state, frozen: s.time.paused, cards: s.overlay.filter(o => o.type === 'Rectangle' && o.input && o.width === 322).length,
-                   described: (s.boonOffer || []).every(k => texts.some(t => t.text === BOONS[k].desc)), glass: glass(), webgl: game.renderer.type === Phaser.WEBGL };
+                   described: (s.boonOffer || []).every(k => texts.some(t => t.text === s.boonDesc(k))), glass: glass(), webgl: game.renderer.type === Phaser.WEBGL };
     const spill = texts.filter(t => { const l = t.x - t.width * t.originX; return l < 27 || l + t.width > 373; }).map(t => t.text.slice(0, 30));
     const card = () => s.overlay.find(o => o.type === 'Rectangle' && o.input && o.width === 322);
     const offer = s.boonOffer.join();
@@ -683,8 +715,20 @@ try {
   const gate = await page(`const s = game.scene.keys.LootScene; session.gateTaught = false; session.depthPick = 1;
     const hold = e => { e.slamTimer = 1e9; e.speed = 0; e.summonTimer = 1e9; return e; }, wait = ms => new Promise(r => setTimeout(r, ms));
     s.startRun(); ${FREEZE} s.player.iframes = 1e9; s.dismissHint();
+    // On the first depth no boss resists (build 0.31): not the Gatekeeper out of his phase, not
+    // The Thirst's first stage, which still turns to its shield at 55%; and nothing is taught.
+    const d1 = hold(s.spawnGatekeeper()); d1.weakPhase = PHASE_SEQUENCE.find(p => p !== s.phase);
+    s.sector = 3; const m1 = hold(s.spawnSectorBoss()); m1.weakPhase = d1.weakPhase; s.sector = 1;
+    await wait(300);
+    const h1 = m1.hp; s.damageEnemy(m1, 100);
+    const depth1 = { tier: s.tier, gate: s.weakScale(d1), label: !!(d1.gateLabel && d1.gateLabel.visible), taught: session.gateTaught,
+      core: (s.lessonWait || []).includes('core') || (s.hintQueue || []).some(q => q.id === 'core') || s.lessonShown === 'core', thirst: s.weakScale(m1), took: Math.round(h1 - m1.hp) };
+    m1.hp = m1.maxHp * 0.56; s.damageEnemy(m1, m1.maxHp * 0.1); depth1.shield = m1.shieldOn === true;
+    s.clearStragglers(); ${FREEZE}
+    // From the second depth he does, and the first who does arrives open.
+    s.tier = 2;
     const first = hold(s.spawnGatekeeper());
-    const out = { tier: s.tier, firstOpen: first.weakPhase === s.phase, taught: session.gateTaught, held: s.phaseTimeLeft >= 8000, full: s.weakScale(first) };
+    const out = { depth1, tier: s.tier, firstOpen: first.weakPhase === s.phase, taught: session.gateTaught, held: s.phaseTimeLeft >= 8000, full: s.weakScale(first) };
     await wait(300);
     out.openLabel = first.gateLabel.text;
     first.weakPhase = PHASE_SEQUENCE.find(p => p !== s.phase);
@@ -698,8 +742,11 @@ try {
     { const vs = s.enemySprites.get(v.id);
       out.serpent = { figure: vs.visible && !!vs.walks && vs.texture.key === CHARS.megaboss + '-walk', tall: Math.round((vs.baseSY || vs.scaleY) * ART[CHARS.megaboss].cell), wants: Math.round(v.radius / HIT * 2.8 * ART[CHARS.megaboss].scale * ART[CHARS.megaboss].cell / ART[CHARS.megaboss].still),
         label: v.gateLabel.text, steel: vs.isTinted, drawnByCode: !!v.serpent }; }
+    s.tier = 1;
     return out;`);
-  check('the first Gatekeeper a player meets arrives open, and stays open a while', gate.tier === 1 && gate.firstOpen && gate.taught && gate.held && gate.full === 1 && /^VULNERABLE  \d+s$/.test(gate.openLabel), JSON.stringify(gate));
+  check('on the first depth no boss resists and nothing about it is taught; The Thirst still turns to his shield at 55%', gate.depth1.tier === 1 && gate.depth1.gate === 1 && !gate.depth1.label
+    && !gate.depth1.taught && !gate.depth1.core && gate.depth1.thirst === 1 && gate.depth1.took === 100 && gate.depth1.shield, JSON.stringify(gate.depth1));
+  check('from the second depth, the first Gatekeeper who resists arrives open, and stays open a while', gate.tier === 2 && gate.firstOpen && gate.taught && gate.held && gate.full === 1 && /^VULNERABLE  \d+s$/.test(gate.openLabel), JSON.stringify(gate));
   check('a resisting boss says so, counts down, and takes 30% on level 1 and 12% below', /^RESISTS  \u00B7  opens in \d+s$/.test(gate.closedLabel) && gate.grey && gate.level1 === 30 && gate.level2 === 12, JSON.stringify(gate));
   check("Vritra is the founder's picture of him, a figure like the others, with the same tell", gate.serpent.figure && gate.serpent.tall === gate.serpent.wants && gate.serpent.tall > 200 && !gate.serpent.drawnByCode && gate.serpent.steel && /^RESISTS/.test(gate.serpent.label), JSON.stringify(gate.serpent));
   await shot('5f-serpent');
@@ -1372,13 +1419,14 @@ try {
     out.brood = { n: brood.length, kind: brood.every(e => e.char === CHARS.splitter), named: brood.every(e => e.nameLabel.text === N.enemies.splitter),
       thrown: brood.every(e => !!e.hatch), apart: brood.length === 2 && Math.abs(brood[0].x - brood[1].x) >= 22, pieces: cut() - uncut };
     const g = hold(s.spawnSectorBoss()), anchors = s.enemies.filter(e => e.isKeyAdd); anchors.forEach(hold);  // the Hoard Guardian under his dome
+    const tierWas = s.tier; s.tier = 2;                    // bosses resist from the second depth (build 0.31)
     const k = hold(s.spawnGatekeeper()); k.x = b.x + 60; k.y = b.bottom - 60; k.weakPhase = PHASE_SEQUENCE.find(p => p !== s.phase);
     await wait(500);
     out.elite = { glow: !!el.gilt && el.gilt.blendMode === Phaser.BlendModes.ADD && el.gilt.frame.name === s.enemySprites.get(el.id).frame.name, ring: drawn(el.giltRing), plain: plain(el) };
     out.dome = { on: g.shieldOn, drawn: drawn(g.domeFx) && drawn(g.floorFx), inFront: g.domeFx.depth > s.enemySprites.get(g.id).depth, anchors: anchors.length,
       gilded: anchors.every(a => !!a.gilt && plain(a)), named: anchors.every(a => a.nameLabel.text === 'ANCHOR') };
     const hp = g.hp; s.damageEnemy(g, 50); out.dome.holds = g.hp === hp && g.domeHit > 0;
-    out.gate = { plates: drawn(k.floorFx), steel: s.enemySprites.get(k.id).tintTopLeft === 0x8d94a6 };
+    out.gate = { plates: drawn(k.floorFx), steel: s.enemySprites.get(k.id).tintTopLeft === 0x8d94a6 }; s.tier = tierWas;
     out.brood.landed = brood.every(e => !e.hatch); out.brood.piecesGone = cut() === uncut;
     anchors.forEach(a => s.killEnemy(a)); await wait(250);
     out.dome.broken = !g.shieldOn && !drawn(g.domeFx) && drawn(g.floorFx) && anchors.every(a => !a.gilt);
@@ -1468,14 +1516,22 @@ try {
     const keep = JSON.stringify(session);
     session.lessonsOff = true;
     const own = s.spawnSectorBoss;
+    // These are about the rules, not the floors: painting a floor on every run and descent took
+    // GitHub's machine, which has no graphics chip, 13 minutes over the 20 runs below.
+    s.setFloor = () => {}; s.prepaintFloor = () => {};
     let spawns = 0;
     s.spawnSectorBoss = function (...a) { spawns++; return own.apply(this, a); };
     const out = {};
-    // A run at the boss wave of a level: the fifth wave is cleared the real way, so the boss
-    // comes through nextWave as in play. His anchors are put down first and he is kept still.
+    // The boss wave of a level: the fifth wave is cleared the real way, so the boss comes
+    // through nextWave as in play. His anchors are put down first and he is kept still. One
+    // run serves every scenario, each ending by going down a level as play does; a new run
+    // is started only when the last has ended. (Starting run after run without the end of
+    // run's cleanup left each run's display behind, and GitHub's machine, drawing them all
+    // in software, took 13 minutes over this block.)
     const toBoss = async sector => {
-      s.closeOverlay(); s.startRun(); spawns = 0;
-      s.player.iframes = 1e9; s.sector = sector; s.setFloor(sector, true); s.wave = 5; s.spawnQueue = [];
+      if (s.state !== 'playing') { s.closeOverlay(); s.startRun(); }
+      spawns = 0; s.clearStragglers(); s.newLevel();
+      s.player.iframes = 1e9; s.sector = sector; s.wave = 5; s.spawnQueue = [];
       s.spawnEnemyOfType('melee', 100, 300, 1);
       while (s.enemies.length) s.killEnemy(s.enemies[0]);
       await until(() => s.enemies.some(e => e.isSectorBoss), 2000);
@@ -1495,6 +1551,7 @@ try {
       r.down = { sector: s.sector, wave: s.wave, ghosts: s.enemies.filter(e => e.isSectorBoss || e.summonedBy === boss.id).length };
       return r;
     };
+    s.closeOverlay(); s.startRun();
     for (const sector of [1, 3]) {
       const name = sector === 3 ? 'thirst' : 'level';
       // 1. the boss first, his last summon a tenth of a second later
@@ -1543,7 +1600,7 @@ try {
     s.killEnemy(boss9); await wait(100); s.killEnemy(m9);
     await until(() => s.state === 'sectorChoice', 4000); s.endRun(true);
     out.surfaced = { state: s.state, wins: (session.wins || 0) - w9.wins, spawns };
-    s.spawnSectorBoss = own;
+    s.spawnSectorBoss = own; delete s.setFloor; delete s.prepaintFloor;
     if (s.state === 'playing') s.abandonRun();
     Object.assign(session, JSON.parse(keep)); saveSession();
     return out;`);

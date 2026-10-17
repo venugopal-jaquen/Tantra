@@ -103,10 +103,11 @@ keeps no Sanskrit word in its default names), no hero's name, nothing sacred.
 > - **Read the slam.** A red zone shows where a boss will strike and fills as it winds
 >   up. Step out in time, or pay for it.
 > - **Read the cycle.** The fight loops through Calm, Surge, Eclipse and Zenith. In Eclipse
->   everyone hits harder, you included. Every boss has a phase when it opens up.
-> - **Loot you walk over.** A better one of what you carry is worn at once; anything
->   else waits in your satchel. A venom dagger, a sword that heals you, lightning that
->   jumps to the next imp. Copper is common, gold is rare.
+>   everyone hits harder, you included. From the second depth, every boss has a phase
+>   when it opens up.
+> - **Loot you walk over.** Anything stronger than what you carry is worn at once; the
+>   rest waits in your satchel, and a full one sells its weakest. A venom dagger, a sword
+>   that heals you, lightning that jumps to the next imp. Copper is common, gold is rare.
 > - **Boons when you want them.** Every wave you clear earns one. Tap + when you have a
 >   moment and choose one of three; the fight never stops to make you choose.
 > - **Overdrive.** It fills as you fight. Let it go for six seconds of power shaped by the

@@ -63,7 +63,7 @@ class ScreensScene extends FxScene {
       this.ov(this.icon(left + 26, y, boonIcon(key), 34), 102);
       this.ovText(left + 54, y - 37, N.boons[key][0], { fontSize: '15px', color: '#fffbef', fontStyle: 'bold' });
       this.ovText(left + 314, y - 34, N.metals[b.metal].toUpperCase(), { fontSize: '9px', color: '#' + col.toString(16).padStart(6, '0'), fontStyle: 'bold' }).setOrigin(1, 0);
-      this.ovText(left + 54, y - 14, b.desc, { fontSize: '12px', color: '#f0dcc0', lineSpacing: 1, wordWrap: { width: 252 } });
+      this.ovText(left + 54, y - 14, this.boonDesc(key), { fontSize: '12px', color: '#f0dcc0', lineSpacing: 1, wordWrap: { width: 252 } });
       this.ovText(left + 54, y + 24, this.boonNote(key), { fontSize: '10px', color: '#c8a96e' });
     });
 
@@ -478,7 +478,7 @@ class ScreensScene extends FxScene {
           label(cx - 60, cy + 62, 'phase ring', '#c8a96e', 8);
         } },
       { title: 'BOSSES',
-        body: `A boss resists most damage outside its own phase. The timer over its head counts down to when it opens. A shielded boss can't be hurt at all: kill the gold-glowing ${N.enemies.melee} anchoring the shield. Bosses summon ${N.enemies.melee}: each one you kill first is tribute. ${this.tributeAt.item} earns an item, ${this.tributeAt.boon} a boon, ${this.tributeAt.gold} a ${N.metalGloss.epic || N.metals.epic.toLowerCase()} boon - but the summons speed up, and past that they grow stronger.`,
+        body: `From the second depth, a boss resists most damage outside its own phase. The timer over its head counts down to when it opens. A shielded boss can't be hurt at all: kill the gold-glowing ${N.enemies.melee} anchoring the shield. Bosses summon ${N.enemies.melee}: each one you kill first is tribute. ${this.tributeAt.item} earns an item, ${this.tributeAt.boon} a boon, ${this.tributeAt.gold} a ${N.metalGloss.epic || N.metals.epic.toLowerCase()} boon - but the summons speed up, and past that they grow stronger.`,
         draw: (cx, cy) => {
           const gr = g(); gr.setDepth(101.5);
           gr.fillStyle(PHASE_DEFS.surge.color, 0.35); gr.fillEllipse(cx - 70, cy + 32, 72, 26);

@@ -182,7 +182,7 @@ const BOONS = {
   quick:       { metal: 'common', max: 3, n: 0.12, desc: 'Attacks 12% faster' },
   reach:       { metal: 'common', max: 3, n: 20,   desc: '+20 attack range' },
   feet:        { metal: 'common', max: 3, n: 20,   desc: '+20 move speed' },
-  iron:        { metal: 'common', max: 3, n: 20,   desc: '+20 max health, and heals 20 now' },
+  iron:        { metal: 'common', max: 3, n: 20,   desc: '+20 max health and heals as much; more on deeper levels' },
   hide:        { metal: 'common', max: 3, n: 0.08, desc: 'Take 8% less damage' },
   ground:      { metal: 'rare', max: 1, n: 0.35, not: 'run', desc: '+35% damage while you stand still' },
   run:         { metal: 'rare', max: 1, n: 0.25, not: 'ground', desc: 'Attacks 25% faster while you move' },
@@ -325,7 +325,13 @@ const PICKUP_REACH = 30;
 // second, up to `upTo` of it: whoever stops being hit climbs back to half, and nobody fills
 // up by hiding. Healing above half still comes from bosses, the Regen trinket and Vampiric.
 const BREATH = { after: 3000, perSec: 0.015, upTo: 0.5 };
-const INV_MAX = 8;   // satchel capacity; oldest falls out past this
+const INV_MAX = 8;   // satchel capacity; past it the weakest is sold (SALVAGE)
+// What the weakest item in a full satchel sells for (the founder, 2026-10-17, build 0.31: it
+// used to fall out for nothing). By metal, and 10% more for every wave of depth in the run,
+// as the waves' own clear gold grows. Kept small on purpose: once the satchel is full nearly
+// every drop is sold, and at 4/8/16 the bot's Hoard per run rose 22 to 31%; these are a
+// quarter of that, below what the bot's runs can tell apart (requirements 2.56).
+const SALVAGE = { common: 1, rare: 2, epic: 4 };
 
 const ENEMY_TYPES = {
   melee:    { hpMult: 1.0, speedMult: 1.0, dmgMult: 1.0, radius: 12, color: 0xff5c5c },
