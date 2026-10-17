@@ -15,7 +15,7 @@ uploaded or merged, without the founder's own word, as always.
 - **The best feedback is free.** A free browser game with a feedback button is a
   playtest of the whole internet. The real gain of this launch is learning what
   strangers do: where they quit, what they say, whether they come back. Revenue
-  is a bonus: name-your-price, $0 minimum.
+  is not the aim: the game is free, with no payments (decided 2026-10-16).
 - **What will not happen.** Hundreds of thousands of plays in week one. A good result for
   a first free HTML5 game on itch.io is a few hundred to a few thousand plays and a
   handful of written comments. Plan for that and treat anything more as luck.
@@ -72,7 +72,7 @@ festival in the morning and evening; the plan's 10:00 and 11:00 slots are for th
   2. paste the text (§3);
   3. answer the AI disclosure (§4);
   4. pick the tags (below);
-  5. set pricing to *No payments* or *Name your price, $0* (decision 2).
+  5. set pricing to *No payments* (decided 2026-10-16).
 - [ ] Founder, 20 minutes: `itch-page.md` §5 on the draft page, on your phone: one full run, one feedback message, fullscreen.
 - [ ] Founder: Android run. Note anything slow, hot, small or broken; send it to Claude.
 - [ ] Founder, evening: send the private link to the five. The message: "It's a five-minute phone game. Play two runs, then press Feedback and tell me where you got bored or confused. Be blunt."
