@@ -323,8 +323,11 @@ try {
     s.boons = {}; s.sector = 3; s.boonQueue = [{ tribute: 0, offer: ['iron', 'keen', 'quick'] }]; s.openBoons();
     out.ironCard = (s.overlay.find(o => o.type === 'Text' && /max health/.test(o.text)) || {}).text;
     s.closeBoons(); s.boonQueue = [];
-    s.sector = 4; const before2 = s.pickups.length;
+    // Every trinket drawn is a Life Gem for this, so the check does not hang on a lucky roll
+    // (40 random drops missed one on GitHub about one time in seventy).
+    s.sector = 4; const before2 = s.pickups.length, pickWas = pickTrinketEffect; pickTrinketEffect = () => 'vitality';
     for (let i = 0; i < 40 && !s.pickups.slice(before2).some(pk => pk.item && pk.item.effect === 'vitality'); i++) s.spawnLootPickup(s.player.x + 120, s.player.y, 'epic');
+    pickTrinketEffect = pickWas;
     const gem = s.pickups.slice(before2).map(pk => pk.item).find(it => it && it.effect === 'vitality');
     out.gem = gem ? gem.hpBonus : null;
     s.pickups.slice(before2).forEach(pk => { pk.sprite.destroy(); pk.label.destroy(); }); s.pickups.length = before2;
